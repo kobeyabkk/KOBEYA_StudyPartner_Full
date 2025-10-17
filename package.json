@@ -5,8 +5,10 @@
   "scripts": {
     "build": "vite build"
   },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250705.0",
+  "dependencies": {
     "vite": "^5.4.20"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250705.0"
   }
 }
