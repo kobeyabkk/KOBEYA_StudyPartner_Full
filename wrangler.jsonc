@@ -1,15 +1,7 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "node_modules/wrangler/config-schema.json", 
   "name": "kobeya-study-partner-full",
   "compatibility_date": "2025-10-01",
   "pages_build_output_dir": "./dist",
-  "compatibility_flags": ["nodejs_compat"],
-  
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "kobeya-logs-db",
-      "database_id": "your-database-id"
-    }
-  ]
+  "compatibility_flags": ["nodejs_compat"]
 }
