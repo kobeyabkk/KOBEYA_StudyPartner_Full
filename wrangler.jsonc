@@ -1,7 +1,4 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json", 
-  "name": "kobeya-study-partner-full",
-  "compatibility_date": "2025-10-01",
-  "pages_build_output_dir": "./dist",
-  "compatibility_flags": ["nodejs_compat"]
+  // Pages の出力先
+  "pages_build_output_dir": "dist"
 }
