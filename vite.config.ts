@@ -1,21 +1,17 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 
 export default defineConfig({
   build: {
-    ssr: "src/worker.ts",  // Worker エントリポイント
+    ssr: true,               // SSRモード（=バンドラはwebworkerターゲット）
     outDir: "dist",
+    emptyOutDir: true,
     rollupOptions: {
-      output: { 
-        entryFileNames: "_worker.js",  // dist/_worker.js を生成
-        format: 'es'
-      },
+      input: "src/worker.ts",
+      output: {
+        entryFileNames: "_worker.js",
+        format: "es"
+      }
     },
-    minify: false,  // デバッグしやすくするため
-    sourcemap: false
-  },
-  // Cloudflare 実行環境で不要なネイティブ依存は外部化
-  ssr: { 
-    noExternal: true,  // 全ての依存をバンドル
-    target: 'webworker'
+    target: "es2022"
   }
-})
+});
