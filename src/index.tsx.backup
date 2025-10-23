@@ -3059,140 +3059,71 @@ app.get('/study-partner', (c) => {
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
         
         <style>
-        /* Study Partner Styles - Glassmorphism Design */
-        
-        /* Animated Gradient Background */
+        /* Study Partner Styles */
         body { 
           font-family: 'Noto Sans JP', sans-serif; 
           margin: 0;
           padding: 0;
-          background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-          background-size: 400% 400%;
-          animation: gradientBG 15s ease infinite;
-          min-height: 100vh;
         }
         
-        @keyframes gradientBG {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        
-        /* Glassmorphism Container */
         .container { 
           max-width: 680px; 
           margin: 0 auto; 
           padding: 1rem;
         }
         
-        /* Glassmorphism Card Effect */
-        section, #imagePreviewArea, #cropArea, pre {
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        }
-        
-        /* Input Fields with Glass Effect */
         input, button { 
           padding: 0.75rem; 
           margin: 0.5rem 0; 
           width: 100%; 
-          border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 0.5rem;
+          border: 1px solid #ccc;
           font-size: 16px;
-          transition: all 0.3s ease;
         }
         
-        input {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(5px);
-          color: #1f2937;
-        }
-        
-        input:focus {
-          outline: none;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          background: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-        }
-        
-        input::placeholder {
-          color: rgba(31, 41, 55, 0.6);
-        }
-        
-        /* Colorful Button System */
         button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #374151;
           color: white;
           cursor: pointer;
-          font-weight: 600;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-          transition: all 0.3s ease;
+          font-weight: 500;
         }
         
         button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          background: #4b5563;
         }
         
-        button:active {
-          transform: translateY(0);
-        }
-        
-        /* Purple Button - Secondary Actions */
         button.secondary {
-          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-          color: #1f2937;
-          box-shadow: 0 4px 15px rgba(168, 237, 234, 0.4);
+          background: #6b7280;
         }
         
-        button.secondary:hover {
-          box-shadow: 0 6px 20px rgba(168, 237, 234, 0.6);
-        }
-        
-        /* Contrast Button - Primary Purple */
         button.contrast {
-          background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+          background: #7c3aed;
         }
         
-        button.contrast:hover {
-          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.7);
-        }
-        
-        /* Success Button - Green */
         button.success {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+          background: #059669;
         }
         
-        button.success:hover {
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
-        }
-        
-        /* AI Question Floating Button - Orange/Pink Gradient */
         button.ai-question {
-          background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
+          background: #7c3aed;
           position: fixed;
           bottom: 20px;
           right: 20px;
           border-radius: 50px;
           padding: 1rem 1.5rem;
-          box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+          box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
           z-index: 1000;
           font-weight: 600;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          border: none;
           color: white;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s;
         }
         
         button.ai-question:hover {
-          transform: translateY(-3px) scale(1.05);
-          box-shadow: 0 12px 35px rgba(255, 107, 107, 0.7);
-          background: linear-gradient(135deg, #ff8787 0%, #f783ac 100%);
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
         }
         
         @media (max-width: 768px) {
@@ -3204,19 +3135,14 @@ app.get('/study-partner', (c) => {
           }
         }
         
-        /* Code Block with Glass Effect */
         pre { 
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          background: #f5f5f5; 
           padding: 1rem; 
-          border-radius: 1rem;
+          border-radius: 4px; 
           overflow: auto;
           font-size: 0.875rem;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: #1f2937;
         }
         
-        /* Grid Layout */
         .grid {
           display: grid;
           gap: 1rem;
@@ -3228,29 +3154,27 @@ app.get('/study-partner', (c) => {
           }
         }
         
-        /* Image Preview Area - Glassmorphism */
+        /* Image preview styles */
         #imagePreviewArea {
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 1px solid #d1d5db;
+          border-radius: 0.5rem;
+          background: #f9fafb;
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
         
         #previewImage {
           max-width: 100%;
           max-height: 350px;
-          border-radius: 0.5rem;
+          border-radius: 0.25rem;
           object-fit: contain;
         }
         
-        /* Loading Spinner with Colorful Effect */
+        /* Loading spinner */
         .loading-spinner {
           width: 20px;
           height: 20px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top: 2px solid #8b5cf6;
+          border: 2px solid #d1d5db;
+          border-top: 2px solid #7c3aed;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -3270,14 +3194,12 @@ app.get('/study-partner', (c) => {
           100% { transform: rotate(360deg); }
         }
         
-        /* Crop Area with Glassmorphism */
+        /* Crop area styles */
         #cropArea {
-          border: 1px solid rgba(139, 92, 246, 0.5);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 1px solid #7c3aed;
+          border-radius: 0.5rem;
+          background: #f3f4f6;
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.3);
         }
         
         #cropperContainer {
@@ -3285,18 +3207,18 @@ app.get('/study-partner', (c) => {
           overflow: hidden;
         }
         
-        /* Cropper.js customization - Colorful Accents */
+        /* Cropper.js customization */
         .cropper-point {
           width: 16px !important;
           height: 16px !important;
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+          background-color: #7c3aed !important;
           border: 3px solid white !important;
-          border-radius: 50% !important;
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.6) !important;
+          border-radius: 3px !important;
+          box-shadow: 0 0 6px rgba(0,0,0,0.3) !important;
         }
         
         .cropper-line {
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+          background-color: #7c3aed !important;
           height: 2px !important;
         }
         
@@ -3306,13 +3228,12 @@ app.get('/study-partner', (c) => {
         }
         
         .cropper-view-box {
-          outline: 2px solid #8b5cf6 !important;
-          outline-color: rgba(139, 92, 246, 0.8) !important;
+          outline: 2px solid #7c3aed !important;
+          outline-color: rgba(124, 58, 237, 0.8) !important;
         }
         
         .cropper-crop-box {
-          border: 2px solid #8b5cf6 !important;
-          box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
+          border: 2px solid #7c3aed !important;
         }
         
         /* Mobile optimization */
@@ -3320,14 +3241,14 @@ app.get('/study-partner', (c) => {
           .cropper-point {
             width: 20px !important;
             height: 20px !important;
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+            background-color: #7c3aed !important;
             border: 4px solid white !important;
-            border-radius: 50% !important;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.7) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4) !important;
           }
           
           .cropper-line {
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+            background-color: #7c3aed !important;
             height: 3px !important;
           }
           
@@ -3337,8 +3258,7 @@ app.get('/study-partner', (c) => {
           }
           
           .cropper-crop-box {
-            border: 3px solid #8b5cf6 !important;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+            border: 3px solid #7c3aed !important;
           }
         }
 
