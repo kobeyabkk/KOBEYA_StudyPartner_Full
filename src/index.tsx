@@ -3091,10 +3091,10 @@ app.get('/study-partner', (c) => {
           }
         }
         
-        /* Modern Input Styling */
+        /* Modern Input Styling - Clean Box Model */
         input { 
           padding: 0.875rem 1rem; 
-          margin: 0.5rem 0; 
+          margin: 0; 
           width: 100%; 
           border-radius: 0.375rem;
           border: 1px solid #e0e0e0;
@@ -3103,6 +3103,7 @@ app.get('/study-partner', (c) => {
           color: #37352f;
           transition: all 0.15s ease;
           font-family: inherit;
+          box-sizing: border-box;
         }
         
         input:focus {
@@ -3119,7 +3120,7 @@ app.get('/study-partner', (c) => {
           display: block;
           color: #37352f;
           font-weight: 600;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.375rem;
           font-size: 0.875rem;
         }
         
@@ -3544,6 +3545,17 @@ app.get('/study-partner', (c) => {
           section:nth-of-type(2) > div:first-child > div {
             margin-bottom: 0 !important;
           }
+        }
+        
+        /* Fix input field container styling */
+        .grid > div {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Remove extra margins from grid items */
+        section:nth-of-type(2) .grid {
+          margin-bottom: 0 !important;
         }
         
         /* Camera and File Buttons - Card Style */
