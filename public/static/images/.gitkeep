@@ -1,0 +1,36 @@
+# Placeholder for images
+# In production, replace these with actual images:
+
+# Required images:
+# - hero-kids-coding.jpg (Hero section - kids programming)
+# - classroom-interior.jpg (About page - classroom overview)
+# - teacher-suzuki.jpg (About page - instructor photo)
+# - scratch-course.jpg (Courses page - Scratch learning)
+# - roblox-course.jpg (Courses page - Roblox game creation)
+# - ai-course.jpg (Courses page - AI coaching)
+# - study-partner.jpg (Courses page - individual tutoring)
+
+# News images:
+# - news-spring-campaign.jpg
+# - news-contest-results.jpg
+# - news-ai-course.jpg
+# - news-showcase.jpg
+# - news-workshop.jpg
+
+# Additional images:
+# - students-coding.jpg
+# - teacher-support.jpg
+# - classroom-overview.jpg
+# - computer-setup.jpg
+# - teaching-area.jpg
+# - fuji-supermarket.jpg
+# - line-qr-code.png
+# - favicon-32x32.png
+# - favicon-16x16.png
+# - og-image.jpg (1200x630 for social sharing)
+
+# All images should be optimized for web:
+# - JPEG quality: 85-90%
+# - Max width: 1920px for hero images, 800px for content images
+# - WebP format preferred for better compression
+# - Alt text should be descriptive for accessibility

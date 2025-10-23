@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "WebWorker"],
     "strict": true,
-    "types": ["@cloudflare/workers-types"]
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext"
+    ],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
   },
-  "include": ["src/worker.ts"]
 }

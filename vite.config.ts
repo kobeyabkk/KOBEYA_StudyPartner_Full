@@ -1,15 +1,19 @@
-import { defineConfig } from "vite";
+import build from '@hono/vite-build/cloudflare-pages'
+import devServer from '@hono/vite-dev-server'
+import adapter from '@hono/vite-dev-server/cloudflare'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
+  plugins: [
+    build({
+      minify: false, // 開発時はminifyを無効化
+    }),
+    devServer({
+      adapter,
+      entry: 'src/index.tsx'
+    })
+  ],
   build: {
-    ssr: "src/worker.ts",     // ← このファイルをWorkerとしてビルド
-    outDir: "dist",
-    target: "es2022",
-    rollupOptions: {
-      input: "src/worker.ts",
-      output: {
-        entryFileNames: "_worker.js", // ← dist/_worker.js を強制
-      },
-    },
-  },
-});
+    outDir: 'dist'
+  }
+})
