@@ -3409,6 +3409,120 @@ app.get('/study-partner', (c) => {
         .fas, .fa {
           opacity: 0.6;
         }
+        
+        /* Override Inline Styles for Notion Look */
+        section[style*="gradient"] {
+          background: white !important;
+          color: #37352f !important;
+          text-align: left !important;
+          padding: 3rem 2rem !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        section[style*="gradient"] h1 {
+          color: #37352f !important;
+          font-size: 2.5rem !important;
+          margin-bottom: 0.75rem !important;
+        }
+        
+        section[style*="gradient"] p {
+          color: rgba(55, 53, 47, 0.7) !important;
+          opacity: 1 !important;
+          font-size: 1.125rem !important;
+        }
+        
+        section[style*="gradient"] div {
+          background: #f7f6f3 !important;
+          border-radius: 0.5rem !important;
+          padding: 1rem 1.25rem !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+        }
+        
+        section[style*="gradient"] div p {
+          color: rgba(55, 53, 47, 0.8) !important;
+          font-size: 0.9375rem !important;
+        }
+        
+        /* Modern Card Grid for Feature Buttons */
+        section > div:has(button) {
+          display: grid;
+          gap: 1rem;
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 768px) {
+          section > div:has(button) {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          section > div:has(button) {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Feature Card Buttons */
+        button[id*="Button"],
+        button[id*="Taisaku"],
+        button[id*="flashcard"],
+        button[id*="Sei"] {
+          min-height: 120px !important;
+          padding: 1.5rem !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          justify-content: center !important;
+          text-align: left !important;
+          gap: 0.5rem !important;
+          border-radius: 0.75rem !important;
+        }
+        
+        button[id*="Button"]:not(:disabled),
+        button[id*="Taisaku"]:not(:disabled),
+        button[id*="flashcard"]:not(:disabled),
+        button[id*="Sei"]:not(:disabled) {
+          background: white !important;
+          color: #37352f !important;
+        }
+        
+        /* AI Question Button - Blue Accent */
+        button#aiQuestionMainButton {
+          background: #2383e2 !important;
+          color: white !important;
+          border-color: #2383e2 !important;
+        }
+        
+        button#aiQuestionMainButton:hover {
+          background: #1a6ec7 !important;
+        }
+        
+        /* Login Button Styling */
+        button#btnLogin {
+          min-height: 56px !important;
+          padding: 1rem 1.5rem !important;
+        }
+        
+        /* Camera and File Buttons */
+        button#cameraButton,
+        button#fileButton {
+          background: white !important;
+          color: #37352f !important;
+          border: 1px solid rgba(0, 0, 0, 0.12) !important;
+        }
+        
+        button#cameraButton:hover,
+        button#fileButton:hover {
+          background: #fafafa !important;
+          border-color: rgba(0, 0, 0, 0.16) !important;
+        }
+        
+        /* Disabled Button State */
+        button:disabled {
+          background: #f7f6f3 !important;
+          color: rgba(55, 53, 47, 0.3) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
+        }
 
 
         </style>
