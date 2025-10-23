@@ -3059,164 +3059,182 @@ app.get('/study-partner', (c) => {
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
         
         <style>
-        /* Study Partner Styles - Glassmorphism Design */
+        /* Notion-Inspired Modern Design */
         
-        /* Animated Gradient Background */
+        /* Clean White Base with Subtle Gradient */
         body { 
-          font-family: 'Noto Sans JP', sans-serif; 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
           margin: 0;
           padding: 0;
-          background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-          background-size: 400% 400%;
-          animation: gradientBG 15s ease infinite;
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
           min-height: 100vh;
+          color: #37352f;
         }
         
-        @keyframes gradientBG {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        
-        /* Glassmorphism Container */
+        /* Wide Modern Container */
         .container { 
-          max-width: 680px; 
+          max-width: 1400px; 
           margin: 0 auto; 
-          padding: 1rem;
+          padding: 3rem 2rem;
         }
         
-        /* Glassmorphism Card Effect */
-        section, #imagePreviewArea, #cropArea, pre {
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        @media (max-width: 1440px) {
+          .container { max-width: 95%; }
         }
         
-        /* Input Fields with Glass Effect */
-        input, button { 
-          padding: 0.75rem; 
+        @media (max-width: 768px) {
+          .container { padding: 1.5rem 1rem; }
+        }
+        
+        /* Modern Input Styling */
+        input { 
+          padding: 0.875rem 1rem; 
           margin: 0.5rem 0; 
           width: 100%; 
-          border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          font-size: 16px;
-          transition: all 0.3s ease;
-        }
-        
-        input {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(5px);
-          color: #1f2937;
+          border-radius: 0.375rem;
+          border: 1px solid #e0e0e0;
+          font-size: 15px;
+          background: white;
+          color: #37352f;
+          transition: all 0.15s ease;
+          font-family: inherit;
         }
         
         input:focus {
           outline: none;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          background: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          border-color: #2383e2;
+          box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.1);
         }
         
         input::placeholder {
-          color: rgba(31, 41, 55, 0.6);
+          color: rgba(55, 53, 47, 0.4);
         }
         
-        /* Colorful Button System */
-        button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          cursor: pointer;
+        label {
+          display: block;
+          color: #37352f;
           font-weight: 600;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-          transition: all 0.3s ease;
+          margin-bottom: 0.5rem;
+          font-size: 0.875rem;
+        }
+        
+        /* Card-Style Button Base */
+        button { 
+          padding: 0;
+          margin: 0;
+          width: 100%; 
+          border-radius: 0.5rem;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          font-size: 15px;
+          background: white;
+          color: #37352f;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: inherit;
         }
         
         button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          background: #fafafa;
+          border-color: rgba(0, 0, 0, 0.12);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
         }
         
         button:active {
           transform: translateY(0);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
         
-        /* Purple Button - Secondary Actions */
+        button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Notion-style Color Accents */
         button.secondary {
-          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-          color: #1f2937;
-          box-shadow: 0 4px 15px rgba(168, 237, 234, 0.4);
+          background: #f7f6f3;
+          color: #64645f;
         }
         
         button.secondary:hover {
-          box-shadow: 0 6px 20px rgba(168, 237, 234, 0.6);
+          background: #efeeeb;
         }
         
-        /* Contrast Button - Primary Purple */
         button.contrast {
-          background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+          background: #2383e2;
+          color: white;
+          border-color: #2383e2;
         }
         
         button.contrast:hover {
-          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.7);
+          background: #1a6ec7;
+          border-color: #1a6ec7;
         }
         
-        /* Success Button - Green */
         button.success {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+          background: #0f7b6c;
+          color: white;
+          border-color: #0f7b6c;
         }
         
         button.success:hover {
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+          background: #0c6b5f;
+          border-color: #0c6b5f;
         }
         
-        /* AI Question Floating Button - Orange/Pink Gradient */
         button.ai-question {
-          background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
+          background: #2383e2;
           position: fixed;
-          bottom: 20px;
-          right: 20px;
+          bottom: 30px;
+          right: 30px;
           border-radius: 50px;
-          padding: 1rem 1.5rem;
-          box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+          padding: 0.875rem 1.75rem;
+          box-shadow: 0 8px 24px rgba(35, 131, 226, 0.35);
           z-index: 1000;
           font-weight: 600;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          border: none;
           color: white;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
+          min-height: auto;
+          width: auto;
         }
         
         button.ai-question:hover {
-          transform: translateY(-3px) scale(1.05);
-          box-shadow: 0 12px 35px rgba(255, 107, 107, 0.7);
-          background: linear-gradient(135deg, #ff8787 0%, #f783ac 100%);
+          background: #1a6ec7;
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(35, 131, 226, 0.45);
         }
         
         @media (max-width: 768px) {
           button.ai-question {
-            bottom: 15px;
-            right: 15px;
-            padding: 0.75rem 1rem;
+            bottom: 20px;
+            right: 20px;
+            padding: 0.75rem 1.25rem;
             font-size: 0.875rem;
           }
         }
         
-        /* Code Block with Glass Effect */
+        /* Clean Code Blocks */
         pre { 
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
-          padding: 1rem; 
-          border-radius: 1rem;
+          background: #f7f6f3; 
+          padding: 1.25rem; 
+          border-radius: 0.5rem; 
           overflow: auto;
           font-size: 0.875rem;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: #1f2937;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          color: #37352f;
         }
         
-        /* Grid Layout */
+        /* Modern Grid Layout */
         .grid {
           display: grid;
           gap: 1rem;
@@ -3224,33 +3242,39 @@ app.get('/study-partner', (c) => {
         
         @media (min-width: 768px) {
           .grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
           }
         }
         
-        /* Image Preview Area - Glassmorphism */
+        @media (min-width: 1024px) {
+          .grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Clean Image Preview */
         #imagePreviewArea {
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
         }
         
         #previewImage {
           max-width: 100%;
-          max-height: 350px;
-          border-radius: 0.5rem;
+          max-height: 400px;
+          border-radius: 0.375rem;
           object-fit: contain;
         }
         
-        /* Loading Spinner with Colorful Effect */
+        /* Minimal Loading Spinner */
         .loading-spinner {
           width: 20px;
           height: 20px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top: 2px solid #8b5cf6;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-top: 2px solid #2383e2;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -3270,33 +3294,34 @@ app.get('/study-partner', (c) => {
           100% { transform: rotate(360deg); }
         }
         
-        /* Crop Area with Glassmorphism */
+        /* Clean Crop Area */
         #cropArea {
-          border: 1px solid rgba(139, 92, 246, 0.5);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.3);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
         }
         
         #cropperContainer {
-          max-height: 400px;
+          max-height: 450px;
           overflow: hidden;
+          border-radius: 0.375rem;
         }
         
-        /* Cropper.js customization - Colorful Accents */
+        /* Notion-style Cropper.js */
         .cropper-point {
-          width: 16px !important;
-          height: 16px !important;
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-          border: 3px solid white !important;
+          width: 14px !important;
+          height: 14px !important;
+          background-color: #2383e2 !important;
+          border: 2px solid white !important;
           border-radius: 50% !important;
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.6) !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
         }
         
         .cropper-line {
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+          background-color: #2383e2 !important;
           height: 2px !important;
         }
         
@@ -3306,28 +3331,27 @@ app.get('/study-partner', (c) => {
         }
         
         .cropper-view-box {
-          outline: 2px solid #8b5cf6 !important;
-          outline-color: rgba(139, 92, 246, 0.8) !important;
+          outline: 2px solid #2383e2 !important;
+          outline-color: rgba(35, 131, 226, 0.75) !important;
         }
         
         .cropper-crop-box {
-          border: 2px solid #8b5cf6 !important;
-          box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
+          border: 2px solid #2383e2 !important;
         }
         
         /* Mobile optimization */
         @media (max-width: 768px) {
           .cropper-point {
-            width: 20px !important;
-            height: 20px !important;
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-            border: 4px solid white !important;
+            width: 18px !important;
+            height: 18px !important;
+            background-color: #2383e2 !important;
+            border: 3px solid white !important;
             border-radius: 50% !important;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.7) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
           }
           
           .cropper-line {
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+            background-color: #2383e2 !important;
             height: 3px !important;
           }
           
@@ -3337,9 +3361,167 @@ app.get('/study-partner', (c) => {
           }
           
           .cropper-crop-box {
-            border: 3px solid #8b5cf6 !important;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+            border: 3px solid #2383e2 !important;
           }
+        }
+        
+        /* Clean Section Cards */
+        section {
+          background: white !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 0.75rem !important;
+          padding: 2rem !important;
+          margin-bottom: 1.5rem !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+          transition: box-shadow 0.2s ease !important;
+        }
+        
+        section:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Typography */
+        h1 {
+          color: #37352f;
+          font-weight: 700;
+          margin: 0;
+          font-size: 2rem;
+        }
+        
+        h2 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.5rem;
+        }
+        
+        h3 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.25rem;
+        }
+        
+        p {
+          color: rgba(55, 53, 47, 0.8);
+          line-height: 1.6;
+        }
+        
+        /* Notion-style Icon Styling */
+        .fas, .fa {
+          opacity: 0.6;
+        }
+        
+        /* Override Inline Styles for Notion Look */
+        section[style*="gradient"] {
+          background: white !important;
+          color: #37352f !important;
+          text-align: left !important;
+          padding: 3rem 2rem !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        section[style*="gradient"] h1 {
+          color: #37352f !important;
+          font-size: 2.5rem !important;
+          margin-bottom: 0.75rem !important;
+        }
+        
+        section[style*="gradient"] p {
+          color: rgba(55, 53, 47, 0.7) !important;
+          opacity: 1 !important;
+          font-size: 1.125rem !important;
+        }
+        
+        section[style*="gradient"] div {
+          background: #f7f6f3 !important;
+          border-radius: 0.5rem !important;
+          padding: 1rem 1.25rem !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+        }
+        
+        section[style*="gradient"] div p {
+          color: rgba(55, 53, 47, 0.8) !important;
+          font-size: 0.9375rem !important;
+        }
+        
+        /* Modern Card Grid for Feature Buttons */
+        section > div:has(button) {
+          display: grid;
+          gap: 1rem;
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 768px) {
+          section > div:has(button) {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          section > div:has(button) {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Feature Card Buttons */
+        button[id*="Button"],
+        button[id*="Taisaku"],
+        button[id*="flashcard"],
+        button[id*="Sei"] {
+          min-height: 120px !important;
+          padding: 1.5rem !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          justify-content: center !important;
+          text-align: left !important;
+          gap: 0.5rem !important;
+          border-radius: 0.75rem !important;
+        }
+        
+        button[id*="Button"]:not(:disabled),
+        button[id*="Taisaku"]:not(:disabled),
+        button[id*="flashcard"]:not(:disabled),
+        button[id*="Sei"]:not(:disabled) {
+          background: white !important;
+          color: #37352f !important;
+        }
+        
+        /* AI Question Button - Blue Accent */
+        button#aiQuestionMainButton {
+          background: #2383e2 !important;
+          color: white !important;
+          border-color: #2383e2 !important;
+        }
+        
+        button#aiQuestionMainButton:hover {
+          background: #1a6ec7 !important;
+        }
+        
+        /* Login Button Styling */
+        button#btnLogin {
+          min-height: 56px !important;
+          padding: 1rem 1.5rem !important;
+        }
+        
+        /* Camera and File Buttons */
+        button#cameraButton,
+        button#fileButton {
+          background: white !important;
+          color: #37352f !important;
+          border: 1px solid rgba(0, 0, 0, 0.12) !important;
+        }
+        
+        button#cameraButton:hover,
+        button#fileButton:hover {
+          background: #fafafa !important;
+          border-color: rgba(0, 0, 0, 0.16) !important;
+        }
+        
+        /* Disabled Button State */
+        button:disabled {
+          background: #f7f6f3 !important;
+          color: rgba(55, 53, 47, 0.3) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
         }
 
 
