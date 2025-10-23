@@ -3059,169 +3059,182 @@ app.get('/study-partner', (c) => {
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
         
         <style>
-        /* Study Partner Styles */
+        /* Notion-Inspired Modern Design */
+        
+        /* Clean White Base with Subtle Gradient */
         body { 
-          font-family: 'Noto Sans JP', sans-serif; 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
           margin: 0;
           padding: 0;
-          background: linear-gradient(-45deg, #0f172a, #1e3a8a, #581c87, #831843);
-          background-size: 400% 400%;
-          animation: gradientBG 20s ease infinite;
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
           min-height: 100vh;
+          color: #37352f;
         }
         
-        @keyframes gradientBG {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        
+        /* Wide Modern Container */
         .container { 
-          max-width: 1200px; 
+          max-width: 1400px; 
           margin: 0 auto; 
-          padding: 2.5rem;
+          padding: 3rem 2rem;
         }
         
-        @media (max-width: 1280px) {
-          .container { max-width: 95%; padding: 2rem; }
+        @media (max-width: 1440px) {
+          .container { max-width: 95%; }
         }
         
         @media (max-width: 768px) {
-          .container { max-width: 100%; padding: 1rem; }
+          .container { padding: 1.5rem 1rem; }
         }
         
-        input, button { 
-          padding: 1rem 1.5rem; 
-          margin: 0.75rem 0; 
+        /* Modern Input Styling */
+        input { 
+          padding: 0.875rem 1rem; 
+          margin: 0.5rem 0; 
           width: 100%; 
-          border-radius: 1rem;
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          font-size: 16px;
-          font-weight: 600;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        input {
-          background: rgba(255, 255, 255, 0.9);
-          color: #1f2937;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border-radius: 0.375rem;
+          border: 1px solid #e0e0e0;
+          font-size: 15px;
+          background: white;
+          color: #37352f;
+          transition: all 0.15s ease;
+          font-family: inherit;
         }
         
         input:focus {
           outline: none;
-          border: 2px solid #8b5cf6;
-          background: rgba(255, 255, 255, 0.95);
-          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1), 0 8px 20px rgba(0, 0, 0, 0.2);
-          transform: translateY(-2px);
+          border-color: #2383e2;
+          box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.1);
+        }
+        
+        input::placeholder {
+          color: rgba(55, 53, 47, 0.4);
         }
         
         label {
           display: block;
-          color: white;
-          font-weight: 700;
+          color: #37352f;
+          font-weight: 600;
           margin-bottom: 0.5rem;
-          font-size: 1rem;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+          font-size: 0.875rem;
         }
         
-        button {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-          background-size: 200% 100%;
-          color: white;
+        /* Card-Style Button Base */
+        button { 
+          padding: 0;
+          margin: 0;
+          width: 100%; 
+          border-radius: 0.5rem;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          font-size: 15px;
+          background: white;
+          color: #37352f;
           cursor: pointer;
-          font-weight: 700;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        button::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-          transition: left 0.5s;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: inherit;
         }
         
         button:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+          background: #fafafa;
+          border-color: rgba(0, 0, 0, 0.12);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
         }
         
-        button:hover::before {
-          left: 100%;
+        button:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
         
         button:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
           transform: none !important;
-          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
         }
         
+        /* Notion-style Color Accents */
         button.secondary {
-          background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
-          box-shadow: 0 10px 30px rgba(6, 182, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+          background: #f7f6f3;
+          color: #64645f;
+        }
+        
+        button.secondary:hover {
+          background: #efeeeb;
         }
         
         button.contrast {
-          background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%);
-          background-size: 200% 100%;
-          box-shadow: 0 10px 30px rgba(124, 58, 237, 0.6), 0 0 50px rgba(124, 58, 237, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+          background: #2383e2;
+          color: white;
+          border-color: #2383e2;
+        }
+        
+        button.contrast:hover {
+          background: #1a6ec7;
+          border-color: #1a6ec7;
         }
         
         button.success {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+          background: #0f7b6c;
+          color: white;
+          border-color: #0f7b6c;
+        }
+        
+        button.success:hover {
+          background: #0c6b5f;
+          border-color: #0c6b5f;
         }
         
         button.ai-question {
-          background: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%);
-          background-size: 200% 100%;
+          background: #2383e2;
           position: fixed;
           bottom: 30px;
           right: 30px;
-          border-radius: 60px;
-          padding: 1.25rem 2rem;
-          box-shadow: 0 15px 40px rgba(249, 115, 22, 0.6), 0 0 60px rgba(236, 72, 153, 0.4);
+          border-radius: 50px;
+          padding: 0.875rem 1.75rem;
+          box-shadow: 0 8px 24px rgba(35, 131, 226, 0.35);
           z-index: 1000;
-          font-weight: 700;
-          font-size: 1.05rem;
-          border: 2px solid rgba(255, 255, 255, 0.4);
+          font-weight: 600;
+          border: none;
           color: white;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
+          min-height: auto;
+          width: auto;
         }
         
         button.ai-question:hover {
-          transform: translateY(-5px) scale(1.05);
-          box-shadow: 0 20px 50px rgba(249, 115, 22, 0.8), 0 0 80px rgba(236, 72, 153, 0.6);
+          background: #1a6ec7;
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(35, 131, 226, 0.45);
         }
         
         @media (max-width: 768px) {
           button.ai-question {
-            bottom: 15px;
-            right: 15px;
-            padding: 0.75rem 1rem;
+            bottom: 20px;
+            right: 20px;
+            padding: 0.75rem 1.25rem;
             font-size: 0.875rem;
           }
         }
         
+        /* Clean Code Blocks */
         pre { 
-          background: rgba(255, 255, 255, 0.9); 
-          backdrop-filter: blur(10px);
-          padding: 1.5rem; 
-          border-radius: 1rem; 
+          background: #f7f6f3; 
+          padding: 1.25rem; 
+          border-radius: 0.5rem; 
           overflow: auto;
           font-size: 0.875rem;
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-          color: #1f2937;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          color: #37352f;
         }
         
+        /* Modern Grid Layout */
         .grid {
           display: grid;
           gap: 1rem;
@@ -3229,34 +3242,39 @@ app.get('/study-partner', (c) => {
         
         @media (min-width: 768px) {
           .grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
           }
         }
         
-        /* Enhanced Image preview styles */
+        @media (min-width: 1024px) {
+          .grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Clean Image Preview */
         #imagePreviewArea {
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          border-radius: 1.5rem;
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(20px);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
           overflow: hidden;
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
-          padding: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
         }
         
         #previewImage {
           max-width: 100%;
-          max-height: 350px;
-          border-radius: 0.25rem;
+          max-height: 400px;
+          border-radius: 0.375rem;
           object-fit: contain;
         }
         
-        /* Loading spinner */
+        /* Minimal Loading Spinner */
         .loading-spinner {
           width: 20px;
           height: 20px;
-          border: 2px solid #d1d5db;
-          border-top: 2px solid #7c3aed;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-top: 2px solid #2383e2;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -3276,34 +3294,34 @@ app.get('/study-partner', (c) => {
           100% { transform: rotate(360deg); }
         }
         
-        /* Enhanced Crop area styles */
+        /* Clean Crop Area */
         #cropArea {
-          border: 2px solid rgba(139, 92, 246, 0.5);
-          border-radius: 1.5rem;
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(20px);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
           overflow: hidden;
-          box-shadow: 0 12px 40px rgba(139, 92, 246, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
-          padding: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
         }
         
         #cropperContainer {
-          max-height: 400px;
+          max-height: 450px;
           overflow: hidden;
+          border-radius: 0.375rem;
         }
         
-        /* Cropper.js customization */
+        /* Notion-style Cropper.js */
         .cropper-point {
-          width: 16px !important;
-          height: 16px !important;
-          background-color: #7c3aed !important;
-          border: 3px solid white !important;
-          border-radius: 3px !important;
-          box-shadow: 0 0 6px rgba(0,0,0,0.3) !important;
+          width: 14px !important;
+          height: 14px !important;
+          background-color: #2383e2 !important;
+          border: 2px solid white !important;
+          border-radius: 50% !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
         }
         
         .cropper-line {
-          background-color: #7c3aed !important;
+          background-color: #2383e2 !important;
           height: 2px !important;
         }
         
@@ -3313,27 +3331,27 @@ app.get('/study-partner', (c) => {
         }
         
         .cropper-view-box {
-          outline: 2px solid #7c3aed !important;
-          outline-color: rgba(124, 58, 237, 0.8) !important;
+          outline: 2px solid #2383e2 !important;
+          outline-color: rgba(35, 131, 226, 0.75) !important;
         }
         
         .cropper-crop-box {
-          border: 2px solid #7c3aed !important;
+          border: 2px solid #2383e2 !important;
         }
         
         /* Mobile optimization */
         @media (max-width: 768px) {
           .cropper-point {
-            width: 20px !important;
-            height: 20px !important;
-            background-color: #7c3aed !important;
-            border: 4px solid white !important;
-            border-radius: 4px !important;
-            box-shadow: 0 0 10px rgba(0,0,0,0.4) !important;
+            width: 18px !important;
+            height: 18px !important;
+            background-color: #2383e2 !important;
+            border: 3px solid white !important;
+            border-radius: 50% !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
           }
           
           .cropper-line {
-            background-color: #7c3aed !important;
+            background-color: #2383e2 !important;
             height: 3px !important;
           }
           
@@ -3343,32 +3361,53 @@ app.get('/study-partner', (c) => {
           }
           
           .cropper-crop-box {
-            border: 3px solid #7c3aed !important;
+            border: 3px solid #2383e2 !important;
           }
         }
         
-        /* Enhanced Section & Card Styles */
+        /* Clean Section Cards */
         section {
-          background: rgba(255, 255, 255, 0.08) !important;
-          backdrop-filter: blur(20px) saturate(180%) !important;
-          -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-          border: 2px solid rgba(255, 255, 255, 0.15) !important;
-          border-radius: 1.5rem !important;
-          padding: 2.5rem !important;
-          margin-bottom: 2rem !important;
-          box-shadow: 
-            0 15px 50px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 0 rgba(255, 255, 255, 0.3) !important;
+          background: white !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 0.75rem !important;
+          padding: 2rem !important;
+          margin-bottom: 1.5rem !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+          transition: box-shadow 0.2s ease !important;
         }
         
-        h1, h2, h3 {
-          color: white;
-          text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        section:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Typography */
+        h1 {
+          color: #37352f;
+          font-weight: 700;
+          margin: 0;
+          font-size: 2rem;
+        }
+        
+        h2 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.5rem;
+        }
+        
+        h3 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.25rem;
         }
         
         p {
-          color: rgba(255, 255, 255, 0.95);
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          color: rgba(55, 53, 47, 0.8);
+          line-height: 1.6;
+        }
+        
+        /* Notion-style Icon Styling */
+        .fas, .fa {
+          opacity: 0.6;
         }
 
 
