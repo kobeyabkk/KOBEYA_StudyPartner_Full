@@ -3071,19 +3071,24 @@ app.get('/study-partner', (c) => {
           color: #37352f;
         }
         
-        /* Wide Modern Container */
+        /* Centered Modern Container - A Plan */
         .container { 
-          max-width: 1400px; 
+          max-width: 900px; 
           margin: 0 auto; 
           padding: 3rem 2rem;
         }
         
-        @media (max-width: 1440px) {
-          .container { max-width: 95%; }
+        @media (max-width: 960px) {
+          .container { 
+            max-width: 95%; 
+            padding: 2rem 1.5rem;
+          }
         }
         
         @media (max-width: 768px) {
-          .container { padding: 1.5rem 1rem; }
+          .container { 
+            padding: 1.5rem 1rem; 
+          }
         }
         
         /* Modern Input Styling */
@@ -3234,19 +3239,20 @@ app.get('/study-partner', (c) => {
           color: #37352f;
         }
         
-        /* Modern Grid Layout */
+        /* Unified Grid Layout for All Elements */
         .grid {
           display: grid;
           gap: 1rem;
+          grid-template-columns: 1fr;
         }
         
-        @media (min-width: 768px) {
+        @media (min-width: 640px) {
           .grid {
             grid-template-columns: repeat(2, 1fr);
           }
         }
         
-        @media (min-width: 1024px) {
+        @media (min-width: 768px) {
           .grid {
             grid-template-columns: repeat(3, 1fr);
           }
@@ -3410,72 +3416,96 @@ app.get('/study-partner', (c) => {
           opacity: 0.6;
         }
         
-        /* Override Inline Styles for Notion Look */
+        /* Override Inline Styles for Notion Look - Centered Header */
         section[style*="gradient"] {
           background: white !important;
           color: #37352f !important;
-          text-align: left !important;
-          padding: 3rem 2rem !important;
+          text-align: center !important;
+          padding: 3rem 2rem 2.5rem 2rem !important;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+          margin-bottom: 2rem !important;
         }
         
         section[style*="gradient"] h1 {
           color: #37352f !important;
-          font-size: 2.5rem !important;
-          margin-bottom: 0.75rem !important;
+          font-size: 2.25rem !important;
+          margin-bottom: 0.5rem !important;
+          font-weight: 700 !important;
         }
         
         section[style*="gradient"] p {
-          color: rgba(55, 53, 47, 0.7) !important;
+          color: rgba(55, 53, 47, 0.65) !important;
           opacity: 1 !important;
-          font-size: 1.125rem !important;
+          font-size: 1rem !important;
+          margin-bottom: 1.25rem !important;
         }
         
         section[style*="gradient"] div {
           background: #f7f6f3 !important;
           border-radius: 0.5rem !important;
-          padding: 1rem 1.25rem !important;
+          padding: 0.875rem 1.25rem !important;
           border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          max-width: 600px !important;
+          margin: 0 auto !important;
         }
         
         section[style*="gradient"] div p {
-          color: rgba(55, 53, 47, 0.8) !important;
-          font-size: 0.9375rem !important;
+          color: rgba(55, 53, 47, 0.7) !important;
+          font-size: 0.875rem !important;
+          margin: 0 !important;
         }
         
-        /* Modern Card Grid for Feature Buttons */
-        section > div:has(button) {
+        /* Main Section Grid - Unified 3-Column Layout */
+        section:nth-of-type(2) {
           display: grid;
           gap: 1rem;
           grid-template-columns: 1fr;
         }
         
-        @media (min-width: 768px) {
-          section > div:has(button) {
+        @media (min-width: 640px) {
+          section:nth-of-type(2) {
             grid-template-columns: repeat(2, 1fr);
           }
         }
         
-        @media (min-width: 1024px) {
-          section > div:has(button) {
+        @media (min-width: 768px) {
+          section:nth-of-type(2) {
             grid-template-columns: repeat(3, 1fr);
           }
         }
         
-        /* Feature Card Buttons */
+        /* Remove individual div spacing in main section */
+        section:nth-of-type(2) > div {
+          margin-bottom: 0 !important;
+        }
+        
+        /* Feature Card Buttons - Taller & More Spacious */
         button[id*="Button"],
         button[id*="Taisaku"],
         button[id*="flashcard"],
-        button[id*="Sei"] {
-          min-height: 120px !important;
-          padding: 1.5rem !important;
+        button[id*="Sei"],
+        button#cameraButton,
+        button#fileButton {
+          min-height: 140px !important;
+          padding: 1.75rem 1.5rem !important;
           display: flex !important;
           flex-direction: column !important;
           align-items: flex-start !important;
           justify-content: center !important;
           text-align: left !important;
-          gap: 0.5rem !important;
+          gap: 0.75rem !important;
           border-radius: 0.75rem !important;
+        }
+        
+        /* Button icons larger */
+        button[id*="Button"] i,
+        button[id*="Taisaku"] i,
+        button[id*="flashcard"] i,
+        button[id*="Sei"] i,
+        button#cameraButton i,
+        button#fileButton i {
+          font-size: 1.25rem;
+          opacity: 0.8;
         }
         
         button[id*="Button"]:not(:disabled),
@@ -3497,13 +3527,26 @@ app.get('/study-partner', (c) => {
           background: #1a6ec7 !important;
         }
         
-        /* Login Button Styling */
+        /* Login Button - Span Full Width on Desktop */
         button#btnLogin {
           min-height: 56px !important;
           padding: 1rem 1.5rem !important;
         }
         
-        /* Camera and File Buttons */
+        @media (min-width: 768px) {
+          section:nth-of-type(2) > div:first-child {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+          }
+          
+          section:nth-of-type(2) > div:first-child > div {
+            margin-bottom: 0 !important;
+          }
+        }
+        
+        /* Camera and File Buttons - Card Style */
         button#cameraButton,
         button#fileButton {
           background: white !important;
@@ -3511,10 +3554,22 @@ app.get('/study-partner', (c) => {
           border: 1px solid rgba(0, 0, 0, 0.12) !important;
         }
         
-        button#cameraButton:hover,
-        button#fileButton:hover {
+        button#cameraButton:not(:disabled):hover,
+        button#fileButton:not(:disabled):hover {
           background: #fafafa !important;
           border-color: rgba(0, 0, 0, 0.16) !important;
+        }
+        
+        /* Photo upload section wrapper */
+        section:nth-of-type(2) > div:has(#cameraButton) {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 1rem !important;
+          grid-column: 1 / -1 !important;
+        }
+        
+        section:nth-of-type(2) > div:has(#cameraButton) > div {
+          margin-bottom: 0 !important;
         }
         
         /* Disabled Button State */
