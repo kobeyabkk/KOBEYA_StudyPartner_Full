@@ -3059,16 +3059,14 @@ app.get('/study-partner', (c) => {
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
         
         <style>
-        /* Study Partner Styles - Glassmorphism Design */
-        
-        /* Animated Gradient Background */
+        /* Study Partner Styles */
         body { 
           font-family: 'Noto Sans JP', sans-serif; 
           margin: 0;
           padding: 0;
-          background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+          background: linear-gradient(-45deg, #0f172a, #1e3a8a, #581c87, #831843);
           background-size: 400% 400%;
-          animation: gradientBG 15s ease infinite;
+          animation: gradientBG 20s ease infinite;
           min-height: 100vh;
         }
         
@@ -3078,121 +3076,129 @@ app.get('/study-partner', (c) => {
           100% { background-position: 0% 50%; }
         }
         
-        /* Glassmorphism Container */
         .container { 
-          max-width: 680px; 
+          max-width: 1200px; 
           margin: 0 auto; 
-          padding: 1rem;
+          padding: 2.5rem;
         }
         
-        /* Glassmorphism Card Effect */
-        section, #imagePreviewArea, #cropArea, pre {
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        @media (max-width: 1280px) {
+          .container { max-width: 95%; padding: 2rem; }
         }
         
-        /* Input Fields with Glass Effect */
+        @media (max-width: 768px) {
+          .container { max-width: 100%; padding: 1rem; }
+        }
+        
         input, button { 
-          padding: 0.75rem; 
-          margin: 0.5rem 0; 
+          padding: 1rem 1.5rem; 
+          margin: 0.75rem 0; 
           width: 100%; 
           border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          border: 2px solid rgba(255, 255, 255, 0.2);
           font-size: 16px;
-          transition: all 0.3s ease;
+          font-weight: 600;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         input {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(5px);
+          background: rgba(255, 255, 255, 0.9);
           color: #1f2937;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         input:focus {
           outline: none;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          background: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          border: 2px solid #8b5cf6;
+          background: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1), 0 8px 20px rgba(0, 0, 0, 0.2);
+          transform: translateY(-2px);
         }
         
-        input::placeholder {
-          color: rgba(31, 41, 55, 0.6);
+        label {
+          display: block;
+          color: white;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          font-size: 1rem;
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
-        /* Colorful Button System */
         button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+          background-size: 200% 100%;
           color: white;
           cursor: pointer;
-          font-weight: 600;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-          transition: all 0.3s ease;
+          font-weight: 700;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s;
         }
         
         button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          transform: translateY(-3px);
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
         }
         
-        button:active {
-          transform: translateY(0);
+        button:hover::before {
+          left: 100%;
         }
         
-        /* Purple Button - Secondary Actions */
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+        
         button.secondary {
-          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-          color: #1f2937;
-          box-shadow: 0 4px 15px rgba(168, 237, 234, 0.4);
+          background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+          box-shadow: 0 10px 30px rgba(6, 182, 212, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
         
-        button.secondary:hover {
-          box-shadow: 0 6px 20px rgba(168, 237, 234, 0.6);
-        }
-        
-        /* Contrast Button - Primary Purple */
         button.contrast {
-          background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-          box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+          background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%);
+          background-size: 200% 100%;
+          box-shadow: 0 10px 30px rgba(124, 58, 237, 0.6), 0 0 50px rgba(124, 58, 237, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
         
-        button.contrast:hover {
-          box-shadow: 0 6px 20px rgba(139, 92, 246, 0.7);
-        }
-        
-        /* Success Button - Green */
         button.success {
           background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+          box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
         
-        button.success:hover {
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
-        }
-        
-        /* AI Question Floating Button - Orange/Pink Gradient */
         button.ai-question {
-          background: linear-gradient(135deg, #ff6b6b 0%, #f06595 100%);
+          background: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%);
+          background-size: 200% 100%;
           position: fixed;
-          bottom: 20px;
-          right: 20px;
-          border-radius: 50px;
-          padding: 1rem 1.5rem;
-          box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+          bottom: 30px;
+          right: 30px;
+          border-radius: 60px;
+          padding: 1.25rem 2rem;
+          box-shadow: 0 15px 40px rgba(249, 115, 22, 0.6), 0 0 60px rgba(236, 72, 153, 0.4);
           z-index: 1000;
-          font-weight: 600;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          font-weight: 700;
+          font-size: 1.05rem;
+          border: 2px solid rgba(255, 255, 255, 0.4);
           color: white;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         button.ai-question:hover {
-          transform: translateY(-3px) scale(1.05);
-          box-shadow: 0 12px 35px rgba(255, 107, 107, 0.7);
-          background: linear-gradient(135deg, #ff8787 0%, #f783ac 100%);
+          transform: translateY(-5px) scale(1.05);
+          box-shadow: 0 20px 50px rgba(249, 115, 22, 0.8), 0 0 80px rgba(236, 72, 153, 0.6);
         }
         
         @media (max-width: 768px) {
@@ -3204,19 +3210,18 @@ app.get('/study-partner', (c) => {
           }
         }
         
-        /* Code Block with Glass Effect */
         pre { 
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.9); 
           backdrop-filter: blur(10px);
-          padding: 1rem; 
-          border-radius: 1rem;
+          padding: 1.5rem; 
+          border-radius: 1rem; 
           overflow: auto;
           font-size: 0.875rem;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
           color: #1f2937;
         }
         
-        /* Grid Layout */
         .grid {
           display: grid;
           gap: 1rem;
@@ -3228,29 +3233,30 @@ app.get('/study-partner', (c) => {
           }
         }
         
-        /* Image Preview Area - Glassmorphism */
+        /* Enhanced Image preview styles */
         #imagePreviewArea {
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          border-radius: 1.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+          padding: 1.5rem;
         }
         
         #previewImage {
           max-width: 100%;
           max-height: 350px;
-          border-radius: 0.5rem;
+          border-radius: 0.25rem;
           object-fit: contain;
         }
         
-        /* Loading Spinner with Colorful Effect */
+        /* Loading spinner */
         .loading-spinner {
           width: 20px;
           height: 20px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top: 2px solid #8b5cf6;
+          border: 2px solid #d1d5db;
+          border-top: 2px solid #7c3aed;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -3270,14 +3276,15 @@ app.get('/study-partner', (c) => {
           100% { transform: rotate(360deg); }
         }
         
-        /* Crop Area with Glassmorphism */
+        /* Enhanced Crop area styles */
         #cropArea {
-          border: 1px solid rgba(139, 92, 246, 0.5);
-          border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
+          border: 2px solid rgba(139, 92, 246, 0.5);
+          border-radius: 1.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
           overflow: hidden;
-          box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.3);
+          box-shadow: 0 12px 40px rgba(139, 92, 246, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+          padding: 1.5rem;
         }
         
         #cropperContainer {
@@ -3285,18 +3292,18 @@ app.get('/study-partner', (c) => {
           overflow: hidden;
         }
         
-        /* Cropper.js customization - Colorful Accents */
+        /* Cropper.js customization */
         .cropper-point {
           width: 16px !important;
           height: 16px !important;
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+          background-color: #7c3aed !important;
           border: 3px solid white !important;
-          border-radius: 50% !important;
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.6) !important;
+          border-radius: 3px !important;
+          box-shadow: 0 0 6px rgba(0,0,0,0.3) !important;
         }
         
         .cropper-line {
-          background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+          background-color: #7c3aed !important;
           height: 2px !important;
         }
         
@@ -3306,13 +3313,12 @@ app.get('/study-partner', (c) => {
         }
         
         .cropper-view-box {
-          outline: 2px solid #8b5cf6 !important;
-          outline-color: rgba(139, 92, 246, 0.8) !important;
+          outline: 2px solid #7c3aed !important;
+          outline-color: rgba(124, 58, 237, 0.8) !important;
         }
         
         .cropper-crop-box {
-          border: 2px solid #8b5cf6 !important;
-          box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
+          border: 2px solid #7c3aed !important;
         }
         
         /* Mobile optimization */
@@ -3320,14 +3326,14 @@ app.get('/study-partner', (c) => {
           .cropper-point {
             width: 20px !important;
             height: 20px !important;
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+            background-color: #7c3aed !important;
             border: 4px solid white !important;
-            border-radius: 50% !important;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.7) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4) !important;
           }
           
           .cropper-line {
-            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+            background-color: #7c3aed !important;
             height: 3px !important;
           }
           
@@ -3337,9 +3343,32 @@ app.get('/study-partner', (c) => {
           }
           
           .cropper-crop-box {
-            border: 3px solid #8b5cf6 !important;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+            border: 3px solid #7c3aed !important;
           }
+        }
+        
+        /* Enhanced Section & Card Styles */
+        section {
+          background: rgba(255, 255, 255, 0.08) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          border: 2px solid rgba(255, 255, 255, 0.15) !important;
+          border-radius: 1.5rem !important;
+          padding: 2.5rem !important;
+          margin-bottom: 2rem !important;
+          box-shadow: 
+            0 15px 50px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        h1, h2, h3 {
+          color: white;
+          text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        p {
+          color: rgba(255, 255, 255, 0.95);
+          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
 
 
