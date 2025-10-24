@@ -207,8 +207,8 @@ interface StudentInfo {
 ## 🚀 デプロイ状況
 
 ### 本番環境
-- **Status**: 🟡 デプロイ準備中
-- **URL**: https://kobeya-programming.pages.dev/
+- **Status**: ✅ 稼働中
+- **URL**: https://kobeyabkk-studypartner.pages.dev/
 - **Platform**: Cloudflare Pages
 
 ### 開発環境
