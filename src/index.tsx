@@ -1185,45 +1185,23 @@ app.post('/api/ai/chat', async (c) => {
         messages: [
           {
             role: 'system',
-            content: `あなたは「プログラミングのKOBEYA」の優秀な学習サポートAIアシスタントです。生徒の質問に親身になって答える学習サポート専門AIです。
+            content: `あなたは「プログラミングのKOBEYA」の優秀な学習サポートAIアシスタントです。
 
-【重要】このチャット機能では確認問題や類似問題の生成は行いません。通常のChatGPTの学習サポートモードで質問に答えてください。
-
-【あなたの役割（文部科学省学習指導要領準拠）】
-・生徒の学習をサポートする頼れる先生（人間中心の学習重視）
-・主体的・対話的で深い学び：段階的思考プロセスの明示支援
-・個別最適化：生徒の理解度に応じた説明方法の選択
-・言語能力育成：適切な語彙と文法を用いた明確な説明
-・問題解決能力育成：複数の解決方法提示、比較検討促進
-・励ましと支援姿勢：失敗を学習機会として前向きに捉える指導
-・多様な表現方法：文字、図表等を組み合わせた理解促進
+【あなたの役割】
+生徒の学習をサポートする頼れるアシスタントとして、質問に親身になって答えてください。通常のChatGPTと同様に、どんな質問にも柔軟に対応してください。
 
 【現在の学習コンテキスト】
 ${contextInfo}
 
-【回答方針（教育方針準拠）】
-✅ 実行すべきこと：
-・知識・技能習得支援：質問内容を正確に理解し、段階的に説明
-・思考・判断・表現力育成：ソクラテス式問答で気付きを促す質問投げかけ
-・主体的学習態度育成：学習への関心・意欲向上、粘り強い取組支援
-・個別最適化：多様な学習スタイルに対応した説明方法選択
-・言語能力重視：学習者の発達段階に応じた適切な語彙選択
-・励ましと支援姿勢：「一緒に頑張りましょう！」で自信を損なわない指導
-
-❌ 実行してはいけないこと：
-・確認問題や類似問題の生成
-・JSON形式でのレスポンス
-・「steps」や「similarProblems」の作成
-・問題作成や出題機能
-
 【回答スタイル】
-通常のChatGPTのように自然で親しみやすい文章で回答してください。生徒が理解しやすいよう、必要に応じて：
-・手順を分けて説明
-・具体例を多用  
+・自然で親しみやすい文章で回答
+・必要に応じて、手順を分けて説明
+・具体例を多用
 ・図式的な説明（記号や矢印使用）
 ・覚え方のコツやヒント
+・問題を作成したり、確認問題を出すことも可能です
 
-生徒からの質問に、学習サポートに特化した温かく分かりやすい回答をしてください。`
+生徒からの質問に、温かく分かりやすい回答をしてください。`
           },
           {
             role: 'user',
@@ -1569,6 +1547,16 @@ app.get('/ai-chat/:sessionId', (c) => {
         .cropper-view-box {
           outline: 1px solid rgba(124, 58, 237, 0.75) !important;
         }
+        
+        /* 音声入力のパルスアニメーション */
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
         </style>
     </head>
     <body>
@@ -1607,9 +1595,18 @@ app.get('/ai-chat/:sessionId', (c) => {
                     <button class="image-btn" id="fileBtn">
                         <i class="fas fa-folder-open"></i> 📁 ファイル選択
                     </button>
+                    <button class="image-btn" id="voiceInputBtn">
+                        <i class="fas fa-microphone"></i> 🎤 音声入力
+                    </button>
                     <button class="image-btn" id="clearImageBtn" style="display: none; background: #fee2e2; color: #dc2626;">
                         <i class="fas fa-times"></i> 画像をクリア
                     </button>
+                </div>
+                
+                <!-- 音声入力ステータス -->
+                <div id="voiceInputStatus" style="display: none; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 1rem; color: #92400e; font-weight: 600;">
+                    <i class="fas fa-microphone-alt" style="margin-right: 0.5rem; color: #f59e0b; animation: pulse 1.5s ease-in-out infinite;"></i>
+                    🎤 音声を聞き取っています...
                 </div>
                 
                 <!-- 隠し画像入力 -->
@@ -2314,6 +2311,115 @@ app.get('/ai-chat/:sessionId', (c) => {
             
             return messageDiv;
         }
+        
+        // 音声入力機能
+        let recognition = null;
+        let isVoiceInputActive = false;
+        
+        // Web Speech API (音声認識) の初期化
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            
+            recognition.onstart = () => {
+                console.log('🎤 音声認識開始');
+                isVoiceInputActive = true;
+                document.getElementById('voiceInputStatus').style.display = 'block';
+                document.getElementById('voiceInputBtn').style.background = '#f59e0b';
+                document.getElementById('voiceInputBtn').style.color = 'white';
+            };
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    console.log('🎤 音声認識結果（確定）:', finalTranscript);
+                    questionInput.value = finalTranscript;
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('🎤 音声認識エラー:', event.error);
+                isVoiceInputActive = false;
+                document.getElementById('voiceInputStatus').style.display = 'none';
+                document.getElementById('voiceInputBtn').style.background = '';
+                document.getElementById('voiceInputBtn').style.color = '';
+                
+                if (event.error !== 'no-speech') {
+                    alert('音声認識エラーが発生しました: ' + event.error);
+                }
+            };
+            
+            recognition.onend = () => {
+                console.log('🎤 音声認識終了');
+                isVoiceInputActive = false;
+                document.getElementById('voiceInputStatus').style.display = 'none';
+                document.getElementById('voiceInputBtn').style.background = '';
+                document.getElementById('voiceInputBtn').style.color = '';
+            };
+        }
+        
+        // 音声入力ボタンのイベント
+        document.getElementById('voiceInputBtn').addEventListener('click', () => {
+            if (!recognition) {
+                alert('お使いのブラウザは音声入力に対応していません。Chrome、Edge、Safariをお使いください。');
+                return;
+            }
+            
+            if (isVoiceInputActive) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+        
+        // 音声読み上げ機能（AI の回答を読み上げ）
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                // 既存の読み上げを停止
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                
+                window.speechSynthesis.speak(utterance);
+                console.log('🔊 音声読み上げ開始');
+            }
+        }
+        
+        // AI メッセージに音声読み上げボタンを追加（既存の addMessage 関数を拡張）
+        const originalAddMessage = addMessage;
+        addMessage = function(text, sender, isThinking = false) {
+            const messageDiv = originalAddMessage(text, sender, isThinking);
+            
+            // AI メッセージで、思考中でない場合に読み上げボタンを追加
+            if (sender === 'ai' && !isThinking && text && 'speechSynthesis' in window) {
+                const speakBtn = document.createElement('button');
+                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i> 読み上げ';
+                speakBtn.style.cssText = 'margin-top: 0.5rem; padding: 0.375rem 0.75rem; background: #7c3aed; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.375rem;';
+                speakBtn.onclick = () => speakText(text);
+                
+                messageDiv.appendChild(speakBtn);
+            }
+            
+            return messageDiv;
+        };
         
         // 初期フォーカス
         questionInput.focus();
