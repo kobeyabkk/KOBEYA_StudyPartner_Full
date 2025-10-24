@@ -1420,15 +1420,15 @@ app.get('/ai-chat/:sessionId', (c) => {
         }
         
         #questionInput {
-          flex: 1;
           padding: 0.75rem;
           border: 2px solid #e2e8f0;
           border-radius: 0.5rem;
           font-size: 1rem;
           font-family: inherit;
-          resize: none;
-          min-height: 60px;
-          max-height: 120px;
+          resize: vertical;
+          min-height: 80px;
+          width: 100%;
+          box-sizing: border-box;
         }
         
         #questionInput:focus {
@@ -1436,16 +1436,27 @@ app.get('/ai-chat/:sessionId', (c) => {
           border-color: #7c3aed;
         }
         
-        #sendButton {
+        #buttonRow {
+          display: flex;
+          gap: 0.75rem;
+          justify-content: center;
+        }
+        
+        #sendButton, #cancelCropBtn {
           padding: 0.75rem 1.5rem;
-          background: #7c3aed;
-          color: white;
           border: none;
           border-radius: 0.5rem;
-          font-weight: 500;
+          font-weight: 600;
           cursor: pointer;
-          align-self: flex-end;
           min-height: 60px;
+          font-size: 1rem;
+          flex: 1;
+          max-width: 200px;
+        }
+        
+        #sendButton {
+          background: #7c3aed;
+          color: white;
         }
         
         #sendButton:hover {
@@ -1455,6 +1466,15 @@ app.get('/ai-chat/:sessionId', (c) => {
         #sendButton:disabled {
           background: #9ca3af;
           cursor: not-allowed;
+        }
+        
+        #cancelCropBtn {
+          background: #6b7280;
+          color: white;
+        }
+        
+        #cancelCropBtn:hover {
+          background: #4b5563;
         }
         
         .loading {
@@ -1636,17 +1656,20 @@ app.get('/ai-chat/:sessionId', (c) => {
                     </div>
                 </div>
                 
-                <!-- メインページと同じレイアウト：テキスト入力 + 動的ボタン -->
-                <div class="input-row">
-                    <textarea id="questionInput" placeholder="質問を入力してください...（画像のみの場合は空白でもOK）"></textarea>
-                    
-                    <!-- 通常時：送信ボタンのみ -->
-                    <button id="sendButton" style="background: #7c3aed; color: white; font-weight: 600; min-width: 120px;">
+                <!-- テキスト入力欄（1段目） -->
+                <div style="margin-bottom: 0.75rem;">
+                    <textarea id="questionInput" placeholder="質問を入力してください...（画像のみの場合は空白でもOK）" style="width: 100%; min-height: 80px; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 1rem; resize: vertical;"></textarea>
+                </div>
+                
+                <!-- ボタンエリア（2段目） -->
+                <div class="input-row" id="buttonRow">
+                    <!-- 通常時：送信ボタンのみ（中央配置） -->
+                    <button id="sendButton" style="background: #7c3aed; color: white; font-weight: 600; min-width: 120px; flex: 1;">
                         <i class="fas fa-paper-plane"></i><br><span id="sendButtonText">送信</span>
                     </button>
                     
                     <!-- クロップ時：キャンセルボタンが追加表示 -->
-                    <button id="cancelCropBtn" style="display: none; background: #6b7280; color: white; font-weight: 600; min-width: 120px; margin-left: 0.5rem;">
+                    <button id="cancelCropBtn" style="display: none; background: #6b7280; color: white; font-weight: 600; min-width: 120px; flex: 1;">
                         <i class="fas fa-times"></i><br>キャンセル
                     </button>
                 </div>
