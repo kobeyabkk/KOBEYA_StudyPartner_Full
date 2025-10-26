@@ -1201,6 +1201,14 @@ ${contextInfo}
 ・覚え方のコツやヒント
 ・問題を作成したり、確認問題を出すことも可能です
 
+【数式の表記方法】
+数式を含む回答では、必ず以下のLaTeX形式を使用してください：
+・インライン数式：$数式$ （例：$x^2 + y^2 = r^2$）
+・独立した数式：$$数式$$ （例：$$\\frac{3x+2y}{8}$$）
+・分数：$\\frac{分子}{分母}$ （例：$\\frac{3}{4}$）
+・累乗：$x^2$ （例：$a^{n+1}$）
+・平方根：$\\sqrt{中身}$ （例：$\\sqrt{2}$）
+
 生徒からの質問に、温かく分かりやすい回答をしてください。`
           },
           {
@@ -1293,6 +1301,415 @@ ${contextInfo}
   }
 })
 
+// 小論文指導 - セッション初期化API
+app.post('/api/essay/init-session', async (c) => {
+  console.log('📝 Essay session init API called')
+  
+  try {
+    const { sessionId, targetLevel, lessonFormat } = await c.req.json()
+    
+    if (!sessionId || !targetLevel || !lessonFormat) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '必要なパラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッションデータを初期化（まずはインメモリ、後でD1に保存）
+    const essaySession = {
+      sessionId,
+      targetLevel,
+      lessonFormat,
+      currentStep: 1,
+      stepStatus: { "1": "in_progress" },
+      createdAt: new Date().toISOString()
+    }
+    
+    // 既存のlearningSessions Mapに追加（一時的）
+    learningSessions.set(sessionId, {
+      sessionId,
+      essaySession
+    })
+    
+    console.log('✅ Essay session initialized:', sessionId)
+    
+    return c.json({
+      ok: true,
+      sessionId,
+      message: 'セッションを初期化しました',
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Essay session init error:', error)
+    return c.json({
+      ok: false,
+      error: 'init_error',
+      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - 画像アップロードAPI
+app.post('/api/essay/upload-image', async (c) => {
+  console.log('📸 Essay image upload API called')
+  
+  try {
+    const { sessionId, imageData, currentStep } = await c.req.json()
+    
+    if (!sessionId || !imageData) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '画像データが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const session = learningSessions.get(sessionId)
+    if (!session || !session.essaySession) {
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // 画像を保存（まずはセッションに保存、後でD1に保存）
+    if (!session.essaySession.uploadedImages) {
+      session.essaySession.uploadedImages = []
+    }
+    
+    session.essaySession.uploadedImages.push({
+      step: currentStep,
+      imageData: imageData,
+      uploadedAt: new Date().toISOString()
+    })
+    
+    learningSessions.set(sessionId, session)
+    
+    console.log('✅ Image uploaded for session:', sessionId)
+    
+    return c.json({
+      ok: true,
+      message: '画像をアップロードしました',
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Image upload error:', error)
+    return c.json({
+      ok: false,
+      error: 'upload_error',
+      message: '画像アップロードでエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - OCR処理API
+app.post('/api/essay/ocr', async (c) => {
+  console.log('🔍 Essay OCR API called')
+  
+  try {
+    const { sessionId, imageData } = await c.req.json()
+    
+    if (!sessionId || !imageData) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: 'パラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const session = learningSessions.get(sessionId)
+    if (!session || !session.essaySession) {
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // OpenAI APIキーを取得（開発環境とCloudflare環境の両方に対応）
+    const openaiApiKey = c.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY
+    
+    // 開発環境でAPIキーがない場合はモックレスポンスを返す
+    if (!openaiApiKey) {
+      console.warn('⚠️ OPENAI_API_KEY not found - using mock OCR response for development')
+      
+      // モックOCR結果を返す
+      const mockResult = {
+        readable: true,
+        readabilityScore: 85,
+        text: 'SNSは現代社会に大きな影響を与えている。まず、情報の伝達速度が飛躍的に向上した。災害時には即座に安否確認ができ、重要な情報を多くの人々と共有できる。また、地理的な距離を超えて人々がつながることができるようになった。\n\n一方で、誤った情報の拡散や、プライバシーの問題も深刻化している。フェイクニュースが瞬時に広まり、社会に混乱をもたらすこともある。また、SNS依存症や誹謗中傷の問題も無視できない。\n\n私は、SNSは使い方次第で社会に良い影響も悪い影響も与えうると考える。メディアリテラシーを高め、適切に活用することが重要である。',
+        charCount: 245,
+        issues: []
+      }
+      
+      // セッションにOCR結果を保存
+      if (!session.essaySession.ocrResults) {
+        session.essaySession.ocrResults = []
+      }
+      session.essaySession.ocrResults.push({
+        ...mockResult,
+        processedAt: new Date().toISOString(),
+        isMock: true
+      })
+      learningSessions.set(sessionId, session)
+      
+      return c.json({
+        ok: true,
+        result: mockResult,
+        timestamp: new Date().toISOString()
+      }, 200)
+    }
+    
+    // OpenAI Vision APIで画像を分析
+    console.log('🤖 Calling OpenAI Vision API...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + openaiApiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは手書き原稿用紙のOCR専門家です。画像から手書きの日本語テキストを正確に読み取り、以下の形式でJSON形式で返してください：\n{\n  "readable": true/false,\n  "readabilityScore": 0-100,\n  "text": "読み取ったテキスト",\n  "charCount": 文字数,\n  "issues": ["問題点1", "問題点2"]\n}\n\n読み取り可能性の判断基準：\n- 文字が明瞭に書かれているか\n- 適切な明るさと焦点\n- 原稿用紙全体が写っているか\n\nreadableがfalseの場合は、issuesに具体的な問題点を記載してください。'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'この画像から手書きの小論文を読み取ってください。読み取り可能性も評価してください。'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', errorText)
+      return c.json({
+        ok: false,
+        error: 'openai_error',
+        message: 'OCR処理でエラーが発生しました',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    const data = await response.json()
+    console.log('✅ OpenAI response received')
+    
+    const aiResponse = data.choices[0].message.content
+    let ocrResult
+    
+    try {
+      // JSONレスポンスをパース
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        ocrResult = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error('JSON not found in response')
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse OCR result:', parseError)
+      // パース失敗時はデフォルト値を返す
+      ocrResult = {
+        readable: false,
+        readabilityScore: 0,
+        text: '',
+        charCount: 0,
+        issues: ['OCR結果のパースに失敗しました。画像を再度アップロードしてください。']
+      }
+    }
+    
+    // セッションにOCR結果を保存
+    if (!session.essaySession.ocrResults) {
+      session.essaySession.ocrResults = []
+    }
+    session.essaySession.ocrResults.push({
+      ...ocrResult,
+      processedAt: new Date().toISOString()
+    })
+    learningSessions.set(sessionId, session)
+    
+    console.log('✅ OCR completed:', { readable: ocrResult.readable, charCount: ocrResult.charCount })
+    
+    return c.json({
+      ok: true,
+      result: ocrResult,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ OCR error:', error)
+    return c.json({
+      ok: false,
+      error: 'ocr_error',
+      message: 'OCR処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - チャットAPI
+app.post('/api/essay/chat', async (c) => {
+  console.log('📝 Essay chat API called')
+  
+  try {
+    const { sessionId, message, currentStep } = await c.req.json()
+    console.log('📝 Received:', { sessionId, message, currentStep })
+    
+    if (!sessionId || !message) {
+      console.log('❌ Missing parameters')
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '必要なパラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    let response = ''
+    let stepCompleted = false
+    
+    // ステップごとの簡易応答
+    if (currentStep === 1) {
+      console.log('📝 Step 1 processing, message:', message)
+      
+      // パス機能
+      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        console.log('✅ Matched: パス')
+        response = 'わかりました。解説しますね。\n\n【模範解答】\n1. 地球温暖化の主な原因は、化石燃料の大量消費による二酸化炭素の増加です。\n2. 異常気象の頻発、海面上昇、生態系の変化などの問題が起きています。\n3. 個人でできる取り組みとしては、節電、公共交通機関の利用、再生可能エネルギーの選択などがあります。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 長い回答（15文字以上、かつ「ok」を含まない）
+      else if (message.length > 15 && !message.toLowerCase().includes('ok')) {
+        console.log('✅ Matched: Long answer')
+        response = '素晴らしい回答ですね！環境問題についてよく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 「読んだ」
+      else if (message.includes('読んだ') || message.includes('読みました')) {
+        console.log('✅ Matched: 読んだ')
+        response = '確認です。以下の質問に答えてください：\n\n1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。\n\n3つの質問にすべて答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解説します）'
+      }
+      // 「OK」のみ
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('✅ Matched: OK/はい')
+        response = '素晴らしいですね！それでは今日のテーマは「環境問題」です。\n\n【読み物】\n地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。\n\n読み終えたら「読んだ」と入力して送信してください。'
+      }
+      // 回答が短すぎる
+      else {
+        console.log('⚠️ Answer too short')
+        response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
+      }
+    } else if (currentStep === 2) {
+      // ステップ2: 語彙力強化
+      // パス機能
+      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        response = 'わかりました。解答例をお見せしますね。\n\n【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
+      else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        response = '素晴らしい言い換えですね！\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 「OK」または「はい」で演習開始
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        response = '【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n\n（例：「すごく大事」→「極めて重要」）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）'
+      }
+      // 回答が短すぎる
+      else {
+        response = '回答が短すぎるようです。\n\n3つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n（わからない場合は「パス」と入力すると解答例を見られます）'
+      }
+    } else if (currentStep === 3) {
+      // ステップ3: 短文演習
+      if (message.includes('完了') || message.includes('かんりょう')) {
+        response = '短文演習のステップを完了しました！\n\n次のステップでは、実際の小論文課題に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
+        response = '【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n環境問題について、200字程度で小論文を書いてください。\n\n＜構成＞\n主張→理由→具体例→結論\n\n原稿用紙に手書きで書いて、写真をアップロードする機能は次のステップで実装予定です。\n\n今回は練習ですので、書いたつもりで「完了」と入力して送信してください。'
+      }
+      else {
+        response = '回答を受け付けました。\n\n書き終えたら「完了」と入力して送信してください。'
+      }
+    } else if (currentStep === 4) {
+      // ステップ4: 本練習（手書き原稿アップロード + OCR）
+      // セッションを取得
+      const session = learningSessions.get(sessionId)
+      
+      // 画像がアップロードされたかチェック
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 4)
+      
+      if (message.includes('確認完了') || message.includes('これで完了')) {
+        response = '本練習のステップを完了しました！\n\nOCRで読み取った内容を確認していただきました。\n次のステップでは、この小論文に対する詳細なフィードバックを行います。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      else if (message.includes('修正完了')) {
+        response = '修正内容を反映しました。\n\n確認が完了したら「確認完了」と入力して送信してください。'
+      }
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
+      }
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        response = '【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「SNSが社会に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：400〜600字\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n原稿用紙に手書きで書いて、カメラボタンから写真を撮影してアップロードしてください。\n\n※ 書き終えたら、画面上部のカメラボタン📷を押して原稿を撮影してください。'
+      }
+      else {
+        response = '原稿用紙に小論文を書き終えたら、画面上部のカメラボタン📷を押して撮影してください。\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+      }
+    } else {
+      response = 'ステップ' + currentStep + 'の内容は準備中です。「完了」と入力して次に進んでください。'
+      if (message.includes('完了')) {
+        stepCompleted = true
+      }
+    }
+    
+    console.log('📝 Essay chat response for step ' + currentStep)
+    console.log('📤 Sending response:', { response: response.substring(0, 50) + '...', stepCompleted })
+    
+    return c.json({
+      ok: true,
+      response,
+      stepCompleted,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Essay chat error:', error)
+    return c.json({
+      ok: false,
+      error: 'chat_error',
+      message: 'チャット処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
 // AI質問ウインドウ用ページ
 app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
@@ -1316,6 +1733,21 @@ app.get('/ai-chat/:sessionId', (c) => {
         
         <!-- Cropper.js CSS -->
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
+        
+        <!-- MathJax for math rendering -->
+        <script>
+        window.MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true
+          },
+          options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+          }
+        };
+        </script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         
         <style>
         body { 
@@ -2304,6 +2736,28 @@ app.get('/ai-chat/:sessionId', (c) => {
                 messageDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>考えています...</div>';
             } else {
                 messageDiv.textContent = text;
+                
+                // AIメッセージの場合の処理
+                if (sender === 'ai') {
+                    // テキストをHTMLに変換（改行を<br>に）
+                    messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+                    
+                    // MathJaxでレンダリング
+                    if (window.MathJax) {
+                        window.MathJax.typesetPromise([messageDiv]).catch((err) => {
+                            console.error('MathJax rendering error:', err);
+                        });
+                    }
+                    
+                    // 音声読み上げボタンを追加
+                    if (text && 'speechSynthesis' in window) {
+                        const speakBtn = document.createElement('button');
+                        speakBtn.innerHTML = '<i class="fas fa-volume-up"></i> 読み上げ';
+                        speakBtn.style.cssText = 'margin-top: 0.5rem; padding: 0.375rem 0.75rem; background: #7c3aed; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.375rem;';
+                        speakBtn.onclick = () => speakText(text);
+                        messageDiv.appendChild(speakBtn);
+                    }
+                }
             }
             
             chatMessages.appendChild(messageDiv);
@@ -2426,26 +2880,1290 @@ app.get('/ai-chat/:sessionId', (c) => {
             }
         }
         
-        // AI メッセージに音声読み上げボタンを追加（既存の addMessage 関数を拡張）
-        const originalAddMessage = addMessage;
-        addMessage = function(text, sender, isThinking = false) {
-            const messageDiv = originalAddMessage(text, sender, isThinking);
-            
-            // AI メッセージで、思考中でない場合に読み上げボタンを追加
-            if (sender === 'ai' && !isThinking && text && 'speechSynthesis' in window) {
-                const speakBtn = document.createElement('button');
-                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i> 読み上げ';
-                speakBtn.style.cssText = 'margin-top: 0.5rem; padding: 0.375rem 0.75rem; background: #7c3aed; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.375rem;';
-                speakBtn.onclick = () => speakText(text);
-                
-                messageDiv.appendChild(speakBtn);
-            }
-            
-            return messageDiv;
-        };
+
         
         // 初期フォーカス
         questionInput.focus();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// 小論文指導ページ
+app.get('/essay-coaching', (c) => {
+  console.log('📝 Essay Coaching page requested')
+  
+  // セッションID生成
+  const sessionId = `essay-${Date.now()}-${Math.random().toString(36).substring(7)}`
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>小論文指導 - KOBEYA</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Noto Sans JP', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          padding: 1rem;
+          color: #333;
+        }
+        
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+          color: white;
+          padding: 2rem;
+          text-align: center;
+        }
+        
+        .header h1 {
+          font-size: 1.75rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+          opacity: 0.9;
+          font-size: 1rem;
+        }
+        
+        .content {
+          padding: 2rem;
+        }
+        
+        .setup-section {
+          background: #f8fafc;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .setup-section h2 {
+          font-size: 1.25rem;
+          margin-bottom: 1rem;
+          color: #374151;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .setup-section h2 .step-number {
+          background: #7c3aed;
+          color: white;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.875rem;
+          font-weight: 600;
+        }
+        
+        .button-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+        }
+        
+        .choice-button {
+          padding: 1.25rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 0.75rem;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: left;
+        }
+        
+        .choice-button:hover {
+          border-color: #7c3aed;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+        }
+        
+        .choice-button.selected {
+          border-color: #7c3aed;
+          background: #f5f3ff;
+        }
+        
+        .choice-button .title {
+          font-weight: 600;
+          font-size: 1.125rem;
+          margin-bottom: 0.5rem;
+          color: #1f2937;
+        }
+        
+        .choice-button .description {
+          font-size: 0.875rem;
+          color: #6b7280;
+          line-height: 1.5;
+        }
+        
+        .choice-button .icon {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+        
+        .start-button {
+          width: 100%;
+          padding: 1rem 2rem;
+          background: #7c3aed;
+          color: white;
+          border: none;
+          border-radius: 0.75rem;
+          font-size: 1.125rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1.5rem;
+          display: none;
+        }
+        
+        .start-button:hover {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        
+        .start-button.visible {
+          display: block;
+        }
+        
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: #f3f4f6;
+          color: #374151;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-bottom: 1.5rem;
+        }
+        
+        .back-button:hover {
+          background: #e5e7eb;
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1><i class="fas fa-pen-fancy"></i> 小論文指導</h1>
+                <p>丁寧な指導で、あなたの小論文力を伸ばします</p>
+            </div>
+            
+            <div class="content">
+                <button class="back-button" onclick="window.location.href='/study-partner'">
+                    <i class="fas fa-arrow-left"></i> メインページに戻る
+                </button>
+                
+                <!-- Step 1: 対象レベル選択 -->
+                <div class="setup-section" id="levelSelection">
+                    <h2>
+                        <span class="step-number">1</span>
+                        対象レベルを選択してください
+                    </h2>
+                    <div class="button-grid">
+                        <button class="choice-button" onclick="selectLevel('high_school', event)">
+                            <span class="icon">🎓</span>
+                            <div class="title">高校入試対策</div>
+                            <div class="description">字数: 200-300字<br>基本構成の習得を重視</div>
+                        </button>
+                        <button class="choice-button" onclick="selectLevel('vocational', event)">
+                            <span class="icon">💼</span>
+                            <div class="title">専門学校入試</div>
+                            <div class="description">字数: 300-400字<br>実践性を重視</div>
+                        </button>
+                        <button class="choice-button" onclick="selectLevel('university', event)">
+                            <span class="icon">🏛️</span>
+                            <div class="title">大学入試対策</div>
+                            <div class="description">字数: 400-600字<br>論理の深さを重視</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: 授業形式選択 -->
+                <div class="setup-section hidden" id="formatSelection">
+                    <h2>
+                        <span class="step-number">2</span>
+                        授業形式を選択してください
+                    </h2>
+                    <div class="button-grid">
+                        <button class="choice-button" onclick="selectFormat('full_55min', event)">
+                            <span class="icon">📚</span>
+                            <div class="title">55分フル授業</div>
+                            <div class="description">導入→語彙→短文→本練習→チャレンジ→まとめ<br>総合的な学習</div>
+                        </button>
+                        <button class="choice-button" onclick="selectFormat('vocabulary_focus', event)">
+                            <span class="icon">✍️</span>
+                            <div class="title">語彙力強化中心</div>
+                            <div class="description">25分構成<br>多くの語彙を反復練習</div>
+                        </button>
+                        <button class="choice-button" onclick="selectFormat('short_essay_focus', event)">
+                            <span class="icon">📝</span>
+                            <div class="title">短文演習中心</div>
+                            <div class="description">30分構成<br>構成力強化を重視</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 授業開始ボタン -->
+                <button class="start-button" id="startButton" onclick="startLesson()">
+                    <i class="fas fa-play-circle"></i> 授業を開始
+                </button>
+            </div>
+        </div>
+        
+        <script>
+        const sessionId = '${sessionId}';
+        let selectedLevel = null;
+        let selectedFormat = null;
+        
+        function selectLevel(level, event) {
+            selectedLevel = level;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#levelSelection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
+            
+            // 次のステップを表示
+            document.getElementById('formatSelection').classList.remove('hidden');
+            
+            console.log('Selected level:', level);
+        }
+        
+        function selectFormat(format, event) {
+            selectedFormat = format;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#formatSelection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
+            
+            // 開始ボタンを表示
+            document.getElementById('startButton').classList.add('visible');
+            
+            console.log('Selected format:', format);
+        }
+        
+        async function startLesson() {
+            if (!selectedLevel || !selectedFormat) {
+                alert('レベルと授業形式を選択してください');
+                return;
+            }
+            
+            console.log('Starting lesson:', { sessionId, selectedLevel, selectedFormat });
+            
+            // セッション初期化API呼び出し
+            try {
+                const response = await fetch('/api/essay/init-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId,
+                        targetLevel: selectedLevel,
+                        lessonFormat: selectedFormat
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    // 授業ページに遷移
+                    window.location.href = '/essay-coaching/session/' + sessionId;
+                } else {
+                    alert('セッションの初期化に失敗しました: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Session init error:', error);
+                alert('エラーが発生しました。もう一度お試しください。');
+            }
+        }
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// 小論文指導 - 授業セッションページ
+app.get('/essay-coaching/session/:sessionId', (c) => {
+  const sessionId = c.req.param('sessionId')
+  console.log('📝 Essay session page requested:', sessionId)
+  
+  // セッション情報を取得
+  const session = learningSessions.get(sessionId)
+  if (!session || !session.essaySession) {
+    return c.html('<h1>セッションが見つかりません</h1><a href="/essay-coaching">戻る</a>')
+  }
+  
+  const essaySession = session.essaySession
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>小論文授業 - KOBEYA</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Noto Sans JP', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          padding: 1rem;
+          color: #333;
+        }
+        
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+          color: white;
+          padding: 1.5rem 2rem;
+        }
+        
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+        
+        .header h1 {
+          font-size: 1.5rem;
+        }
+        
+        .session-info {
+          font-size: 0.875rem;
+          opacity: 0.9;
+        }
+        
+        /* ステップ進捗バー */
+        .progress-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0;
+          margin-top: 1rem;
+        }
+        
+        .step {
+          flex: 1;
+          text-align: center;
+          position: relative;
+        }
+        
+        .step::before {
+          content: '';
+          position: absolute;
+          top: 15px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: rgba(255,255,255,0.3);
+          z-index: 0;
+        }
+        
+        .step:first-child::before {
+          left: 50%;
+        }
+        
+        .step:last-child::before {
+          right: 50%;
+        }
+        
+        .step-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.3);
+          border: 2px solid rgba(255,255,255,0.5);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          position: relative;
+          z-index: 1;
+          margin-bottom: 0.5rem;
+        }
+        
+        .step.completed .step-circle {
+          background: #10b981;
+          border-color: #10b981;
+          color: white;
+        }
+        
+        .step.current .step-circle {
+          background: white;
+          color: #7c3aed;
+          border-color: white;
+          box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
+        }
+        
+        .step-label {
+          font-size: 0.75rem;
+          color: rgba(255,255,255,0.8);
+        }
+        
+        .step.current .step-label {
+          color: white;
+          font-weight: 600;
+        }
+        
+        .content {
+          padding: 2rem;
+        }
+        
+        .chat-section {
+          background: #f9fafb;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .messages {
+          min-height: 300px;
+          max-height: 500px;
+          overflow-y: auto;
+          margin-bottom: 1rem;
+        }
+        
+        .message {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding: 1rem;
+          border-radius: 0.75rem;
+        }
+        
+        .message.teacher {
+          background: #ede9fe;
+          border-left: 4px solid #7c3aed;
+        }
+        
+        .message.student {
+          background: white;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .message .icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+        
+        .input-area {
+          display: flex;
+          gap: 0.75rem;
+        }
+        
+        textarea {
+          flex: 1;
+          min-height: 80px;
+          padding: 0.75rem;
+          border: 2px solid #e5e7eb;
+          border-radius: 0.5rem;
+          font-family: 'Noto Sans JP', sans-serif;
+          font-size: 1rem;
+          resize: vertical;
+        }
+        
+        textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+        }
+        
+        button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        #sendBtn {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        #sendBtn:hover {
+          background: #6d28d9;
+        }
+        
+        #sendBtn:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+        }
+        
+        .action-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: space-between;
+        }
+        
+        .btn {
+          padding: 0.875rem 1.75rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .btn-secondary {
+          background: #e5e7eb;
+          color: #374151;
+        }
+        
+        .btn-secondary:hover {
+          background: #d1d5db;
+        }
+        
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background: #6d28d9;
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        
+        .completion-message {
+          background: #d1fae5;
+          border: 2px solid #10b981;
+          border-radius: 0.75rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-weight: 600;
+          color: #065f46;
+        }
+        
+        .completion-message i {
+          font-size: 1.5rem;
+          color: #10b981;
+        }
+        
+        /* カメラボタン */
+        .camera-btn {
+          background: white;
+          color: #7c3aed;
+          padding: 0.625rem 1.25rem;
+          border: 2px solid white;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+        }
+        
+        .camera-btn:hover {
+          background: #f3f4f6;
+          transform: translateY(-2px);
+        }
+        
+        .camera-btn i {
+          font-size: 1.125rem;
+        }
+        
+        /* カメラモーダル */
+        .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .modal.active {
+          display: flex;
+        }
+        
+        .modal-content {
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          max-width: 600px;
+          width: 90%;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h2 {
+          color: #7c3aed;
+          font-size: 1.5rem;
+        }
+        
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6b7280;
+          padding: 0;
+          width: 2rem;
+          height: 2rem;
+        }
+        
+        .close-btn:hover {
+          color: #374151;
+        }
+        
+        #cameraPreview {
+          width: 100%;
+          max-height: 400px;
+          background: #000;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        #capturedImage {
+          width: 100%;
+          max-height: 400px;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .camera-controls {
+          display: flex;
+          gap: 0.75rem;
+          justify-content: center;
+          margin-top: 1rem;
+        }
+        
+        .camera-controls button {
+          flex: 1;
+          max-width: 200px;
+        }
+        
+        .btn-capture {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-capture:hover {
+          background: #6d28d9;
+        }
+        
+        .btn-retake {
+          background: #f59e0b;
+          color: white;
+        }
+        
+        .btn-retake:hover {
+          background: #d97706;
+        }
+        
+        .btn-upload {
+          background: #10b981;
+          color: white;
+        }
+        
+        .btn-upload:hover {
+          background: #059669;
+        }
+        
+        .btn-cancel {
+          background: #6b7280;
+          color: white;
+        }
+        
+        .btn-cancel:hover {
+          background: #4b5563;
+        }
+        
+        /* OCR結果表示 */
+        .ocr-result {
+          background: #f3f4f6;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1rem 0;
+        }
+        
+        .ocr-result h3 {
+          color: #7c3aed;
+          margin-bottom: 1rem;
+          font-size: 1.125rem;
+        }
+        
+        .ocr-text {
+          background: white;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+          line-height: 1.8;
+          white-space: pre-wrap;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        
+        .ocr-stats {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1rem;
+          font-size: 0.875rem;
+        }
+        
+        .ocr-stat {
+          background: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .ocr-stat strong {
+          color: #7c3aed;
+        }
+        
+        .ocr-issues {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-top: 1rem;
+        }
+        
+        .ocr-issues h4 {
+          color: #dc2626;
+          margin-bottom: 0.5rem;
+          font-size: 0.875rem;
+        }
+        
+        .ocr-issues ul {
+          margin-left: 1.5rem;
+          color: #991b1b;
+          font-size: 0.875rem;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 2rem;
+          color: #7c3aed;
+        }
+        
+        .loading i {
+          font-size: 2rem;
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-top">
+                    <h1>📝 小論文指導</h1>
+                    <div class="session-info">
+                        <button class="camera-btn" id="cameraBtn" onclick="openCamera()">
+                            <i class="fas fa-camera"></i>
+                            撮影
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 進捗バー -->
+                <div class="progress-bar">
+                    <div class="step current" id="step-1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">導入</div>
+                    </div>
+                    <div class="step" id="step-2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">語彙</div>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">短文</div>
+                    </div>
+                    <div class="step" id="step-4">
+                        <div class="step-circle">4</div>
+                        <div class="step-label">本練習</div>
+                    </div>
+                    <div class="step" id="step-5">
+                        <div class="step-circle">5</div>
+                        <div class="step-label">チャレンジ</div>
+                    </div>
+                    <div class="step" id="step-6">
+                        <div class="step-circle">6</div>
+                        <div class="step-label">まとめ</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <!-- チャットエリア -->
+                <div class="chat-section">
+                    <div class="messages" id="messages">
+                        <div class="message teacher">
+                            <span class="icon">👨‍🏫</span>
+                            <div>
+                              こんにちは！小論文指導を始めましょう。<br>
+                              まずは今日のテーマについて読み物を読んでいただきます。<br>
+                              準備ができたら「OK」と入力して、送信ボタンを押してください。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 入力エリア -->
+                    <div class="input-area">
+                        <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
+                        <button id="sendBtn" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i> 送信
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- アクションボタン -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="window.location.href='/essay-coaching'">
+                        <i class="fas fa-arrow-left"></i> 戻る
+                    </button>
+                    <button class="btn btn-primary hidden" id="nextStepBtn" onclick="moveToNextStep()">
+                        <i class="fas fa-arrow-right"></i> 次のステップへ
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- カメラモーダル -->
+        <div class="modal" id="cameraModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-camera"></i> 原稿を撮影</h2>
+                    <button class="close-btn" onclick="closeCamera()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="camera-container">
+                    <video id="cameraPreview" autoplay playsinline></video>
+                    <img id="capturedImage" class="hidden" alt="撮影した画像">
+                </div>
+                
+                <div class="camera-controls">
+                    <button class="btn btn-capture" id="captureBtn" onclick="capturePhoto()">
+                        <i class="fas fa-camera"></i> 撮影
+                    </button>
+                    <button class="btn btn-retake hidden" id="retakeBtn" onclick="retakePhoto()">
+                        <i class="fas fa-redo"></i> 再撮影
+                    </button>
+                    <button class="btn btn-upload hidden" id="uploadBtn" onclick="uploadImage()">
+                        <i class="fas fa-upload"></i> アップロード
+                    </button>
+                    <button class="btn btn-cancel" onclick="closeCamera()">
+                        <i class="fas fa-times"></i> キャンセル
+                    </button>
+                </div>
+                
+                <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
+                    <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        <li>原稿用紙全体が画面に入るように撮影してください</li>
+                        <li>明るい場所で撮影し、影ができないようにしてください</li>
+                        <li>文字がはっきり見えるように、ピントを合わせてください</li>
+                        <li>原稿用紙を平らに置いて撮影してください</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        const sessionId = '${sessionId}';
+        let currentStep = 1;
+        
+        function addMessage(text, isTeacher = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
+            
+            const icon = isTeacher ? '👨‍🏫' : '👤';
+            const formattedText = text.split('\\n').join('<br>');
+            messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // ユーザーメッセージを表示
+            addMessage(text, false);
+            input.value = '';
+            
+            // 送信ボタンを無効化
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = '送信中...';
+            
+            try {
+                console.log('📤 Sending message:', { sessionId, message: text, currentStep });
+                
+                // AIに送信
+                const response = await fetch('/api/essay/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId,
+                        message: text,
+                        currentStep
+                    })
+                });
+                
+                console.log('📥 Response status:', response.status);
+                const result = await response.json();
+                console.log('📥 Response data:', result);
+                
+                if (result.ok) {
+                    // AI応答を表示
+                    addMessage(result.response, true);
+                    
+                    // ステップ完了チェック
+                    console.log('🔍 Checking step completion:', result.stepCompleted);
+                    if (result.stepCompleted) {
+                        console.log('✅ Step completed! Showing completion message');
+                        showStepCompletion();
+                    }
+                } else {
+                    addMessage('エラーが発生しました: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('❌ Send message error:', error);
+                addMessage('通信エラーが発生しました。もう一度お試しください。', true);
+            }
+            
+            // 送信ボタンを有効化
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+        }
+        
+        function showStepCompletion() {
+            console.log('🎯 showStepCompletion called');
+            const messagesDiv = document.getElementById('messages');
+            
+            const completionDiv = document.createElement('div');
+            completionDiv.className = 'completion-message';
+            completionDiv.innerHTML = '<i class="fas fa-check-circle"></i> このステップが完了しました。次のステップに進みましょう！';
+            messagesDiv.appendChild(completionDiv);
+            
+            // 次へボタンを表示
+            const nextBtn = document.getElementById('nextStepBtn');
+            nextBtn.classList.remove('hidden');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function moveToNextStep() {
+            currentStep++;
+            if (currentStep > 6) {
+                alert('全てのステップが完了しました！');
+                window.location.href = '/essay-coaching';
+                return;
+            }
+            
+            // 進捗バーを更新
+            updateProgressBar();
+            
+            // 次へボタンを非表示
+            document.getElementById('nextStepBtn').classList.add('hidden');
+            
+            // 新しいステップのメッセージを表示
+            addMessage(getStepIntroMessage(currentStep), true);
+        }
+        
+        function updateProgressBar() {
+            for (let i = 1; i <= 6; i++) {
+                const stepDiv = document.getElementById('step-' + i);
+                stepDiv.classList.remove('current', 'completed');
+                
+                if (i < currentStep) {
+                    stepDiv.classList.add('completed');
+                } else if (i === currentStep) {
+                    stepDiv.classList.add('current');
+                }
+            }
+        }
+        
+        function getStepIntroMessage(step) {
+            const messages = {
+                1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                2: '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                3: '【短文演習】指定字数で短い小論文を書いてみましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                4: '【本練習】より長い小論文に挑戦します。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                5: '【チャレンジ問題】応用的なテーマに取り組みます。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                6: '【まとめ】今日の学習を振り返りましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
+            };
+            return messages[step] || 'ステップを進めましょう。';
+        }
+        
+        // カメラ関連の変数
+        let stream = null;
+        let capturedImageData = null;
+        
+        // カメラモーダルを開く
+        function openCamera() {
+            if (currentStep !== 4) {
+                alert('カメラ機能はStep 4（本練習）でのみ使用できます。');
+                return;
+            }
+            
+            document.getElementById('cameraModal').classList.add('active');
+            startCamera();
+        }
+        
+        // カメラを起動
+        async function startCamera() {
+            try {
+                const preview = document.getElementById('cameraPreview');
+                preview.classList.remove('hidden');
+                document.getElementById('capturedImage').classList.add('hidden');
+                document.getElementById('captureBtn').classList.remove('hidden');
+                document.getElementById('retakeBtn').classList.add('hidden');
+                document.getElementById('uploadBtn').classList.add('hidden');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                preview.srcObject = stream;
+                preview.play();
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('カメラの起動に失敗しました。\\nブラウザの設定でカメラへのアクセスを許可してください。');
+                closeCamera();
+            }
+        }
+        
+        // 写真を撮影
+        function capturePhoto() {
+            const preview = document.getElementById('cameraPreview');
+            const canvas = document.createElement('canvas');
+            canvas.width = preview.videoWidth;
+            canvas.height = preview.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(preview, 0, 0);
+            
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // プレビューを停止
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // 撮影した画像を表示
+            document.getElementById('cameraPreview').classList.add('hidden');
+            const img = document.getElementById('capturedImage');
+            img.src = capturedImageData;
+            img.classList.remove('hidden');
+            
+            // ボタンを切り替え
+            document.getElementById('captureBtn').classList.add('hidden');
+            document.getElementById('retakeBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.remove('hidden');
+        }
+        
+        // 再撮影
+        function retakePhoto() {
+            capturedImageData = null;
+            startCamera();
+        }
+        
+        // 画像をアップロード
+        async function uploadImage() {
+            if (!capturedImageData) {
+                alert('画像が撮影されていません。');
+                return;
+            }
+            
+            closeCamera();
+            
+            // ローディングメッセージを表示
+            addMessage('画像をアップロード中...', true);
+            
+            try {
+                // 画像をアップロード
+                const uploadResponse = await fetch('/api/essay/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: '${sessionId}',
+                        imageData: capturedImageData,
+                        currentStep: currentStep
+                    })
+                });
+                
+                if (!uploadResponse.ok) {
+                    throw new Error('Upload failed');
+                }
+                
+                // OCR処理を開始
+                addMessage('OCR処理を開始しています。しばらくお待ちください...', true);
+                
+                const ocrResponse = await fetch('/api/essay/ocr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: '${sessionId}',
+                        imageData: capturedImageData
+                    })
+                });
+                
+                if (!ocrResponse.ok) {
+                    throw new Error('OCR failed');
+                }
+                
+                const ocrResult = await ocrResponse.json();
+                
+                if (ocrResult.ok && ocrResult.result) {
+                    displayOCRResult(ocrResult.result);
+                } else {
+                    throw new Error('OCR result invalid');
+                }
+                
+            } catch (error) {
+                console.error('Upload/OCR error:', error);
+                addMessage('エラーが発生しました。もう一度お試しください。', true);
+            }
+        }
+        
+        // OCR結果を表示
+        function displayOCRResult(result) {
+            const resultHtml = '<div class="ocr-result">' +
+                '<h3><i class="fas fa-file-alt"></i> OCR読み取り結果</h3>' +
+                '<div class="ocr-text">' + (result.text || '読み取れませんでした') + '</div>' +
+                '<div class="ocr-stats">' +
+                '<div class="ocr-stat"><strong>文字数:</strong> ' + (result.charCount || 0) + '字</div>' +
+                '<div class="ocr-stat"><strong>読取率:</strong> ' + (result.readabilityScore || 0) + '%</div>' +
+                '</div>' +
+                (result.issues && result.issues.length > 0 ? 
+                    '<div class="ocr-issues">' +
+                    '<h4><i class="fas fa-exclamation-triangle"></i> 改善点</h4>' +
+                    '<ul>' + result.issues.map(issue => '<li>' + issue + '</li>').join('') + '</ul>' +
+                    '</div>' : '') +
+                '</div>';
+            
+            addMessage(resultHtml, true);
+            
+            if (result.readable) {
+                addMessage('読み取りが完了しました！\\n内容を確認して、問題なければ「確認完了」と入力してください。\\n修正が必要な場合は、修正後のテキストを入力して「修正完了」と送信してください。', true);
+            } else {
+                addMessage('画像の読み取りに問題があります。\\n上記の改善点を参考に、もう一度撮影してください。', true);
+            }
+        }
+        
+        // カメラを閉じる
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraModal').classList.remove('active');
+            capturedImageData = null;
+        }
+        
+        // Enterキーで改行可能（送信は送信ボタンのみ）
+        // キーイベントリスナーは不要
         </script>
     </body>
     </html>
@@ -3779,9 +5497,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="shoronbunTaisaku" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="shoronbunTaisaku" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s;">
                         <i class="fas fa-pen-fancy" style="margin-right: 0.5rem;"></i>
-                        📝 小論文対策（実装予定）
+                        📝 小論文対策
                     </button>
                 </div>
 
@@ -3974,6 +5692,15 @@ app.get('/study-partner', (c) => {
             aiQuestionMainButton.addEventListener('click', function() {
               console.log('🤖 Main AI question button clicked');
               openAIChatDirect();
+            });
+          }
+          
+          // 小論文対策ボタン
+          const shoronbunButton = document.getElementById('shoronbunTaisaku');
+          if (shoronbunButton) {
+            shoronbunButton.addEventListener('click', function() {
+              console.log('📝 Essay coaching button clicked');
+              window.location.href = '/essay-coaching';
             });
           }
           
