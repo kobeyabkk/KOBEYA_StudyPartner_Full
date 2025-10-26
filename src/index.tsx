@@ -3446,9 +3446,32 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
           transition: all 0.2s;
         }
         
+        /* カメラ入力ボタン（入力エリア内） */
+        .camera-input-btn {
+          background: #f59e0b;
+          color: white;
+          padding: 0.75rem 1rem;
+          min-width: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+        }
+        
+        .camera-input-btn:hover {
+          background: #d97706;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        .camera-input-btn i {
+          margin: 0;
+        }
+        
         #sendBtn {
           background: #7c3aed;
           color: white;
+          min-width: 100px;
         }
         
         #sendBtn:hover {
@@ -3518,29 +3541,9 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
           color: #10b981;
         }
         
-        /* カメラボタン */
+        /* カメラボタン（ヘッダー - 非表示） */
         .camera-btn {
-          background: white;
-          color: #7c3aed;
-          padding: 0.625rem 1.25rem;
-          border: 2px solid white;
-          border-radius: 0.5rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        
-        .camera-btn:hover {
-          background: #f3f4f6;
-          transform: translateY(-2px);
-        }
-        
-        .camera-btn i {
-          font-size: 1.125rem;
+          display: none;
         }
         
         /* カメラモーダル */
@@ -3743,6 +3746,30 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         .hidden {
           display: none !important;
         }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 640px) {
+          .input-area {
+            gap: 0.5rem;
+          }
+          
+          textarea {
+            min-height: 60px;
+            font-size: 0.875rem;
+          }
+          
+          .camera-input-btn {
+            padding: 0.625rem 0.75rem;
+            min-width: 50px;
+            font-size: 1.125rem;
+          }
+          
+          #sendBtn {
+            padding: 0.625rem 1rem;
+            min-width: 80px;
+            font-size: 0.875rem;
+          }
+        }
         </style>
     </head>
     <body>
@@ -3804,6 +3831,9 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     <!-- 入力エリア -->
                     <div class="input-area">
                         <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
+                        <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="原稿を撮影">
+                            <i class="fas fa-camera"></i>
+                        </button>
                         <button id="sendBtn" onclick="sendMessage()">
                             <i class="fas fa-paper-plane"></i> 送信
                         </button>
