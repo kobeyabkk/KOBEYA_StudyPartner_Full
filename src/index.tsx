@@ -4694,6 +4694,20 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         // 写真を撮影
         function capturePhoto() {
             const preview = document.getElementById('cameraPreview');
+            
+            // ビデオのサイズを確認
+            console.log('📹 Video dimensions:', {
+                videoWidth: preview.videoWidth,
+                videoHeight: preview.videoHeight,
+                readyState: preview.readyState
+            });
+            
+            if (preview.videoWidth === 0 || preview.videoHeight === 0) {
+                alert('カメラの準備ができていません。\\nもう一度お試しください。');
+                console.error('❌ Video dimensions are 0');
+                return;
+            }
+            
             const canvas = document.createElement('canvas');
             canvas.width = preview.videoWidth;
             canvas.height = preview.videoHeight;
@@ -4702,6 +4716,18 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             
             capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
             originalImageData = capturedImageData;
+            
+            console.log('📸 Image captured:', {
+                dataLength: capturedImageData.length,
+                dataPrefix: capturedImageData.substring(0, 50)
+            });
+            
+            // 画像データが空でないか確認
+            if (!capturedImageData || capturedImageData.length < 100) {
+                alert('画像の撮影に失敗しました。\\nもう一度お試しください。');
+                console.error('❌ Captured image data is empty or too small');
+                return;
+            }
             
             // プレビューを停止
             if (stream) {
@@ -4949,8 +4975,21 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         
         // 画像をアップロードしてOCR処理
         async function uploadAndProcessImage() {
+            console.log('🔍 Checking capturedImageData...', {
+                exists: !!capturedImageData,
+                type: typeof capturedImageData,
+                length: capturedImageData ? capturedImageData.length : 0
+            });
+            
             if (!capturedImageData) {
-                alert('画像が撮影されていません。');
+                alert('画像が撮影されていません。\\nもう一度撮影してください。');
+                console.error('❌ capturedImageData is null or undefined');
+                return;
+            }
+            
+            if (capturedImageData.length < 100) {
+                alert('画像データが不正です。\\nもう一度撮影してください。');
+                console.error('❌ capturedImageData is too small:', capturedImageData.length);
                 return;
             }
             
@@ -4962,7 +5001,8 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             try {
                 console.log('🚀 Starting image upload...', {
                     sessionId: sessionId,
-                    imageDataLength: capturedImageData ? capturedImageData.length : 0,
+                    imageDataLength: capturedImageData.length,
+                    imageDataPrefix: capturedImageData.substring(0, 50),
                     currentStep: currentStep
                 });
                 
