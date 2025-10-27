@@ -1573,6 +1573,178 @@ app.post('/api/essay/ocr', async (c) => {
   }
 })
 
+// 小論文指導 - AI添削API
+app.post('/api/essay/feedback', async (c) => {
+  console.log('🤖 Essay AI feedback API called')
+  
+  try {
+    const { sessionId } = await c.req.json()
+    
+    if (!sessionId) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: 'セッションIDが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const session = learningSessions.get(sessionId)
+    if (!session || !session.essaySession) {
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // OCR結果を取得
+    const ocrResults = session.essaySession.ocrResults
+    if (!ocrResults || ocrResults.length === 0) {
+      return c.json({
+        ok: false,
+        error: 'no_ocr_data',
+        message: 'OCR結果が見つかりません。先に原稿を撮影してください。',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const latestOCR = ocrResults[ocrResults.length - 1]
+    const essayText = latestOCR.text || ''
+    
+    // OpenAI APIキーを取得
+    const openaiApiKey = c.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY
+    
+    // モックフィードバック（開発環境用）
+    if (!openaiApiKey) {
+      console.warn('⚠️ OPENAI_API_KEY not found - using mock feedback')
+      
+      const mockFeedback = {
+        goodPoints: [
+          '序論で問題提起が明確に述べられています。',
+          '具体例として災害時の安否確認とフェイクニュースの2点を挙げており、バランスが取れています。',
+          '最後に「メディアリテラシー」という専門用語を使って結論を述べている点が良いです。'
+        ],
+        improvements: [
+          '本論の展開がやや短く、それぞれの具体例についてもう少し詳しく説明があると説得力が増します。',
+          '反対意見の部分で「誹謗中傷の問題も無視できない」という表現がありますが、具体的な解決策や対策についても触れると良いでしょう。',
+          '文字数が245字と、指定の400〜600字に達していません。各段落をもう少し詳しく展開してください。'
+        ],
+        exampleImprovement: '【改善例】\n「一方で、誤った情報の拡散や、プライバシーの問題も深刻化している。」\n↓\n「一方で、SNSには深刻な課題も存在する。第一に、誤った情報が瞬時に拡散されるリスクがある。例えば、2011年の東日本大震災時には、根拠のないデマが大量に流れ、被災地に混乱をもたらした。第二に、個人情報の流出やプライバシー侵害の問題が後を絶たない。投稿した写真から位置情報が特定され、犯罪に巻き込まれるケースも報告されている。」',
+        nextSteps: [
+          '文字数を増やすため、各具体例について「なぜそうなるのか」「どのような影響があるのか」を2〜3文で説明しましょう。',
+          '結論部分で、自分の意見をもう少し詳しく述べてください。「どのように使うべきか」の具体策を1〜2つ提案すると説得力が増します。',
+          '次回は、序論・本論・結論の各部分の文字配分を意識して、バランスよく書きましょう。'
+        ],
+        overallScore: 75,
+        charCount: latestOCR.charCount || 245
+      }
+      
+      // セッションに保存
+      if (!session.essaySession.feedbacks) {
+        session.essaySession.feedbacks = []
+      }
+      session.essaySession.feedbacks.push({
+        ...mockFeedback,
+        createdAt: new Date().toISOString(),
+        isMock: true
+      })
+      learningSessions.set(sessionId, session)
+      
+      return c.json({
+        ok: true,
+        feedback: mockFeedback,
+        timestamp: new Date().toISOString()
+      }, 200)
+    }
+    
+    // 実際のOpenAI APIを使用
+    console.log('🤖 Calling OpenAI API for feedback...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + openaiApiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは経験豊富な小論文指導の専門家です。生徒の小論文を読んで、建設的で具体的なフィードバックを提供してください。\n\n以下の4要素構造でJSON形式で返してください：\n{\n  "goodPoints": ["良い点1", "良い点2", "良い点3"],\n  "improvements": ["改善点1", "改善点2", "改善点3"],\n  "exampleImprovement": "具体的な改善例文",\n  "nextSteps": ["次のアクション1", "次のアクション2", "次のアクション3"],\n  "overallScore": 0-100の点数,\n  "charCount": 文字数\n}\n\n良い点：具体的に評価できる箇所を3つ\n改善点：直すべき箇所を3つ、具体的に\n改善例文：改善点の1つについて、具体的な書き直し例\n次のアクション：今後の学習で取り組むべきこと3つ\n\n生徒を励ましつつ、具体的で実践的なアドバイスを心がけてください。'
+          },
+          {
+            role: 'user',
+            content: '以下の小論文を添削してください。\n\n【課題】SNSが社会に与える影響について、あなたの考えを述べなさい（400〜600字）\n\n【小論文】\n' + essayText
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', errorText)
+      return c.json({
+        ok: false,
+        error: 'openai_error',
+        message: 'AI添削でエラーが発生しました',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    const data = await response.json()
+    const aiResponse = data.choices[0].message.content
+    
+    let feedback
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        feedback = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error('JSON not found in response')
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse feedback:', parseError)
+      return c.json({
+        ok: false,
+        error: 'parse_error',
+        message: 'フィードバックの解析に失敗しました',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    // セッションに保存
+    if (!session.essaySession.feedbacks) {
+      session.essaySession.feedbacks = []
+    }
+    session.essaySession.feedbacks.push({
+      ...feedback,
+      createdAt: new Date().toISOString()
+    })
+    learningSessions.set(sessionId, session)
+    
+    console.log('✅ AI feedback completed')
+    
+    return c.json({
+      ok: true,
+      feedback,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Feedback error:', error)
+    return c.json({
+      ok: false,
+      error: 'feedback_error',
+      message: 'AI添削でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
 // 小論文指導 - チャットAPI
 app.post('/api/essay/chat', async (c) => {
   console.log('📝 Essay chat API called')
@@ -1681,6 +1853,31 @@ app.post('/api/essay/chat', async (c) => {
       }
       else {
         response = '原稿用紙に小論文を書き終えたら、画面上部のカメラボタン📷を押して撮影してください。\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+      }
+    } else if (currentStep === 5) {
+      // ステップ5: チャレンジ（AI自動添削）
+      const session = learningSessions.get(sessionId)
+      
+      // OCR結果があるかチェック
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.length > 0
+      
+      if (message.includes('次へ') || message.includes('完了')) {
+        response = 'AI添削のステップを完了しました！\n\nフィードバックを確認していただきました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      else if (message.includes('添削開始') || message.includes('フィードバック')) {
+        if (!hasOCR) {
+          response = 'OCR結果が見つかりません。Step 4で原稿を撮影してください。'
+        } else {
+          response = 'AI添削を開始します。少々お待ちください...\n\n（AIが小論文を分析して、4要素フィードバックを生成します）'
+        }
+      }
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        response = '【チャレンジ問題】\nAIによる自動添削を行います。\n\nStep 4で書いた小論文について、詳細なフィードバックを提供します。\n\n以下の4つの観点から分析します：\n📝 良い点 - 評価できる箇所\n🔧 改善点 - 直すべき箇所\n✨ 模範例文 - 具体的な改善例\n🎯 次のアクション - 今後の学習指針\n\n準備ができたら「添削開始」と入力して送信してください。'
+      }
+      else {
+        response = 'AI添削の準備ができています。\n\n「添削開始」と入力して送信すると、Step 4の小論文について詳細なフィードバックを受け取れます。'
       }
     } else {
       response = 'ステップ' + currentStep + 'の内容は準備中です。「完了」と入力して次に進んでください。'
@@ -3747,6 +3944,99 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
           display: none !important;
         }
         
+        /* AI添削結果表示 */
+        .ai-feedback {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 1rem;
+          padding: 2rem;
+          margin: 1.5rem 0;
+          color: white;
+        }
+        
+        .ai-feedback h3 {
+          font-size: 1.5rem;
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+        
+        .ai-feedback h3 i {
+          margin-right: 0.5rem;
+        }
+        
+        .feedback-score {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+        
+        .score-circle {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          background: white;
+          color: #7c3aed;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.5rem;
+          font-weight: bold;
+          margin: 0 auto 0.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .score-label {
+          font-size: 1rem;
+          opacity: 0.9;
+        }
+        
+        .feedback-section {
+          background: rgba(255,255,255,0.15);
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          backdrop-filter: blur(10px);
+        }
+        
+        .feedback-section h4 {
+          font-size: 1.125rem;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .feedback-section ul {
+          margin-left: 1.5rem;
+          line-height: 1.8;
+        }
+        
+        .feedback-section ul li {
+          margin-bottom: 0.75rem;
+        }
+        
+        .feedback-section.good-points {
+          border-left: 4px solid #10b981;
+        }
+        
+        .feedback-section.improvements {
+          border-left: 4px solid #f59e0b;
+        }
+        
+        .feedback-section.example {
+          border-left: 4px solid #3b82f6;
+        }
+        
+        .feedback-section.next-steps {
+          border-left: 4px solid #8b5cf6;
+        }
+        
+        .example-text {
+          background: rgba(255,255,255,0.2);
+          padding: 1rem;
+          border-radius: 0.5rem;
+          line-height: 1.8;
+          white-space: pre-wrap;
+        }
+        
         /* レスポンシブ対応 */
         @media (max-width: 640px) {
           .input-area {
@@ -3950,6 +4240,11 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     // AI応答を表示
                     addMessage(result.response, true);
                     
+                    // Step 5で「添削開始」の場合、AI添削を実行
+                    if (currentStep === 5 && (text.includes('添削開始') || text.includes('フィードバック'))) {
+                        await requestAIFeedback();
+                    }
+                    
                     // ステップ完了チェック
                     console.log('🔍 Checking step completion:', result.stepCompleted);
                     if (result.stepCompleted) {
@@ -4025,6 +4320,60 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                 6: '【まとめ】今日の学習を振り返りましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
             };
             return messages[step] || 'ステップを進めましょう。';
+        }
+        
+        // AI添削をリクエスト
+        async function requestAIFeedback() {
+            try {
+                addMessage('AI添削を実行中です。少々お待ちください...', true);
+                
+                const response = await fetch('/api/essay/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok && result.feedback) {
+                    displayFeedback(result.feedback);
+                } else {
+                    addMessage('AI添削でエラーが発生しました: ' + (result.message || '不明なエラー'), true);
+                }
+            } catch (error) {
+                console.error('AI feedback error:', error);
+                addMessage('AI添削の通信エラーが発生しました。', true);
+            }
+        }
+        
+        // フィードバックを表示
+        function displayFeedback(feedback) {
+            const feedbackHtml = '<div class="ai-feedback">' +
+                '<h3><i class="fas fa-robot"></i> AI自動添削結果</h3>' +
+                '<div class="feedback-score">' +
+                '<div class="score-circle">' + (feedback.overallScore || 0) + '</div>' +
+                '<div class="score-label">総合評価</div>' +
+                '</div>' +
+                '<div class="feedback-section good-points">' +
+                '<h4><i class="fas fa-thumbs-up"></i> 良い点</h4>' +
+                '<ul>' + (feedback.goodPoints || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '<div class="feedback-section improvements">' +
+                '<h4><i class="fas fa-wrench"></i> 改善点</h4>' +
+                '<ul>' + (feedback.improvements || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '<div class="feedback-section example">' +
+                '<h4><i class="fas fa-lightbulb"></i> 改善例文</h4>' +
+                '<div class="example-text">' + (feedback.exampleImprovement || '').split('\\n').join('<br>') + '</div>' +
+                '</div>' +
+                '<div class="feedback-section next-steps">' +
+                '<h4><i class="fas fa-flag-checkered"></i> 次のアクション</h4>' +
+                '<ul>' + (feedback.nextSteps || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '</div>';
+            
+            addMessage(feedbackHtml, true);
+            addMessage('添削が完了しました！\\n内容を確認して、「完了」と入力してください。', true);
         }
         
         // カメラ関連の変数
