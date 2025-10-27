@@ -1849,10 +1849,10 @@ app.post('/api/essay/chat', async (c) => {
         response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
       }
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
-        response = '【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「SNSが社会に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：400〜600字\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n原稿用紙に手書きで書いて、カメラボタンから写真を撮影してアップロードしてください。\n\n※ 書き終えたら、画面上部のカメラボタン📷を押して原稿を撮影してください。'
+        response = '【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「SNSが社会に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：400〜600字\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認して「確認完了」と送信\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります'
       }
       else {
-        response = '原稿用紙に小論文を書き終えたら、画面上部のカメラボタン📷を押して撮影してください。\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認 → 「確認完了」と送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
       }
     } else if (currentStep === 5) {
       // ステップ5: チャレンジ（AI自動添削）
@@ -3843,6 +3843,24 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
           background: #d97706;
         }
         
+        .btn-crop {
+          background: #f59e0b;
+          color: white;
+        }
+        
+        .btn-crop:hover {
+          background: #d97706;
+        }
+        
+        .btn-crop-confirm {
+          background: #3b82f6;
+          color: white;
+        }
+        
+        .btn-crop-confirm:hover {
+          background: #2563eb;
+        }
+        
         .btn-upload {
           background: #10b981;
           color: white;
@@ -3850,6 +3868,74 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         
         .btn-upload:hover {
           background: #059669;
+        }
+        
+        /* ワークフロー説明 */
+        .workflow-instructions {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 0.75rem;
+          color: white;
+        }
+        
+        .workflow-step {
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.5rem 1rem;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 0.5rem;
+          backdrop-filter: blur(10px);
+        }
+        
+        .workflow-arrow {
+          font-size: 1.25rem;
+          font-weight: bold;
+        }
+        
+        /* カメラステータス */
+        .camera-status {
+          text-align: center;
+          padding: 0.75rem;
+          margin: 1rem 0;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          display: none;
+        }
+        
+        .camera-status.active {
+          display: block;
+        }
+        
+        .camera-status.info {
+          background: #dbeafe;
+          color: #1e40af;
+          border: 1px solid #3b82f6;
+        }
+        
+        .camera-status.success {
+          background: #dcfce7;
+          color: #166534;
+          border: 1px solid #22c55e;
+        }
+        
+        /* Crop Canvas */
+        #cropCanvas {
+          width: 100%;
+          max-height: 400px;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          cursor: crosshair;
+          border: 2px solid #7c3aed;
+        }
+        
+        .camera-container {
+          position: relative;
         }
         
         .btn-cancel {
@@ -4152,20 +4238,39 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     </button>
                 </div>
                 
+                <!-- ワークフロー説明 -->
+                <div class="workflow-instructions">
+                    <div class="workflow-step">1️⃣ 原稿を撮影</div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">2️⃣ 範囲を調整</div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">3️⃣ OCR処理</div>
+                </div>
+                
                 <div class="camera-container">
                     <video id="cameraPreview" autoplay playsinline></video>
+                    <canvas id="cropCanvas" class="hidden"></canvas>
                     <img id="capturedImage" class="hidden" alt="撮影した画像">
                 </div>
                 
+                <!-- ステータス表示 -->
+                <div id="cameraStatus" class="camera-status"></div>
+                
                 <div class="camera-controls">
                     <button class="btn btn-capture" id="captureBtn" onclick="capturePhoto()">
-                        <i class="fas fa-camera"></i> 撮影
+                        <i class="fas fa-camera"></i> 撮影する
                     </button>
                     <button class="btn btn-retake hidden" id="retakeBtn" onclick="retakePhoto()">
                         <i class="fas fa-redo"></i> 再撮影
                     </button>
-                    <button class="btn btn-upload hidden" id="uploadBtn" onclick="uploadImage()">
-                        <i class="fas fa-upload"></i> アップロード
+                    <button class="btn btn-crop hidden" id="cropBtn" onclick="showCropInterface()">
+                        <i class="fas fa-crop"></i> 範囲を調整
+                    </button>
+                    <button class="btn btn-crop-confirm hidden" id="cropConfirmBtn" onclick="applyCrop()">
+                        <i class="fas fa-check"></i> この範囲でOK
+                    </button>
+                    <button class="btn btn-upload hidden" id="uploadBtn" onclick="uploadAndProcessImage()">
+                        <i class="fas fa-check-circle"></i> OCR処理を開始
                     </button>
                     <button class="btn btn-cancel" onclick="closeCamera()">
                         <i class="fas fa-times"></i> キャンセル
@@ -4379,6 +4484,11 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         // カメラ関連の変数
         let stream = null;
         let capturedImageData = null;
+        let originalImageData = null;
+        let cropArea = null;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
         
         // カメラモーダルを開く
         function openCamera() {
@@ -4388,24 +4498,44 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             }
             
             document.getElementById('cameraModal').classList.add('active');
+            updateCameraStatus('カメラを起動しています...', 'info');
             startCamera();
+        }
+        
+        // ステータス更新
+        function updateCameraStatus(message, type) {
+            const statusDiv = document.getElementById('cameraStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = 'camera-status active ' + type;
         }
         
         // カメラを起動
         async function startCamera() {
             try {
                 const preview = document.getElementById('cameraPreview');
+                const cropCanvas = document.getElementById('cropCanvas');
+                const capturedImg = document.getElementById('capturedImage');
+                
                 preview.classList.remove('hidden');
-                document.getElementById('capturedImage').classList.add('hidden');
+                cropCanvas.classList.add('hidden');
+                capturedImg.classList.add('hidden');
+                
                 document.getElementById('captureBtn').classList.remove('hidden');
                 document.getElementById('retakeBtn').classList.add('hidden');
+                document.getElementById('cropBtn').classList.add('hidden');
+                document.getElementById('cropConfirmBtn').classList.add('hidden');
                 document.getElementById('uploadBtn').classList.add('hidden');
                 
                 stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } 
                 });
                 preview.srcObject = stream;
                 preview.play();
+                updateCameraStatus('原稿用紙を画面に収めて「撮影する」を押してください', 'info');
             } catch (error) {
                 console.error('Camera error:', error);
                 alert('カメラの起動に失敗しました。\\nブラウザの設定でカメラへのアクセスを許可してください。');
@@ -4423,6 +4553,7 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             ctx.drawImage(preview, 0, 0);
             
             capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            originalImageData = capturedImageData;
             
             // プレビューを停止
             if (stream) {
@@ -4439,17 +4570,237 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             // ボタンを切り替え
             document.getElementById('captureBtn').classList.add('hidden');
             document.getElementById('retakeBtn').classList.remove('hidden');
+            document.getElementById('cropBtn').classList.remove('hidden');
             document.getElementById('uploadBtn').classList.remove('hidden');
+            
+            updateCameraStatus('撮影完了！必要に応じて「範囲を調整」してから「OCR処理を開始」を押してください', 'success');
+        }
+        
+        // クロップインターフェースを表示
+        function showCropInterface() {
+            const img = document.getElementById('capturedImage');
+            const cropCanvas = document.getElementById('cropCanvas');
+            
+            // キャンバスに画像を描画
+            const image = new Image();
+            image.onload = function() {
+                cropCanvas.width = image.width;
+                cropCanvas.height = image.height;
+                
+                const ctx = cropCanvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                // デフォルトのクロップ領域を設定（画像全体の90%）
+                const margin = Math.min(image.width, image.height) * 0.05;
+                cropArea = {
+                    x: margin,
+                    y: margin,
+                    width: image.width - margin * 2,
+                    height: image.height - margin * 2
+                };
+                
+                drawCropArea();
+            };
+            image.src = originalImageData;
+            
+            // UI切り替え
+            img.classList.add('hidden');
+            cropCanvas.classList.remove('hidden');
+            document.getElementById('cropBtn').classList.add('hidden');
+            document.getElementById('cropConfirmBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.add('hidden');
+            
+            updateCameraStatus('マウスでドラッグして範囲を選択してください', 'info');
+            
+            // イベントリスナーを追加
+            setupCropListeners(cropCanvas);
+        }
+        
+        // クロップリスナー設定
+        function setupCropListeners(canvas) {
+            canvas.onmousedown = function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                startX = (e.clientX - rect.left) * scaleX;
+                startY = (e.clientY - rect.top) * scaleY;
+                isDragging = true;
+            };
+            
+            canvas.onmousemove = function(e) {
+                if (!isDragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const currentX = (e.clientX - rect.left) * scaleX;
+                const currentY = (e.clientY - rect.top) * scaleY;
+                
+                cropArea = {
+                    x: Math.min(startX, currentX),
+                    y: Math.min(startY, currentY),
+                    width: Math.abs(currentX - startX),
+                    height: Math.abs(currentY - startY)
+                };
+                
+                drawCropArea();
+            };
+            
+            canvas.onmouseup = function() {
+                isDragging = false;
+            };
+            
+            // タッチイベント対応
+            canvas.ontouchstart = function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                startX = (touch.clientX - rect.left) * scaleX;
+                startY = (touch.clientY - rect.top) * scaleY;
+                isDragging = true;
+            };
+            
+            canvas.ontouchmove = function(e) {
+                e.preventDefault();
+                if (!isDragging) return;
+                
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const currentX = (touch.clientX - rect.left) * scaleX;
+                const currentY = (touch.clientY - rect.top) * scaleY;
+                
+                cropArea = {
+                    x: Math.min(startX, currentX),
+                    y: Math.min(startY, currentY),
+                    width: Math.abs(currentX - startX),
+                    height: Math.abs(currentY - startY)
+                };
+                
+                drawCropArea();
+            };
+            
+            canvas.ontouchend = function() {
+                isDragging = false;
+            };
+        }
+        
+        // クロップ領域を描画
+        function drawCropArea() {
+            const canvas = document.getElementById('cropCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 画像を再描画
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                // 暗い背景
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // クロップ領域をクリア（明るく表示）
+                ctx.clearRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+                ctx.drawImage(img, 
+                    cropArea.x, cropArea.y, cropArea.width, cropArea.height,
+                    cropArea.x, cropArea.y, cropArea.width, cropArea.height
+                );
+                
+                // 枠線
+                ctx.strokeStyle = '#7c3aed';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+                
+                // コーナーマーカー
+                const cornerSize = 20;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                
+                // 左上
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x, cropArea.y + cornerSize);
+                ctx.lineTo(cropArea.x, cropArea.y);
+                ctx.lineTo(cropArea.x + cornerSize, cropArea.y);
+                ctx.stroke();
+                
+                // 右上
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x + cropArea.width - cornerSize, cropArea.y);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cornerSize);
+                ctx.stroke();
+                
+                // 左下
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x, cropArea.y + cropArea.height - cornerSize);
+                ctx.lineTo(cropArea.x, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cornerSize, cropArea.y + cropArea.height);
+                ctx.stroke();
+                
+                // 右下
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x + cropArea.width - cornerSize, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cropArea.height - cornerSize);
+                ctx.stroke();
+            };
+            img.src = originalImageData;
+        }
+        
+        // クロップを適用
+        function applyCrop() {
+            if (!cropArea || cropArea.width < 10 || cropArea.height < 10) {
+                alert('クロップ範囲が小さすぎます。もう一度選択してください。');
+                return;
+            }
+            
+            const sourceCanvas = document.getElementById('cropCanvas');
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = cropArea.width;
+            resultCanvas.height = cropArea.height;
+            
+            const ctx = resultCanvas.getContext('2d');
+            ctx.drawImage(sourceCanvas,
+                cropArea.x, cropArea.y, cropArea.width, cropArea.height,
+                0, 0, cropArea.width, cropArea.height
+            );
+            
+            capturedImageData = resultCanvas.toDataURL('image/jpeg', 0.9);
+            
+            // 結果を表示
+            const img = document.getElementById('capturedImage');
+            img.src = capturedImageData;
+            img.classList.remove('hidden');
+            document.getElementById('cropCanvas').classList.add('hidden');
+            
+            // ボタンを切り替え
+            document.getElementById('cropConfirmBtn').classList.add('hidden');
+            document.getElementById('cropBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.remove('hidden');
+            
+            updateCameraStatus('範囲調整完了！「OCR処理を開始」を押してください', 'success');
         }
         
         // 再撮影
         function retakePhoto() {
             capturedImageData = null;
+            originalImageData = null;
+            cropArea = null;
+            document.getElementById('cropCanvas').classList.add('hidden');
+            document.getElementById('capturedImage').classList.add('hidden');
             startCamera();
         }
         
-        // 画像をアップロード
-        async function uploadImage() {
+        // 画像をアップロードしてOCR処理
+        async function uploadAndProcessImage() {
             if (!capturedImageData) {
                 alert('画像が撮影されていません。');
                 return;
@@ -4458,51 +4809,70 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             closeCamera();
             
             // ローディングメッセージを表示
-            addMessage('画像をアップロード中...', true);
+            addMessage('📸 画像をアップロード中...', true);
             
             try {
+                console.log('🚀 Starting image upload...', {
+                    sessionId: sessionId,
+                    imageDataLength: capturedImageData ? capturedImageData.length : 0,
+                    currentStep: currentStep
+                });
+                
                 // 画像をアップロード
                 const uploadResponse = await fetch('/api/essay/upload-image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        sessionId: '${sessionId}',
+                        sessionId: sessionId,
                         imageData: capturedImageData,
                         currentStep: currentStep
                     })
                 });
                 
+                console.log('📤 Upload response status:', uploadResponse.status);
+                
                 if (!uploadResponse.ok) {
-                    throw new Error('Upload failed');
+                    const errorText = await uploadResponse.text();
+                    console.error('❌ Upload failed:', errorText);
+                    throw new Error('アップロードに失敗しました (ステータス: ' + uploadResponse.status + ')');
                 }
                 
+                const uploadResult = await uploadResponse.json();
+                console.log('✅ Upload successful:', uploadResult);
+                
                 // OCR処理を開始
-                addMessage('OCR処理を開始しています。しばらくお待ちください...', true);
+                addMessage('🔍 OCR処理を開始しています。しばらくお待ちください...', true);
                 
                 const ocrResponse = await fetch('/api/essay/ocr', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        sessionId: '${sessionId}',
+                        sessionId: sessionId,
                         imageData: capturedImageData
                     })
                 });
                 
+                console.log('🔍 OCR response status:', ocrResponse.status);
+                
                 if (!ocrResponse.ok) {
-                    throw new Error('OCR failed');
+                    const errorText = await ocrResponse.text();
+                    console.error('❌ OCR failed:', errorText);
+                    throw new Error('OCR処理に失敗しました (ステータス: ' + ocrResponse.status + ')');
                 }
                 
                 const ocrResult = await ocrResponse.json();
+                console.log('📄 OCR result:', ocrResult);
                 
                 if (ocrResult.ok && ocrResult.result) {
                     displayOCRResult(ocrResult.result);
                 } else {
-                    throw new Error('OCR result invalid');
+                    throw new Error('OCR結果が無効です: ' + JSON.stringify(ocrResult));
                 }
                 
             } catch (error) {
-                console.error('Upload/OCR error:', error);
-                addMessage('エラーが発生しました。もう一度お試しください。', true);
+                console.error('❌ Upload/OCR error:', error);
+                const errorMessage = error.message || 'エラーが発生しました';
+                addMessage('❌ ' + errorMessage + '\\n\\nもう一度お試しください。\\n問題が続く場合は、ブラウザのコンソール（F12キー）でエラー詳細を確認してください。', true);
             }
         }
         
@@ -4525,9 +4895,19 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             addMessage(resultHtml, true);
             
             if (result.readable) {
-                addMessage('読み取りが完了しました！\\n内容を確認して、問題なければ「確認完了」と入力してください。\\n修正が必要な場合は、修正後のテキストを入力して「修正完了」と送信してください。', true);
+                const instructionHtml = '<div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 1rem; margin: 1rem 0; border-radius: 0.5rem;">' +
+                    '<h4 style="color: #1e40af; margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> 次のステップ</h4>' +
+                    '<p style="margin: 0.5rem 0; line-height: 1.6;">OCR処理が完了しました。上記の読み取り結果を確認してください。</p>' +
+                    '<div style="background: white; padding: 0.75rem; margin-top: 0.5rem; border-radius: 0.375rem;">' +
+                    '<strong>✅ 内容が正しい場合：</strong><br>' +
+                    '下の入力欄に「<strong>確認完了</strong>」と入力して送信ボタンを押してください。<br><br>' +
+                    '<strong>✏️ 修正が必要な場合：</strong><br>' +
+                    '修正後の正しいテキストを入力して「<strong>修正完了</strong>」と送信してください。' +
+                    '</div>' +
+                    '</div>';
+                addMessage(instructionHtml, true);
             } else {
-                addMessage('画像の読み取りに問題があります。\\n上記の改善点を参考に、もう一度撮影してください。', true);
+                addMessage('❌ 画像の読み取りに問題があります。\\n上記の改善点を参考に、カメラボタン（📷）を押してもう一度撮影してください。', true);
             }
         }
         
