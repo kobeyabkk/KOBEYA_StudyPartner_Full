@@ -3255,6 +3255,33 @@ app.get('/essay-coaching', (c) => {
           display: block;
         }
         
+        .dev-start-button {
+          width: 100%;
+          padding: 1rem 2rem;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          border: 2px dashed rgba(255, 255, 255, 0.3);
+          border-radius: 0.75rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1rem;
+          display: block;
+          opacity: 0.9;
+        }
+        
+        .dev-start-button:hover {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+          opacity: 1;
+        }
+        
+        .dev-start-button i {
+          margin-right: 0.5rem;
+        }
+        
         .back-button {
           display: inline-flex;
           align-items: center;
@@ -3346,6 +3373,11 @@ app.get('/essay-coaching', (c) => {
                 <button class="start-button" id="startButton" onclick="startLesson()">
                     <i class="fas fa-play-circle"></i> 授業を開始
                 </button>
+                
+                <!-- 開発者モードボタン -->
+                <button class="dev-start-button" id="devStartButton" onclick="startDevLesson()">
+                    <i class="fas fa-code"></i> 🛠️ 開発モードで開始（Step 4へ直接ジャンプ）
+                </button>
             </div>
         </div>
         
@@ -3411,6 +3443,41 @@ app.get('/essay-coaching', (c) => {
                 if (result.ok) {
                     // 授業ページに遷移
                     window.location.href = '/essay-coaching/session/' + sessionId;
+                } else {
+                    alert('セッションの初期化に失敗しました: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Session init error:', error);
+                alert('エラーが発生しました。もう一度お試しください。');
+            }
+        }
+        
+        async function startDevLesson() {
+            // 開発者モード：レベル・形式選択なしで開始
+            const defaultLevel = 'high_school';
+            const defaultFormat = 'individual';
+            
+            console.log('🛠️ Starting in DEVELOPER MODE:', { sessionId, defaultLevel, defaultFormat });
+            
+            // セッション初期化API呼び出し
+            try {
+                const response = await fetch('/api/essay/init-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId,
+                        targetLevel: defaultLevel,
+                        lessonFormat: defaultFormat
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    // 授業ページに開発者モードパラメータ付きで遷移
+                    window.location.href = '/essay-coaching/session/' + sessionId + '?dev=true&debug=true';
                 } else {
                     alert('セッションの初期化に失敗しました: ' + result.message);
                 }
