@@ -1579,8 +1579,10 @@ app.post('/api/essay/feedback', async (c) => {
   
   try {
     const { sessionId } = await c.req.json()
+    console.log('🤖 Received sessionId:', sessionId)
     
     if (!sessionId) {
+      console.error('❌ Missing sessionId')
       return c.json({
         ok: false,
         error: 'missing_parameters',
@@ -1590,7 +1592,12 @@ app.post('/api/essay/feedback', async (c) => {
     }
     
     const session = learningSessions.get(sessionId)
+    console.log('🤖 Session found:', !!session)
+    console.log('🤖 EssaySession exists:', !!(session && session.essaySession))
+    console.log('🤖 All sessions:', Array.from(learningSessions.keys()))
+    
     if (!session || !session.essaySession) {
+      console.error('❌ Session not found:', sessionId)
       return c.json({
         ok: false,
         error: 'session_not_found',
@@ -1868,9 +1875,11 @@ app.post('/api/essay/chat', async (c) => {
       }
       else if (message.includes('添削開始') || message.includes('フィードバック')) {
         if (!hasOCR) {
-          response = 'OCR結果が見つかりません。Step 4で原稿を撮影してください。'
+          response = 'OCR結果が見つかりません。\n\nStep 4で原稿を撮影していない場合は、下の📷カメラボタンから撮影してください。\n\nまたは、テキストで直接入力することもできます。'
         } else {
-          response = 'AI添削を開始します。少々お待ちください...\n\n（AIが小論文を分析して、4要素フィードバックを生成します）'
+          // AI添削APIを呼び出すフラグを返す
+          response = 'AI添削を実行中です。少々お待ちください...'
+          // 実際のAI添削はクライアント側で別途呼び出す
         }
       }
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
@@ -4578,6 +4587,11 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         // AI添削をリクエスト
         async function requestAIFeedback() {
             try {
+                console.log('🤖 Requesting AI feedback...', {
+                    sessionId: sessionId,
+                    currentStep: currentStep
+                });
+                
                 addMessage('AI添削を実行中です。少々お待ちください...', true);
                 
                 const response = await fetch('/api/essay/feedback', {
@@ -4586,15 +4600,19 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     body: JSON.stringify({ sessionId: sessionId })
                 });
                 
+                console.log('🤖 Feedback API response status:', response.status);
+                
                 const result = await response.json();
+                console.log('🤖 Feedback API result:', result);
                 
                 if (result.ok && result.feedback) {
                     displayFeedback(result.feedback);
                 } else {
-                    addMessage('AI添削でエラーが発生しました: ' + (result.message || '不明なエラー'), true);
+                    console.error('❌ Feedback API error:', result);
+                    addMessage('AI添削でエラーが発生しました: ' + (result.message || result.error || '不明なエラー'), true);
                 }
             } catch (error) {
-                console.error('AI feedback error:', error);
+                console.error('❌ AI feedback error:', error);
                 addMessage('AI添削の通信エラーが発生しました。', true);
             }
         }
@@ -4640,8 +4658,9 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
         
         // カメラモーダルを開く
         function openCamera() {
-            if (currentStep !== 4) {
-                alert('カメラ機能はStep 4（本練習）でのみ使用できます。');
+            // カメラ機能はStep 3, 4, 5で使用可能
+            if (currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
+                alert('カメラ機能はStep 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
                 return;
             }
             
