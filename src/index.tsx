@@ -29,8 +29,141 @@ const app = new Hono<{ Bindings: Bindings }>()
 // 開発モード設定
 const USE_MOCK_RESPONSES = false
 
-// 学習セッション管理（インメモリ）
+// 学習セッション管理（インメモリ + D1永続化）
 const learningSessions = new Map()
+
+// D1セッション管理ヘルパー関数
+async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: any) {
+  try {
+    const now = new Date().toISOString()
+    
+    // session_data として JSON 保存
+    const sessionDataJson = JSON.stringify({
+      uploadedImages: sessionData.essaySession?.uploadedImages || [],
+      ocrResults: sessionData.essaySession?.ocrResults || [],
+      feedbacks: sessionData.essaySession?.feedbacks || [],
+      chatHistory: sessionData.chatHistory || [],
+      vocabularyProgress: sessionData.vocabularyProgress || {},
+      lastActivity: now
+    })
+    
+    // UPSERT (INSERT OR REPLACE)
+    await db.prepare(`
+      INSERT INTO essay_sessions (
+        session_id, student_id, target_level, lesson_format,
+        current_step, step_status, created_at, updated_at, session_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET
+        current_step = excluded.current_step,
+        step_status = excluded.step_status,
+        updated_at = excluded.updated_at,
+        session_data = excluded.session_data
+    `).bind(
+      sessionId,
+      sessionData.studentId || 'anonymous',
+      sessionData.essaySession?.targetLevel || 'high_school',
+      sessionData.essaySession?.lessonFormat || 'full_55min',
+      sessionData.essaySession?.currentStep || 1,
+      JSON.stringify(sessionData.essaySession?.stepStatus || {}),
+      sessionData.essaySession?.createdAt || now,
+      now,
+      sessionDataJson
+    ).run()
+    
+    console.log('✅ Session saved to D1:', sessionId)
+    return true
+  } catch (error) {
+    console.error('❌ Failed to save session to D1:', error)
+    return false
+  }
+}
+
+async function loadSessionFromDB(db: D1Database, sessionId: string) {
+  try {
+    const result = await db.prepare(`
+      SELECT * FROM essay_sessions WHERE session_id = ? LIMIT 1
+    `).bind(sessionId).first()
+    
+    if (!result) {
+      console.log('⚠️ Session not found in D1:', sessionId)
+      return null
+    }
+    
+    // D1から読み込んだデータを復元
+    const sessionData = result.session_data ? JSON.parse(result.session_data as string) : {}
+    
+    const session = {
+      sessionId: result.session_id,
+      studentId: result.student_id,
+      essaySession: {
+        sessionId: result.session_id,
+        targetLevel: result.target_level,
+        lessonFormat: result.lesson_format,
+        currentStep: result.current_step,
+        stepStatus: JSON.parse(result.step_status as string || '{}'),
+        createdAt: result.created_at,
+        uploadedImages: sessionData.uploadedImages || [],
+        ocrResults: sessionData.ocrResults || [],
+        feedbacks: sessionData.feedbacks || []
+      },
+      chatHistory: sessionData.chatHistory || [],
+      vocabularyProgress: sessionData.vocabularyProgress || {}
+    }
+    
+    console.log('✅ Session loaded from D1:', sessionId)
+    return session
+  } catch (error) {
+    console.error('❌ Failed to load session from D1:', error)
+    return null
+  }
+}
+
+async function getOrCreateSession(db: D1Database | undefined, sessionId: string) {
+  // まずインメモリをチェック
+  let session = learningSessions.get(sessionId)
+  if (session) {
+    console.log('📦 Session found in memory:', sessionId)
+    return session
+  }
+  
+  // D1から読み込み
+  if (db) {
+    session = await loadSessionFromDB(db, sessionId)
+    if (session) {
+      // インメモリに復元
+      learningSessions.set(sessionId, session)
+      console.log('📦 Session restored from D1 to memory:', sessionId)
+      return session
+    }
+  }
+  
+  console.log('❌ Session not found:', sessionId)
+  return null
+}
+
+async function updateSession(db: D1Database | undefined, sessionId: string, updates: any) {
+  // インメモリを更新
+  let session = learningSessions.get(sessionId)
+  if (!session) {
+    console.error('❌ Cannot update non-existent session:', sessionId)
+    return false
+  }
+  
+  // ディープマージ
+  session = { ...session, ...updates }
+  if (updates.essaySession) {
+    session.essaySession = { ...session.essaySession, ...updates.essaySession }
+  }
+  
+  learningSessions.set(sessionId, session)
+  
+  // D1に保存
+  if (db) {
+    await saveSessionToDB(db, sessionId, session)
+  }
+  
+  return true
+}
 
 // 教育方針フレームワーク読み込み
 let educationalPolicy: any = null
@@ -1317,29 +1450,45 @@ app.post('/api/essay/init-session', async (c) => {
       }, 400)
     }
     
-    // セッションデータを初期化（まずはインメモリ、後でD1に保存）
+    const now = new Date().toISOString()
+    
+    // セッションデータを初期化
     const essaySession = {
       sessionId,
       targetLevel,
       lessonFormat,
       currentStep: 1,
       stepStatus: { "1": "in_progress" },
-      createdAt: new Date().toISOString()
+      createdAt: now,
+      uploadedImages: [],
+      ocrResults: [],
+      feedbacks: []
     }
     
-    // 既存のlearningSessions Mapに追加（一時的）
-    learningSessions.set(sessionId, {
+    const session = {
       sessionId,
-      essaySession
-    })
+      essaySession,
+      chatHistory: [],
+      vocabularyProgress: {}
+    }
     
-    console.log('✅ Essay session initialized:', sessionId)
+    // インメモリに保存
+    learningSessions.set(sessionId, session)
+    
+    // D1に永続化
+    const db = c.env?.DB
+    if (db) {
+      await saveSessionToDB(db, sessionId, session)
+      console.log('✅ Essay session initialized and saved to D1:', sessionId)
+    } else {
+      console.warn('⚠️ D1 not available, session only in memory:', sessionId)
+    }
     
     return c.json({
       ok: true,
       sessionId,
       message: 'セッションを初期化しました',
-      timestamp: new Date().toISOString()
+      timestamp: now
     }, 200)
     
   } catch (error) {
@@ -1369,17 +1518,20 @@ app.post('/api/essay/upload-image', async (c) => {
       }, 400)
     }
     
-    const session = learningSessions.get(sessionId)
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
     if (!session || !session.essaySession) {
       return c.json({
         ok: false,
         error: 'session_not_found',
-        message: 'セッションが見つかりません',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
         timestamp: new Date().toISOString()
       }, 404)
     }
     
-    // 画像を保存（まずはセッションに保存、後でD1に保存）
+    // 画像を保存
     if (!session.essaySession.uploadedImages) {
       session.essaySession.uploadedImages = []
     }
@@ -1390,7 +1542,8 @@ app.post('/api/essay/upload-image', async (c) => {
       uploadedAt: new Date().toISOString()
     })
     
-    learningSessions.set(sessionId, session)
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
     
     console.log('✅ Image uploaded for session:', sessionId)
     
@@ -1427,12 +1580,15 @@ app.post('/api/essay/ocr', async (c) => {
       }, 400)
     }
     
-    const session = learningSessions.get(sessionId)
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
     if (!session || !session.essaySession) {
       return c.json({
         ok: false,
         error: 'session_not_found',
-        message: 'セッションが見つかりません',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
         timestamp: new Date().toISOString()
       }, 404)
     }
@@ -1463,7 +1619,9 @@ app.post('/api/essay/ocr', async (c) => {
         isMock: true,
         step: currentStep || 4
       })
-      learningSessions.set(sessionId, session)
+      
+      // インメモリとD1の両方を更新
+      await updateSession(db, sessionId, { essaySession: session.essaySession })
       
       return c.json({
         ok: true,
@@ -1554,7 +1712,9 @@ app.post('/api/essay/ocr', async (c) => {
       processedAt: new Date().toISOString(),
       step: currentStep || 4
     })
-    learningSessions.set(sessionId, session)
+    
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
     
     console.log('✅ OCR completed:', { readable: ocrResult.readable, charCount: ocrResult.charCount })
     
@@ -1593,17 +1753,20 @@ app.post('/api/essay/feedback', async (c) => {
       }, 400)
     }
     
-    const session = learningSessions.get(sessionId)
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
     console.log('🤖 Session found:', !!session)
     console.log('🤖 EssaySession exists:', !!(session && session.essaySession))
-    console.log('🤖 All sessions:', Array.from(learningSessions.keys()))
+    console.log('🤖 All sessions in memory:', Array.from(learningSessions.keys()))
     
     if (!session || !session.essaySession) {
       console.error('❌ Session not found:', sessionId)
       return c.json({
         ok: false,
         error: 'session_not_found',
-        message: 'セッションが見つかりません',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
         timestamp: new Date().toISOString()
       }, 404)
     }
@@ -1680,7 +1843,9 @@ app.post('/api/essay/feedback', async (c) => {
         createdAt: new Date().toISOString(),
         isMock: true
       })
-      learningSessions.set(sessionId, session)
+      
+      // インメモリとD1の両方を更新
+      await updateSession(db, sessionId, { essaySession: session.essaySession })
       
       return c.json({
         ok: true,
@@ -1835,9 +2000,11 @@ ${essayText}
       ...feedback,
       createdAt: new Date().toISOString()
     })
-    learningSessions.set(sessionId, session)
     
-    console.log('✅ AI feedback completed')
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
+    
+    console.log('✅ AI feedback completed and saved to D1')
     
     return c.json({
       ok: true,
@@ -1986,8 +2153,10 @@ app.post('/api/essay/chat', async (c) => {
             isCorrected: true
           })
           
-          learningSessions.set(sessionId, session)
-          console.log('✏️ OCR text corrected by user:', message.substring(0, 50) + '...')
+          // インメモリとD1の両方を更新
+          const db = c.env?.DB
+          await updateSession(db, sessionId, { essaySession: session.essaySession })
+          console.log('✏️ OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
           
           response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
         } else {
@@ -2044,8 +2213,10 @@ app.post('/api/essay/chat', async (c) => {
               step: 5
             })
             
-            learningSessions.set(sessionId, session)
-            console.log('✏️ Step 5 OCR text corrected by user:', message.substring(0, 50) + '...')
+            // インメモリとD1の両方を更新
+            const db = c.env?.DB
+            await updateSession(db, sessionId, { essaySession: session.essaySession })
+            console.log('✏️ Step 5 OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
             
             response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
           } else {
