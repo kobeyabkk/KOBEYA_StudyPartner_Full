@@ -1416,7 +1416,7 @@ app.post('/api/essay/ocr', async (c) => {
   console.log('🔍 Essay OCR API called')
   
   try {
-    const { sessionId, imageData } = await c.req.json()
+    const { sessionId, imageData, currentStep } = await c.req.json()
     
     if (!sessionId || !imageData) {
       return c.json({
@@ -1460,7 +1460,8 @@ app.post('/api/essay/ocr', async (c) => {
       session.essaySession.ocrResults.push({
         ...mockResult,
         processedAt: new Date().toISOString(),
-        isMock: true
+        isMock: true,
+        step: currentStep || 4
       })
       learningSessions.set(sessionId, session)
       
@@ -1550,7 +1551,8 @@ app.post('/api/essay/ocr', async (c) => {
     }
     session.essaySession.ocrResults.push({
       ...ocrResult,
-      processedAt: new Date().toISOString()
+      processedAt: new Date().toISOString(),
+      step: currentStep || 4
     })
     learningSessions.set(sessionId, session)
     
@@ -1939,7 +1941,7 @@ app.post('/api/essay/chat', async (c) => {
         response = '回答を受け付けました。\n\n書き終えたら「完了」と入力して送信してください。'
       }
     } else if (currentStep === 4) {
-      // ステップ4: 本練習（手書き原稿アップロード + OCR）
+      // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
       // セッションを取得
       const session = learningSessions.get(sessionId)
       
@@ -1947,48 +1949,120 @@ app.post('/api/essay/chat', async (c) => {
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
                        session.essaySession.uploadedImages.some(img => img.step === 4)
       
-      if (message.includes('確認完了') || message.includes('これで完了')) {
-        response = '本練習のステップを完了しました！\n\nOCRで読み取った内容を確認していただきました。\n次のステップでは、この小論文に対する詳細なフィードバックを行います。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+      // OCR結果があるかチェック
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.length > 0
+      
+      // 添削完了フラグをチェック
+      const hasFeedback = session && session.essaySession && session.essaySession.feedbacks && 
+                          session.essaySession.feedbacks.length > 0
+      
+      if (message.includes('次へ') || message.includes('完了')) {
+        // 添削完了後、次のステップへ
+        response = '本練習のステップを完了しました！\n\nAI添削のフィードバックを確認していただきました。\n次のステップでは、さらに難しいテーマのチャレンジ問題に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
         stepCompleted = true
       }
-      else if (message.includes('修正完了')) {
-        response = '修正内容を反映しました。\n\n確認が完了したら「確認完了」と入力して送信してください。'
+      else if (message.includes('確認完了') || message.includes('これで完了')) {
+        // OCR確認完了 → すぐにAI添削を実行
+        if (!hasOCR) {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        } else {
+          response = 'OCR内容を確認しました。\n\nAI添削を実行中です。少々お待ちください...'
+          // クライアント側でAI添削APIを呼び出すフラグを返す
+        }
+      }
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
+        // ユーザーが修正したテキストを入力した場合
+        // OCR結果を修正版で上書き
+        if (session && session.essaySession && session.essaySession.ocrResults) {
+          const latestOCR = session.essaySession.ocrResults[session.essaySession.ocrResults.length - 1]
+          
+          // 修正後のテキストを保存
+          session.essaySession.ocrResults.push({
+            ...latestOCR,
+            text: message,
+            charCount: message.length,
+            processedAt: new Date().toISOString(),
+            isCorrected: true
+          })
+          
+          learningSessions.set(sessionId, session)
+          console.log('✏️ OCR text corrected by user:', message.substring(0, 50) + '...')
+          
+          response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+        } else {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        }
       }
       else if (hasImage) {
         response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
       }
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
-        response = '【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「SNSが社会に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：400〜600字\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認して「確認完了」と送信\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります'
+        response = '【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「SNSが社会に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：400〜600字\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります'
       }
       else {
-        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認 → 「確認完了」と送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
       }
     } else if (currentStep === 5) {
-      // ステップ5: チャレンジ（AI自動添削）
+      // ステップ5: チャレンジ問題（新しいテーマの小論文）
       const session = learningSessions.get(sessionId)
       
-      // OCR結果があるかチェック
+      // 画像がアップロードされたかチェック
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 5)
+      
+      // このステップのOCR結果があるかチェック（Step 5用の新しい原稿）
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.length > 0
+                     session.essaySession.ocrResults.some(ocr => ocr.step === 5)
       
       if (message.includes('次へ') || message.includes('完了')) {
-        response = 'AI添削のステップを完了しました！\n\nフィードバックを確認していただきました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
         stepCompleted = true
       }
-      else if (message.includes('添削開始') || message.includes('フィードバック')) {
+      else if (message.includes('確認完了') || message.includes('これで完了')) {
+        // OCR確認完了 → AI添削を実行
         if (!hasOCR) {
-          response = 'OCR結果が見つかりません。\n\nStep 4で原稿を撮影していない場合は、下の📷カメラボタンから撮影してください。\n\nまたは、テキストで直接入力することもできます。'
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
         } else {
-          // AI添削APIを呼び出すフラグを返す
-          response = 'AI添削を実行中です。少々お待ちください...'
-          // 実際のAI添削はクライアント側で別途呼び出す
+          response = 'OCR内容を確認しました。\n\nAI添削を実行中です。少々お待ちください...'
         }
       }
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
+        // ユーザーが修正したテキストを入力した場合
+        if (session && session.essaySession && session.essaySession.ocrResults) {
+          const step5OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 5)
+          if (step5OCRs.length > 0) {
+            const latestOCR = step5OCRs[step5OCRs.length - 1]
+            
+            // 修正後のテキストを保存
+            session.essaySession.ocrResults.push({
+              ...latestOCR,
+              text: message,
+              charCount: message.length,
+              processedAt: new Date().toISOString(),
+              isCorrected: true,
+              step: 5
+            })
+            
+            learningSessions.set(sessionId, session)
+            console.log('✏️ Step 5 OCR text corrected by user:', message.substring(0, 50) + '...')
+            
+            response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+          } else {
+            response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+          }
+        } else {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        }
+      }
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
+      }
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
-        response = '【チャレンジ問題】\nAIによる自動添削を行います。\n\nStep 4で書いた小論文について、詳細なフィードバックを提供します。\n\n以下の4つの観点から分析します：\n📝 良い点 - 評価できる箇所\n🔧 改善点 - 直すべき箇所\n✨ 模範例文 - 具体的な改善例\n🎯 次のアクション - 今後の学習指針\n\n準備ができたら「添削開始」と入力して送信してください。'
+        response = '【チャレンジ問題】\nさらに難しいテーマの小論文に挑戦しましょう。\n\n＜課題＞\n「人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい」\n\n＜条件＞\n- 文字数：500〜800字\n- 構成：序論（問題提起）→本論（メリット・デメリット）→結論（自分の意見）\n- 具体例を3つ以上含めること\n- 客観的なデータや事例を引用すること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります'
       }
       else {
-        response = 'AI添削の準備ができています。\n\n「添削開始」と入力して送信すると、Step 4の小論文について詳細なフィードバックを受け取れます。'
+        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
       }
     } else {
       response = 'ステップ' + currentStep + 'の内容は準備中です。「完了」と入力して次に進んでください。'
@@ -4604,8 +4678,11 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     // AI応答を表示
                     addMessage(result.response, true);
                     
-                    // Step 5で「添削開始」の場合、AI添削を実行
-                    if (currentStep === 5 && (text.includes('添削開始') || text.includes('フィードバック'))) {
+                    // Step 4 または Step 5で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
+                    if ((currentStep === 4 || currentStep === 5) && 
+                        (text.includes('確認完了') || text.includes('修正完了') || 
+                         (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')))) {
+                        // OCR結果があることを確認してからAI添削を実行
                         await requestAIFeedback();
                     }
                     
@@ -5165,7 +5242,8 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sessionId: sessionId,
-                        imageData: imageDataToUpload
+                        imageData: imageDataToUpload,
+                        currentStep: currentStep
                     })
                 });
                 
@@ -5217,9 +5295,11 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     '<p style="margin: 0.5rem 0; line-height: 1.6;">OCR処理が完了しました。上記の読み取り結果を確認してください。</p>' +
                     '<div style="background: white; padding: 0.75rem; margin-top: 0.5rem; border-radius: 0.375rem;">' +
                     '<strong>✅ 内容が正しい場合：</strong><br>' +
-                    '下の入力欄に「<strong>確認完了</strong>」と入力して送信ボタンを押してください。<br><br>' +
+                    '下の入力欄に「<strong>確認完了</strong>」と入力して送信ボタンを押してください。<br>' +
+                    '<span style="color: #059669; font-size: 0.9em;">→ すぐにAI添削が開始されます</span><br><br>' +
                     '<strong>✏️ 修正が必要な場合：</strong><br>' +
-                    '修正後の正しいテキストを入力して「<strong>修正完了</strong>」と送信してください。' +
+                    '修正後の正しいテキスト全文を入力して送信してください。<br>' +
+                    '<span style="color: #059669; font-size: 0.9em;">→ 修正内容が保存され、AI添削が開始されます</span>' +
                     '</div>' +
                     '</div>';
                 addMessage(instructionHtml, true);
