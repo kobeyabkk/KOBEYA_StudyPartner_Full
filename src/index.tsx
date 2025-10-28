@@ -4993,6 +4993,14 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                 return;
             }
             
+            // closeCamera()を呼ぶ前に画像データをローカル変数に保存
+            const imageDataToUpload = capturedImageData;
+            
+            console.log('💾 Saved image data to local variable:', {
+                length: imageDataToUpload.length,
+                prefix: imageDataToUpload.substring(0, 50)
+            });
+            
             closeCamera();
             
             // ローディングメッセージを表示
@@ -5001,8 +5009,8 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
             try {
                 console.log('🚀 Starting image upload...', {
                     sessionId: sessionId,
-                    imageDataLength: capturedImageData.length,
-                    imageDataPrefix: capturedImageData.substring(0, 50),
+                    imageDataLength: imageDataToUpload.length,
+                    imageDataPrefix: imageDataToUpload.substring(0, 50),
                     currentStep: currentStep
                 });
                 
@@ -5012,7 +5020,7 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sessionId: sessionId,
-                        imageData: capturedImageData,
+                        imageData: imageDataToUpload,
                         currentStep: currentStep
                     })
                 });
@@ -5036,7 +5044,7 @@ app.get('/essay-coaching/session/:sessionId', (c) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sessionId: sessionId,
-                        imageData: capturedImageData
+                        imageData: imageDataToUpload
                     })
                 });
                 
