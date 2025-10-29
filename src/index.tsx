@@ -3849,14 +3849,15 @@ app.get('/essay-coaching', (c) => {
 })
 
 // 小論文指導 - 授業セッションページ
-app.get('/essay-coaching/session/:sessionId', (c) => {
+app.get('/essay-coaching/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
   console.log('📝 Essay session page requested:', sessionId)
   
-  // セッション情報を取得
-  const session = learningSessions.get(sessionId)
+  // セッション情報を取得（D1から復元も試みる）
+  const db = c.env?.DB
+  const session = await getOrCreateSession(db, sessionId)
   if (!session || !session.essaySession) {
-    return c.html('<h1>セッションが見つかりません</h1><a href="/essay-coaching">戻る</a>')
+    return c.html('<h1>セッションが見つかりません</h1><p>セッションIDが無効か、有効期限が切れている可能性があります。</p><a href="/essay-coaching">新しいセッションを開始</a>')
   }
   
   const essaySession = session.essaySession
