@@ -3888,33 +3888,30 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
 
-            // デバッグ：元のテキストを確認
-            console.log('🔍 Original text:', text.substring(0, 200));
-            console.log('🔍 Contains \\$?', text.includes('\\$'));
-            console.log('🔍 Contains \\\\$?', text.includes('\\\\$'));
-
             // テキストをHTMLに変換（改行対応、数式デリミタ変換）
             const newlineChar = String.fromCharCode(10);
-            const htmlContent = text
+            
+            // まず全体で LaTeX形式の数式デリミタを KaTeX形式に変換
+            let processedText = text;
+            
+            // ディスプレイ数式: \[ ... \] → $$ ... $$
+            const openBracket = String.fromCharCode(92, 91);  // \[
+            const closeBracket = String.fromCharCode(92, 93); // \]
+            processedText = processedText.replaceAll(openBracket, '$$');
+            processedText = processedText.replaceAll(closeBracket, '$$');
+            
+            // インライン数式: \( ... \) → $ ... $
+            const openParen = String.fromCharCode(92, 40);   // \(
+            const closeParen = String.fromCharCode(92, 41);  // \)
+            processedText = processedText.replaceAll(openParen, '$');
+            processedText = processedText.replaceAll(closeParen, '$');
+            
+            // 改行で分割してHTMLに変換
+            const htmlContent = processedText
                 .split(newlineChar)
                 .map(line => {
                     if (line.trim() === '') return '<br>';
-                    
-                    // すべてのバックスラッシュ+ドル記号パターンを処理
-                    let processedLine = line;
-                    
-                    // 2重エスケープされたパターン: \\$ → $
-                    processedLine = processedLine.replaceAll('\\\\$', '$');
-                    // 単一エスケープパターン: \$ → $
-                    processedLine = processedLine.replaceAll('\\$', '$');
-                    
-                    // LaTeX形式も処理
-                    processedLine = processedLine.replaceAll('\\(', '$');
-                    processedLine = processedLine.replaceAll('\\)', '$');
-                    processedLine = processedLine.replaceAll('\\[', '$$');
-                    processedLine = processedLine.replaceAll('\\]', '$$');
-                    
-                    return processedLine;
+                    return line;
                 })
                 .join('<br>');
 
