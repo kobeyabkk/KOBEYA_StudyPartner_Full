@@ -2738,17 +2738,37 @@ app.get('/ai-chat/:sessionId', (c) => {
         
         <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
         <script>
-        const sessionId = '${sessionId}';
-        let chatMessages, questionInput, sendButton;
-        let cameraBtn, fileBtn, clearImageBtn, cameraInput, fileInput;
-        let imagePreviewArea, previewImage, startCropBtn, confirmImageBtn;
-        let cropArea, cropImage, cancelCropBtn;
-        let cropper = null;
-        let currentImageData = null;
-        
-        // DOMが読み込まれてから初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🤖 AI Chat: Initializing...');
+        (function() {
+            console.log('🤖 AI Chat: Script loaded');
+            
+            const sessionId = '${sessionId}';
+            let chatMessages, questionInput, sendButton;
+            let cameraBtn, fileBtn, clearImageBtn, cameraInput, fileInput;
+            let imagePreviewArea, previewImage, startCropBtn, confirmImageBtn;
+            let cropArea, cropImage, cancelCropBtn;
+            let cropper = null;
+            let currentImageData = null;
+            
+            // ページ読み込み完了を待つ
+            window.addEventListener('load', function() {
+                console.log('🤖 AI Chat: Window loaded, starting initialization...');
+                initializeAIChat();
+            });
+            
+            // DOMが読み込まれた時点でも試す
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('🤖 AI Chat: DOM ready, starting initialization...');
+                    initializeAIChat();
+                });
+            } else {
+                console.log('🤖 AI Chat: DOM already ready, starting initialization immediately...');
+                initializeAIChat();
+            }
+            
+            function initializeAIChat() {
+                try {
+                    console.log('🤖 AI Chat: Initializing...');
             
             // 要素を取得
             chatMessages = document.getElementById('chatMessages');
@@ -2801,6 +2821,9 @@ app.get('/ai-chat/:sessionId', (c) => {
             if (startCropBtn) startCropBtn.addEventListener('click', startCrop);
             if (confirmImageBtn) confirmImageBtn.addEventListener('click', confirmImage);
             if (cancelCropBtn) cancelCropBtn.addEventListener('click', cancelCrop);
+            
+            // 音声入力機能の初期化
+            initVoiceInput();
             
             console.log('✅ AI Chat: All event listeners attached');
         });
@@ -3439,75 +3462,90 @@ app.get('/ai-chat/:sessionId', (c) => {
         let recognition = null;
         let isVoiceInputActive = false;
         
-        // Web Speech API (音声認識) の初期化
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'ja-JP';
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            
-            recognition.onstart = () => {
-                console.log('🎤 音声認識開始');
-                isVoiceInputActive = true;
-                document.getElementById('voiceInputStatus').style.display = 'block';
-                document.getElementById('voiceInputBtn').style.background = '#f59e0b';
-                document.getElementById('voiceInputBtn').style.color = 'white';
-            };
-            
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-                
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-                
-                if (finalTranscript) {
-                    console.log('🎤 音声認識結果（確定）:', finalTranscript);
-                    questionInput.value = finalTranscript;
-                }
-            };
-            
-            recognition.onerror = (event) => {
-                console.error('🎤 音声認識エラー:', event.error);
-                isVoiceInputActive = false;
-                document.getElementById('voiceInputStatus').style.display = 'none';
-                document.getElementById('voiceInputBtn').style.background = '';
-                document.getElementById('voiceInputBtn').style.color = '';
-                
-                if (event.error !== 'no-speech') {
-                    alert('音声認識エラーが発生しました: ' + event.error);
-                }
-            };
-            
-            recognition.onend = () => {
-                console.log('🎤 音声認識終了');
-                isVoiceInputActive = false;
-                document.getElementById('voiceInputStatus').style.display = 'none';
-                document.getElementById('voiceInputBtn').style.background = '';
-                document.getElementById('voiceInputBtn').style.color = '';
-            };
-        }
-        
-        // 音声入力ボタンのイベント
-        document.getElementById('voiceInputBtn').addEventListener('click', () => {
-            if (!recognition) {
-                alert('お使いのブラウザは音声入力に対応していません。Chrome、Edge、Safariをお使いください。');
+        function initVoiceInput() {
+            const voiceInputBtn = document.getElementById('voiceInputBtn');
+            if (!voiceInputBtn) {
+                console.warn('⚠️ Voice input button not found');
                 return;
             }
             
-            if (isVoiceInputActive) {
-                recognition.stop();
+            // Web Speech API (音声認識) の初期化
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ja-JP';
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                
+                recognition.onstart = () => {
+                    console.log('🎤 音声認識開始');
+                    isVoiceInputActive = true;
+                    const statusEl = document.getElementById('voiceInputStatus');
+                    if (statusEl) statusEl.style.display = 'block';
+                    voiceInputBtn.style.background = '#f59e0b';
+                    voiceInputBtn.style.color = 'white';
+                };
+                
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript && questionInput) {
+                        console.log('🎤 音声認識結果（確定）:', finalTranscript);
+                        questionInput.value = finalTranscript;
+                    }
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error('🎤 音声認識エラー:', event.error);
+                    isVoiceInputActive = false;
+                    const statusEl = document.getElementById('voiceInputStatus');
+                    if (statusEl) statusEl.style.display = 'none';
+                    voiceInputBtn.style.background = '';
+                    voiceInputBtn.style.color = '';
+                    
+                    if (event.error !== 'no-speech') {
+                        alert('音声認識エラーが発生しました: ' + event.error);
+                    }
+                };
+                
+                recognition.onend = () => {
+                    console.log('🎤 音声認識終了');
+                    isVoiceInputActive = false;
+                    const statusEl = document.getElementById('voiceInputStatus');
+                    if (statusEl) statusEl.style.display = 'none';
+                    voiceInputBtn.style.background = '';
+                    voiceInputBtn.style.color = '';
+                };
+                
+                // 音声入力ボタンのイベント
+                voiceInputBtn.addEventListener('click', () => {
+                    if (!recognition) {
+                        alert('お使いのブラウザは音声入力に対応していません。Chrome、Edge、Safariをお使いください。');
+                        return;
+                    }
+                    
+                    if (isVoiceInputActive) {
+                        recognition.stop();
+                    } else {
+                        recognition.start();
+                    }
+                });
+                
+                console.log('✅ Voice input initialized');
             } else {
-                recognition.start();
+                console.warn('⚠️ Speech recognition not supported');
             }
-        });
+        }
         
         // 音声読み上げ機能（AI の回答を読み上げ）
         function speakText(text) {
