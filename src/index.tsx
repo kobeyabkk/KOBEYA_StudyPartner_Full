@@ -3895,10 +3895,14 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                 .map(line => {
                     if (line.trim() === '') return '<br>';
                     
-                    // LaTeX形式の数式デリミタをKaTeX形式に変換
+                    // LaTeX/Markdown形式の数式デリミタをKaTeX形式に変換
                     let processedLine = line;
+                    // OpenAI形式: \$ ... \$ → $ ... $
+                    processedLine = processedLine.replaceAll('\\$', '$');
+                    // LaTeX形式: \( ... \) → $ ... $
                     processedLine = processedLine.replaceAll('\\(', '$');
                     processedLine = processedLine.replaceAll('\\)', '$');
+                    // LaTeX形式: \[ ... \] → $$ ... $$
                     processedLine = processedLine.replaceAll('\\[', '$$');
                     processedLine = processedLine.replaceAll('\\]', '$$');
                     
