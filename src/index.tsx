@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { html } from 'hono/html'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { cors } from 'hono/cors'
 // ログシステム用ユーティリティをインポート
@@ -2338,7 +2337,7 @@ app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
   console.log('🤖 AI chat window requested for session:', sessionId)
   
-  return c.html(html`
+  return c.html(`
     <!DOCTYPE html>
     <html lang="ja">
     <head>
