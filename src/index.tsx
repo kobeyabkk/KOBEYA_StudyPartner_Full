@@ -3888,35 +3888,39 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
 
-            // テキストを改行で分割してHTMLに変換
-            const lines = text.split('\n');
-            const htmlContent = lines.map(line => {
-                // 空行は<br>に
-                if (line.trim() === '') return '<br>';
-
-                // インライン数式 \( ... \) を $...$ に変換
-                line = line.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-
-                // ディスプレイ数式 \\[ ... \\] を $$...$$ に変換
-                line = line.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$');
-
-                return line;
-            }).join('<br>');
+            // テキストをHTMLに変換（改行対応、数式デリミタ変換）
+            const htmlContent = text
+                .split('\n')
+                .map(line => {
+                    if (line.trim() === '') return '<br>';
+                    
+                    // LaTeX形式の数式デリミタをKaTeX形式に変換
+                    let processedLine = line;
+                    processedLine = processedLine.replace(/\\\(/g, '$');
+                    processedLine = processedLine.replace(/\\\)/g, '$');
+                    processedLine = processedLine.replace(/\\\[/g, '$$');
+                    processedLine = processedLine.replace(/\\\]/g, '$$');
+                    
+                    return processedLine;
+                })
+                .join('<br>');
 
             messageDiv.innerHTML = htmlContent;
             chatMessages.appendChild(messageDiv);
 
             // KaTeXで数式をレンダリング
             if (typeof renderMathInElement !== 'undefined') {
-                renderMathInElement(messageDiv, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false},
-                        {left: '\\[', right: '\\]', display: true},
-                        {left: '\\(', right: '\\)', display: false}
-                    ],
-                    throwOnError: false
-                });
+                try {
+                    renderMathInElement(messageDiv, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
+                } catch (error) {
+                    console.error('KaTeX rendering error:', error);
+                }
             }
 
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -9807,4 +9811,5 @@ app.notFound((c) => {
   return c.text('404 Not Found', 404)
 })
 
+// Export the app as default
 export default app
