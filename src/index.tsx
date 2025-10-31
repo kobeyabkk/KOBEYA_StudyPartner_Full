@@ -2344,6 +2344,10 @@ app.get('/ai-chat/:sessionId', (c) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI学習サポート - KOBEYA</title>
+        <!-- KaTeX for math rendering -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
         
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3677,6 +3681,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI学習サポート - KOBEYA</title>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -3879,8 +3887,38 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         function addMessage(text, type) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
-            messageDiv.textContent = text;
+
+            // テキストを改行で分割してHTMLに変換
+            const lines = text.split('\n');
+            const htmlContent = lines.map(line => {
+                // 空行は<br>に
+                if (line.trim() === '') return '<br>';
+
+                // インライン数式 \( ... \) を $...$ に変換
+                line = line.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
+
+                // ディスプレイ数式 \\[ ... \\] を $$...$$ に変換
+                line = line.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$');
+
+                return line;
+            }).join('<br>');
+
+            messageDiv.innerHTML = htmlContent;
             chatMessages.appendChild(messageDiv);
+
+            // KaTeXで数式をレンダリング
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(messageDiv, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
@@ -3962,6 +4000,19 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         messageInput.focus();
         
         console.log('✅ Event listeners attached');
+        
+        // 初期メッセージの数式もレンダリング
+        setTimeout(() => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }, 500);
     </script>
 </body>
 </html>
@@ -3983,6 +4034,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI学習サポート - KOBEYA</title>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -4308,6 +4363,19 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         messageInput.focus();
         
         console.log('✅ Event listeners attached');
+        
+        // 初期メッセージの数式もレンダリング
+        setTimeout(() => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }, 500);
     </script>
 </body>
 </html>
