@@ -4249,6 +4249,20 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         let cropper = null;
         let currentImageData = null;
         
+        // KaTeX delimiters（エスケープ対応）
+        const backslash = String.fromCharCode(92);
+        const leftBracket = backslash + '[';
+        const rightBracket = backslash + ']';
+        const leftParen = backslash + '(';
+        const rightParen = backslash + ')';
+        
+        const mathDelimiters = [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: leftBracket, right: rightBracket, display: true},
+            {left: leftParen, right: rightParen, display: false}
+        ];
+        
         // 初期化ログ
         console.log('✅ AI Chat V2 initialized');
         console.log('📍 Session ID:', SESSION_ID);
@@ -4273,12 +4287,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             if (type === 'ai' && typeof renderMathInElement !== 'undefined') {
                 setTimeout(() => {
                     renderMathInElement(messageDiv, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false},
-                            {left: String.fromCharCode(92, 91), right: String.fromCharCode(92, 93), display: true},
-                            {left: String.fromCharCode(92, 40), right: String.fromCharCode(92, 41), display: false}
-                        ],
+                        delimiters: mathDelimiters,
                         throwOnError: false
                     });
                 }, 100);
@@ -4387,12 +4396,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         setTimeout(() => {
             if (typeof renderMathInElement !== 'undefined') {
                 renderMathInElement(document.body, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false},
-                        {left: String.fromCharCode(92, 91), right: String.fromCharCode(92, 93), display: true},
-                        {left: String.fromCharCode(92, 40), right: String.fromCharCode(92, 41), display: false}
-                    ],
+                    delimiters: mathDelimiters,
                     throwOnError: false
                 });
             }
