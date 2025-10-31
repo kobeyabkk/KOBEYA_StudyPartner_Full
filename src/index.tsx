@@ -2736,11 +2736,15 @@ app.get('/ai-chat/:sessionId', (c) => {
             </div>
         </div>
         
-        <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js" defer></script>
+        <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
         <script>
-        (function() {
-            console.log('🤖 AI Chat: Script loaded');
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🤖 AI Chat: DOM loaded, starting script');
             console.log('🤖 AI Chat: Cropper available:', typeof Cropper !== 'undefined');
+            
+            (function() {
+                console.log('🤖 AI Chat: Script loaded');
+                console.log('🤖 AI Chat: Cropper check:', typeof Cropper);
             
             const sessionId = ${JSON.stringify(sessionId)};
             let chatMessages, questionInput, sendButton;
@@ -3574,6 +3578,9 @@ app.get('/ai-chat/:sessionId', (c) => {
         
         // 初期フォーカス
         questionInput.focus();
+        
+            })(); // End of IIFE
+        }); // End of DOMContentLoaded
         </script>
     </body>
     </html>
