@@ -7152,12 +7152,12 @@ app.get('/study-partner', (c) => {
             btnLogin.addEventListener('click', handleLogin);
           }
           
-          // メインのAIに質問ボタン → 小論文コーチングにリダイレクト
+          // メインのAIに質問ボタン
           const aiQuestionMainButton = document.getElementById('aiQuestionMainButton');
           if (aiQuestionMainButton) {
             aiQuestionMainButton.addEventListener('click', function() {
-              console.log('🤖 Main AI question button clicked → Redirecting to essay coaching');
-              window.location.href = '/essay-coaching';
+              console.log('🤖 Main AI question button clicked');
+              openAIChatDirect();
             });
           }
           
@@ -8183,11 +8183,6 @@ app.get('/study-partner', (c) => {
         
         // 学習セッション無しでAIチャットを開く（メインボタン用）
         function openAIChatDirect() {
-          if (!authenticated) {
-            alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
-            return;
-          }
-          
           console.log('🤖 Opening direct AI chat window');
           
           // 汎用的なセッションIDを生成
@@ -8198,7 +8193,7 @@ app.get('/study-partner', (c) => {
           const aiWindow = window.open('/ai-chat/' + directSessionId, 'ai-chat', windowFeatures);
           
           if (!aiWindow) {
-            alert('❌ ポップアップがブロックされました。ポップアップを許可してください。');
+            alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
           } else {
             // ウインドウにフォーカスを移す
             aiWindow.focus();
