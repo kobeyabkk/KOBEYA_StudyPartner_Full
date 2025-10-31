@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { html } from 'hono/html'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { cors } from 'hono/cors'
 // ログシステム用ユーティリティをインポート
@@ -2337,7 +2338,7 @@ app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
   console.log('🤖 AI chat window requested for session:', sessionId)
   
-  return c.html(String.raw`
+  return c.html(html`
     <!DOCTYPE html>
     <html lang="ja">
     <head>
@@ -2741,7 +2742,7 @@ app.get('/ai-chat/:sessionId', (c) => {
         (function() {
             console.log('🤖 AI Chat: Script loaded');
             
-            const sessionId = '${sessionId}';
+            const sessionId = ${JSON.stringify(sessionId)};
             let chatMessages, questionInput, sendButton;
             let cameraBtn, fileBtn, clearImageBtn, cameraInput, fileInput;
             let imagePreviewArea, previewImage, startCropBtn, confirmImageBtn;
@@ -3414,7 +3415,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                 // AIメッセージの場合の処理
                 if (sender === 'ai') {
                     // テキストをHTMLに変換（改行を<br>に）
-                    messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+                    messageDiv.innerHTML = text.replace(new RegExp('\\n', 'g'), '<br>');
                     
                     // MathJaxでレンダリング
                     if (window.MathJax) {
