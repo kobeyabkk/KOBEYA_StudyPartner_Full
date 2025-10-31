@@ -2337,7 +2337,7 @@ app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
   console.log('🤖 AI chat window requested for session:', sessionId)
   
-  return c.html(`
+  return c.html(String.raw`
     <!DOCTYPE html>
     <html lang="ja">
     <head>
