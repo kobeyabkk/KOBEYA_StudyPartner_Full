@@ -7152,12 +7152,12 @@ app.get('/study-partner', (c) => {
             btnLogin.addEventListener('click', handleLogin);
           }
           
-          // メインのAIに質問ボタン
+          // メインのAIに質問ボタン → 小論文コーチングにリダイレクト
           const aiQuestionMainButton = document.getElementById('aiQuestionMainButton');
           if (aiQuestionMainButton) {
             aiQuestionMainButton.addEventListener('click', function() {
-              console.log('🤖 Main AI question button clicked');
-              openAIChatDirect();
+              console.log('🤖 Main AI question button clicked → Redirecting to essay coaching');
+              window.location.href = '/essay-coaching';
             });
           }
           
