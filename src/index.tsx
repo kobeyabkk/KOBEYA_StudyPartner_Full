@@ -2736,10 +2736,11 @@ app.get('/ai-chat/:sessionId', (c) => {
             </div>
         </div>
         
-        <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+        <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js" defer></script>
         <script>
         (function() {
             console.log('🤖 AI Chat: Script loaded');
+            console.log('🤖 AI Chat: Cropper available:', typeof Cropper !== 'undefined');
             
             const sessionId = ${JSON.stringify(sessionId)};
             let chatMessages, questionInput, sendButton;
