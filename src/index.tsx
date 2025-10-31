@@ -2739,47 +2739,71 @@ app.get('/ai-chat/:sessionId', (c) => {
         <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
         <script>
         const sessionId = '${sessionId}';
-        const chatMessages = document.getElementById('chatMessages');
-        const questionInput = document.getElementById('questionInput');
-        const sendButton = document.getElementById('sendButton');
-        
-        // 画像関連の要素
-        const cameraBtn = document.getElementById('cameraBtn');
-        const fileBtn = document.getElementById('fileBtn');
-        const clearImageBtn = document.getElementById('clearImageBtn');
-        const cameraInput = document.getElementById('cameraInput');
-        const fileInput = document.getElementById('fileInput');
-        const imagePreviewArea = document.getElementById('imagePreviewArea');
-        const previewImage = document.getElementById('previewImage');
-        const startCropBtn = document.getElementById('startCropBtn');
-        const confirmImageBtn = document.getElementById('confirmImageBtn');
-        const cropArea = document.getElementById('cropArea');
-        const cropImage = document.getElementById('cropImage');
-        const cancelCropBtn = document.getElementById('cancelCropBtn');
-        
+        let chatMessages, questionInput, sendButton;
+        let cameraBtn, fileBtn, clearImageBtn, cameraInput, fileInput;
+        let imagePreviewArea, previewImage, startCropBtn, confirmImageBtn;
+        let cropArea, cropImage, cancelCropBtn;
         let cropper = null;
         let currentImageData = null;
         
-        // エンターキーで送信（Shift+Enterで改行）- 日本語入力中は除外
-        questionInput.addEventListener('keydown', function(e) {
-            // 日本語入力中（IME変換中）は送信しない
-            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-                e.preventDefault();
-                sendQuestion();
+        // DOMが読み込まれてから初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🤖 AI Chat: Initializing...');
+            
+            // 要素を取得
+            chatMessages = document.getElementById('chatMessages');
+            questionInput = document.getElementById('questionInput');
+            sendButton = document.getElementById('sendButton');
+            
+            // 画像関連の要素
+            cameraBtn = document.getElementById('cameraBtn');
+            fileBtn = document.getElementById('fileBtn');
+            clearImageBtn = document.getElementById('clearImageBtn');
+            cameraInput = document.getElementById('cameraInput');
+            fileInput = document.getElementById('fileInput');
+            imagePreviewArea = document.getElementById('imagePreviewArea');
+            previewImage = document.getElementById('previewImage');
+            startCropBtn = document.getElementById('startCropBtn');
+            confirmImageBtn = document.getElementById('confirmImageBtn');
+            cropArea = document.getElementById('cropArea');
+            cropImage = document.getElementById('cropImage');
+            cancelCropBtn = document.getElementById('cancelCropBtn');
+            
+            console.log('🤖 AI Chat: Elements loaded', {
+                sendButton: !!sendButton,
+                cameraBtn: !!cameraBtn,
+                fileBtn: !!fileBtn,
+                questionInput: !!questionInput
+            });
+            
+            // エンターキーで送信（Shift+Enterで改行）- 日本語入力中は除外
+            if (questionInput) {
+                questionInput.addEventListener('keydown', function(e) {
+                    // 日本語入力中（IME変換中）は送信しない
+                    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                        e.preventDefault();
+                        sendQuestion();
+                    }
+                });
             }
+            
+            if (sendButton) {
+                sendButton.addEventListener('click', sendQuestion);
+                console.log('✅ Send button listener attached');
+            }
+            
+            // 画像機能のイベントリスナー
+            if (cameraBtn) cameraBtn.addEventListener('click', () => cameraInput.click());
+            if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
+            if (clearImageBtn) clearImageBtn.addEventListener('click', clearImage);
+            if (cameraInput) cameraInput.addEventListener('change', handleImageSelect);
+            if (fileInput) fileInput.addEventListener('change', handleImageSelect);
+            if (startCropBtn) startCropBtn.addEventListener('click', startCrop);
+            if (confirmImageBtn) confirmImageBtn.addEventListener('click', confirmImage);
+            if (cancelCropBtn) cancelCropBtn.addEventListener('click', cancelCrop);
+            
+            console.log('✅ AI Chat: All event listeners attached');
         });
-        
-        sendButton.addEventListener('click', sendQuestion);
-        
-        // 画像機能のイベントリスナー（AI質問チャット内では認証済みと仮定）
-        cameraBtn.addEventListener('click', () => cameraInput.click());
-        fileBtn.addEventListener('click', () => fileInput.click());
-        clearImageBtn.addEventListener('click', clearImage);
-        cameraInput.addEventListener('change', handleImageSelect);
-        fileInput.addEventListener('change', handleImageSelect);
-        startCropBtn.addEventListener('click', startCrop);
-        confirmImageBtn.addEventListener('click', confirmImage);
-        cancelCropBtn.addEventListener('click', cancelCrop);
         
         // 画像選択処理
         function handleImageSelect(event) {
