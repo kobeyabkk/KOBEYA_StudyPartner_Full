@@ -3675,7 +3675,18 @@ app.post('/api/ai-chat-image', async (c) => {
     console.log('📸 AI Chat Image API: Received request')
     
     // FormDataから画像とテキストを取得
-    const formData = await c.req.formData()
+    let formData
+    try {
+      formData = await c.req.formData()
+      console.log('✅ FormData parsed successfully')
+    } catch (formError) {
+      console.error('❌ FormData parsing error:', formError)
+      return c.json({ 
+        ok: false, 
+        message: 'FormDataの解析に失敗しました' 
+      })
+    }
+    
     const image = formData.get('image') as File | null
     const sessionId = formData.get('sessionId') as string
     const message = formData.get('message') as string
@@ -3685,6 +3696,7 @@ app.post('/api/ai-chat-image', async (c) => {
     console.log('🖼️ Image:', image ? `${image.name} (${image.size} bytes)` : 'none')
     
     if (!image) {
+      console.error('❌ No image found in FormData')
       return c.json({ 
         ok: false, 
         message: '画像が見つかりません' 
@@ -3702,48 +3714,79 @@ app.post('/api/ai-chat-image', async (c) => {
       })
     }
     
-    // 画像をBase64に変換
-    const arrayBuffer = await image.arrayBuffer()
-    const buffer = new Uint8Array(arrayBuffer)
-    const base64Image = btoa(String.fromCharCode(...buffer))
+    // 画像をBase64に変換（最適化された方法）
+    console.log('🔄 Converting image to base64...')
+    let base64Image
+    try {
+      const arrayBuffer = await image.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      
+      // チャンクごとに変換してメモリ効率を改善
+      let binary = ''
+      const chunkSize = 8192
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length))
+        binary += String.fromCharCode.apply(null, Array.from(chunk))
+      }
+      base64Image = btoa(binary)
+      
+      console.log('✅ Image converted to base64 (length:', base64Image.length, ')')
+    } catch (conversionError) {
+      console.error('❌ Image conversion error:', conversionError)
+      return c.json({ 
+        ok: false, 
+        message: '画像の変換に失敗しました' 
+      })
+    }
     
     console.log('🔄 Calling OpenAI Vision API...')
     
     // OpenAI Vision APIを呼び出し
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'あなたは親切で優秀な学習サポートAIです。画像に写っている内容を分析し、生徒の質問に対して分かりやすく丁寧に説明してください。数式が含まれている場合は、LaTeX形式で記述してください。'
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: message || '画像の内容を説明してください。'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`,
-                  detail: 'high'
+    let response
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'あなたは親切で優秀な学習サポートAIです。画像に写っている内容を分析し、生徒の質問に対して分かりやすく丁寧に説明してください。数式が含まれている場合は、LaTeX形式で記述してください。'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: message || '画像の内容を説明してください。'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`,
+                    detail: 'high'
+                  }
                 }
-              }
-            ]
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
+              ]
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
       })
-    })
+      
+      console.log('✅ OpenAI API response status:', response.status)
+    } catch (fetchError) {
+      console.error('❌ OpenAI API fetch error:', fetchError)
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIへの接続に失敗しました' 
+      })
+    }
     
     if (!response.ok) {
       const errorText = await response.text()
@@ -3767,9 +3810,10 @@ app.post('/api/ai-chat-image', async (c) => {
     
   } catch (error) {
     console.error('❌ AI Chat Image API error:', error)
+    console.error('Error details:', error.message, error.stack)
     return c.json({ 
       ok: false, 
-      message: 'サーバーエラーが発生しました' 
+      message: `サーバーエラーが発生しました: ${error.message}` 
     })
   }
 })
