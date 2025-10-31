@@ -3896,10 +3896,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                     
                     // LaTeX形式の数式デリミタをKaTeX形式に変換
                     let processedLine = line;
-                    processedLine = processedLine.replace(/\\\(/g, '$');
-                    processedLine = processedLine.replace(/\\\)/g, '$');
-                    processedLine = processedLine.replace(/\\\[/g, '$$');
-                    processedLine = processedLine.replace(/\\\]/g, '$$');
+                    processedLine = processedLine.replaceAll('\\(', '$');
+                    processedLine = processedLine.replaceAll('\\)', '$');
+                    processedLine = processedLine.replaceAll('\\[', '$$');
+                    processedLine = processedLine.replaceAll('\\]', '$$');
                     
                     return processedLine;
                 })
