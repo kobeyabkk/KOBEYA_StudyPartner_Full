@@ -3586,6 +3586,83 @@ app.get('/ai-chat/:sessionId', (c) => {
     </html>
   `)
 })
+
+// ==========================================
+// AI Chat API エンドポイント
+// ==========================================
+app.post('/api/ai-chat', async (c) => {
+  try {
+    const { sessionId, question } = await c.req.json()
+    
+    console.log('🤖 AI Chat API: Received request')
+    console.log('📍 Session ID:', sessionId)
+    console.log('❓ Question:', question)
+    
+    // OpenAI APIキーを環境変数から取得
+    const openaiApiKey = c.env.OPENAI_API_KEY
+    
+    if (!openaiApiKey) {
+      console.error('❌ OPENAI_API_KEY not found in environment')
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIキーが設定されていません' 
+      })
+    }
+    
+    // OpenAI APIを呼び出し
+    console.log('🔄 Calling OpenAI API...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは親切で優秀な学習サポートAIです。生徒の質問に対して、分かりやすく丁寧に説明してください。'
+          },
+          {
+            role: 'user',
+            content: question
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', response.status, errorText)
+      return c.json({ 
+        ok: false, 
+        message: `OpenAI APIエラー: ${response.status}` 
+      })
+    }
+    
+    const data = await response.json()
+    const answer = data.choices[0].message.content
+    
+    console.log('✅ OpenAI API response received')
+    console.log('💬 Answer:', answer.substring(0, 100) + '...')
+    
+    return c.json({ 
+      ok: true, 
+      answer: answer 
+    })
+    
+  } catch (error) {
+    console.error('❌ AI Chat API error:', error)
+    return c.json({ 
+      ok: false, 
+      message: 'サーバーエラーが発生しました' 
+    })
+  }
+})
+
 // ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
