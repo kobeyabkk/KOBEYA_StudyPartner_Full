@@ -2826,6 +2826,11 @@ app.get('/ai-chat/:sessionId', (c) => {
             initVoiceInput();
             
             console.log('✅ AI Chat: All event listeners attached');
+                } catch (error) {
+                    console.error('❌ AI Chat initialization error:', error);
+                    alert('AIチャットの初期化に失敗しました。ページを再読み込みしてください。');
+                }
+            }
         });
         
         // 画像選択処理
