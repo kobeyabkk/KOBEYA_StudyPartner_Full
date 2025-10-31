@@ -3668,372 +3668,112 @@ app.post('/api/ai-chat', async (c) => {
 })
 
 // ==========================================
-// 新しいシンプル版AIチャット (v2)
+// AI Chat 画像対応 API エンドポイント
 // ==========================================
-app.get('/ai-chat-v2/:sessionId', (c) => {
-  const sessionId = c.req.param('sessionId')
-  console.log('🤖 AI Chat V2: Simple version requested for session:', sessionId)
-  
-  return c.html(`
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI学習サポート - KOBEYA</title>
-    <!-- KaTeX for math rendering -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        
-        .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 90vh;
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .chat-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-        }
-        
-        .chat-header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .message {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            max-width: 80%;
-            word-wrap: break-word;
-            line-height: 1.6;
-        }
-        
-        .message.user {
-            background: #e0e7ff;
-            margin-left: auto;
-            text-align: right;
-        }
-        
-        .message.ai {
-            background: white;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .message.error {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c00;
-        }
-        
-        .chat-input-area {
-            border-top: 1px solid #e5e7eb;
-            padding: 1rem;
-            background: #f9fafb;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        textarea {
-            flex: 1;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            font-size: 1rem;
-            font-family: inherit;
-            resize: none;
-            min-height: 3rem;
-            max-height: 10rem;
-        }
-        
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        button:active:not(:disabled) {
-            transform: translateY(0);
-        }
-        
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .loading-dots {
-            display: flex;
-            gap: 0.25rem;
-            padding: 1rem;
-            justify-content: center;
-        }
-        
-        .loading-dots span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #7c3aed;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        
-        .loading-dots span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        
-        .loading-dots span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-        
-        @keyframes bounce {
-            0%, 80%, 100% {
-                transform: scale(0);
-            }
-            40% {
-                transform: scale(1);
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>🤖 AI学習サポート</h1>
-            <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">何でもお聞きください！</p>
-        </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">
-                こんにちは！学習でわからないことがあれば、何でも質問してください。丁寧に説明いたします！
-            </div>
-        </div>
-        
-        <div class="chat-input-area">
-            <div class="input-group">
-                <textarea 
-                    id="messageInput" 
-                    placeholder="質問を入力してください..."
-                    rows="1"
-                ></textarea>
-                <button id="sendButton">送信</button>
-            </div>
-        </div>
-    </div>
+app.post('/api/ai-chat-image', async (c) => {
+  try {
+    console.log('📸 AI Chat Image API: Received request')
     
-    <script>
-        const SESSION_ID = ${JSON.stringify(sessionId)};
-        
-        const chatMessages = document.getElementById('chatMessages');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        
-        console.log('✅ AI Chat V2 initialized');
-        console.log('📍 Session ID:', SESSION_ID);
-        
-        function addMessage(text, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + type;
-
-            // テキストをHTMLに変換（改行対応、数式デリミタ変換）
-            const newlineChar = String.fromCharCode(10);
-            
-            // まず全体で LaTeX形式の数式デリミタを KaTeX形式に変換
-            let processedText = text;
-            
-            // ディスプレイ数式: \[ ... \] → $$ ... $$
-            const openBracket = String.fromCharCode(92, 91);  // \[
-            const closeBracket = String.fromCharCode(92, 93); // \]
-            processedText = processedText.replaceAll(openBracket, '$$');
-            processedText = processedText.replaceAll(closeBracket, '$$');
-            
-            // インライン数式: \( ... \) → $ ... $
-            const openParen = String.fromCharCode(92, 40);   // \(
-            const closeParen = String.fromCharCode(92, 41);  // \)
-            processedText = processedText.replaceAll(openParen, '$');
-            processedText = processedText.replaceAll(closeParen, '$');
-            
-            // 改行で分割してHTMLに変換
-            const htmlContent = processedText
-                .split(newlineChar)
-                .map(line => {
-                    if (line.trim() === '') return '<br>';
-                    return line;
-                })
-                .join('<br>');
-
-            messageDiv.innerHTML = htmlContent;
-            chatMessages.appendChild(messageDiv);
-
-            // KaTeXで数式をレンダリング
-            if (typeof renderMathInElement !== 'undefined') {
-                try {
-                    renderMathInElement(messageDiv, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false
-                    });
-                } catch (error) {
-                    console.error('KaTeX rendering error:', error);
+    // FormDataから画像とテキストを取得
+    const formData = await c.req.formData()
+    const image = formData.get('image') as File | null
+    const sessionId = formData.get('sessionId') as string
+    const message = formData.get('message') as string
+    
+    console.log('📍 Session ID:', sessionId)
+    console.log('💬 Message:', message)
+    console.log('🖼️ Image:', image ? `${image.name} (${image.size} bytes)` : 'none')
+    
+    if (!image) {
+      return c.json({ 
+        ok: false, 
+        message: '画像が見つかりません' 
+      })
+    }
+    
+    // OpenAI APIキーを環境変数から取得
+    const openaiApiKey = c.env.OPENAI_API_KEY
+    
+    if (!openaiApiKey) {
+      console.error('❌ OPENAI_API_KEY not found in environment')
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIキーが設定されていません' 
+      })
+    }
+    
+    // 画像をBase64に変換
+    const arrayBuffer = await image.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
+    const base64Image = btoa(String.fromCharCode(...buffer))
+    
+    console.log('🔄 Calling OpenAI Vision API...')
+    
+    // OpenAI Vision APIを呼び出し
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは親切で優秀な学習サポートAIです。画像に写っている内容を分析し、生徒の質問に対して分かりやすく丁寧に説明してください。数式が含まれている場合は、LaTeX形式で記述してください。'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: message || '画像の内容を説明してください。'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`,
+                  detail: 'high'
                 }
-            }
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function showLoading() {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'loading-dots';
-            loadingDiv.innerHTML = '<span></span><span></span><span></span>';
-            chatMessages.appendChild(loadingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return loadingDiv;
-        }
-        
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'message error';
-            errorDiv.textContent = '❌ ' + message;
-            chatMessages.appendChild(errorDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            
-            if (!message) {
-                return;
-            }
-            
-            console.log('📤 Sending message:', message);
-            
-            addMessage(message, 'user');
-            messageInput.value = '';
-            
-            sendButton.disabled = true;
-            
-            const loadingDiv = showLoading();
-            
-            try {
-                const response = await fetch('/api/ai-chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sessionId: SESSION_ID,
-                        question: message
-                    })
-                });
-                
-                const data = await response.json();
-                
-                loadingDiv.remove();
-                
-                if (data.ok) {
-                    console.log('✅ Response received');
-                    addMessage(data.answer, 'ai');
-                } else {
-                    console.error('❌ API error:', data.message);
-                    showError(data.message || 'エラーが発生しました');
-                }
-            } catch (error) {
-                console.error('❌ Network error:', error);
-                loadingDiv.remove();
-                showError('通信エラーが発生しました。もう一度お試しください。');
-            } finally {
-                sendButton.disabled = false;
-                messageInput.focus();
-            }
-        }
-        
-        sendButton.addEventListener('click', sendMessage);
-        
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-        
-        messageInput.focus();
-        
-        console.log('✅ Event listeners attached');
-        
-        // 初期メッセージの数式もレンダリング
-        setTimeout(() => {
-            if (typeof renderMathInElement !== 'undefined') {
-                renderMathInElement(document.body, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ],
-                    throwOnError: false
-                });
-            }
-        }, 500);
-    </script>
-</body>
-</html>
-  `)
+              }
+            ]
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI Vision API error:', response.status, errorText)
+      return c.json({ 
+        ok: false, 
+        message: `OpenAI APIエラー: ${response.status}` 
+      })
+    }
+    
+    const data = await response.json()
+    const answer = data.choices[0].message.content
+    
+    console.log('✅ OpenAI Vision API response received')
+    console.log('💬 Answer:', answer.substring(0, 100) + '...')
+    
+    return c.json({ 
+      ok: true, 
+      answer: answer 
+    })
+    
+  } catch (error) {
+    console.error('❌ AI Chat Image API error:', error)
+    return c.json({ 
+      ok: false, 
+      message: 'サーバーエラーが発生しました' 
+    })
+  }
 })
 
-
 // ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
@@ -4052,6 +3792,11 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <!-- Cropper.js for image cropping -->
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
+    <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -4232,6 +3977,89 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             border-radius: 0.5rem;
             margin-bottom: 1rem;
         }
+        
+        /* Camera & Image Styles */
+        .camera-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .camera-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            background: #374151;
+            font-size: 0.9rem;
+        }
+        
+        .camera-buttons button:hover:not(:disabled) {
+            background: #1f2937;
+        }
+        
+        .image-preview-area, .crop-area {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .image-preview-area.active, .crop-area.active {
+            display: block;
+        }
+        
+        .preview-header, .crop-header {
+            background: #f3f4f6;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .preview-content, .crop-content {
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .preview-image, .crop-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 0.5rem;
+        }
+        
+        .preview-actions, .crop-actions {
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .preview-actions button, .crop-actions button {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn-secondary {
+            background: #6b7280 !important;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #4b5563 !important;
+        }
+        
+        .btn-success {
+            background: #10b981 !important;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: #059669 !important;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -4247,7 +4075,54 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             </div>
         </div>
         
+        <!-- Image Preview Area -->
+        <div class="image-preview-area" id="imagePreviewArea">
+            <div class="preview-header">📸 選択された画像</div>
+            <div class="preview-content">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+            <div class="preview-actions">
+                <button id="btnClearImage" class="btn-secondary">
+                    <i class="fas fa-times"></i> キャンセル
+                </button>
+                <button id="btnStartCrop" class="btn-success">
+                    <i class="fas fa-crop"></i> 範囲を調整
+                </button>
+                <button id="btnSendDirect" class="btn-success">
+                    <i class="fas fa-paper-plane"></i> そのまま送信
+                </button>
+            </div>
+        </div>
+        
+        <!-- Crop Area -->
+        <div class="crop-area" id="cropArea">
+            <div class="crop-header">✂️ 範囲を選択してください</div>
+            <div class="crop-content">
+                <img id="cropImage" class="crop-image" alt="Crop">
+            </div>
+            <div class="crop-actions">
+                <button id="btnCancelCrop" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 戻る
+                </button>
+                <button id="btnConfirmCrop" class="btn-success">
+                    <i class="fas fa-check"></i> この範囲で送信
+                </button>
+            </div>
+        </div>
+        
         <div class="chat-input-area">
+            <!-- Camera Buttons -->
+            <div class="camera-buttons">
+                <button id="cameraButton">
+                    <i class="fas fa-camera"></i> カメラ
+                </button>
+                <button id="fileButton">
+                    <i class="fas fa-folder-open"></i> ファイル
+                </button>
+            </div>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+            <input type="file" id="fileInput" accept="image/*">
+            
             <div class="input-group">
                 <textarea 
                     id="messageInput" 
@@ -4267,6 +4142,24 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        
+        // Camera elements
+        const cameraButton = document.getElementById('cameraButton');
+        const fileButton = document.getElementById('fileButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreviewArea = document.getElementById('imagePreviewArea');
+        const previewImage = document.getElementById('previewImage');
+        const btnClearImage = document.getElementById('btnClearImage');
+        const btnStartCrop = document.getElementById('btnStartCrop');
+        const btnSendDirect = document.getElementById('btnSendDirect');
+        const cropArea = document.getElementById('cropArea');
+        const cropImage = document.getElementById('cropImage');
+        const btnCancelCrop = document.getElementById('btnCancelCrop');
+        const btnConfirmCrop = document.getElementById('btnConfirmCrop');
+        
+        let cropper = null;
+        let currentImageData = null;
         
         // 初期化ログ
         console.log('✅ AI Chat V2 initialized');
@@ -4390,6 +4283,194 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                 });
             }
         }, 500);
+        
+        // ========== Camera & Image Functions ==========
+        
+        // Camera button click
+        if (cameraButton) {
+            cameraButton.addEventListener('click', () => {
+                console.log('📷 Camera button clicked');
+                if (cameraInput) cameraInput.click();
+            });
+        }
+        
+        // File button click
+        if (fileButton) {
+            fileButton.addEventListener('click', () => {
+                console.log('📁 File button clicked');
+                if (fileInput) fileInput.click();
+            });
+        }
+        
+        // Handle image selection
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            console.log('📸 Image selected:', file.name);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                previewImage.src = currentImageData;
+                imagePreviewArea.classList.add('active');
+                cropArea.classList.remove('active');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        if (cameraInput) cameraInput.addEventListener('change', handleImageSelect);
+        if (fileInput) fileInput.addEventListener('change', handleImageSelect);
+        
+        // Clear image
+        if (btnClearImage) {
+            btnClearImage.addEventListener('click', () => {
+                console.log('❌ Clear image');
+                imagePreviewArea.classList.remove('active');
+                cropArea.classList.remove('active');
+                currentImageData = null;
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                cameraInput.value = '';
+                fileInput.value = '';
+            });
+        }
+        
+        // Start crop
+        if (btnStartCrop) {
+            btnStartCrop.addEventListener('click', () => {
+                console.log('✂️ Start crop');
+                cropImage.src = currentImageData;
+                imagePreviewArea.classList.remove('active');
+                cropArea.classList.add('active');
+                
+                setTimeout(() => {
+                    if (cropper) cropper.destroy();
+                    
+                    cropper = new Cropper(cropImage, {
+                        aspectRatio: NaN,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.9,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false
+                    });
+                }, 100);
+            });
+        }
+        
+        // Cancel crop
+        if (btnCancelCrop) {
+            btnCancelCrop.addEventListener('click', () => {
+                console.log('⬅️ Cancel crop');
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                cropArea.classList.remove('active');
+                imagePreviewArea.classList.add('active');
+            });
+        }
+        
+        // Confirm crop
+        if (btnConfirmCrop) {
+            btnConfirmCrop.addEventListener('click', () => {
+                console.log('✅ Confirm crop');
+                
+                if (cropper) {
+                    const canvas = cropper.getCroppedCanvas({
+                        maxWidth: 2000,
+                        maxHeight: 2000,
+                        fillColor: '#fff',
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high'
+                    });
+                    
+                    currentImageData = canvas.toDataURL('image/jpeg', 0.8);
+                    cropper.destroy();
+                    cropper = null;
+                }
+                
+                sendImageMessage(currentImageData);
+            });
+        }
+        
+        // Send direct (no crop)
+        if (btnSendDirect) {
+            btnSendDirect.addEventListener('click', () => {
+                console.log('📤 Send direct');
+                sendImageMessage(currentImageData);
+            });
+        }
+        
+        // Send image message
+        async function sendImageMessage(imageData) {
+            if (!imageData) return;
+            
+            const message = messageInput.value.trim() || '画像について教えてください';
+            
+            console.log('📤 Sending image message');
+            
+            // Hide image areas
+            imagePreviewArea.classList.remove('active');
+            cropArea.classList.remove('active');
+            
+            // Add user message
+            addMessage('📷 ' + message, 'user');
+            messageInput.value = '';
+            
+            sendButton.disabled = true;
+            const loadingDiv = showLoading();
+            
+            try {
+                // Convert base64 to blob
+                const response = await fetch(imageData);
+                const blob = await response.blob();
+                
+                // Create FormData
+                const formData = new FormData();
+                formData.append('image', blob, 'image.jpg');
+                formData.append('sessionId', SESSION_ID);
+                formData.append('message', message);
+                
+                // Send to API
+                const apiResponse = await fetch('/api/ai-chat-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await apiResponse.json();
+                
+                loadingDiv.remove();
+                
+                if (data.ok) {
+                    console.log('✅ Image response received');
+                    addMessage(data.answer, 'ai');
+                } else {
+                    console.error('❌ API error:', data.message);
+                    showError(data.message || 'エラーが発生しました');
+                }
+            } catch (error) {
+                console.error('❌ Network error:', error);
+                loadingDiv.remove();
+                showError('通信エラーが発生しました');
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+                currentImageData = null;
+                cameraInput.value = '';
+                fileInput.value = '';
+            }
+        }
+        
+        console.log('✅ Camera functions initialized');
     </script>
 </body>
 </html>
