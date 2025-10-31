@@ -1255,7 +1255,7 @@ app.post('/api/ai/chat', async (c) => {
     
     // セッション情報を取得してコンテキストを作成
     const session = learningSessions.get(sessionId)
-    let contextInfo = '学習セッションが見つかりません'
+    let contextInfo = '汎用AIチャット（学習セッションなし）'
     
     if (session) {
       // 現在の学習コンテキストを構築
@@ -8157,24 +8157,17 @@ app.get('/study-partner', (c) => {
         
         // AI質問ウインドウを開く
         function openAIChat() {
-          if (!authenticated) {
-            alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
-            return;
-          }
+          console.log('🤖 Opening AI chat window (direct mode)');
           
-          if (!currentSession) {
-            alert('❌ 学習セッションが見つかりません');
-            return;
-          }
-          
-          console.log('🤖 Opening AI chat window for session:', currentSession.sessionId);
+          // 汎用的なセッションIDを生成
+          const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
           
           // 新しいウインドウでAIチャットを開く
           const windowFeatures = 'width=600,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
-          const aiWindow = window.open('/ai-chat/' + currentSession.sessionId, 'ai-chat', windowFeatures);
+          const aiWindow = window.open('/ai-chat/' + directSessionId, 'ai-chat', windowFeatures);
           
           if (!aiWindow) {
-            alert('❌ ポップアップがブロックされました。ポップアップを許可してください。');
+            alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
           } else {
             // ウインドウにフォーカスを移す
             aiWindow.focus();
