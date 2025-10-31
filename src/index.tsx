@@ -4276,8 +4276,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
-            // 改行を<br>タグに変換
-            const formattedText = text.replace(/\n/g, '<br>');
+            // 改行を<br>タグに変換（Viteビルド対応）
+            const newlineChar = String.fromCharCode(10);
+            const regex = new RegExp(newlineChar, 'g');
+            const formattedText = text.replace(regex, '<br>');
             messageDiv.innerHTML = formattedText;
             
             chatMessages.appendChild(messageDiv);
