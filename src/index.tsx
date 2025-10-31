@@ -3643,10 +3643,20 @@ app.post('/api/ai-chat', async (c) => {
 - 例: $$x^2 + y^2 = r^2$$ や $a = 5$ など
 - \\( \\) や \\[ \\] は使わない
 
-【説明のルール】
+【数学記号のルール】
+- 角度は必ず「∠」記号を使う（例: ∠ABC、∠BAF = 90°）
+- 三角形は必ず「△」記号を使う（例: △ABC）
+- 合同記号は「≡」を使う（例: △ABC ≡ △DEF）
+- 平行は「∥」、垂直は「⊥」を使う
+- 度数は必ず「°」を付ける（例: 90°、45°）
+- 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記
+
+【証明・解説のルール】
 1. まず問題の内容を簡潔に説明
-2. 次に解き方のポイントを箇条書き
+2. 次に解き方のポイントを箇条書き（3-5項目）
 3. 最後にステップバイステップで丁寧に解説
+4. 証明は1ステップ1-2行以内で簡潔に
+5. 各ステップの間には改行を1つだけ入れる（空行は入れない）
 
 分かりやすく、親しみやすく、そして正確に教えてください。`
           },
@@ -3792,12 +3802,22 @@ app.post('/api/ai-chat-image', async (c) => {
 【数式のルール】
 - 数式は必ず $$数式$$ の形式で書く（インライン数式は $数式$ を使う）
 - 例: $$x^2 + y^2 = r^2$$ や $a = 5$ など
-- \( \) や \[ \] は使わない
+- \\( \\) や \\[ \\] は使わない
 
-【説明のルール】
+【数学記号のルール】
+- 角度は必ず「∠」記号を使う（例: ∠ABC、∠BAF = 90°）
+- 三角形は必ず「△」記号を使う（例: △ABC）
+- 合同記号は「≡」を使う（例: △ABC ≡ △DEF）
+- 平行は「∥」、垂直は「⊥」を使う
+- 度数は必ず「°」を付ける（例: 90°、45°）
+- 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記
+
+【証明・解説のルール】
 1. まず問題の内容を簡潔に説明
-2. 次に解き方のポイントを箇条書き
+2. 次に解き方のポイントを箇条書き（3-5項目）
 3. 最後にステップバイステップで丁寧に解説
+4. 証明は1ステップ1-2行以内で簡潔に
+5. 各ステップの間には改行を1つだけ入れる（空行は入れない）
 
 分かりやすく、親しみやすく、そして正確に教えてください。`
             },
@@ -4276,10 +4296,23 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
+            // AIメッセージの場合、数学記号を自動変換
+            let processedText = text;
+            if (type === 'ai') {
+                // 「角 ABC」→「∠ABC」
+                processedText = processedText.replace(/角\s*([A-Z]{2,4})/g, '∠$1');
+                // 「三角形 ABC」→「△ABC」
+                processedText = processedText.replace(/三角形\s*([A-Z]{3,4})/g, '△$1');
+                // 「線分 AB」→「AB」（シンプルに）
+                processedText = processedText.replace(/線分\s*([A-Z]{2})/g, '$1');
+                // 「辺 AB」→「AB」（シンプルに）
+                processedText = processedText.replace(/辺\s*([A-Z]{2})/g, '$1');
+            }
+            
             // 改行を<br>タグに変換（Viteビルド対応）
             const newlineChar = String.fromCharCode(10);
             const regex = new RegExp(newlineChar, 'g');
-            const formattedText = text.replace(regex, '<br>');
+            const formattedText = processedText.replace(regex, '<br>');
             messageDiv.innerHTML = formattedText;
             
             chatMessages.appendChild(messageDiv);
