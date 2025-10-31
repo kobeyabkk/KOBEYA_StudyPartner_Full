@@ -3889,8 +3889,9 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             messageDiv.className = 'message ' + type;
 
             // テキストをHTMLに変換（改行対応、数式デリミタ変換）
+            const newlineChar = String.fromCharCode(10);
             const htmlContent = text
-                .split('\n')
+                .split(newlineChar)
                 .map(line => {
                     if (line.trim() === '') return '<br>';
                     
