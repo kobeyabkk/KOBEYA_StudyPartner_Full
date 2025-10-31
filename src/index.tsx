@@ -3587,6 +3587,351 @@ app.get('/ai-chat/:sessionId', (c) => {
   `)
 })
 
+// ==========================================
+// 新しいシンプル版AIチャット (v2)
+// ==========================================
+app.get('/ai-chat-v2/:sessionId', (c) => {
+  const sessionId = c.req.param('sessionId')
+  console.log('🤖 AI Chat V2: Simple version requested for session:', sessionId)
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI学習サポート - KOBEYA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .chat-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            max-width: 80%;
+            line-height: 1.6;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            background: #e0e7ff;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.ai {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message.loading {
+            background: white;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #7c3aed;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        
+        .chat-input-area {
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+        }
+        
+        #messageInput:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        #sendButton {
+            padding: 0.75rem 1.5rem;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #sendButton:hover {
+            background: #6d28d9;
+            transform: translateY(-1px);
+        }
+        
+        #sendButton:active {
+            transform: translateY(0);
+        }
+        
+        #sendButton:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 AI学習サポート</h1>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">何でもお聞きください！</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                こんにちは！学習でわからないことがあれば、何でも質問してください。丁寧に説明いたします！
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <div class="input-group">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="質問を入力してください..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton">送信</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // セッションID（サーバーから注入）
+        const SESSION_ID = ${JSON.stringify(sessionId)};
+        
+        // DOM要素
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // 初期化ログ
+        console.log('✅ AI Chat V2 initialized');
+        console.log('📍 Session ID:', SESSION_ID);
+        
+        // メッセージ追加関数
+        function addMessage(text, type = 'user') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+        
+        // ローディング表示
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message loading';
+            loadingDiv.innerHTML = '<span>考えています</span><div class="loading-dots"><span></span><span></span><span></span></div>';
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return loadingDiv;
+        }
+        
+        // エラー表示
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = '❌ ' + message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // メッセージ送信
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                return;
+            }
+            
+            console.log('📤 Sending message:', message);
+            
+            // ユーザーメッセージ表示
+            addMessage(message, 'user');
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // 送信ボタン無効化
+            sendButton.disabled = true;
+            
+            // ローディング表示
+            const loadingDiv = showLoading();
+            
+            try {
+                // API呼び出し
+                const response = await fetch('/api/ai-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: SESSION_ID,
+                        question: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // ローディング削除
+                loadingDiv.remove();
+                
+                if (data.ok) {
+                    console.log('✅ Response received');
+                    addMessage(data.answer, 'ai');
+                } else {
+                    console.error('❌ API error:', data.message);
+                    showError(data.message || 'エラーが発生しました');
+                }
+            } catch (error) {
+                console.error('❌ Network error:', error);
+                loadingDiv.remove();
+                showError('通信エラーが発生しました。もう一度お試しください。');
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+        
+        // イベントリスナー
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // テキストエリア自動リサイズ
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // 初期フォーカス
+        messageInput.focus();
+        
+        console.log('✅ Event listeners attached');
+    </script>
+</body>
+</html>
+  `)
+})
+
 // 小論文指導ページ
 app.get('/essay-coaching', (c) => {
   console.log('📝 Essay Coaching page requested')
@@ -8232,14 +8577,14 @@ app.get('/study-partner', (c) => {
         
         // AI質問ウインドウを開く
         function openAIChat() {
-          console.log('🤖 Opening AI chat window (direct mode)');
+          console.log('🤖 Opening AI chat window (direct mode) - V2 Simple Version');
           
           // 汎用的なセッションIDを生成
           const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
           
-          // 新しいウインドウでAIチャットを開く
-          const windowFeatures = 'width=600,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
-          const aiWindow = window.open('/ai-chat/' + directSessionId, 'ai-chat', windowFeatures);
+          // 新しいウインドウでAIチャットを開く（V2版：シンプルで安定した実装）
+          const windowFeatures = 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
+          const aiWindow = window.open('/ai-chat-v2/' + directSessionId, 'ai-chat-v2', windowFeatures);
           
           if (!aiWindow) {
             alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
@@ -8251,14 +8596,14 @@ app.get('/study-partner', (c) => {
         
         // 学習セッション無しでAIチャットを開く（メインボタン用）
         function openAIChatDirect() {
-          console.log('🤖 Opening direct AI chat window');
+          console.log('🤖 Opening direct AI chat window - V2 Simple Version');
           
           // 汎用的なセッションIDを生成
           const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
           
-          // 新しいウインドウでAIチャットを開く
-          const windowFeatures = 'width=600,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
-          const aiWindow = window.open('/ai-chat/' + directSessionId, 'ai-chat', windowFeatures);
+          // 新しいウインドウでAIチャットを開く（V2版：シンプルで安定した実装）
+          const windowFeatures = 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
+          const aiWindow = window.open('/ai-chat-v2/' + directSessionId, 'ai-chat-v2', windowFeatures);
           
           if (!aiWindow) {
             alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
