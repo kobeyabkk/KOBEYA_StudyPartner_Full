@@ -2344,6 +2344,10 @@ app.get('/ai-chat/:sessionId', (c) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI学習サポート - KOBEYA</title>
+        <!-- KaTeX for math rendering -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
         
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3588,6 +3592,82 @@ app.get('/ai-chat/:sessionId', (c) => {
 })
 
 // ==========================================
+// AI Chat API エンドポイント
+// ==========================================
+app.post('/api/ai-chat', async (c) => {
+  try {
+    const { sessionId, question } = await c.req.json()
+    
+    console.log('🤖 AI Chat API: Received request')
+    console.log('📍 Session ID:', sessionId)
+    console.log('❓ Question:', question)
+    
+    // OpenAI APIキーを環境変数から取得
+    const openaiApiKey = c.env.OPENAI_API_KEY
+    
+    if (!openaiApiKey) {
+      console.error('❌ OPENAI_API_KEY not found in environment')
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIキーが設定されていません' 
+      })
+    }
+    
+    // OpenAI APIを呼び出し
+    console.log('🔄 Calling OpenAI API...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは親切で優秀な学習サポートAIです。生徒の質問に対して、分かりやすく丁寧に説明してください。'
+          },
+          {
+            role: 'user',
+            content: question
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', response.status, errorText)
+      return c.json({ 
+        ok: false, 
+        message: `OpenAI APIエラー: ${response.status}` 
+      })
+    }
+    
+    const data = await response.json()
+    const answer = data.choices[0].message.content
+    
+    console.log('✅ OpenAI API response received')
+    console.log('💬 Answer:', answer.substring(0, 100) + '...')
+    
+    return c.json({ 
+      ok: true, 
+      answer: answer 
+    })
+    
+  } catch (error) {
+    console.error('❌ AI Chat API error:', error)
+    return c.json({ 
+      ok: false, 
+      message: 'サーバーエラーが発生しました' 
+    })
+  }
+})
+
+// ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
 app.get('/ai-chat-v2/:sessionId', (c) => {
@@ -3601,6 +3681,367 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI学習サポート - KOBEYA</title>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .chat-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .message {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .message.user {
+            background: #e0e7ff;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.ai {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message.error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+        }
+        
+        .chat-input-area {
+            border-top: 1px solid #e5e7eb;
+            padding: 1rem;
+            background: #f9fafb;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        textarea {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 3rem;
+            max-height: 10rem;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading-dots {
+            display: flex;
+            gap: 0.25rem;
+            padding: 1rem;
+            justify-content: center;
+        }
+        
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #7c3aed;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 AI学習サポート</h1>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">何でもお聞きください！</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                こんにちは！学習でわからないことがあれば、何でも質問してください。丁寧に説明いたします！
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <div class="input-group">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="質問を入力してください..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton">送信</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const SESSION_ID = ${JSON.stringify(sessionId)};
+        
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        console.log('✅ AI Chat V2 initialized');
+        console.log('📍 Session ID:', SESSION_ID);
+        
+        function addMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+
+            // テキストをHTMLに変換（改行対応、数式デリミタ変換）
+            const htmlContent = text
+                .split('\n')
+                .map(line => {
+                    if (line.trim() === '') return '<br>';
+                    
+                    // LaTeX形式の数式デリミタをKaTeX形式に変換
+                    let processedLine = line;
+                    processedLine = processedLine.replace(/\\\(/g, '$');
+                    processedLine = processedLine.replace(/\\\)/g, '$');
+                    processedLine = processedLine.replace(/\\\[/g, '$$');
+                    processedLine = processedLine.replace(/\\\]/g, '$$');
+                    
+                    return processedLine;
+                })
+                .join('<br>');
+
+            messageDiv.innerHTML = htmlContent;
+            chatMessages.appendChild(messageDiv);
+
+            // KaTeXで数式をレンダリング
+            if (typeof renderMathInElement !== 'undefined') {
+                try {
+                    renderMathInElement(messageDiv, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
+                } catch (error) {
+                    console.error('KaTeX rendering error:', error);
+                }
+            }
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-dots';
+            loadingDiv.innerHTML = '<span></span><span></span><span></span>';
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return loadingDiv;
+        }
+        
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message error';
+            errorDiv.textContent = '❌ ' + message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                return;
+            }
+            
+            console.log('📤 Sending message:', message);
+            
+            addMessage(message, 'user');
+            messageInput.value = '';
+            
+            sendButton.disabled = true;
+            
+            const loadingDiv = showLoading();
+            
+            try {
+                const response = await fetch('/api/ai-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: SESSION_ID,
+                        question: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                loadingDiv.remove();
+                
+                if (data.ok) {
+                    console.log('✅ Response received');
+                    addMessage(data.answer, 'ai');
+                } else {
+                    console.error('❌ API error:', data.message);
+                    showError(data.message || 'エラーが発生しました');
+                }
+            } catch (error) {
+                console.error('❌ Network error:', error);
+                loadingDiv.remove();
+                showError('通信エラーが発生しました。もう一度お試しください。');
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+        
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        messageInput.focus();
+        
+        console.log('✅ Event listeners attached');
+        
+        // 初期メッセージの数式もレンダリング
+        setTimeout(() => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }, 500);
+    </script>
+</body>
+</html>
+  `)
+})
+
+
+// ==========================================
+// 新しいシンプル版AIチャット (v2)
+// ==========================================
+app.get('/ai-chat-v2/:sessionId', (c) => {
+  const sessionId = c.req.param('sessionId')
+  console.log('🤖 AI Chat V2: Simple version requested for session:', sessionId)
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI学習サポート - KOBEYA</title>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -3926,6 +4367,19 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         messageInput.focus();
         
         console.log('✅ Event listeners attached');
+        
+        // 初期メッセージの数式もレンダリング
+        setTimeout(() => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }, 500);
     </script>
 </body>
 </html>
@@ -9357,4 +9811,5 @@ app.notFound((c) => {
   return c.text('404 Not Found', 404)
 })
 
+// Export the app as default
 export default app
