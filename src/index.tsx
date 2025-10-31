@@ -3888,6 +3888,11 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
 
+            // デバッグ：元のテキストを確認
+            console.log('🔍 Original text:', text.substring(0, 200));
+            console.log('🔍 Contains \\$?', text.includes('\\$'));
+            console.log('🔍 Contains \\\\$?', text.includes('\\\\$'));
+
             // テキストをHTMLに変換（改行対応、数式デリミタ変換）
             const newlineChar = String.fromCharCode(10);
             const htmlContent = text
@@ -3895,14 +3900,17 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                 .map(line => {
                     if (line.trim() === '') return '<br>';
                     
-                    // LaTeX/Markdown形式の数式デリミタをKaTeX形式に変換
+                    // すべてのバックスラッシュ+ドル記号パターンを処理
                     let processedLine = line;
-                    // OpenAI形式: \$ ... \$ → $ ... $
+                    
+                    // 2重エスケープされたパターン: \\$ → $
+                    processedLine = processedLine.replaceAll('\\\\$', '$');
+                    // 単一エスケープパターン: \$ → $
                     processedLine = processedLine.replaceAll('\\$', '$');
-                    // LaTeX形式: \( ... \) → $ ... $
+                    
+                    // LaTeX形式も処理
                     processedLine = processedLine.replaceAll('\\(', '$');
                     processedLine = processedLine.replaceAll('\\)', '$');
-                    // LaTeX形式: \[ ... \] → $$ ... $$
                     processedLine = processedLine.replaceAll('\\[', '$$');
                     processedLine = processedLine.replaceAll('\\]', '$$');
                     
