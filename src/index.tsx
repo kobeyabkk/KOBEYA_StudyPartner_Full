@@ -4252,6 +4252,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         // 初期化ログ
         console.log('✅ AI Chat V2 initialized');
         console.log('📍 Session ID:', SESSION_ID);
+        console.log('📷 Camera button element:', cameraButton);
+        console.log('📁 File button element:', fileButton);
+        console.log('📸 Camera input element:', cameraInput);
+        console.log('🗂️ File input element:', fileInput);
         
         // メッセージ追加関数（改行とKaTeX対応）
         function addMessage(text, type = 'user') {
@@ -4396,20 +4400,38 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         
         // ========== Camera & Image Functions ==========
         
+        console.log('🔧 Setting up camera event listeners...');
+        
         // Camera button click
         if (cameraButton) {
+            console.log('✅ Camera button found, adding event listener');
             cameraButton.addEventListener('click', () => {
                 console.log('📷 Camera button clicked');
-                if (cameraInput) cameraInput.click();
+                if (cameraInput) {
+                    console.log('📸 Triggering camera input');
+                    cameraInput.click();
+                } else {
+                    console.error('❌ Camera input not found');
+                }
             });
+        } else {
+            console.error('❌ Camera button not found in DOM');
         }
         
         // File button click
         if (fileButton) {
+            console.log('✅ File button found, adding event listener');
             fileButton.addEventListener('click', () => {
                 console.log('📁 File button clicked');
-                if (fileInput) fileInput.click();
+                if (fileInput) {
+                    console.log('🗂️ Triggering file input');
+                    fileInput.click();
+                } else {
+                    console.error('❌ File input not found');
+                }
             });
+        } else {
+            console.error('❌ File button not found in DOM');
         }
         
         // Handle image selection
