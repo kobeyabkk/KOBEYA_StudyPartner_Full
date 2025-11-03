@@ -1508,16 +1508,9 @@ app.post('/api/essay/init-session', async (c) => {
   console.log('📝 Essay session init API called')
   
   try {
-    const { 
-      sessionId, 
-      targetLevel, 
-      lessonFormat, 
-      problemMode, 
-      customInput, 
-      learningStyle 
-    } = await c.req.json()
+    const { sessionId, targetLevel, lessonFormat } = await c.req.json()
     
-    if (!sessionId || !targetLevel || !lessonFormat || !problemMode) {
+    if (!sessionId || !targetLevel || !lessonFormat) {
       return c.json({
         ok: false,
         error: 'missing_parameters',
@@ -1533,9 +1526,6 @@ app.post('/api/essay/init-session', async (c) => {
       sessionId,
       targetLevel,
       lessonFormat,
-      problemMode: problemMode || 'ai',
-      customInput: customInput || null,
-      learningStyle: learningStyle || 'auto',
       currentStep: 1,
       stepStatus: { "1": "in_progress" },
       createdAt: now,
@@ -3636,39 +3626,7 @@ app.post('/api/ai-chat', async (c) => {
         messages: [
           {
             role: 'system',
-            content: `あなたは中学生向けの優しい学習サポートAIです。以下のルールを必ず守ってください：
-
-【言葉使いのルール】
-- 中学生が理解できる易しい言葉で説明する
-- 難しい専門用語は使わない（使う場合は必ず解説を付ける）
-- 「〜である」「〜です」など、親しみやすい口調で話す
-
-【改行のルール】
-- 各ステップや項目は必ず改行して見やすくする
-- 長い文章は2-3行ごとに改行を入れる
-- 説明の区切りには空行を入れる
-
-【数式のルール】
-- 数式は必ず $$数式$$ の形式で書く（インライン数式は $数式$ を使う）
-- 例: $$x^2 + y^2 = r^2$$ や $a = 5$ など
-- \\( \\) や \\[ \\] は使わない
-
-【数学記号のルール】
-- 角度は必ず「∠」記号を使う（例: ∠ABC、∠BAF = 90°）
-- 三角形は必ず「△」記号を使う（例: △ABC）
-- 合同記号は「≡」を使う（例: △ABC ≡ △DEF）
-- 平行は「∥」、垂直は「⊥」を使う
-- 度数は必ず「°」を付ける（例: 90°、45°）
-- 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記
-
-【証明・解説のルール】
-1. まず問題の内容を簡潔に説明
-2. 次に解き方のポイントを箇条書き（3-5項目）
-3. 最後にステップバイステップで丁寧に解説
-4. 証明は1ステップ1-2行以内で簡潔に
-5. 各ステップの間には改行を1つだけ入れる（空行は入れない）
-
-分かりやすく、親しみやすく、そして正確に教えてください。`
+            content: 'あなたは親切で優秀な学習サポートAIです。生徒の質問に対して、分かりやすく丁寧に説明してください。'
           },
           {
             role: 'user',
@@ -3710,189 +3668,6 @@ app.post('/api/ai-chat', async (c) => {
 })
 
 // ==========================================
-// AI Chat 画像対応 API エンドポイント
-// ==========================================
-app.post('/api/ai-chat-image', async (c) => {
-  try {
-    console.log('📸 AI Chat Image API: Received request')
-    
-    // FormDataから画像とテキストを取得
-    let formData
-    try {
-      formData = await c.req.formData()
-      console.log('✅ FormData parsed successfully')
-    } catch (formError) {
-      console.error('❌ FormData parsing error:', formError)
-      return c.json({ 
-        ok: false, 
-        message: 'FormDataの解析に失敗しました' 
-      })
-    }
-    
-    const image = formData.get('image') as File | null
-    const sessionId = formData.get('sessionId') as string
-    const message = formData.get('message') as string
-    
-    console.log('📍 Session ID:', sessionId)
-    console.log('💬 Message:', message)
-    console.log('🖼️ Image:', image ? `${image.name} (${image.size} bytes)` : 'none')
-    
-    if (!image) {
-      console.error('❌ No image found in FormData')
-      return c.json({ 
-        ok: false, 
-        message: '画像が見つかりません' 
-      })
-    }
-    
-    // OpenAI APIキーを環境変数から取得
-    const openaiApiKey = c.env.OPENAI_API_KEY
-    
-    if (!openaiApiKey) {
-      console.error('❌ OPENAI_API_KEY not found in environment')
-      return c.json({ 
-        ok: false, 
-        message: 'OpenAI APIキーが設定されていません' 
-      })
-    }
-    
-    // 画像をBase64に変換（最適化された方法）
-    console.log('🔄 Converting image to base64...')
-    let base64Image
-    try {
-      const arrayBuffer = await image.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      
-      // チャンクごとに変換してメモリ効率を改善
-      let binary = ''
-      const chunkSize = 8192
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length))
-        binary += String.fromCharCode.apply(null, Array.from(chunk))
-      }
-      base64Image = btoa(binary)
-      
-      console.log('✅ Image converted to base64 (length:', base64Image.length, ')')
-    } catch (conversionError) {
-      console.error('❌ Image conversion error:', conversionError)
-      return c.json({ 
-        ok: false, 
-        message: '画像の変換に失敗しました' 
-      })
-    }
-    
-    console.log('🔄 Calling OpenAI Vision API...')
-    
-    // OpenAI Vision APIを呼び出し
-    let response
-    try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `あなたは中学生向けの優しい学習サポートAIです。以下のルールを必ず守ってください：
-
-【言葉使いのルール】
-- 中学生が理解できる易しい言葉で説明する
-- 難しい専門用語は使わない（使う場合は必ず解説を付ける）
-- 「〜である」「〜です」など、親しみやすい口調で話す
-
-【改行のルール】
-- 各ステップや項目は必ず改行して見やすくする
-- 長い文章は2-3行ごとに改行を入れる
-- 説明の区切りには空行を入れる
-
-【数式のルール】
-- 数式は必ず $$数式$$ の形式で書く（インライン数式は $数式$ を使う）
-- 例: $$x^2 + y^2 = r^2$$ や $a = 5$ など
-- \\( \\) や \\[ \\] は使わない
-
-【数学記号のルール】
-- 角度は必ず「∠」記号を使う（例: ∠ABC、∠BAF = 90°）
-- 三角形は必ず「△」記号を使う（例: △ABC）
-- 合同記号は「≡」を使う（例: △ABC ≡ △DEF）
-- 平行は「∥」、垂直は「⊥」を使う
-- 度数は必ず「°」を付ける（例: 90°、45°）
-- 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記
-
-【証明・解説のルール】
-1. まず問題の内容を簡潔に説明
-2. 次に解き方のポイントを箇条書き（3-5項目）
-3. 最後にステップバイステップで丁寧に解説
-4. 証明は1ステップ1-2行以内で簡潔に
-5. 各ステップの間には改行を1つだけ入れる（空行は入れない）
-
-分かりやすく、親しみやすく、そして正確に教えてください。`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: message || '画像の内容を説明してください。'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`,
-                    detail: 'high'
-                  }
-                }
-              ]
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000
-        })
-      })
-      
-      console.log('✅ OpenAI API response status:', response.status)
-    } catch (fetchError) {
-      console.error('❌ OpenAI API fetch error:', fetchError)
-      return c.json({ 
-        ok: false, 
-        message: 'OpenAI APIへの接続に失敗しました' 
-      })
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ OpenAI Vision API error:', response.status, errorText)
-      return c.json({ 
-        ok: false, 
-        message: `OpenAI APIエラー: ${response.status}` 
-      })
-    }
-    
-    const data = await response.json()
-    const answer = data.choices[0].message.content
-    
-    console.log('✅ OpenAI Vision API response received')
-    console.log('💬 Answer:', answer.substring(0, 100) + '...')
-    
-    return c.json({ 
-      ok: true, 
-      answer: answer 
-    })
-    
-  } catch (error) {
-    console.error('❌ AI Chat Image API error:', error)
-    console.error('Error details:', error.message, error.stack)
-    return c.json({ 
-      ok: false, 
-      message: `サーバーエラーが発生しました: ${error.message}` 
-    })
-  }
-})
-
-// ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
 app.get('/ai-chat-v2/:sessionId', (c) => {
@@ -3910,11 +3685,6 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <!-- Cropper.js for image cropping -->
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
-    <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -4095,89 +3865,6 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             border-radius: 0.5rem;
             margin-bottom: 1rem;
         }
-        
-        /* Camera & Image Styles */
-        .camera-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .camera-buttons button {
-            flex: 1;
-            padding: 0.75rem;
-            background: #374151;
-            font-size: 0.9rem;
-        }
-        
-        .camera-buttons button:hover:not(:disabled) {
-            background: #1f2937;
-        }
-        
-        .image-preview-area, .crop-area {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            overflow: hidden;
-            display: none;
-        }
-        
-        .image-preview-area.active, .crop-area.active {
-            display: block;
-        }
-        
-        .preview-header, .crop-header {
-            background: #f3f4f6;
-            padding: 0.75rem 1rem;
-            border-bottom: 2px solid #e5e7eb;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .preview-content, .crop-content {
-            padding: 1rem;
-            text-align: center;
-        }
-        
-        .preview-image, .crop-image {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 0.5rem;
-        }
-        
-        .preview-actions, .crop-actions {
-            padding: 1rem;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .preview-actions button, .crop-actions button {
-            flex: 1;
-            padding: 0.75rem;
-            font-size: 0.9rem;
-        }
-        
-        .btn-secondary {
-            background: #6b7280 !important;
-        }
-        
-        .btn-secondary:hover:not(:disabled) {
-            background: #4b5563 !important;
-        }
-        
-        .btn-success {
-            background: #10b981 !important;
-        }
-        
-        .btn-success:hover:not(:disabled) {
-            background: #059669 !important;
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -4193,54 +3880,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
             </div>
         </div>
         
-        <!-- Image Preview Area -->
-        <div class="image-preview-area" id="imagePreviewArea">
-            <div class="preview-header">📸 選択された画像</div>
-            <div class="preview-content">
-                <img id="previewImage" class="preview-image" alt="Preview">
-            </div>
-            <div class="preview-actions">
-                <button id="btnClearImage" class="btn-secondary">
-                    <i class="fas fa-times"></i> キャンセル
-                </button>
-                <button id="btnStartCrop" class="btn-success">
-                    <i class="fas fa-crop"></i> 範囲を調整
-                </button>
-                <button id="btnSendDirect" class="btn-success">
-                    <i class="fas fa-paper-plane"></i> そのまま送信
-                </button>
-            </div>
-        </div>
-        
-        <!-- Crop Area -->
-        <div class="crop-area" id="cropArea">
-            <div class="crop-header">✂️ 範囲を選択してください</div>
-            <div class="crop-content">
-                <img id="cropImage" class="crop-image" alt="Crop">
-            </div>
-            <div class="crop-actions">
-                <button id="btnCancelCrop" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i> 戻る
-                </button>
-                <button id="btnConfirmCrop" class="btn-success">
-                    <i class="fas fa-check"></i> この範囲で送信
-                </button>
-            </div>
-        </div>
-        
         <div class="chat-input-area">
-            <!-- Camera Buttons -->
-            <div class="camera-buttons">
-                <button id="cameraButton">
-                    <i class="fas fa-camera"></i> カメラ
-                </button>
-                <button id="fileButton">
-                    <i class="fas fa-folder-open"></i> ファイル
-                </button>
-            </div>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment">
-            <input type="file" id="fileInput" accept="image/*">
-            
             <div class="input-group">
                 <textarea 
                     id="messageInput" 
@@ -4261,83 +3901,17 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         
-        // Camera elements
-        const cameraButton = document.getElementById('cameraButton');
-        const fileButton = document.getElementById('fileButton');
-        const cameraInput = document.getElementById('cameraInput');
-        const fileInput = document.getElementById('fileInput');
-        const imagePreviewArea = document.getElementById('imagePreviewArea');
-        const previewImage = document.getElementById('previewImage');
-        const btnClearImage = document.getElementById('btnClearImage');
-        const btnStartCrop = document.getElementById('btnStartCrop');
-        const btnSendDirect = document.getElementById('btnSendDirect');
-        const cropArea = document.getElementById('cropArea');
-        const cropImage = document.getElementById('cropImage');
-        const btnCancelCrop = document.getElementById('btnCancelCrop');
-        const btnConfirmCrop = document.getElementById('btnConfirmCrop');
-        
-        let cropper = null;
-        let currentImageData = null;
-        
-        // KaTeX delimiters（エスケープ対応）
-        const backslash = String.fromCharCode(92);
-        const leftBracket = backslash + '[';
-        const rightBracket = backslash + ']';
-        const leftParen = backslash + '(';
-        const rightParen = backslash + ')';
-        
-        const mathDelimiters = [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false},
-            {left: leftBracket, right: rightBracket, display: true},
-            {left: leftParen, right: rightParen, display: false}
-        ];
-        
         // 初期化ログ
         console.log('✅ AI Chat V2 initialized');
         console.log('📍 Session ID:', SESSION_ID);
-        console.log('📷 Camera button element:', cameraButton);
-        console.log('📁 File button element:', fileButton);
-        console.log('📸 Camera input element:', cameraInput);
-        console.log('🗂️ File input element:', fileInput);
         
-        // メッセージ追加関数（改行とKaTeX対応）
+        // メッセージ追加関数
         function addMessage(text, type = 'user') {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
-            
-            // AIメッセージの場合、数学記号を自動変換
-            let processedText = text;
-            if (type === 'ai') {
-                // 「角 ABC」→「∠ABC」
-                processedText = processedText.replace(/角\s*([A-Z]{2,4})/g, '∠$1');
-                // 「三角形 ABC」→「△ABC」
-                processedText = processedText.replace(/三角形\s*([A-Z]{3,4})/g, '△$1');
-                // 「線分 AB」→「AB」（シンプルに）
-                processedText = processedText.replace(/線分\s*([A-Z]{2})/g, '$1');
-                // 「辺 AB」→「AB」（シンプルに）
-                processedText = processedText.replace(/辺\s*([A-Z]{2})/g, '$1');
-            }
-            
-            // 改行を<br>タグに変換（Viteビルド対応）
-            const newlineChar = String.fromCharCode(10);
-            const regex = new RegExp(newlineChar, 'g');
-            const formattedText = processedText.replace(regex, '<br>');
-            messageDiv.innerHTML = formattedText;
-            
+            messageDiv.textContent = text;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // AIメッセージの場合、KaTeXで数式をレンダリング
-            if (type === 'ai' && typeof renderMathInElement !== 'undefined') {
-                setTimeout(() => {
-                    renderMathInElement(messageDiv, {
-                        delimiters: mathDelimiters,
-                        throwOnError: false
-                    });
-                }, 100);
-            }
-            
             return messageDiv;
         }
         
@@ -4441,217 +4015,14 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         setTimeout(() => {
             if (typeof renderMathInElement !== 'undefined') {
                 renderMathInElement(document.body, {
-                    delimiters: mathDelimiters,
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
                     throwOnError: false
                 });
             }
         }, 500);
-        
-        // ========== Camera & Image Functions ==========
-        
-        console.log('🔧 Setting up camera event listeners...');
-        
-        // Camera button click
-        if (cameraButton) {
-            console.log('✅ Camera button found, adding event listener');
-            cameraButton.addEventListener('click', () => {
-                console.log('📷 Camera button clicked');
-                if (cameraInput) {
-                    console.log('📸 Triggering camera input');
-                    cameraInput.click();
-                } else {
-                    console.error('❌ Camera input not found');
-                }
-            });
-        } else {
-            console.error('❌ Camera button not found in DOM');
-        }
-        
-        // File button click
-        if (fileButton) {
-            console.log('✅ File button found, adding event listener');
-            fileButton.addEventListener('click', () => {
-                console.log('📁 File button clicked');
-                if (fileInput) {
-                    console.log('🗂️ Triggering file input');
-                    fileInput.click();
-                } else {
-                    console.error('❌ File input not found');
-                }
-            });
-        } else {
-            console.error('❌ File button not found in DOM');
-        }
-        
-        // Handle image selection
-        function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            console.log('📸 Image selected:', file.name);
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                currentImageData = e.target.result;
-                previewImage.src = currentImageData;
-                imagePreviewArea.classList.add('active');
-                cropArea.classList.remove('active');
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        if (cameraInput) cameraInput.addEventListener('change', handleImageSelect);
-        if (fileInput) fileInput.addEventListener('change', handleImageSelect);
-        
-        // Clear image
-        if (btnClearImage) {
-            btnClearImage.addEventListener('click', () => {
-                console.log('❌ Clear image');
-                imagePreviewArea.classList.remove('active');
-                cropArea.classList.remove('active');
-                currentImageData = null;
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
-                }
-                cameraInput.value = '';
-                fileInput.value = '';
-            });
-        }
-        
-        // Start crop
-        if (btnStartCrop) {
-            btnStartCrop.addEventListener('click', () => {
-                console.log('✂️ Start crop');
-                cropImage.src = currentImageData;
-                imagePreviewArea.classList.remove('active');
-                cropArea.classList.add('active');
-                
-                setTimeout(() => {
-                    if (cropper) cropper.destroy();
-                    
-                    cropper = new Cropper(cropImage, {
-                        aspectRatio: NaN,
-                        viewMode: 1,
-                        dragMode: 'move',
-                        autoCropArea: 0.9,
-                        restore: false,
-                        guides: true,
-                        center: true,
-                        highlight: false,
-                        cropBoxMovable: true,
-                        cropBoxResizable: true,
-                        toggleDragModeOnDblclick: false
-                    });
-                }, 100);
-            });
-        }
-        
-        // Cancel crop
-        if (btnCancelCrop) {
-            btnCancelCrop.addEventListener('click', () => {
-                console.log('⬅️ Cancel crop');
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
-                }
-                cropArea.classList.remove('active');
-                imagePreviewArea.classList.add('active');
-            });
-        }
-        
-        // Confirm crop
-        if (btnConfirmCrop) {
-            btnConfirmCrop.addEventListener('click', () => {
-                console.log('✅ Confirm crop');
-                
-                if (cropper) {
-                    const canvas = cropper.getCroppedCanvas({
-                        maxWidth: 2000,
-                        maxHeight: 2000,
-                        fillColor: '#fff',
-                        imageSmoothingEnabled: true,
-                        imageSmoothingQuality: 'high'
-                    });
-                    
-                    currentImageData = canvas.toDataURL('image/jpeg', 0.8);
-                    cropper.destroy();
-                    cropper = null;
-                }
-                
-                sendImageMessage(currentImageData);
-            });
-        }
-        
-        // Send direct (no crop)
-        if (btnSendDirect) {
-            btnSendDirect.addEventListener('click', () => {
-                console.log('📤 Send direct');
-                sendImageMessage(currentImageData);
-            });
-        }
-        
-        // Send image message
-        async function sendImageMessage(imageData) {
-            if (!imageData) return;
-            
-            const message = messageInput.value.trim() || '画像について教えてください';
-            
-            console.log('📤 Sending image message');
-            
-            // Hide image areas
-            imagePreviewArea.classList.remove('active');
-            cropArea.classList.remove('active');
-            
-            // Add user message
-            addMessage('📷 ' + message, 'user');
-            messageInput.value = '';
-            
-            sendButton.disabled = true;
-            const loadingDiv = showLoading();
-            
-            try {
-                // Convert base64 to blob
-                const response = await fetch(imageData);
-                const blob = await response.blob();
-                
-                // Create FormData
-                const formData = new FormData();
-                formData.append('image', blob, 'image.jpg');
-                formData.append('sessionId', SESSION_ID);
-                formData.append('message', message);
-                
-                // Send to API
-                const apiResponse = await fetch('/api/ai-chat-image', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await apiResponse.json();
-                
-                loadingDiv.remove();
-                
-                if (data.ok) {
-                    console.log('✅ Image response received');
-                    addMessage(data.answer, 'ai');
-                } else {
-                    console.error('❌ API error:', data.message);
-                    showError(data.message || 'エラーが発生しました');
-                }
-            } catch (error) {
-                console.error('❌ Network error:', error);
-                loadingDiv.remove();
-                showError('通信エラーが発生しました');
-            } finally {
-                sendButton.disabled = false;
-                messageInput.focus();
-                currentImageData = null;
-                cameraInput.value = '';
-                fileInput.value = '';
-            }
-        }
-        
-        console.log('✅ Camera functions initialized');
     </script>
 </body>
 </html>
@@ -4876,128 +4247,6 @@ app.get('/essay-coaching', (c) => {
         .hidden {
           display: none !important;
         }
-        
-        /* カスタム問題設定用スタイル */
-        .radio-group {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .radio-option {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
-          padding: 1rem;
-          border: 2px solid #e2e8f0;
-          border-radius: 0.75rem;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .radio-option:hover {
-          border-color: #7c3aed;
-          background: #f5f3ff;
-        }
-        
-        .radio-option.selected {
-          border-color: #7c3aed;
-          background: #f5f3ff;
-        }
-        
-        .radio-option input[type="radio"] {
-          margin-top: 0.25rem;
-        }
-        
-        .radio-label {
-          flex: 1;
-        }
-        
-        .radio-title {
-          font-weight: 600;
-          font-size: 1rem;
-          margin-bottom: 0.25rem;
-          color: #1f2937;
-        }
-        
-        .radio-description {
-          font-size: 0.875rem;
-          color: #6b7280;
-        }
-        
-        .input-area {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: #f8fafc;
-          border-radius: 0.5rem;
-          border: 1px solid #e2e8f0;
-        }
-        
-        .input-area textarea {
-          width: 100%;
-          padding: 0.75rem;
-          border: 1px solid #d1d5db;
-          border-radius: 0.5rem;
-          font-family: 'Noto Sans JP', sans-serif;
-          font-size: 0.875rem;
-          resize: vertical;
-          min-height: 60px;
-        }
-        
-        .input-area textarea:focus {
-          outline: none;
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-        }
-        
-        .char-count {
-          text-align: right;
-          font-size: 0.75rem;
-          color: #6b7280;
-          margin-top: 0.5rem;
-        }
-        
-        .learning-style-section {
-          margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 2px solid #e2e8f0;
-        }
-        
-        .learning-style-section h3 {
-          font-size: 1rem;
-          font-weight: 600;
-          margin-bottom: 1rem;
-          color: #374151;
-        }
-        
-        .input-ok-button {
-          display: block;
-          width: 100%;
-          padding: 0.75rem 1.5rem;
-          margin-top: 1rem;
-          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-          color: white;
-          border: none;
-          border-radius: 0.5rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2);
-        }
-        
-        .input-ok-button:hover {
-          background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
-          box-shadow: 0 6px 8px rgba(124, 58, 237, 0.3);
-          transform: translateY(-2px);
-        }
-        
-        .input-ok-button:active {
-          transform: translateY(0);
-          box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
-        }
         </style>
     </head>
     <body>
@@ -5037,91 +4286,10 @@ app.get('/essay-coaching', (c) => {
                     </div>
                 </div>
                 
-                <!-- Step 2: 問題設定 -->
-                <div class="setup-section hidden" id="problemSetup">
-                    <h2>
-                        <span class="step-number">2</span>
-                        問題設定
-                    </h2>
-                    
-                    <div class="radio-group">
-                        <label class="radio-option" onclick="selectProblemMode('ai', event)">
-                            <input type="radio" name="problemMode" value="ai">
-                            <div class="radio-label">
-                                <div class="radio-title">🤖 AIにお任せ</div>
-                                <div class="radio-description">レベルに応じた最適なテーマをAIが自動選択します</div>
-                            </div>
-                        </label>
-                        
-                        <label class="radio-option" onclick="selectProblemMode('theme', event)">
-                            <input type="radio" name="problemMode" value="theme">
-                            <div class="radio-label">
-                                <div class="radio-title">💡 テーマを入力</div>
-                                <div class="radio-description">学習したいテーマ（環境問題、AI技術など）を入力してください</div>
-                            </div>
-                        </label>
-                        
-                        <label class="radio-option" onclick="selectProblemMode('problem', event)">
-                            <input type="radio" name="problemMode" value="problem">
-                            <div class="radio-label">
-                                <div class="radio-title">📝 問題文を入力</div>
-                                <div class="radio-description">過去問など、具体的な問題文を入力してください</div>
-                            </div>
-                        </label>
-                    </div>
-                    
-                    <!-- テーマ入力エリア -->
-                    <div class="input-area hidden" id="themeInput">
-                        <label>
-                            <strong>テーマを入力してください</strong>
-                            <textarea id="themeText" maxlength="100" placeholder="例: 医療技術の発展と倫理、少子高齢化社会の課題、グローバル化と文化"></textarea>
-                            <div class="char-count"><span id="themeCharCount">0</span>/100文字</div>
-                        </label>
-                        <button class="input-ok-button" onclick="confirmThemeInput()">✓ OK</button>
-                    </div>
-                    
-                    <!-- 問題文入力エリア -->
-                    <div class="input-area hidden" id="problemInput">
-                        <label>
-                            <strong>問題文を入力してください</strong>
-                            <textarea id="problemText" maxlength="5000" placeholder="例: あなたは将来医療従事者を目指していますが、高齢化が進む日本社会において、医療・看護の専門家にはどのような役割が求められると考えますか。具体的な課題を挙げながら、あなたの考えを400字以内で述べなさい。"></textarea>
-                            <div class="char-count"><span id="problemCharCount">0</span>/5000文字</div>
-                        </label>
-                        <button class="input-ok-button" onclick="confirmProblemInput()">✓ OK</button>
-                    </div>
-                    
-                    <!-- 学習スタイル選択 -->
-                    <div class="learning-style-section hidden" id="learningStyleSection">
-                        <h3>📚 学習スタイルを選んでください</h3>
-                        <div class="button-grid">
-                            <button class="choice-button" onclick="selectLearningStyle('explanation', event)">
-                                <span class="icon">📖</span>
-                                <div class="title">テーマの解説</div>
-                                <div class="description">基礎から理解したい</div>
-                            </button>
-                            <button class="choice-button" onclick="selectLearningStyle('example', event)">
-                                <span class="icon">✨</span>
-                                <div class="title">参考例を見る</div>
-                                <div class="description">良い書き方を真似したい</div>
-                            </button>
-                            <button class="choice-button" onclick="selectLearningStyle('points', event)">
-                                <span class="icon">📋</span>
-                                <div class="title">論点整理</div>
-                                <div class="description">何を書けばいいか迷う</div>
-                            </button>
-                            <button class="choice-button" onclick="selectLearningStyle('auto', event)">
-                                <span class="icon">🤖</span>
-                                <div class="title">AIにお任せ</div>
-                                <div class="description">自動で最適なものを選ぶ</div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Step 3: 授業形式選択 -->
+                <!-- Step 2: 授業形式選択 -->
                 <div class="setup-section hidden" id="formatSelection">
                     <h2>
-                        <span class="step-number">3</span>
+                        <span class="step-number">2</span>
                         授業形式を選択してください
                     </h2>
                     <div class="button-grid">
@@ -5158,26 +4326,7 @@ app.get('/essay-coaching', (c) => {
         <script>
         const sessionId = '${sessionId}';
         let selectedLevel = null;
-        let selectedProblemMode = null;
-        let customInput = null;
-        let selectedLearningStyle = null;
         let selectedFormat = null;
-        
-        // 文字数カウント機能
-        const themeTextarea = document.getElementById('themeText');
-        const problemTextarea = document.getElementById('problemText');
-        
-        if (themeTextarea) {
-            themeTextarea.addEventListener('input', function() {
-                document.getElementById('themeCharCount').textContent = this.value.length;
-            });
-        }
-        
-        if (problemTextarea) {
-            problemTextarea.addEventListener('input', function() {
-                document.getElementById('problemCharCount').textContent = this.value.length;
-            });
-        }
         
         function selectLevel(level, event) {
             selectedLevel = level;
@@ -5188,76 +4337,10 @@ app.get('/essay-coaching', (c) => {
             });
             event.target.closest('.choice-button').classList.add('selected');
             
-            // 次のステップ（問題設定）を表示
-            document.getElementById('problemSetup').classList.remove('hidden');
+            // 次のステップを表示
+            document.getElementById('formatSelection').classList.remove('hidden');
             
             console.log('Selected level:', level);
-        }
-        
-        function selectProblemMode(mode, event) {
-            selectedProblemMode = mode;
-            
-            // ラジオボタンの選択状態を更新
-            document.querySelectorAll('.radio-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            event.target.closest('.radio-option').classList.add('selected');
-            
-            // 対応する入力エリアを表示/非表示
-            document.getElementById('themeInput').classList.add('hidden');
-            document.getElementById('problemInput').classList.add('hidden');
-            document.getElementById('learningStyleSection').classList.add('hidden');
-            document.getElementById('formatSelection').classList.add('hidden');
-            
-            if (mode === 'theme') {
-                document.getElementById('themeInput').classList.remove('hidden');
-                // 学習スタイルとフォーマット選択はOKボタン後に表示
-            } else if (mode === 'problem') {
-                document.getElementById('problemInput').classList.remove('hidden');
-                // 学習スタイルとフォーマット選択はOKボタン後に表示
-            } else if (mode === 'ai') {
-                // AIにお任せの場合はすぐに次のステップへ
-                document.getElementById('learningStyleSection').classList.remove('hidden');
-                document.getElementById('formatSelection').classList.remove('hidden');
-            }
-            
-            console.log('Selected problem mode:', mode);
-        }
-        
-        function confirmThemeInput() {
-            const themeText = document.getElementById('themeText').value.trim();
-            if (!themeText) {
-                alert('テーマを入力してください');
-                return;
-            }
-            // 学習スタイルとフォーマット選択を表示
-            document.getElementById('learningStyleSection').classList.remove('hidden');
-            document.getElementById('formatSelection').classList.remove('hidden');
-            console.log('Theme confirmed:', themeText);
-        }
-        
-        function confirmProblemInput() {
-            const problemText = document.getElementById('problemText').value.trim();
-            if (!problemText) {
-                alert('問題文を入力してください');
-                return;
-            }
-            // 学習スタイルとフォーマット選択を表示
-            document.getElementById('learningStyleSection').classList.remove('hidden');
-            document.getElementById('formatSelection').classList.remove('hidden');
-            console.log('Problem confirmed:', problemText);
-        }
-        
-        function selectLearningStyle(style, event) {
-            selectedLearningStyle = style;
-            
-            // ボタンの選択状態を更新
-            document.querySelectorAll('#learningStyleSection .choice-button').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            event.target.closest('.choice-button').classList.add('selected');
-            
-            console.log('Selected learning style:', style);
         }
         
         function selectFormat(format, event) {
@@ -5276,40 +4359,12 @@ app.get('/essay-coaching', (c) => {
         }
         
         async function startLesson() {
-            if (!selectedLevel || !selectedFormat || !selectedProblemMode) {
-                alert('すべての項目を選択してください');
+            if (!selectedLevel || !selectedFormat) {
+                alert('レベルと授業形式を選択してください');
                 return;
             }
             
-            // テーマまたは問題文の取得
-            if (selectedProblemMode === 'theme') {
-                customInput = document.getElementById('themeText').value.trim();
-                if (!customInput) {
-                    alert('テーマを入力してください');
-                    return;
-                }
-            } else if (selectedProblemMode === 'problem') {
-                customInput = document.getElementById('problemText').value.trim();
-                if (!customInput) {
-                    alert('問題文を入力してください');
-                    return;
-                }
-            }
-            
-            // 学習スタイルが選択されているか確認（AIにお任せ以外の場合）
-            if (selectedProblemMode !== 'ai' && !selectedLearningStyle) {
-                alert('学習スタイルを選択してください');
-                return;
-            }
-            
-            console.log('Starting lesson:', { 
-                sessionId, 
-                selectedLevel, 
-                selectedProblemMode, 
-                customInput,
-                selectedLearningStyle,
-                selectedFormat 
-            });
+            console.log('Starting lesson:', { sessionId, selectedLevel, selectedFormat });
             
             // セッション初期化API呼び出し
             try {
@@ -5321,10 +4376,7 @@ app.get('/essay-coaching', (c) => {
                     body: JSON.stringify({
                         sessionId,
                         targetLevel: selectedLevel,
-                        lessonFormat: selectedFormat,
-                        problemMode: selectedProblemMode,
-                        customInput: customInput || null,
-                        learningStyle: selectedLearningStyle || 'auto'
+                        lessonFormat: selectedFormat
                     })
                 });
                 
