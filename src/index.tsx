@@ -2129,7 +2129,15 @@ app.post('/api/essay/chat', async (c) => {
     const learningStyle = essaySession?.learningStyle || 'auto'
     const targetLevel = essaySession?.targetLevel || 'high_school'
     
-    console.log('📝 Session data:', { problemMode, customInput, learningStyle, targetLevel })
+    console.log('📝 Essay chat - Session data:', { 
+      sessionId, 
+      problemMode, 
+      customInput, 
+      learningStyle, 
+      targetLevel,
+      currentStep,
+      message: message.substring(0, 50)
+    })
     
     let response = ''
     let stepCompleted = false
@@ -2251,7 +2259,44 @@ app.post('/api/essay/chat', async (c) => {
       }
       // 「OK」または「はい」で演習開始
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
-        response = '【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n\n（例：「すごく大事」→「極めて重要」）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）'
+        // 毎回違う語彙力強化問題を生成
+        let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?'
+        let vocabExample = '「すごく大事」→「極めて重要」'
+        
+        try {
+          const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+          const timestamp = Date.now() // 毎回違う問題を生成
+          const prompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+タイムスタンプ: ${timestamp}
+
+要求:
+- よく使う口語表現を3つ選ぶ
+- 番号付きリスト形式（1. 「口語」→ ?）
+- 小論文でよく使う表現への言い換え
+- 毎回異なる表現を出題
+- 3つのみで説明は不要
+- 1つ目の例も簡単に提示（例：「すごい」→「非常に」）`
+          
+          const result = await gemini.generateContent(prompt)
+          const generated = result.response.text()
+          if (generated && generated.length > 20) {
+            // 例を抽出
+            const exampleMatch = generated.match(/例[：:]\s*(.+)/)
+            if (exampleMatch) {
+              vocabExample = exampleMatch[1].trim()
+              // 例の部分を削除
+              vocabProblems = generated.replace(/例[：:].*\n?/, '').trim()
+            } else {
+              vocabProblems = generated.trim()
+            }
+          }
+        } catch (error) {
+          console.error('❌ Vocab problems generation error:', error)
+        }
+        
+        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
       }
       // 回答が短すぎる
       else {
@@ -2352,21 +2397,23 @@ app.post('/api/essay/chat', async (c) => {
             charCount = charMatch[0]
           }
         } else if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          // テーマから問題を生成
+          // テーマから具体的な問題を生成
           try {
             const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
             const wordCount = targetLevel === 'high_school' ? '400字' : targetLevel === 'vocational' ? '500字' : '600字'
-            const prompt = `あなたは小論文の先生です。以下のテーマについて、本格的な小論文問題を作成してください。
+            const prompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
 
 テーマ: ${customInput}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 文字数: ${wordCount}
 
 要求:
-- 問題文は1文で簡潔に
-- 「について、あなたの考えを述べなさい」形式
-- 具体的で思考を促す問いかけ
-- 問題文のみで条件は不要`
+- 問題文は具体的な状況や論点を含める
+- 単に「〇〇について」ではなく、「〇〇において□□は△△だが、あなたは...」のような具体性
+- 賛否が分かれるテーマ、または多面的な思考が必要な問題
+- 「あなたの考えを述べなさい」で締める
+- 問題文のみ（条件や説明は不要）
+- 60文字以上150文字以内`
             
             const result = await gemini.generateContent(prompt)
             const generatedProblem = result.response.text()
@@ -2376,7 +2423,7 @@ app.post('/api/essay/chat', async (c) => {
             charCount = wordCount
           } catch (error) {
             console.error('❌ Problem generation error:', error)
-            mainProblem = `${customInput}について、あなたの考えを述べなさい`
+            mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
           }
         }
         
@@ -6277,6 +6324,41 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           white-space: pre-wrap;
         }
         
+        /* クイックアクションボタン */
+        .quick-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+        }
+        
+        .quick-action-btn {
+          padding: 0.5rem 1rem;
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+        }
+        
+        .quick-action-btn:hover {
+          background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+          box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        .quick-action-btn:active {
+          transform: translateY(0);
+        }
+        
+        .quick-action-btn.hidden {
+          display: none;
+        }
+        
         /* レスポンシブ対応 */
         @media (max-width: 640px) {
           .input-area {
@@ -6298,6 +6380,15 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             padding: 0.625rem 1rem;
             min-width: 80px;
             font-size: 0.875rem;
+          }
+          
+          .quick-actions {
+            gap: 0.375rem;
+          }
+          
+          .quick-action-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
           }
         }
         
@@ -6423,6 +6514,14 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                               準備ができたら「OK」と入力して、送信ボタンを押してください。
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- クイックアクションボタン -->
+                    <div class="quick-actions" id="quickActions">
+                        <button class="quick-action-btn" id="btnOK" onclick="quickAction('OK')">✓ OK</button>
+                        <button class="quick-action-btn hidden" id="btnYonda" onclick="quickAction('読んだ')">📖 読んだ</button>
+                        <button class="quick-action-btn hidden" id="btnPass" onclick="quickAction('パス')">⏭️ パス</button>
+                        <button class="quick-action-btn hidden" id="btnKanryo" onclick="quickAction('完了')">✅ 完了</button>
                     </div>
                     
                     <!-- 入力エリア -->
@@ -6591,6 +6690,48 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             // 送信ボタンを有効化
             sendBtn.disabled = false;
             sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+            
+            // クイックアクションボタンを更新
+            updateQuickActions(result.response);
+        }
+        
+        function quickAction(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            sendMessage();
+        }
+        
+        function updateQuickActions(aiResponse) {
+            // AIの応答内容に基づいてクイックアクションボタンを表示/非表示
+            const btnOK = document.getElementById('btnOK');
+            const btnYonda = document.getElementById('btnYonda');
+            const btnPass = document.getElementById('btnPass');
+            const btnKanryo = document.getElementById('btnKanryo');
+            
+            // すべてのボタンを非表示にする
+            btnOK.classList.add('hidden');
+            btnYonda.classList.add('hidden');
+            btnPass.classList.add('hidden');
+            btnKanryo.classList.add('hidden');
+            
+            if (!aiResponse) return;
+            
+            // 応答内容に応じてボタンを表示
+            if (aiResponse.includes('「OK」と入力') || aiResponse.includes('準備ができたら')) {
+                btnOK.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「読んだ」と入力') || aiResponse.includes('読み終えたら')) {
+                btnYonda.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「パス」と入力') || aiResponse.includes('わからない場合は')) {
+                btnPass.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「完了」と入力') || aiResponse.includes('書いたつもりで')) {
+                btnKanryo.classList.remove('hidden');
+            }
         }
         
         function showStepCompletion() {
