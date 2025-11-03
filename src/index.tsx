@@ -1508,9 +1508,16 @@ app.post('/api/essay/init-session', async (c) => {
   console.log('📝 Essay session init API called')
   
   try {
-    const { sessionId, targetLevel, lessonFormat } = await c.req.json()
+    const { 
+      sessionId, 
+      targetLevel, 
+      lessonFormat, 
+      problemMode, 
+      customInput, 
+      learningStyle 
+    } = await c.req.json()
     
-    if (!sessionId || !targetLevel || !lessonFormat) {
+    if (!sessionId || !targetLevel || !lessonFormat || !problemMode) {
       return c.json({
         ok: false,
         error: 'missing_parameters',
@@ -1526,6 +1533,9 @@ app.post('/api/essay/init-session', async (c) => {
       sessionId,
       targetLevel,
       lessonFormat,
+      problemMode: problemMode || 'ai',
+      customInput: customInput || null,
+      learningStyle: learningStyle || 'auto',
       currentStep: 1,
       stepStatus: { "1": "in_progress" },
       createdAt: now,
@@ -4866,6 +4876,101 @@ app.get('/essay-coaching', (c) => {
         .hidden {
           display: none !important;
         }
+        
+        /* カスタム問題設定用スタイル */
+        .radio-group {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .radio-option {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 0.75rem;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .radio-option:hover {
+          border-color: #7c3aed;
+          background: #f5f3ff;
+        }
+        
+        .radio-option.selected {
+          border-color: #7c3aed;
+          background: #f5f3ff;
+        }
+        
+        .radio-option input[type="radio"] {
+          margin-top: 0.25rem;
+        }
+        
+        .radio-label {
+          flex: 1;
+        }
+        
+        .radio-title {
+          font-weight: 600;
+          font-size: 1rem;
+          margin-bottom: 0.25rem;
+          color: #1f2937;
+        }
+        
+        .radio-description {
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+        
+        .input-area {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 0.5rem;
+          border: 1px solid #e2e8f0;
+        }
+        
+        .input-area textarea {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.5rem;
+          font-family: 'Noto Sans JP', sans-serif;
+          font-size: 0.875rem;
+          resize: vertical;
+          min-height: 60px;
+        }
+        
+        .input-area textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        .char-count {
+          text-align: right;
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin-top: 0.5rem;
+        }
+        
+        .learning-style-section {
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 2px solid #e2e8f0;
+        }
+        
+        .learning-style-section h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: #374151;
+        }
         </style>
     </head>
     <body>
@@ -4905,10 +5010,89 @@ app.get('/essay-coaching', (c) => {
                     </div>
                 </div>
                 
-                <!-- Step 2: 授業形式選択 -->
-                <div class="setup-section hidden" id="formatSelection">
+                <!-- Step 2: 問題設定 -->
+                <div class="setup-section hidden" id="problemSetup">
                     <h2>
                         <span class="step-number">2</span>
+                        問題設定
+                    </h2>
+                    
+                    <div class="radio-group">
+                        <label class="radio-option" onclick="selectProblemMode('ai', event)">
+                            <input type="radio" name="problemMode" value="ai">
+                            <div class="radio-label">
+                                <div class="radio-title">🤖 AIにお任せ</div>
+                                <div class="radio-description">レベルに応じた最適なテーマをAIが自動選択します</div>
+                            </div>
+                        </label>
+                        
+                        <label class="radio-option" onclick="selectProblemMode('theme', event)">
+                            <input type="radio" name="problemMode" value="theme">
+                            <div class="radio-label">
+                                <div class="radio-title">💡 テーマを入力</div>
+                                <div class="radio-description">学習したいテーマ（環境問題、AI技術など）を入力してください</div>
+                            </div>
+                        </label>
+                        
+                        <label class="radio-option" onclick="selectProblemMode('problem', event)">
+                            <input type="radio" name="problemMode" value="problem">
+                            <div class="radio-label">
+                                <div class="radio-title">📝 問題文を入力</div>
+                                <div class="radio-description">過去問など、具体的な問題文を入力してください</div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <!-- テーマ入力エリア -->
+                    <div class="input-area hidden" id="themeInput">
+                        <label>
+                            <strong>テーマを入力してください（例: 環境問題、AI技術）</strong>
+                            <textarea id="themeText" maxlength="100" placeholder="例: 環境問題、AI技術の発展、高齢化社会"></textarea>
+                            <div class="char-count"><span id="themeCharCount">0</span>/100文字</div>
+                        </label>
+                    </div>
+                    
+                    <!-- 問題文入力エリア -->
+                    <div class="input-area hidden" id="problemInput">
+                        <label>
+                            <strong>問題文を入力してください</strong>
+                            <textarea id="problemText" maxlength="5000" placeholder="例: 高齢化社会における看護の役割について400文字で書きなさい"></textarea>
+                            <div class="char-count"><span id="problemCharCount">0</span>/5000文字</div>
+                        </label>
+                    </div>
+                    
+                    <!-- 学習スタイル選択 -->
+                    <div class="learning-style-section hidden" id="learningStyleSection">
+                        <h3>📚 学習スタイルを選んでください</h3>
+                        <div class="button-grid">
+                            <button class="choice-button" onclick="selectLearningStyle('explanation', event)">
+                                <span class="icon">📖</span>
+                                <div class="title">テーマの解説</div>
+                                <div class="description">基礎から理解したい</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('example', event)">
+                                <span class="icon">✨</span>
+                                <div class="title">参考例を見る</div>
+                                <div class="description">良い書き方を真似したい</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('points', event)">
+                                <span class="icon">📋</span>
+                                <div class="title">論点整理</div>
+                                <div class="description">何を書けばいいか迷う</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('auto', event)">
+                                <span class="icon">🤖</span>
+                                <div class="title">AIにお任せ</div>
+                                <div class="description">自動で最適なものを選ぶ</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: 授業形式選択 -->
+                <div class="setup-section hidden" id="formatSelection">
+                    <h2>
+                        <span class="step-number">3</span>
                         授業形式を選択してください
                     </h2>
                     <div class="button-grid">
@@ -4945,7 +5129,26 @@ app.get('/essay-coaching', (c) => {
         <script>
         const sessionId = '${sessionId}';
         let selectedLevel = null;
+        let selectedProblemMode = null;
+        let customInput = null;
+        let selectedLearningStyle = null;
         let selectedFormat = null;
+        
+        // 文字数カウント機能
+        const themeTextarea = document.getElementById('themeText');
+        const problemTextarea = document.getElementById('problemText');
+        
+        if (themeTextarea) {
+            themeTextarea.addEventListener('input', function() {
+                document.getElementById('themeCharCount').textContent = this.value.length;
+            });
+        }
+        
+        if (problemTextarea) {
+            problemTextarea.addEventListener('input', function() {
+                document.getElementById('problemCharCount').textContent = this.value.length;
+            });
+        }
         
         function selectLevel(level, event) {
             selectedLevel = level;
@@ -4956,10 +5159,53 @@ app.get('/essay-coaching', (c) => {
             });
             event.target.closest('.choice-button').classList.add('selected');
             
-            // 次のステップを表示
-            document.getElementById('formatSelection').classList.remove('hidden');
+            // 次のステップ（問題設定）を表示
+            document.getElementById('problemSetup').classList.remove('hidden');
             
             console.log('Selected level:', level);
+        }
+        
+        function selectProblemMode(mode, event) {
+            selectedProblemMode = mode;
+            
+            // ラジオボタンの選択状態を更新
+            document.querySelectorAll('.radio-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.target.closest('.radio-option').classList.add('selected');
+            
+            // 対応する入力エリアを表示/非表示
+            document.getElementById('themeInput').classList.add('hidden');
+            document.getElementById('problemInput').classList.add('hidden');
+            document.getElementById('learningStyleSection').classList.add('hidden');
+            
+            if (mode === 'theme') {
+                document.getElementById('themeInput').classList.remove('hidden');
+                document.getElementById('learningStyleSection').classList.remove('hidden');
+            } else if (mode === 'problem') {
+                document.getElementById('problemInput').classList.remove('hidden');
+                document.getElementById('learningStyleSection').classList.remove('hidden');
+            } else if (mode === 'ai') {
+                // AIにお任せの場合は次のステップへ
+                document.getElementById('learningStyleSection').classList.remove('hidden');
+            }
+            
+            // フォーマット選択を表示
+            document.getElementById('formatSelection').classList.remove('hidden');
+            
+            console.log('Selected problem mode:', mode);
+        }
+        
+        function selectLearningStyle(style, event) {
+            selectedLearningStyle = style;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#learningStyleSection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
+            
+            console.log('Selected learning style:', style);
         }
         
         function selectFormat(format, event) {
@@ -4978,12 +5224,40 @@ app.get('/essay-coaching', (c) => {
         }
         
         async function startLesson() {
-            if (!selectedLevel || !selectedFormat) {
-                alert('レベルと授業形式を選択してください');
+            if (!selectedLevel || !selectedFormat || !selectedProblemMode) {
+                alert('すべての項目を選択してください');
                 return;
             }
             
-            console.log('Starting lesson:', { sessionId, selectedLevel, selectedFormat });
+            // テーマまたは問題文の取得
+            if (selectedProblemMode === 'theme') {
+                customInput = document.getElementById('themeText').value.trim();
+                if (!customInput) {
+                    alert('テーマを入力してください');
+                    return;
+                }
+            } else if (selectedProblemMode === 'problem') {
+                customInput = document.getElementById('problemText').value.trim();
+                if (!customInput) {
+                    alert('問題文を入力してください');
+                    return;
+                }
+            }
+            
+            // 学習スタイルが選択されているか確認（AIにお任せ以外の場合）
+            if (selectedProblemMode !== 'ai' && !selectedLearningStyle) {
+                alert('学習スタイルを選択してください');
+                return;
+            }
+            
+            console.log('Starting lesson:', { 
+                sessionId, 
+                selectedLevel, 
+                selectedProblemMode, 
+                customInput,
+                selectedLearningStyle,
+                selectedFormat 
+            });
             
             // セッション初期化API呼び出し
             try {
@@ -4995,7 +5269,10 @@ app.get('/essay-coaching', (c) => {
                     body: JSON.stringify({
                         sessionId,
                         targetLevel: selectedLevel,
-                        lessonFormat: selectedFormat
+                        lessonFormat: selectedFormat,
+                        problemMode: selectedProblemMode,
+                        customInput: customInput || null,
+                        learningStyle: selectedLearningStyle || 'auto'
                     })
                 });
                 
