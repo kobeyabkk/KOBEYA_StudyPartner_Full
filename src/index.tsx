@@ -1558,7 +1558,13 @@ app.post('/api/essay/init-session', async (c) => {
     const db = c.env?.DB
     if (db) {
       await saveSessionToDB(db, sessionId, session)
-      console.log('✅ Essay session initialized and saved to D1:', sessionId)
+      console.log('✅ Essay session initialized and saved to D1:', {
+        sessionId,
+        problemMode: essaySession.problemMode,
+        customInput: essaySession.customInput,
+        learningStyle: essaySession.learningStyle,
+        targetLevel: essaySession.targetLevel
+      })
     } else {
       console.warn('⚠️ D1 not available, session only in memory:', sessionId)
     }
@@ -2123,7 +2129,18 @@ app.post('/api/essay/chat', async (c) => {
     // セッションデータを取得してカスタムテーマを使用
     const db = c.env?.DB
     const session = await getOrCreateSession(db, sessionId)
-    const essaySession = session?.essaySession
+    
+    if (!session || !session.essaySession) {
+      console.error('❌ Essay session not found:', sessionId)
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    const essaySession = session.essaySession
     const problemMode = essaySession?.problemMode || 'ai'
     const customInput = essaySession?.customInput || null
     const learningStyle = essaySession?.learningStyle || 'auto'
@@ -6665,6 +6682,9 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                     // AI応答を表示
                     addMessage(result.response, true);
                     
+                    // クイックアクションボタンを更新
+                    updateQuickActions(result.response);
+                    
                     // Step 4 または Step 5で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
                     if ((currentStep === 4 || currentStep === 5) && 
                         (text.includes('確認完了') || text.includes('修正完了') || 
@@ -6690,9 +6710,6 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             // 送信ボタンを有効化
             sendBtn.disabled = false;
             sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
-            
-            // クイックアクションボタンを更新
-            updateQuickActions(result.response);
         }
         
         function quickAction(text) {
