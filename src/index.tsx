@@ -4971,6 +4971,33 @@ app.get('/essay-coaching', (c) => {
           margin-bottom: 1rem;
           color: #374151;
         }
+        
+        .input-ok-button {
+          display: block;
+          width: 100%;
+          padding: 0.75rem 1.5rem;
+          margin-top: 1rem;
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2);
+        }
+        
+        .input-ok-button:hover {
+          background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+          box-shadow: 0 6px 8px rgba(124, 58, 237, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        .input-ok-button:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+        }
         </style>
     </head>
     <body>
@@ -5046,19 +5073,21 @@ app.get('/essay-coaching', (c) => {
                     <!-- テーマ入力エリア -->
                     <div class="input-area hidden" id="themeInput">
                         <label>
-                            <strong>テーマを入力してください（例: 環境問題、AI技術）</strong>
-                            <textarea id="themeText" maxlength="100" placeholder="例: 環境問題、AI技術の発展、高齢化社会"></textarea>
+                            <strong>テーマを入力してください</strong>
+                            <textarea id="themeText" maxlength="100" placeholder="例: 医療技術の発展と倫理、少子高齢化社会の課題、グローバル化と文化"></textarea>
                             <div class="char-count"><span id="themeCharCount">0</span>/100文字</div>
                         </label>
+                        <button class="input-ok-button" onclick="confirmThemeInput()">✓ OK</button>
                     </div>
                     
                     <!-- 問題文入力エリア -->
                     <div class="input-area hidden" id="problemInput">
                         <label>
                             <strong>問題文を入力してください</strong>
-                            <textarea id="problemText" maxlength="5000" placeholder="例: 高齢化社会における看護の役割について400文字で書きなさい"></textarea>
+                            <textarea id="problemText" maxlength="5000" placeholder="例: あなたは将来医療従事者を目指していますが、高齢化が進む日本社会において、医療・看護の専門家にはどのような役割が求められると考えますか。具体的な課題を挙げながら、あなたの考えを400字以内で述べなさい。"></textarea>
                             <div class="char-count"><span id="problemCharCount">0</span>/5000文字</div>
                         </label>
+                        <button class="input-ok-button" onclick="confirmProblemInput()">✓ OK</button>
                     </div>
                     
                     <!-- 学習スタイル選択 -->
@@ -5178,22 +5207,45 @@ app.get('/essay-coaching', (c) => {
             document.getElementById('themeInput').classList.add('hidden');
             document.getElementById('problemInput').classList.add('hidden');
             document.getElementById('learningStyleSection').classList.add('hidden');
+            document.getElementById('formatSelection').classList.add('hidden');
             
             if (mode === 'theme') {
                 document.getElementById('themeInput').classList.remove('hidden');
-                document.getElementById('learningStyleSection').classList.remove('hidden');
+                // 学習スタイルとフォーマット選択はOKボタン後に表示
             } else if (mode === 'problem') {
                 document.getElementById('problemInput').classList.remove('hidden');
-                document.getElementById('learningStyleSection').classList.remove('hidden');
+                // 学習スタイルとフォーマット選択はOKボタン後に表示
             } else if (mode === 'ai') {
-                // AIにお任せの場合は次のステップへ
+                // AIにお任せの場合はすぐに次のステップへ
                 document.getElementById('learningStyleSection').classList.remove('hidden');
+                document.getElementById('formatSelection').classList.remove('hidden');
             }
             
-            // フォーマット選択を表示
-            document.getElementById('formatSelection').classList.remove('hidden');
-            
             console.log('Selected problem mode:', mode);
+        }
+        
+        function confirmThemeInput() {
+            const themeText = document.getElementById('themeText').value.trim();
+            if (!themeText) {
+                alert('テーマを入力してください');
+                return;
+            }
+            // 学習スタイルとフォーマット選択を表示
+            document.getElementById('learningStyleSection').classList.remove('hidden');
+            document.getElementById('formatSelection').classList.remove('hidden');
+            console.log('Theme confirmed:', themeText);
+        }
+        
+        function confirmProblemInput() {
+            const problemText = document.getElementById('problemText').value.trim();
+            if (!problemText) {
+                alert('問題文を入力してください');
+                return;
+            }
+            // 学習スタイルとフォーマット選択を表示
+            document.getElementById('learningStyleSection').classList.remove('hidden');
+            document.getElementById('formatSelection').classList.remove('hidden');
+            console.log('Problem confirmed:', problemText);
         }
         
         function selectLearningStyle(style, event) {
