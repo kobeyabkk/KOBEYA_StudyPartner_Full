@@ -2156,6 +2156,14 @@ app.post('/api/essay/chat', async (c) => {
       message: message.substring(0, 50)
     })
     
+    // Session data validation
+    if (!problemMode) {
+      console.warn('⚠️ problemMode is missing in session')
+    }
+    if (!customInput && (problemMode === 'theme' || problemMode === 'problem')) {
+      console.warn('⚠️ customInput is missing but problemMode is:', problemMode)
+    }
+    
     let response = ''
     let stepCompleted = false
     
@@ -2221,9 +2229,27 @@ app.post('/api/essay/chat', async (c) => {
         let themeTitle = '環境問題'
         let themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
         
+        // デバッグ情報をログ出力
+        console.log('🔍 Step 1 Theme Generation - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput,
+          condition_theme: problemMode === 'theme' && !!customInput,
+          condition_problem: problemMode === 'problem' && !!customInput
+        })
+        
+        // セッションデータが不正な場合の警告
+        if ((problemMode === 'theme' || problemMode === 'problem') && !customInput) {
+          console.error('❌ CRITICAL: customInput is missing! Session may be from before fixes.')
+          response = `⚠️ セッションデータに問題があります。\n\nこのセッションは古いデータの可能性があります。\n「新しいセッション」ボタンを押して、もう一度最初からやり直してください。\n\n（デバッグ情報: problemMode=${problemMode}, customInput=${customInput ? 'exists' : 'missing'}）`
+          return c.json({ ok: true, response, stepCompleted: false })
+        }
+        
         if (problemMode === 'theme' && customInput) {
           // ユーザーが入力したテーマを使用
           themeTitle = customInput
+          console.log('✅ Generating theme content for:', customInput)
+          
           // AIでテーマに関する読み物を生成
           try {
             const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
@@ -2240,11 +2266,21 @@ app.post('/api/essay/chat', async (c) => {
             
             const result = await gemini.generateContent(prompt)
             const generatedText = result.response.text()
+            console.log('📊 AI Generated text length:', generatedText?.length || 0)
+            
             if (generatedText && generatedText.length > 50) {
               themeContent = generatedText
+              console.log('✅ Using AI-generated theme content')
+            } else {
+              // AIが短すぎる場合でもカスタムテーマを使ったフォールバック
+              themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
+              console.warn('⚠️ AI text too short, using custom fallback')
             }
           } catch (error) {
             console.error('❌ Theme generation error:', error)
+            // エラー時もカスタムテーマを使ったフォールバック
+            themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
+            console.log('🔄 Using error fallback with custom theme')
           }
         } else if (problemMode === 'problem' && customInput) {
           // ユーザーが問題文を入力した場合、その問題からテーマを抽出
@@ -6629,6 +6665,16 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         <script>
         const sessionId = '${sessionId}';
         let currentStep = 1;
+        
+        // セッション設定をコンソールに表示（デバッグ用）
+        console.log('🔍 Essay Session Configuration:', {
+          sessionId: sessionId,
+          problemMode: '${essaySession.problemMode}',
+          customInput: '${essaySession.customInput || '(empty)'}',
+          learningStyle: '${essaySession.learningStyle}',
+          targetLevel: '${essaySession.targetLevel}',
+          timestamp: new Date().toISOString()
+        });
         
         function addMessage(text, isTeacher = false) {
             const messagesDiv = document.getElementById('messages');
