@@ -2174,7 +2174,15 @@ app.post('/api/essay/chat', async (c) => {
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
         console.log('✅ Matched: パス')
-        response = 'わかりました。解説しますね。\n\n【模範解答】\n1. 地球温暖化の主な原因は、化石燃料の大量消費による二酸化炭素の増加です。\n2. 異常気象の頻発、海面上昇、生態系の変化などの問題が起きています。\n3. 個人でできる取り組みとしては、節電、公共交通機関の利用、再生可能エネルギーの選択などがあります。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        
+        // カスタムテーマに基づいた模範解答を生成
+        let passAnswer = '【模範解答】\n1. このテーマの基本的な知識について学ぶことが大切です。\n2. 様々な影響や課題があります。\n3. 自分なりに考えて行動することが重要です。'
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          passAnswer = `【模範解答】\n1. ${customInput}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${customInput}に関連して、様々な影響や課題が考えられます。\n3. ${customInput}について、自分なりの意見を持ち、行動することが重要です。`
+        }
+        
+        response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
       // 長い回答（15文字以上、かつ「ok」を含まない）
@@ -2187,10 +2195,20 @@ app.post('/api/essay/chat', async (c) => {
       else if (message.includes('読んだ') || message.includes('読みました')) {
         console.log('✅ Matched: 読んだ')
         
+        // デバッグ情報をログ出力
+        console.log('🔍 Step 1 Questions Generation - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput,
+          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && !!customInput,
+          condition_problem: problemMode === 'problem' && !!customInput
+        })
+        
         // カスタムテーマに基づいた質問を生成
         let questions = '1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。'
         
         if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          console.log('✅ Generating questions for theme:', customInput)
           try {
             const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
             const prompt = `あなたは小論文の先生です。以下のテーマについて、生徒の理解度を確認するための質問を3つ作成してください。
@@ -2208,11 +2226,21 @@ app.post('/api/essay/chat', async (c) => {
             
             const result = await gemini.generateContent(prompt)
             const generatedQuestions = result.response.text()
+            console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
+            
             if (generatedQuestions && generatedQuestions.length > 20) {
               questions = generatedQuestions
+              console.log('✅ Using AI-generated questions')
+            } else {
+              // AI応答が短すぎる場合もカスタムテーマを使ったフォールバック
+              questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+              console.warn('⚠️ AI questions too short, using custom fallback')
             }
           } catch (error) {
             console.error('❌ Questions generation error:', error)
+            // エラー時もカスタムテーマを使ったフォールバック
+            questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+            console.log('🔄 Using error fallback with custom theme')
           }
         } else if (problemMode === 'problem' && customInput) {
           // 問題文が与えられている場合は、その問題について確認
@@ -2312,6 +2340,8 @@ app.post('/api/essay/chat', async (c) => {
       }
       // 「OK」または「はい」で演習開始
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('🔍 Step 2 Vocab Generation - Starting')
+        
         // 毎回違う語彙力強化問題を生成
         let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?'
         let vocabExample = '「すごく大事」→「極めて重要」'
@@ -2319,6 +2349,8 @@ app.post('/api/essay/chat', async (c) => {
         try {
           const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
           const timestamp = Date.now() // 毎回違う問題を生成
+          console.log('✅ Generating vocab problems with timestamp:', timestamp)
+          
           const prompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
 
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -2334,6 +2366,8 @@ app.post('/api/essay/chat', async (c) => {
           
           const result = await gemini.generateContent(prompt)
           const generated = result.response.text()
+          console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          
           if (generated && generated.length > 20) {
             // 例を抽出
             const exampleMatch = generated.match(/例[：:]\s*(.+)/)
@@ -2344,11 +2378,16 @@ app.post('/api/essay/chat', async (c) => {
             } else {
               vocabProblems = generated.trim()
             }
+            console.log('✅ Using AI-generated vocab problems')
+          } else {
+            console.warn('⚠️ AI vocab too short, using fallback')
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
+          console.log('🔄 Using fallback vocab problems')
         }
         
+        // すぐに語彙問題を表示
         response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
       }
       // 回答が短すぎる
@@ -2362,14 +2401,24 @@ app.post('/api/essay/chat', async (c) => {
         stepCompleted = true
       }
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
+        console.log('🔍 Step 3 Short Essay - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput
+        })
+        
         // カスタムテーマに基づいた短文問題を生成
         let shortProblem = '環境問題について、200字程度で小論文を書いてください。'
         
         if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
           shortProblem = `${customInput}について、200字程度で小論文を書いてください。`
+          console.log('✅ Using custom theme for short essay:', customInput)
         } else if (problemMode === 'problem' && customInput) {
           // 問題文がある場合は、そのまま使用
           shortProblem = customInput
+          console.log('✅ Using custom problem for short essay')
+        } else {
+          console.warn('⚠️ Using fallback short essay problem')
         }
         
         response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論\n\n原稿用紙に手書きで書いて、写真をアップロードする機能は次のステップで実装予定です。\n\n今回は練習ですので、書いたつもりで「完了」と入力して送信してください。`
@@ -2437,6 +2486,12 @@ app.post('/api/essay/chat', async (c) => {
         response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
       }
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('🔍 Step 4 Main Practice - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput
+        })
+        
         // カスタムテーマに基づいた本練習問題を生成
         let mainProblem = 'SNSが社会に与える影響について、あなたの考えを述べなさい'
         let charCount = '400〜600字'
@@ -2444,12 +2499,14 @@ app.post('/api/essay/chat', async (c) => {
         if (problemMode === 'problem' && customInput) {
           // ユーザーが問題文を入力した場合、そのまま使用
           mainProblem = customInput
+          console.log('✅ Using custom problem text directly')
           // 文字数を抽出
           const charMatch = customInput.match(/(\d+).*?字/)
           if (charMatch) {
             charCount = charMatch[0]
           }
         } else if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          console.log('✅ Generating detailed problem from theme:', customInput)
           // テーマから具体的な問題を生成
           try {
             const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
@@ -2470,14 +2527,23 @@ app.post('/api/essay/chat', async (c) => {
             
             const result = await gemini.generateContent(prompt)
             const generatedProblem = result.response.text()
+            console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
+            
             if (generatedProblem && generatedProblem.length > 10) {
               mainProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+              console.log('✅ Using AI-generated problem')
+            } else {
+              mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
+              console.warn('⚠️ AI problem too short, using custom fallback')
             }
             charCount = wordCount
           } catch (error) {
             console.error('❌ Problem generation error:', error)
             mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
+            console.log('🔄 Using error fallback with custom theme')
           }
+        } else {
+          console.warn('⚠️ Using fallback main problem (no custom input)')
         }
         
         response = `【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「${mainProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります`
@@ -2601,6 +2667,17 @@ app.post('/api/essay/chat', async (c) => {
       if (message.includes('完了')) {
         stepCompleted = true
       }
+    }
+    
+    // ステップ完了時にセッションを更新
+    if (stepCompleted && session && session.essaySession) {
+      session.essaySession.stepStatus = session.essaySession.stepStatus || {}
+      session.essaySession.stepStatus[currentStep] = 'completed'
+      
+      // インメモリとD1の両方を更新
+      learningSessions.set(sessionId, session)
+      await saveSessionToDB(db, sessionId, session)
+      console.log('✅ Session updated for step completion:', currentStep)
     }
     
     console.log('📝 Essay chat response for step ' + currentStep)
