@@ -5637,16 +5637,17 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         
         console.log('🔧 Setting up camera event listeners...');
         
-        // Camera button click
+        // Camera button click - Open camera modal
         if (cameraButton) {
             console.log('✅ Camera button found, adding event listener');
             cameraButton.addEventListener('click', () => {
-                console.log('📷 Camera button clicked');
-                if (cameraInput) {
-                    console.log('📸 Triggering camera input');
-                    cameraInput.click();
+                console.log('📷 Camera button clicked - opening camera modal');
+                const cameraModal = document.getElementById('cameraModal');
+                if (cameraModal) {
+                    cameraModal.style.display = 'flex';
+                    startCamera();
                 } else {
-                    console.error('❌ Camera input not found');
+                    console.error('❌ Camera modal not found');
                 }
             });
         } else {
@@ -9050,17 +9051,38 @@ app.post('/api/similar/check', async (c) => {
     console.log('🔍 Similar check - similarProblems type:', typeof session.similarProblems)
     console.log('🔍 Similar check - similarProblems count:', session.similarProblems?.length || 0)
     
-    // 類似問題データの取得
-    const problemIndex = problemNumber - 1
-    const similarProblem = session.similarProblems[problemIndex]
+    // 類似問題データの取得と検証
+    if (!Array.isArray(session.similarProblems)) {
+      console.error('❌ similarProblems is not an array:', typeof session.similarProblems)
+      return c.json({
+        ok: false,
+        error: 'invalid_similar_problems',
+        message: '類似問題データの形式が不正です',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
     
-    if (!similarProblem) {
+    const problemIndex = problemNumber - 1
+    if (problemIndex < 0 || problemIndex >= session.similarProblems.length) {
+      console.error('❌ Invalid problemNumber:', { problemNumber, arrayLength: session.similarProblems.length })
       return c.json({
         ok: false,
         error: 'problem_not_found',
-        message: '指定された類似問題が見つかりません',
+        message: `指定された類似問題が見つかりません（問題番号: ${problemNumber}）`,
         timestamp: new Date().toISOString()
       }, 404)
+    }
+    
+    const similarProblem = session.similarProblems[problemIndex]
+    
+    if (!similarProblem || typeof similarProblem !== 'object') {
+      console.error('❌ Invalid similarProblem at index:', { problemIndex, similarProblem })
+      return c.json({
+        ok: false,
+        error: 'invalid_problem_data',
+        message: '類似問題データが不正です',
+        timestamp: new Date().toISOString()
+      }, 500)
     }
     
     // 回答チェック
@@ -10014,17 +10036,21 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // カメラボタン
+          // カメラボタン - Open camera modal (not file input)
           const cameraButton = document.getElementById('cameraButton');
           if (cameraButton) {
             cameraButton.addEventListener('click', function() {
-              console.log('📷 Camera button clicked');
+              console.log('📷 Camera button clicked - opening camera modal');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
-              if (cameraInput) {
-                cameraInput.click();
+              const cameraModal = document.getElementById('cameraModal');
+              if (cameraModal) {
+                cameraModal.style.display = 'flex';
+                startCamera();
+              } else {
+                console.error('❌ Camera modal not found');
               }
             });
           }
