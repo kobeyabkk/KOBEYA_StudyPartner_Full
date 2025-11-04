@@ -2209,35 +2209,82 @@ app.post('/api/essay/chat', async (c) => {
         
         if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
           console.log('✅ Generating questions for theme:', customInput)
+          
+          // セッションから読み物を取得
+          const themeContent = session?.essaySession?.lastThemeContent || ''
+          
           try {
-            const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
-            const prompt = `あなたは小論文の先生です。以下のテーマについて、生徒の理解度を確認するための質問を3つ作成してください。
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            // 学習スタイルに応じた質問形式の調整
+            let questionStyleInstruction = ''
+            if (learningStyle === 'example') {
+              questionStyleInstruction = '\n- 質問1と2では具体例を挙げて答えやすい形式にする\n- 「〜の例を挙げて説明してください」のような形式を含める'
+            } else if (learningStyle === 'explanation') {
+              questionStyleInstruction = '\n- 理論的な理解を問う質問を重視\n- 「なぜ〜なのか説明してください」「〜の背景について論じてください」のような形式を含める'
+            } else {
+              questionStyleInstruction = '\n- 理解度確認と意見表明のバランスを取る'
+            }
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
 
 テーマ: ${customInput}
+
+読み物の内容:
+${themeContent}
+
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
 
 要求:
-- 3つの質問を作成
-- 質問1: テーマの基本的な知識を問う
-- 質問2: テーマに関する問題点や影響を問う
-- 質問3: 自分自身の考えや行動を問う
+- 読み物の内容に直接関連した質問を3つ作成
+- 質問1: 読み物で説明されている基本的な概念や定義を問う（読み物に書かれている内容から答えられる）
+- 質問2: 読み物で述べられている問題点や影響、背景を問う（読み物に書かれている内容から答えられる）
+- 質問3: テーマについての自分自身の考えや意見を問う（読み物を踏まえた上での自分の意見）${questionStyleInstruction}
 - 番号付きリスト形式で出力（1. 2. 3.）
-- 質問のみで説明は不要`
+- 質問のみで説明は不要
+- 読み物を読めば答えられる質問にすること（質問1と2は特に重要）`
             
-            const result = await gemini.generateContent(prompt)
-            const generatedQuestions = result.response.text()
+            console.log('🤖 Calling OpenAI API for questions generation...')
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '質問を3つ生成してください。' }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('✅ OpenAI API call successful for questions')
+            const result = await response.json()
+            const generatedQuestions = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
+            console.log('📚 Learning style applied to questions:', learningStyle)
+            console.log('📝 Generated questions preview:', generatedQuestions?.substring(0, 200) || 'EMPTY')
             
             if (generatedQuestions && generatedQuestions.length > 20) {
               questions = generatedQuestions
-              console.log('✅ Using AI-generated questions')
+              console.log('✅ Using AI-generated questions with learning style')
             } else {
               // AI応答が短すぎる場合もカスタムテーマを使ったフォールバック
               questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
-              console.warn('⚠️ AI questions too short, using custom fallback')
+              console.warn('⚠️ AI questions too short (length: ' + (generatedQuestions?.length || 0) + '), using custom fallback')
             }
           } catch (error) {
             console.error('❌ Questions generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
             // エラー時もカスタムテーマを使ったフォールバック
             questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
@@ -2280,32 +2327,82 @@ app.post('/api/essay/chat', async (c) => {
           
           // AIでテーマに関する読み物を生成
           try {
-            const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
-            const prompt = `あなたは小論文の先生です。以下のテーマについて、高校生・専門学校生・大学受験生が理解できる150文字程度の導入文を書いてください。
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            // 学習スタイルに応じた指示を追加
+            let styleInstruction = ''
+            if (learningStyle === 'example') {
+              styleInstruction = '\n- 具体的な事例を多く含める（歴史的事例、現代の事例など）\n- 解説は簡潔に、事例を中心に構成'
+            } else if (learningStyle === 'explanation') {
+              styleInstruction = '\n- 理論的な説明を詳しく含める\n- 概念の定義や背景を丁寧に説明\n- 因果関係や論理展開を明確に'
+            } else {
+              styleInstruction = '\n- 事例と解説をバランスよく含める\n- 理解しやすさを重視'
+            }
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、生徒が小論文を書くための基礎知識となる読み物を作成してください。
 
 テーマ: ${customInput}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
 
 要求:
-- 150文字程度で簡潔に
-- テーマの背景や重要性を説明
-- 専門用語は避け、わかりやすく
-- 導入文のみで、問いかけは含めない`
+- 500〜800文字程度の読み物
+- テーマの基本的な概念・定義を含める
+- 歴史的背景や現状を説明
+- 関連する問題点や課題を提示
+- 社会的な意義や影響を説明${styleInstruction}
+- 専門用語は必要に応じて使用し、わかりやすく説明
+- 問いかけは含めず、情報提供に徹する
+- この読み物を読めば、後の質問に答えられる知識が得られる内容にする
+
+生徒はこの読み物を読んだ後、以下のような質問に答えることになります：
+1. ${customInput}の基本的な概念や定義について
+2. ${customInput}に関する現代社会における問題点や課題
+3. ${customInput}について、自分自身の考えや意見
+
+これらの質問に答えるための十分な情報を含めてください。`
             
-            const result = await gemini.generateContent(prompt)
-            const generatedText = result.response.text()
+            console.log('🤖 Calling OpenAI API for theme content generation...')
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '読み物を作成してください。' }
+                ],
+                max_tokens: 1500,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('✅ OpenAI API call successful')
+            const result = await response.json()
+            const generatedText = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
+            console.log('📚 Learning style applied:', learningStyle)
+            console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
             
+            // 生成されたテキストが50文字以上あれば使用（200文字の条件を緩和）
             if (generatedText && generatedText.length > 50) {
               themeContent = generatedText
-              console.log('✅ Using AI-generated theme content')
+              console.log('✅ Using AI-generated theme content with learning style')
             } else {
               // AIが短すぎる場合でもカスタムテーマを使ったフォールバック
               themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
-              console.warn('⚠️ AI text too short, using custom fallback')
+              console.warn('⚠️ AI text too short (length: ' + (generatedText?.length || 0) + '), using custom fallback')
             }
           } catch (error) {
             console.error('❌ Theme generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
             // エラー時もカスタムテーマを使ったフォールバック
             themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
             console.log('🔄 Using error fallback with custom theme')
@@ -2317,6 +2414,15 @@ app.post('/api/essay/chat', async (c) => {
             themeTitle = match[1]
           }
           themeContent = `今回取り組む問題:\n${customInput.substring(0, 150)}${customInput.length > 150 ? '...' : ''}`
+        }
+        
+        // 読み物をセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.lastThemeContent = themeContent
+          session.essaySession.lastThemeTitle = themeTitle
+          learningSessions.set(sessionId, session)
+          await saveSessionToDB(db, sessionId, session)
+          console.log('✅ Theme content saved to session')
         }
         
         response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
@@ -2673,11 +2779,18 @@ app.post('/api/essay/chat', async (c) => {
     if (stepCompleted && session && session.essaySession) {
       session.essaySession.stepStatus = session.essaySession.stepStatus || {}
       session.essaySession.stepStatus[currentStep] = 'completed'
+      session.essaySession.currentStep = currentStep
       
       // インメモリとD1の両方を更新
       learningSessions.set(sessionId, session)
       await saveSessionToDB(db, sessionId, session)
       console.log('✅ Session updated for step completion:', currentStep)
+    } else if (session && session.essaySession) {
+      // ステップ完了していなくても、currentStepを更新
+      session.essaySession.currentStep = currentStep
+      learningSessions.set(sessionId, session)
+      await saveSessionToDB(db, sessionId, session)
+      console.log('📝 Session currentStep updated:', currentStep)
     }
     
     console.log('📝 Essay chat response for step ' + currentStep)
@@ -6904,7 +7017,11 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             document.getElementById('nextStepBtn').classList.add('hidden');
             
             // 新しいステップのメッセージを表示
-            addMessage(getStepIntroMessage(currentStep), true);
+            const introMessage = getStepIntroMessage(currentStep);
+            addMessage(introMessage, true);
+            
+            // クイックアクションボタンを更新
+            updateQuickActions(introMessage);
         }
         
         function updateProgressBar() {
