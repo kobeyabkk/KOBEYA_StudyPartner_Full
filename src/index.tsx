@@ -2242,8 +2242,97 @@ app.post('/api/essay/chat', async (c) => {
     if (currentStep === 1) {
       console.log('📝 Step 1 processing, message:', message)
       
+      // 画像がアップロードされたかチェック（OCR処理済みの回答）
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 1)
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+      
+      // OCR結果がある場合、AI添削を実行
+      if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
+        console.log('📝 Step 1: OCR confirmed, generating feedback...')
+        
+        try {
+          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const latestOCR = step1OCRs[step1OCRs.length - 1]
+          const essayText = latestOCR.text || ''
+          
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          // 質問を取得（セッションに保存されているはず）
+          const themeTitle = session.essaySession.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対して手書きで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${essayText}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 feedback error:', error)
+          response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
+      }
+      // 画像アップロードがあった場合
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n読み取り結果が表示されたら、内容を確認して「確認完了」と入力してください。修正が必要な場合は、正しいテキストを入力して送信してください。'
+      }
       // パス機能
-      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+      else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
         console.log('✅ Matched: パス')
         
         // セッションから読み物と質問を取得
@@ -2337,11 +2426,79 @@ ${themeContent}
         response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
-      // 長い回答（15文字以上、かつ「ok」を含まない）
-      else if (message.length > 15 && !message.toLowerCase().includes('ok')) {
-        console.log('✅ Matched: Long answer')
-        response = '素晴らしい回答ですね！環境問題についてよく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-        stepCompleted = true
+      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
+      else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('✅ Matched: Long answer - generating feedback')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 text feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対してテキストで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 text feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${message}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 text feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 text feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 text feedback error:', error)
+          response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
       }
       // 「読んだ」
       else if (message.includes('読んだ') || message.includes('読みました')) {
