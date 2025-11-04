@@ -2942,7 +2942,7 @@ ${themeContent}
     } else if (currentStep === 2) {
       // ステップ2: 語彙力強化
       // 保存された模範解答を取得（デフォルト値を設定）
-      const savedAnswers = currentSession?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」'
+      const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」'
       
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
@@ -3055,20 +3055,20 @@ ${themeContent}
             }
             
             // セッションに解答を保存
-            if (!currentSession.essaySession) {
-              currentSession.essaySession = {}
+            if (!session.essaySession) {
+              session.essaySession = {}
             }
-            currentSession.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswers = vocabAnswers
             
             console.log('✅ Using AI-generated vocab problems and answers')
             console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
           } else {
             console.warn('⚠️ AI vocab too short, using fallback')
             // フォールバックの解答も保存
-            if (!currentSession.essaySession) {
-              currentSession.essaySession = {}
+            if (!session.essaySession) {
+              session.essaySession = {}
             }
-            currentSession.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswers = vocabAnswers
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
