@@ -1,9 +1,15 @@
 {
   "name": "webapp",
   "type": "module",
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
+    "prebuild": "node -v && npm -v",
     "build": "vite build",
+    "postbuild": "test -d dist && test -f dist/_worker.js || (echo '❌ Build output missing' && exit 1)",
     "preview": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "dev:sandbox": "wrangler pages dev dist --d1=kobeya-logs-db --local --ip 0.0.0.0 --port 3000",
     "deploy": "npm run build && wrangler pages deploy dist",
