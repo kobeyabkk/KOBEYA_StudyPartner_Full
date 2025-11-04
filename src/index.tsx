@@ -181,6 +181,112 @@ async function updateSession(db: D1Database | undefined, sessionId: string, upda
   return true
 }
 
+// ========== Study Partner Session Management (D1 Persistence) ==========
+
+// Study Partner セッションをD1に保存
+async function saveStudyPartnerSessionToDB(db: any, sessionId: string, session: any) {
+  try {
+    const stepsJson = JSON.stringify(session.steps || [])
+    const confirmationProblemJson = JSON.stringify(session.confirmationProblem || {})
+    const similarProblemsJson = JSON.stringify(session.similarProblems || [])
+    
+    await db.prepare(`
+      INSERT OR REPLACE INTO learning_sessions 
+      (session_id, appkey, sid, problem_type, analysis, steps, confirmation_problem, 
+       similar_problems, current_step, status, original_image_data, original_user_message, 
+       created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+              COALESCE((SELECT created_at FROM learning_sessions WHERE session_id = ?), ?),
+              ?)
+    `).bind(
+      sessionId,
+      session.appkey,
+      session.sid,
+      session.problemType,
+      session.analysis,
+      stepsJson,
+      confirmationProblemJson,
+      similarProblemsJson,
+      session.currentStep || 0,
+      session.status || 'learning',
+      session.originalImageData || null,
+      session.originalUserMessage || '',
+      sessionId, // For COALESCE created_at check
+      session.createdAt || new Date().toISOString(),
+      new Date().toISOString()
+    ).run()
+    
+    console.log('✅ Study Partner session saved to D1:', sessionId)
+  } catch (error) {
+    console.error('❌ Failed to save Study Partner session to D1:', error)
+    // Non-blocking: continue even if D1 save fails
+  }
+}
+
+// Study Partner セッションをD1から取得
+async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
+  try {
+    const result = await db.prepare(`
+      SELECT * FROM learning_sessions WHERE session_id = ?
+    `).bind(sessionId).first()
+    
+    if (!result) {
+      console.log('⚠️ Study Partner session not found in D1:', sessionId)
+      return null
+    }
+    
+    console.log('✅ Study Partner session retrieved from D1:', sessionId)
+    
+    return {
+      sessionId: result.session_id,
+      appkey: result.appkey,
+      sid: result.sid,
+      problemType: result.problem_type,
+      analysis: result.analysis,
+      steps: JSON.parse(result.steps || '[]'),
+      confirmationProblem: JSON.parse(result.confirmation_problem || '{}'),
+      similarProblems: JSON.parse(result.similar_problems || '[]'),
+      currentStep: result.current_step,
+      status: result.status,
+      originalImageData: result.original_image_data,
+      originalUserMessage: result.original_user_message,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve Study Partner session from D1:', error)
+    return null
+  }
+}
+
+// Study Partner セッション取得（インメモリ → D1フォールバック）
+async function getStudyPartnerSession(db: any, sessionId: string) {
+  // 1. インメモリから取得を試みる
+  let session = learningSessions.get(sessionId)
+  if (session) {
+    console.log('✅ Study Partner session found in memory:', sessionId)
+    return session
+  }
+  
+  // 2. D1から取得を試みる
+  if (!db) {
+    console.warn('⚠️ D1 database not available, cannot retrieve session:', sessionId)
+    return null
+  }
+  
+  session = await getStudyPartnerSessionFromDB(db, sessionId)
+  
+  if (session) {
+    // インメモリにもキャッシュ
+    learningSessions.set(sessionId, session)
+    console.log('✅ Study Partner session cached in memory:', sessionId)
+  }
+  
+  return session
+}
+
+// ========== End of Study Partner Session Management ==========
+
 // 教育方針フレームワーク読み込み
 let educationalPolicy: any = null
 
@@ -515,6 +621,12 @@ app.post('/api/analyze-and-learn', async (c) => {
       }
       learningSessions.set(sessionId, learningSession)
       
+      // D1に保存（非同期、エラーが発生してもレスポンスは返す）
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
       return c.json({
         ok: true,
         sessionId,
@@ -556,6 +668,12 @@ app.post('/api/analyze-and-learn', async (c) => {
         updatedAt: new Date().toISOString()
       }
       learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
       
       return c.json({
         ok: true,
@@ -613,6 +731,12 @@ app.post('/api/analyze-and-learn', async (c) => {
         updatedAt: new Date().toISOString()
       }
       learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
       
       return c.json({
         ok: true,
@@ -1046,6 +1170,12 @@ ${studentInfo ?
       }
       learningSessions.set(sessionId, learningSession)
       
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
       console.log('✅ AI analysis completed successfully')
       
       return c.json({
@@ -1093,6 +1223,12 @@ ${studentInfo ?
       }
       learningSessions.set(sessionId, learningSession)
       
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
       return c.json({
         ok: true,
         sessionId,
@@ -1132,11 +1268,16 @@ app.post('/api/step/check', async (c) => {
     
     console.log('📝 Step check request:', { sessionId, stepNumber, answer })
     
-    // セッション取得
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for step check:', sessionId)
       throw new Error('学習セッションが見つかりません')
     }
+    
+    console.log('✅ Session retrieved for step check:', sessionId)
     
     // 現在のステップ取得（stepNumberで検索）
     const currentStep = session.steps.find(step => step.stepNumber === stepNumber)
@@ -1180,6 +1321,12 @@ app.post('/api/step/check', async (c) => {
     
     session.updatedAt = new Date().toISOString()
     
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Step check: session updated in D1')
+    }
+    
     const response = {
       ok: true,
       sessionId,
@@ -1220,11 +1367,16 @@ app.post('/api/confirmation/check', async (c) => {
     
     console.log('🎯 Confirmation check request:', { sessionId, answer })
     
-    // セッション取得
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for confirmation check:', sessionId)
       throw new Error('学習セッションが見つかりません')
     }
+    
+    console.log('✅ Session retrieved for confirmation check:', sessionId)
     
     if (!session.confirmationProblem) {
       throw new Error('確認問題が見つかりません')
@@ -1260,6 +1412,12 @@ app.post('/api/confirmation/check', async (c) => {
     }
     
     session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Confirmation check: session updated in D1')
+    }
     
     const response = {
       ok: true,
@@ -1324,8 +1482,9 @@ app.post('/api/ai/chat', async (c) => {
       }, 400)
     }
     
-    // セッション情報を取得してコンテキストを作成
-    const session = learningSessions.get(sessionId)
+    // セッション情報を取得してコンテキストを作成（オプショナル）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
     let contextInfo = '汎用AIチャット（学習セッションなし）'
     
     if (session) {
@@ -8298,9 +8457,10 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
 })
 
 // デバッグ用：セッションデータ確認API（一時的）
-app.get('/api/debug/session/:sessionId', (c) => {
+app.get('/api/debug/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
-  const session = learningSessions.get(sessionId)
+  const db = c.env?.DB
+  const session = await getStudyPartnerSession(db, sessionId)
   
   if (!session) {
     return c.json({ error: 'Session not found' }, 404)
@@ -8342,9 +8502,12 @@ app.post('/api/regenerate-problem', async (c) => {
       }, 400)
     }
     
-    // セッション取得
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found in memory or D1:', sessionId)
       return c.json({
         ok: false,
         error: 'session_not_found',
@@ -8352,6 +8515,8 @@ app.post('/api/regenerate-problem', async (c) => {
         timestamp: new Date().toISOString()
       }, 404)
     }
+    
+    console.log('✅ Session retrieved successfully:', sessionId)
     
     console.log('🔄 Regenerating problem for session:', sessionId, 'type:', regenerationType)
     
@@ -8522,6 +8687,12 @@ app.post('/api/regenerate-problem', async (c) => {
     
     // 再生成されたデータでセッションを更新
     updateSessionWithRegeneratedData(session, aiAnalysis)
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Regenerated session saved to D1')
+    }
     
     // 更新されたセッション情報を返却
     return c.json({
@@ -8858,8 +9029,12 @@ app.post('/api/similar/check', async (c) => {
       }, 400)
     }
     
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for similar check:', sessionId)
       return c.json({
         ok: false,
         error: 'session_not_found',
@@ -8867,6 +9042,8 @@ app.post('/api/similar/check', async (c) => {
         timestamp: new Date().toISOString()
       }, 404)
     }
+    
+    console.log('✅ Session retrieved for similar check:', sessionId)
     
     console.log('🔍 Similar check - session keys:', Object.keys(session))
     console.log('🔍 Similar check - has similarProblems:', !!session.similarProblems)
@@ -8965,6 +9142,12 @@ app.post('/api/similar/check', async (c) => {
     }
     
     session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Similar check: session updated in D1')
+    }
     
     const response = {
       ok: true,
