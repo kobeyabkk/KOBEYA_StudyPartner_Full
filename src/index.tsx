@@ -5637,17 +5637,16 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         
         console.log('🔧 Setting up camera event listeners...');
         
-        // Camera button click - Open camera modal
+        // Camera button click - Trigger camera input
         if (cameraButton) {
             console.log('✅ Camera button found, adding event listener');
             cameraButton.addEventListener('click', () => {
-                console.log('📷 Camera button clicked - opening camera modal');
-                const cameraModal = document.getElementById('cameraModal');
-                if (cameraModal) {
-                    cameraModal.style.display = 'flex';
-                    startCamera();
+                console.log('📷 Camera button clicked - triggering camera input');
+                if (cameraInput) {
+                    console.log('📸 Triggering camera input element');
+                    cameraInput.click();
                 } else {
-                    console.error('❌ Camera modal not found');
+                    console.error('❌ Camera input not found');
                 }
             });
         } else {
