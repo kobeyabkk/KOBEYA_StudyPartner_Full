@@ -2941,14 +2941,17 @@ ${themeContent}
       }
     } else if (currentStep === 2) {
       // ステップ2: 語彙力強化
+      // 保存された模範解答を取得（デフォルト値を設定）
+      const savedAnswers = currentSession?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」'
+      
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
-        response = 'わかりました。解答例をお見せしますね。\n\n【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
       // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
       else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        response = '素晴らしい言い換えですね！\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。'
+        response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
       // 「OK」または「はい」で演習開始
@@ -2971,25 +2974,28 @@ ${themeContent}
           console.log('✅ Generating vocab problems with timestamp:', timestamp)
           console.log('🔑 OpenAI API Key status (vocab):', openaiApiKey ? 'Present' : 'Missing')
           
-          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ、問題と模範解答の両方を作成してください。
 
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 タイムスタンプ: ${timestamp}
 
 要求:
 - よく使う口語表現を3つ選ぶ（例：「すごく」「やっぱり」「だから」など）
-- 番号付きリスト形式で出力：「1. 「口語表現」→ ?」
-- 小論文でよく使う格調高い表現への言い換え問題
 - 毎回異なる表現を出題すること
-- 問題のみを出力（解答は含めない）
-- 最後に1つ目の例を提示：「例：「すごい」→「非常に」」のような形式
+- 問題部分と解答部分を明確に分ける
 
-出力形式：
+出力形式（この形式を厳守）：
+【問題】
 1. 「口語表現1」→ ?
 2. 「口語表現2」→ ?
 3. 「口語表現3」→ ?
 
-例：「口語表現の例」→「小論文風の表現」`
+例：「口語表現の例」→「小論文風の表現」
+
+【模範解答】
+1. 「口語表現1」→「小論文風の表現1」または「別の表現1」
+2. 「口語表現2」→「小論文風の表現2」または「別の表現2」
+3. 「口語表現3」→「小論文風の表現3」または「別の表現3」`
           
           console.log('🤖 Calling OpenAI API for vocab problems...')
           
@@ -3025,19 +3031,44 @@ ${themeContent}
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
           console.log('📝 Generated vocab preview:', generated?.substring(0, 200) || 'EMPTY')
           
+          let vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」'
+          
           if (generated && generated.length > 20) {
-            // 例を抽出
-            const exampleMatch = generated.match(/例[：:]\s*(.+)/)
-            if (exampleMatch) {
-              vocabExample = exampleMatch[1].trim()
-              // 例の部分を削除
-              vocabProblems = generated.replace(/例[：:].*\n?/, '').trim()
-            } else {
-              vocabProblems = generated.trim()
+            // 問題部分と解答部分を分離
+            const problemMatch = generated.match(/【問題】([\s\S]*?)(?=【模範解答】|$)/)
+            const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
+            
+            if (problemMatch) {
+              let problemText = problemMatch[1].trim()
+              // 例を抽出
+              const exampleMatch = problemText.match(/例[：:]\s*(.+)/)
+              if (exampleMatch) {
+                vocabExample = exampleMatch[1].trim()
+                // 例の部分を削除
+                problemText = problemText.replace(/例[：:].*\n?/, '').trim()
+              }
+              vocabProblems = problemText
             }
-            console.log('✅ Using AI-generated vocab problems')
+            
+            if (answerMatch) {
+              vocabAnswers = '【模範解答】\n' + answerMatch[1].trim()
+            }
+            
+            // セッションに解答を保存
+            if (!currentSession.essaySession) {
+              currentSession.essaySession = {}
+            }
+            currentSession.essaySession.vocabAnswers = vocabAnswers
+            
+            console.log('✅ Using AI-generated vocab problems and answers')
+            console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
           } else {
             console.warn('⚠️ AI vocab too short, using fallback')
+            // フォールバックの解答も保存
+            if (!currentSession.essaySession) {
+              currentSession.essaySession = {}
+            }
+            currentSession.essaySession.vocabAnswers = vocabAnswers
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
