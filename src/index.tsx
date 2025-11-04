@@ -370,6 +370,61 @@ app.get('/api/health', (c) => {
   return c.json(response, 200)
 })
 
+// データベースマイグレーションエンドポイント
+app.post('/api/admin/migrate-db', async (c) => {
+  try {
+    console.log('🔧 Database migration requested')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ ok: false, error: 'Database not available' }, 500)
+    }
+    
+    // マイグレーション実行
+    const migrations = [
+      `ALTER TABLE essay_sessions ADD COLUMN problem_mode TEXT DEFAULT 'ai'`,
+      `ALTER TABLE essay_sessions ADD COLUMN custom_input TEXT`,
+      `ALTER TABLE essay_sessions ADD COLUMN learning_style TEXT DEFAULT 'auto'`,
+      `ALTER TABLE essay_sessions ADD COLUMN last_theme_content TEXT`,
+      `ALTER TABLE essay_sessions ADD COLUMN last_theme_title TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_essay_sessions_custom_input ON essay_sessions(custom_input)`,
+      `CREATE INDEX IF NOT EXISTS idx_essay_sessions_problem_mode ON essay_sessions(problem_mode)`
+    ]
+    
+    const results = []
+    for (const sql of migrations) {
+      try {
+        await db.prepare(sql).run()
+        results.push({ sql, status: 'success' })
+        console.log('✅ Migration executed:', sql.substring(0, 50))
+      } catch (error: any) {
+        // カラムが既に存在する場合はスキップ
+        if (error.message?.includes('duplicate column name')) {
+          results.push({ sql, status: 'skipped', reason: 'column exists' })
+          console.log('⏭️ Migration skipped (already applied):', sql.substring(0, 50))
+        } else {
+          results.push({ sql, status: 'failed', error: error.message })
+          console.error('❌ Migration failed:', sql.substring(0, 50), error)
+        }
+      }
+    }
+    
+    return c.json({
+      ok: true,
+      message: 'Database migration completed',
+      results,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error: any) {
+    console.error('❌ Migration error:', error)
+    return c.json({
+      ok: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
 // ログインAPI（最小限追加）
 app.post('/api/login', async (c) => {
   try {
@@ -2187,25 +2242,263 @@ app.post('/api/essay/chat', async (c) => {
     if (currentStep === 1) {
       console.log('📝 Step 1 processing, message:', message)
       
+      // 画像がアップロードされたかチェック（OCR処理済みの回答）
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 1)
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+      
+      // OCR結果がある場合、AI添削を実行
+      if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
+        console.log('📝 Step 1: OCR confirmed, generating feedback...')
+        
+        try {
+          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const latestOCR = step1OCRs[step1OCRs.length - 1]
+          const essayText = latestOCR.text || ''
+          
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          // 質問を取得（セッションに保存されているはず）
+          const themeTitle = session.essaySession.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対して手書きで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${essayText}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 feedback error:', error)
+          response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
+      }
+      // 画像アップロードがあった場合
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n読み取り結果が表示されたら、内容を確認して「確認完了」と入力してください。修正が必要な場合は、正しいテキストを入力して送信してください。'
+      }
       // パス機能
-      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+      else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
         console.log('✅ Matched: パス')
         
-        // カスタムテーマに基づいた模範解答を生成
-        let passAnswer = '【模範解答】\n1. このテーマの基本的な知識について学ぶことが大切です。\n2. 様々な影響や課題があります。\n3. 自分なりに考えて行動することが重要です。'
+        // セッションから読み物と質問を取得
+        const themeContent = session?.essaySession?.lastThemeContent || ''
+        const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'このテーマ'
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          passAnswer = `【模範解答】\n1. ${customInput}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${customInput}に関連して、様々な影響や課題が考えられます。\n3. ${customInput}について、自分なりの意見を持ち、行動することが重要です。`
+        // AIで模範解答を生成
+        let passAnswer = `【模範解答】\n1. ${themeTitle}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${themeTitle}に関連して、様々な影響や課題が考えられます。\n3. ${themeTitle}について、自分なりの意見を持ち、行動することが重要です。`
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput && themeContent) {
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for pass answer!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🤖 Generating model answer for pass...')
+            console.log('📚 Theme content available:', themeContent.length, 'characters')
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒が「パス」を選択したので、読み物の内容に基づいた模範解答を提供してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+生徒への質問（これらに答える必要があります）:
+1. ${themeTitle}の基本的な概念や定義について
+2. ${themeTitle}に関する現代社会における問題点や課題
+3. ${themeTitle}について、自分自身の考えや意見
+
+要求:
+- 3つの質問すべてに答える
+- 読み物の内容に基づいた具体的な解答
+- 小論文で使うような丁寧な文体（「です・ます」調）
+- 各解答は2-3文程度
+- 番号付きリストで出力
+- 解答のみで説明は不要
+
+出力形式：
+【模範解答】
+1. （1つ目の質問への解答：読み物に書かれている基本概念や定義）
+2. （2つ目の質問への解答：読み物に書かれている問題点や課題）
+3. （3つ目の質問への解答：テーマについての意見や考察）`
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '模範解答を生成してください。' }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (pass answer):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (pass answer):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedAnswer = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated pass answer length:', generatedAnswer.length)
+            
+            if (generatedAnswer && generatedAnswer.length > 50) {
+              passAnswer = generatedAnswer
+              console.log('✅ Using AI-generated model answer')
+            } else {
+              console.warn('⚠️ AI answer too short, using fallback')
+            }
+            
+          } catch (error) {
+            console.error('❌ Pass answer generation error:', error)
+            console.log('🔄 Using fallback pass answer')
+          }
         }
         
         response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
-      // 長い回答（15文字以上、かつ「ok」を含まない）
-      else if (message.length > 15 && !message.toLowerCase().includes('ok')) {
-        console.log('✅ Matched: Long answer')
-        response = '素晴らしい回答ですね！環境問題についてよく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-        stepCompleted = true
+      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
+      else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('✅ Matched: Long answer - generating feedback')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 text feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対してテキストで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 text feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${message}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 text feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 text feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 text feedback error:', error)
+          response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
       }
       // 「読んだ」
       else if (message.includes('読んだ') || message.includes('読みました')) {
@@ -2231,6 +2524,13 @@ app.post('/api/essay/chat', async (c) => {
           
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for questions!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status (questions):', openaiApiKey ? 'Present' : 'Missing')
             
             // 学習スタイルに応じた質問形式の調整
             let questionStyleInstruction = ''
@@ -2262,6 +2562,9 @@ ${themeContent}
 - 読み物を読めば答えられる質問にすること（質問1と2は特に重要）`
             
             console.log('🤖 Calling OpenAI API for questions generation...')
+            console.log('📋 System prompt length (questions):', systemPrompt.length)
+            console.log('📄 Theme content length:', themeContent?.length || 0)
+            
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -2279,8 +2582,18 @@ ${themeContent}
               })
             })
             
-            console.log('✅ OpenAI API call successful for questions')
+            console.log('📡 OpenAI API response status (questions):', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response (questions):', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
             const result = await response.json()
+            console.log('✅ OpenAI API call successful for questions')
+            console.log('📊 API result structure (questions):', Object.keys(result))
+            
             const generatedQuestions = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
             console.log('📚 Learning style applied to questions:', learningStyle)
@@ -2310,7 +2623,7 @@ ${themeContent}
           questions = `問題文を確認しました。\n\n問題: ${customInput.substring(0, 200)}${customInput.length > 200 ? '...' : ''}\n\nこの問題について考えを整理してから書き始めましょう。`
         }
         
-        response = `確認です。以下の質問に答えてください：\n\n${questions}\n\n3つの質問にすべて答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解説します）`
+        response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
       }
       // 「OK」のみ
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
@@ -2344,6 +2657,13 @@ ${themeContent}
           // AIでテーマに関する読み物を生成
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
             
             // 学習スタイルに応じた指示を追加
             let styleInstruction = ''
@@ -2379,6 +2699,8 @@ ${themeContent}
 これらの質問に答えるための十分な情報を含めてください。`
             
             console.log('🤖 Calling OpenAI API for theme content generation...')
+            console.log('📋 System prompt length:', systemPrompt.length)
+            
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -2396,8 +2718,18 @@ ${themeContent}
               })
             })
             
-            console.log('✅ OpenAI API call successful')
+            console.log('📡 OpenAI API response status:', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response:', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
             const result = await response.json()
+            console.log('✅ OpenAI API call successful')
+            console.log('📊 API result structure:', Object.keys(result))
+            
             const generatedText = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
             console.log('📚 Learning style applied:', learningStyle)
@@ -2469,26 +2801,70 @@ ${themeContent}
         let vocabExample = '「すごく大事」→「極めて重要」'
         
         try {
-          const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for vocab!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
           const timestamp = Date.now() // 毎回違う問題を生成
           console.log('✅ Generating vocab problems with timestamp:', timestamp)
+          console.log('🔑 OpenAI API Key status (vocab):', openaiApiKey ? 'Present' : 'Missing')
           
-          const prompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
 
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 タイムスタンプ: ${timestamp}
 
 要求:
-- よく使う口語表現を3つ選ぶ
-- 番号付きリスト形式（1. 「口語」→ ?）
-- 小論文でよく使う表現への言い換え
-- 毎回異なる表現を出題
-- 3つのみで説明は不要
-- 1つ目の例も簡単に提示（例：「すごい」→「非常に」）`
+- よく使う口語表現を3つ選ぶ（例：「すごく」「やっぱり」「だから」など）
+- 番号付きリスト形式で出力：「1. 「口語表現」→ ?」
+- 小論文でよく使う格調高い表現への言い換え問題
+- 毎回異なる表現を出題すること
+- 問題のみを出力（解答は含めない）
+- 最後に1つ目の例を提示：「例：「すごい」→「非常に」」のような形式
+
+出力形式：
+1. 「口語表現1」→ ?
+2. 「口語表現2」→ ?
+3. 「口語表現3」→ ?
+
+例：「口語表現の例」→「小論文風の表現」`
           
-          const result = await gemini.generateContent(prompt)
-          const generated = result.response.text()
+          console.log('🤖 Calling OpenAI API for vocab problems...')
+          
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題を3つ生成してください。' }
+              ],
+              max_tokens: 300,
+              temperature: 0.8
+            })
+          })
+          
+          console.log('📡 OpenAI API response status (vocab):', response.status)
+          
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('❌ OpenAI API error response (vocab):', errorText)
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+          }
+          
+          const result = await response.json()
+          console.log('✅ OpenAI API call successful for vocab problems')
+          
+          const generated = result.choices?.[0]?.message?.content || ''
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          console.log('📝 Generated vocab preview:', generated?.substring(0, 200) || 'EMPTY')
           
           if (generated && generated.length > 20) {
             // 例を抽出
@@ -2517,11 +2893,81 @@ ${themeContent}
         response = '回答が短すぎるようです。\n\n3つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n（わからない場合は「パス」と入力すると解答例を見られます）'
       }
     } else if (currentStep === 3) {
-      // ステップ3: 短文演習
-      if (message.includes('完了') || message.includes('かんりょう')) {
-        response = '短文演習のステップを完了しました！\n\n次のステップでは、実際の小論文課題に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-        stepCompleted = true
+      // ステップ3: 短文演習（AI添削付き）
+      
+      // 長い回答（200字以上）が送られてきた場合 → AI添削実行
+      if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('📝 Step 3: Received short essay for feedback')
+        console.log('📏 Essay length:', message.length, 'characters')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for short essay!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          console.log('🤖 Calling OpenAI API for short essay feedback...')
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
+
+【評価基準】
+- 論理構成（主張→理由→具体例→結論）
+- 文章の明確さと説得力
+- 語彙の適切さ
+- 文字数（目標: 200字前後）
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 75,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の短文小論文を添削してください。\n\n【小論文】\n${message}\n\n【文字数】${message.length}字` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (short essay):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Short essay feedback generated')
+          
+          // フィードバックを整形して表示
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Short essay feedback error:', error)
+          response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
       }
+      // OKまたは「はい」で課題提示
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
         console.log('🔍 Step 3 Short Essay - Conditions:', {
           problemMode,
@@ -2543,10 +2989,11 @@ ${themeContent}
           console.warn('⚠️ Using fallback short essay problem')
         }
         
-        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論\n\n原稿用紙に手書きで書いて、写真をアップロードする機能は次のステップで実装予定です。\n\n今回は練習ですので、書いたつもりで「完了」と入力して送信してください。`
+        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n書き終えたら、この入力エリアにそのまま入力して送信してください。AIが添削します。`
       }
+      // 短すぎる回答
       else {
-        response = '回答を受け付けました。\n\n書き終えたら「完了」と入力して送信してください。'
+        response = '短文小論文は150字以上で書いてください。\n\n主張→理由→具体例→結論の構成を意識しましょう。\n\n書き終えたら、この入力エリアに入力して送信してください。'
       }
     } else if (currentStep === 4) {
       // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
@@ -2745,12 +3192,21 @@ ${themeContent}
         } else {
           // カスタムテーマまたはAIモードの場合、毎回違う高難度問題を生成
           try {
-            const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for challenge problem!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
             const baseTheme = (problemMode === 'theme' && customInput) ? customInput : '社会問題'
             const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
             const timestamp = Date.now() // 毎回違う問題を生成するため
             
-            const prompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
+            console.log('🚀 Generating challenge problem for:', baseTheme)
+            console.log('🔑 OpenAI API Key status (challenge):', openaiApiKey ? 'Present' : 'Missing')
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
 
 ベーステーマ: ${baseTheme}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -2759,16 +3215,54 @@ ${themeContent}
 
 要求:
 - ベーステーマに関連するが、より深い思考を要する問題
-- 問題文は1文で簡潔に
-- 「について、あなたの考えを述べなさい」形式
-- 賛否両論があるテーマ
-- 毎回違う問題になるよう工夫する
-- 問題文のみで条件は不要`
+- 多角的な視点が必要な問題（メリット・デメリット、賛成・反対など）
+- 現代社会の課題に関連する問題
+- 問題文は1〜2文で簡潔に
+- 「〜について、あなたの考えを述べなさい」という形式で終わる
+- 賛否両論があるテーマを選ぶ
+- 毎回異なる問題になるよう、具体的な論点を変える
+- 問題文のみを出力（説明や条件は含めない）
+
+出力例：
+「人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい」`
             
-            const result = await gemini.generateContent(prompt)
-            const generatedProblem = result.response.text()
+            console.log('🤖 Calling OpenAI API for challenge problem...')
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: 'チャレンジ問題を1つ生成してください。' }
+                ],
+                max_tokens: 200,
+                temperature: 0.9
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (challenge):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (challenge):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedProblem = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated challenge problem:', generatedProblem)
+            
             if (generatedProblem && generatedProblem.length > 10) {
               challengeProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+              console.log('✅ Using AI-generated challenge problem')
+            } else {
+              console.warn('⚠️ AI challenge problem too short, using fallback')
             }
             charCount = wordCount
           } catch (error) {
@@ -6717,6 +7211,26 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             padding: 0.4rem 0.8rem;
           }
         }
+        
+        /* スピナーアニメーション */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .fa-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        /* ローディングインジケーター用の追加スタイル */
+        .loading-indicator {
+          opacity: 0.8;
+        }
+        
+        .loading-indicator .fa-spin {
+          display: inline-block;
+          margin-right: 0.5rem;
+        }
         </style>
     </head>
     <body>
@@ -6895,20 +7409,45 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
+        // 重複リクエスト防止フラグ
+        let isProcessing = false;
+        
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             
             if (!text) return;
             
+            // 重複リクエスト防止
+            if (isProcessing) {
+                console.warn('⚠️ Already processing a request, please wait...');
+                return;
+            }
+            
+            isProcessing = true;
+            
             // ユーザーメッセージを表示
             addMessage(text, false);
             input.value = '';
             
-            // 送信ボタンを無効化
+            // 送信ボタンを無効化してローディング状態を表示
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
-            sendBtn.textContent = '送信中...';
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> しばらくお待ちください...';
+            sendBtn.style.opacity = '0.6';
+            sendBtn.style.cursor = 'not-allowed';
+            
+            // 入力エリアも無効化
+            input.disabled = true;
+            input.style.opacity = '0.6';
+            
+            // ローディングメッセージを追加
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message teacher loading-indicator';
+            loadingMsg.innerHTML = '<span class="icon">⏳</span><div><i class="fas fa-spinner fa-spin"></i> 回答を生成しています...</div>';
+            loadingMsg.id = 'loading-indicator';
+            document.getElementById('messages').appendChild(loadingMsg);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
             
             try {
                 console.log('📤 Sending message:', { sessionId, message: text, currentStep });
@@ -6957,11 +7496,27 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             } catch (error) {
                 console.error('❌ Send message error:', error);
                 addMessage('通信エラーが発生しました。もう一度お試しください。', true);
+            } finally {
+                // ローディングインジケーターを削除
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+                
+                // 送信ボタンを有効化
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+                sendBtn.style.opacity = '1';
+                sendBtn.style.cursor = 'pointer';
+                
+                // 入力エリアを有効化
+                input.disabled = false;
+                input.style.opacity = '1';
+                input.focus();
+                
+                // 重複防止フラグをリセット
+                isProcessing = false;
             }
-            
-            // 送信ボタンを有効化
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
         }
         
         function quickAction(text) {
@@ -7139,9 +7694,9 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         // カメラモーダルを開く
         function openCamera() {
-            // カメラ機能はStep 3, 4, 5で使用可能
-            if (currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
-                alert('カメラ機能はStep 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
+            // カメラ機能はStep 1, 3, 4, 5で使用可能
+            if (currentStep !== 1 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
+                alert('カメラ機能はStep 1（導入）、Step 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
                 return;
             }
             

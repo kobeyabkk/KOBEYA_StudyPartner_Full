@@ -1,4 +1,13 @@
+name = "kobeyabkk-studypartner"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-10-01"
+compatibility_flags = ["nodejs_compat"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "kobeya-logs-db"
 database_id = "b5ac684a-2536-496a-916f-c2c5816a13a0"
+
+[vars]
+WEBHOOK_SECRET = "kobeya-dev-secret-2024"
+VERSION = "1.0.0"
