@@ -2246,11 +2246,92 @@ app.post('/api/essay/chat', async (c) => {
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
         console.log('✅ Matched: パス')
         
-        // カスタムテーマに基づいた模範解答を生成
-        let passAnswer = '【模範解答】\n1. このテーマの基本的な知識について学ぶことが大切です。\n2. 様々な影響や課題があります。\n3. 自分なりに考えて行動することが重要です。'
+        // セッションから読み物と質問を取得
+        const themeContent = session?.essaySession?.lastThemeContent || ''
+        const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'このテーマ'
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          passAnswer = `【模範解答】\n1. ${customInput}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${customInput}に関連して、様々な影響や課題が考えられます。\n3. ${customInput}について、自分なりの意見を持ち、行動することが重要です。`
+        // AIで模範解答を生成
+        let passAnswer = `【模範解答】\n1. ${themeTitle}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${themeTitle}に関連して、様々な影響や課題が考えられます。\n3. ${themeTitle}について、自分なりの意見を持ち、行動することが重要です。`
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput && themeContent) {
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for pass answer!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🤖 Generating model answer for pass...')
+            console.log('📚 Theme content available:', themeContent.length, 'characters')
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒が「パス」を選択したので、読み物の内容に基づいた模範解答を提供してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+生徒への質問（これらに答える必要があります）:
+1. ${themeTitle}の基本的な概念や定義について
+2. ${themeTitle}に関する現代社会における問題点や課題
+3. ${themeTitle}について、自分自身の考えや意見
+
+要求:
+- 3つの質問すべてに答える
+- 読み物の内容に基づいた具体的な解答
+- 小論文で使うような丁寧な文体（「です・ます」調）
+- 各解答は2-3文程度
+- 番号付きリストで出力
+- 解答のみで説明は不要
+
+出力形式：
+【模範解答】
+1. （1つ目の質問への解答：読み物に書かれている基本概念や定義）
+2. （2つ目の質問への解答：読み物に書かれている問題点や課題）
+3. （3つ目の質問への解答：テーマについての意見や考察）`
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '模範解答を生成してください。' }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (pass answer):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (pass answer):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedAnswer = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated pass answer length:', generatedAnswer.length)
+            
+            if (generatedAnswer && generatedAnswer.length > 50) {
+              passAnswer = generatedAnswer
+              console.log('✅ Using AI-generated model answer')
+            } else {
+              console.warn('⚠️ AI answer too short, using fallback')
+            }
+            
+          } catch (error) {
+            console.error('❌ Pass answer generation error:', error)
+            console.log('🔄 Using fallback pass answer')
+          }
         }
         
         response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
