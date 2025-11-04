@@ -7694,9 +7694,9 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         // カメラモーダルを開く
         function openCamera() {
-            // カメラ機能はStep 3, 4, 5で使用可能
-            if (currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
-                alert('カメラ機能はStep 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
+            // カメラ機能はStep 1, 3, 4, 5で使用可能
+            if (currentStep !== 1 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
+                alert('カメラ機能はStep 1（導入）、Step 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
                 return;
             }
             
