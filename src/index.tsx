@@ -2563,26 +2563,70 @@ ${themeContent}
         let vocabExample = '「すごく大事」→「極めて重要」'
         
         try {
-          const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for vocab!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
           const timestamp = Date.now() // 毎回違う問題を生成
           console.log('✅ Generating vocab problems with timestamp:', timestamp)
+          console.log('🔑 OpenAI API Key status (vocab):', openaiApiKey ? 'Present' : 'Missing')
           
-          const prompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
 
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 タイムスタンプ: ${timestamp}
 
 要求:
-- よく使う口語表現を3つ選ぶ
-- 番号付きリスト形式（1. 「口語」→ ?）
-- 小論文でよく使う表現への言い換え
-- 毎回異なる表現を出題
-- 3つのみで説明は不要
-- 1つ目の例も簡単に提示（例：「すごい」→「非常に」）`
+- よく使う口語表現を3つ選ぶ（例：「すごく」「やっぱり」「だから」など）
+- 番号付きリスト形式で出力：「1. 「口語表現」→ ?」
+- 小論文でよく使う格調高い表現への言い換え問題
+- 毎回異なる表現を出題すること
+- 問題のみを出力（解答は含めない）
+- 最後に1つ目の例を提示：「例：「すごい」→「非常に」」のような形式
+
+出力形式：
+1. 「口語表現1」→ ?
+2. 「口語表現2」→ ?
+3. 「口語表現3」→ ?
+
+例：「口語表現の例」→「小論文風の表現」`
           
-          const result = await gemini.generateContent(prompt)
-          const generated = result.response.text()
+          console.log('🤖 Calling OpenAI API for vocab problems...')
+          
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題を3つ生成してください。' }
+              ],
+              max_tokens: 300,
+              temperature: 0.8
+            })
+          })
+          
+          console.log('📡 OpenAI API response status (vocab):', response.status)
+          
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('❌ OpenAI API error response (vocab):', errorText)
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+          }
+          
+          const result = await response.json()
+          console.log('✅ OpenAI API call successful for vocab problems')
+          
+          const generated = result.choices?.[0]?.message?.content || ''
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          console.log('📝 Generated vocab preview:', generated?.substring(0, 200) || 'EMPTY')
           
           if (generated && generated.length > 20) {
             // 例を抽出
@@ -2611,11 +2655,81 @@ ${themeContent}
         response = '回答が短すぎるようです。\n\n3つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n（わからない場合は「パス」と入力すると解答例を見られます）'
       }
     } else if (currentStep === 3) {
-      // ステップ3: 短文演習
-      if (message.includes('完了') || message.includes('かんりょう')) {
-        response = '短文演習のステップを完了しました！\n\n次のステップでは、実際の小論文課題に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-        stepCompleted = true
+      // ステップ3: 短文演習（AI添削付き）
+      
+      // 長い回答（200字以上）が送られてきた場合 → AI添削実行
+      if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('📝 Step 3: Received short essay for feedback')
+        console.log('📏 Essay length:', message.length, 'characters')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for short essay!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          console.log('🤖 Calling OpenAI API for short essay feedback...')
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
+
+【評価基準】
+- 論理構成（主張→理由→具体例→結論）
+- 文章の明確さと説得力
+- 語彙の適切さ
+- 文字数（目標: 200字前後）
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 75,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の短文小論文を添削してください。\n\n【小論文】\n${message}\n\n【文字数】${message.length}字` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (short essay):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Short essay feedback generated')
+          
+          // フィードバックを整形して表示
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Short essay feedback error:', error)
+          response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
       }
+      // OKまたは「はい」で課題提示
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
         console.log('🔍 Step 3 Short Essay - Conditions:', {
           problemMode,
@@ -2637,10 +2751,11 @@ ${themeContent}
           console.warn('⚠️ Using fallback short essay problem')
         }
         
-        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論\n\n原稿用紙に手書きで書いて、写真をアップロードする機能は次のステップで実装予定です。\n\n今回は練習ですので、書いたつもりで「完了」と入力して送信してください。`
+        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n書き終えたら、この入力エリアにそのまま入力して送信してください。AIが添削します。`
       }
+      // 短すぎる回答
       else {
-        response = '回答を受け付けました。\n\n書き終えたら「完了」と入力して送信してください。'
+        response = '短文小論文は150字以上で書いてください。\n\n主張→理由→具体例→結論の構成を意識しましょう。\n\n書き終えたら、この入力エリアに入力して送信してください。'
       }
     } else if (currentStep === 4) {
       // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
@@ -2839,12 +2954,21 @@ ${themeContent}
         } else {
           // カスタムテーマまたはAIモードの場合、毎回違う高難度問題を生成
           try {
-            const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for challenge problem!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
             const baseTheme = (problemMode === 'theme' && customInput) ? customInput : '社会問題'
             const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
             const timestamp = Date.now() // 毎回違う問題を生成するため
             
-            const prompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
+            console.log('🚀 Generating challenge problem for:', baseTheme)
+            console.log('🔑 OpenAI API Key status (challenge):', openaiApiKey ? 'Present' : 'Missing')
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
 
 ベーステーマ: ${baseTheme}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -2853,16 +2977,54 @@ ${themeContent}
 
 要求:
 - ベーステーマに関連するが、より深い思考を要する問題
-- 問題文は1文で簡潔に
-- 「について、あなたの考えを述べなさい」形式
-- 賛否両論があるテーマ
-- 毎回違う問題になるよう工夫する
-- 問題文のみで条件は不要`
+- 多角的な視点が必要な問題（メリット・デメリット、賛成・反対など）
+- 現代社会の課題に関連する問題
+- 問題文は1〜2文で簡潔に
+- 「〜について、あなたの考えを述べなさい」という形式で終わる
+- 賛否両論があるテーマを選ぶ
+- 毎回異なる問題になるよう、具体的な論点を変える
+- 問題文のみを出力（説明や条件は含めない）
+
+出力例：
+「人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい」`
             
-            const result = await gemini.generateContent(prompt)
-            const generatedProblem = result.response.text()
+            console.log('🤖 Calling OpenAI API for challenge problem...')
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: 'チャレンジ問題を1つ生成してください。' }
+                ],
+                max_tokens: 200,
+                temperature: 0.9
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (challenge):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (challenge):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedProblem = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated challenge problem:', generatedProblem)
+            
             if (generatedProblem && generatedProblem.length > 10) {
               challengeProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+              console.log('✅ Using AI-generated challenge problem')
+            } else {
+              console.warn('⚠️ AI challenge problem too short, using fallback')
             }
             charCount = wordCount
           } catch (error) {
