@@ -6989,20 +6989,45 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
+        // 重複リクエスト防止フラグ
+        let isProcessing = false;
+        
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             
             if (!text) return;
             
+            // 重複リクエスト防止
+            if (isProcessing) {
+                console.warn('⚠️ Already processing a request, please wait...');
+                return;
+            }
+            
+            isProcessing = true;
+            
             // ユーザーメッセージを表示
             addMessage(text, false);
             input.value = '';
             
-            // 送信ボタンを無効化
+            // 送信ボタンを無効化してローディング状態を表示
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
-            sendBtn.textContent = '送信中...';
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> しばらくお待ちください...';
+            sendBtn.style.opacity = '0.6';
+            sendBtn.style.cursor = 'not-allowed';
+            
+            // 入力エリアも無効化
+            input.disabled = true;
+            input.style.opacity = '0.6';
+            
+            // ローディングメッセージを追加
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message teacher loading-indicator';
+            loadingMsg.innerHTML = '<span class="icon">⏳</span><div><i class="fas fa-spinner fa-spin"></i> 回答を生成しています...</div>';
+            loadingMsg.id = 'loading-indicator';
+            document.getElementById('messages').appendChild(loadingMsg);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
             
             try {
                 console.log('📤 Sending message:', { sessionId, message: text, currentStep });
@@ -7051,11 +7076,27 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             } catch (error) {
                 console.error('❌ Send message error:', error);
                 addMessage('通信エラーが発生しました。もう一度お試しください。', true);
+            } finally {
+                // ローディングインジケーターを削除
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+                
+                // 送信ボタンを有効化
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+                sendBtn.style.opacity = '1';
+                sendBtn.style.cursor = 'pointer';
+                
+                // 入力エリアを有効化
+                input.disabled = false;
+                input.style.opacity = '1';
+                input.focus();
+                
+                // 重複防止フラグをリセット
+                isProcessing = false;
             }
-            
-            // 送信ボタンを有効化
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
         }
         
         function quickAction(text) {
