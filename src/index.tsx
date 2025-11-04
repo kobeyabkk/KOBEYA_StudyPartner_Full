@@ -50,12 +50,18 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
     // UPSERT (INSERT OR REPLACE)
     await db.prepare(`
       INSERT INTO essay_sessions (
-        session_id, student_id, target_level, lesson_format,
-        current_step, step_status, created_at, updated_at, session_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        session_id, student_id, target_level, lesson_format, problem_mode, 
+        custom_input, learning_style, current_step, step_status, 
+        last_theme_content, last_theme_title, created_at, updated_at, session_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(session_id) DO UPDATE SET
+        problem_mode = excluded.problem_mode,
+        custom_input = excluded.custom_input,
+        learning_style = excluded.learning_style,
         current_step = excluded.current_step,
         step_status = excluded.step_status,
+        last_theme_content = excluded.last_theme_content,
+        last_theme_title = excluded.last_theme_title,
         updated_at = excluded.updated_at,
         session_data = excluded.session_data
     `).bind(
@@ -63,8 +69,13 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
       sessionData.studentId || 'anonymous',
       sessionData.essaySession?.targetLevel || 'high_school',
       sessionData.essaySession?.lessonFormat || 'full_55min',
+      sessionData.essaySession?.problemMode || 'ai',
+      sessionData.essaySession?.customInput || null,
+      sessionData.essaySession?.learningStyle || 'auto',
       sessionData.essaySession?.currentStep || 1,
       JSON.stringify(sessionData.essaySession?.stepStatus || {}),
+      sessionData.essaySession?.lastThemeContent || null,
+      sessionData.essaySession?.lastThemeTitle || null,
       sessionData.essaySession?.createdAt || now,
       now,
       sessionDataJson
@@ -99,9 +110,14 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
         sessionId: result.session_id,
         targetLevel: result.target_level,
         lessonFormat: result.lesson_format,
+        problemMode: result.problem_mode || 'ai',
+        customInput: result.custom_input || null,
+        learningStyle: result.learning_style || 'auto',
         currentStep: result.current_step,
         stepStatus: JSON.parse(result.step_status as string || '{}'),
         createdAt: result.created_at,
+        lastThemeContent: result.last_theme_content || null,
+        lastThemeTitle: result.last_theme_title || null,
         uploadedImages: sessionData.uploadedImages || [],
         ocrResults: sessionData.ocrResults || [],
         feedbacks: sessionData.feedbacks || []
