@@ -1268,11 +1268,16 @@ app.post('/api/step/check', async (c) => {
     
     console.log('📝 Step check request:', { sessionId, stepNumber, answer })
     
-    // セッション取得
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for step check:', sessionId)
       throw new Error('学習セッションが見つかりません')
     }
+    
+    console.log('✅ Session retrieved for step check:', sessionId)
     
     // 現在のステップ取得（stepNumberで検索）
     const currentStep = session.steps.find(step => step.stepNumber === stepNumber)
@@ -1316,6 +1321,12 @@ app.post('/api/step/check', async (c) => {
     
     session.updatedAt = new Date().toISOString()
     
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Step check: session updated in D1')
+    }
+    
     const response = {
       ok: true,
       sessionId,
@@ -1356,11 +1367,16 @@ app.post('/api/confirmation/check', async (c) => {
     
     console.log('🎯 Confirmation check request:', { sessionId, answer })
     
-    // セッション取得
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for confirmation check:', sessionId)
       throw new Error('学習セッションが見つかりません')
     }
+    
+    console.log('✅ Session retrieved for confirmation check:', sessionId)
     
     if (!session.confirmationProblem) {
       throw new Error('確認問題が見つかりません')
@@ -1396,6 +1412,12 @@ app.post('/api/confirmation/check', async (c) => {
     }
     
     session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Confirmation check: session updated in D1')
+    }
     
     const response = {
       ok: true,
@@ -1460,8 +1482,9 @@ app.post('/api/ai/chat', async (c) => {
       }, 400)
     }
     
-    // セッション情報を取得してコンテキストを作成
-    const session = learningSessions.get(sessionId)
+    // セッション情報を取得してコンテキストを作成（オプショナル）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
     let contextInfo = '汎用AIチャット（学習セッションなし）'
     
     if (session) {
@@ -8434,9 +8457,10 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
 })
 
 // デバッグ用：セッションデータ確認API（一時的）
-app.get('/api/debug/session/:sessionId', (c) => {
+app.get('/api/debug/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
-  const session = learningSessions.get(sessionId)
+  const db = c.env?.DB
+  const session = await getStudyPartnerSession(db, sessionId)
   
   if (!session) {
     return c.json({ error: 'Session not found' }, 404)
@@ -9005,8 +9029,12 @@ app.post('/api/similar/check', async (c) => {
       }, 400)
     }
     
-    const session = learningSessions.get(sessionId)
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
     if (!session) {
+      console.error('❌ Session not found for similar check:', sessionId)
       return c.json({
         ok: false,
         error: 'session_not_found',
@@ -9014,6 +9042,8 @@ app.post('/api/similar/check', async (c) => {
         timestamp: new Date().toISOString()
       }, 404)
     }
+    
+    console.log('✅ Session retrieved for similar check:', sessionId)
     
     console.log('🔍 Similar check - session keys:', Object.keys(session))
     console.log('🔍 Similar check - has similarProblems:', !!session.similarProblems)
@@ -9112,6 +9142,12 @@ app.post('/api/similar/check', async (c) => {
     }
     
     session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Similar check: session updated in D1')
+    }
     
     const response = {
       ok: true,
