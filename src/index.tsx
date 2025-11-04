@@ -6930,6 +6930,14 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           overflow-y: auto;
         }
         
+        @media (max-width: 768px) {
+          .modal-content {
+            width: 95%;
+            padding: 1rem;
+            max-height: 95vh;
+          }
+        }
+        
         .modal-header {
           display: flex;
           justify-content: space-between;
@@ -6957,19 +6965,36 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           color: #374151;
         }
         
-        #cameraPreview {
+        #cameraPreview, #cameraPreviewSP {
           width: 100%;
-          max-height: 400px;
+          max-height: 50vh;
+          max-width: 100%;
+          height: auto;
           background: #000;
           border-radius: 0.5rem;
           margin-bottom: 1rem;
+          object-fit: contain;
         }
         
-        #capturedImage {
+        #capturedImage, #capturedImageSP {
           width: 100%;
-          max-height: 400px;
+          max-height: 50vh;
+          max-width: 100%;
+          height: auto;
           border-radius: 0.5rem;
           margin-bottom: 1rem;
+          object-fit: contain;
+        }
+        
+        /* Mobile adjustments for camera */
+        @media (max-width: 768px) {
+          #cameraPreview, #cameraPreviewSP {
+            max-height: 40vh;
+          }
+          
+          #capturedImage, #capturedImageSP {
+            max-height: 40vh;
+          }
         }
         
         .camera-controls {
@@ -7095,6 +7120,14 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         .camera-container {
           position: relative;
+          width: 100%;
+          max-height: 60vh;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #000;
+          border-radius: 0.5rem;
         }
         
         .btn-cancel {

@@ -4,6 +4,7 @@ import adapter from '@hono/vite-dev-server/cloudflare'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  publicDir: "public", // public ディレクトリを静的アセットとして使用
   plugins: [
     build({
       minify: false, // 開発時はminifyを無効化
