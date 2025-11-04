@@ -370,6 +370,61 @@ app.get('/api/health', (c) => {
   return c.json(response, 200)
 })
 
+// データベースマイグレーションエンドポイント
+app.post('/api/admin/migrate-db', async (c) => {
+  try {
+    console.log('🔧 Database migration requested')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ ok: false, error: 'Database not available' }, 500)
+    }
+    
+    // マイグレーション実行
+    const migrations = [
+      `ALTER TABLE essay_sessions ADD COLUMN problem_mode TEXT DEFAULT 'ai'`,
+      `ALTER TABLE essay_sessions ADD COLUMN custom_input TEXT`,
+      `ALTER TABLE essay_sessions ADD COLUMN learning_style TEXT DEFAULT 'auto'`,
+      `ALTER TABLE essay_sessions ADD COLUMN last_theme_content TEXT`,
+      `ALTER TABLE essay_sessions ADD COLUMN last_theme_title TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_essay_sessions_custom_input ON essay_sessions(custom_input)`,
+      `CREATE INDEX IF NOT EXISTS idx_essay_sessions_problem_mode ON essay_sessions(problem_mode)`
+    ]
+    
+    const results = []
+    for (const sql of migrations) {
+      try {
+        await db.prepare(sql).run()
+        results.push({ sql, status: 'success' })
+        console.log('✅ Migration executed:', sql.substring(0, 50))
+      } catch (error: any) {
+        // カラムが既に存在する場合はスキップ
+        if (error.message?.includes('duplicate column name')) {
+          results.push({ sql, status: 'skipped', reason: 'column exists' })
+          console.log('⏭️ Migration skipped (already applied):', sql.substring(0, 50))
+        } else {
+          results.push({ sql, status: 'failed', error: error.message })
+          console.error('❌ Migration failed:', sql.substring(0, 50), error)
+        }
+      }
+    }
+    
+    return c.json({
+      ok: true,
+      message: 'Database migration completed',
+      results,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error: any) {
+    console.error('❌ Migration error:', error)
+    return c.json({
+      ok: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
 // ログインAPI（最小限追加）
 app.post('/api/login', async (c) => {
   try {
@@ -2232,6 +2287,13 @@ app.post('/api/essay/chat', async (c) => {
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
             
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for questions!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status (questions):', openaiApiKey ? 'Present' : 'Missing')
+            
             // 学習スタイルに応じた質問形式の調整
             let questionStyleInstruction = ''
             if (learningStyle === 'example') {
@@ -2262,6 +2324,9 @@ ${themeContent}
 - 読み物を読めば答えられる質問にすること（質問1と2は特に重要）`
             
             console.log('🤖 Calling OpenAI API for questions generation...')
+            console.log('📋 System prompt length (questions):', systemPrompt.length)
+            console.log('📄 Theme content length:', themeContent?.length || 0)
+            
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -2279,8 +2344,18 @@ ${themeContent}
               })
             })
             
-            console.log('✅ OpenAI API call successful for questions')
+            console.log('📡 OpenAI API response status (questions):', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response (questions):', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
             const result = await response.json()
+            console.log('✅ OpenAI API call successful for questions')
+            console.log('📊 API result structure (questions):', Object.keys(result))
+            
             const generatedQuestions = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
             console.log('📚 Learning style applied to questions:', learningStyle)
@@ -2345,6 +2420,13 @@ ${themeContent}
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
             
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
+            
             // 学習スタイルに応じた指示を追加
             let styleInstruction = ''
             if (learningStyle === 'example') {
@@ -2379,6 +2461,8 @@ ${themeContent}
 これらの質問に答えるための十分な情報を含めてください。`
             
             console.log('🤖 Calling OpenAI API for theme content generation...')
+            console.log('📋 System prompt length:', systemPrompt.length)
+            
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -2396,8 +2480,18 @@ ${themeContent}
               })
             })
             
-            console.log('✅ OpenAI API call successful')
+            console.log('📡 OpenAI API response status:', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response:', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
             const result = await response.json()
+            console.log('✅ OpenAI API call successful')
+            console.log('📊 API result structure:', Object.keys(result))
+            
             const generatedText = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
             console.log('📚 Learning style applied:', learningStyle)
