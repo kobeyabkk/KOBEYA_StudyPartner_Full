@@ -2385,7 +2385,7 @@ ${themeContent}
           questions = `問題文を確認しました。\n\n問題: ${customInput.substring(0, 200)}${customInput.length > 200 ? '...' : ''}\n\nこの問題について考えを整理してから書き始めましょう。`
         }
         
-        response = `確認です。以下の質問に答えてください：\n\n${questions}\n\n3つの質問にすべて答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解説します）`
+        response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
       }
       // 「OK」のみ
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
@@ -6810,6 +6810,26 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             font-size: 0.7rem;
             padding: 0.4rem 0.8rem;
           }
+        }
+        
+        /* スピナーアニメーション */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .fa-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        /* ローディングインジケーター用の追加スタイル */
+        .loading-indicator {
+          opacity: 0.8;
+        }
+        
+        .loading-indicator .fa-spin {
+          display: inline-block;
+          margin-right: 0.5rem;
         }
         </style>
     </head>
