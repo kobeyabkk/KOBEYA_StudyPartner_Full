@@ -3078,9 +3078,19 @@ ${themeContent}
           console.log('✅ Generating detailed problem from theme:', customInput)
           // テーマから具体的な問題を生成
           try {
-            const gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for Step 4 problem!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
             const wordCount = targetLevel === 'high_school' ? '400字' : targetLevel === 'vocational' ? '500字' : '600字'
-            const prompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
+            
+            console.log('🚀 Generating Step 4 main problem with OpenAI')
+            console.log('🔑 OpenAI API Key status (Step 4):', openaiApiKey ? 'Present' : 'Missing')
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
 
 テーマ: ${customInput}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -3094,20 +3104,55 @@ ${themeContent}
 - 問題文のみ（条件や説明は不要）
 - 60文字以上150文字以内`
             
-            const result = await gemini.generateContent(prompt)
-            const generatedProblem = result.response.text()
+            console.log('🤖 Calling OpenAI API for Step 4 main problem...')
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '本格的な小論文問題を1つ作成してください。' }
+                ],
+                max_tokens: 300,
+                temperature: 0.8
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (Step 4):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error response (Step 4):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
+            }
+            
+            const result = await response_api.json()
+            console.log('✅ OpenAI API call successful for Step 4 problem')
+            
+            const generatedProblem = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
+            console.log('📝 Generated problem preview:', generatedProblem?.substring(0, 100) || 'EMPTY')
             
             if (generatedProblem && generatedProblem.length > 10) {
               mainProblem = generatedProblem.replace(/^「|」$/g, '').trim()
-              console.log('✅ Using AI-generated problem')
+              console.log('✅ Using OpenAI-generated problem for Step 4')
             } else {
               mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
               console.warn('⚠️ AI problem too short, using custom fallback')
             }
             charCount = wordCount
           } catch (error) {
-            console.error('❌ Problem generation error:', error)
+            console.error('❌ Step 4 problem generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
             mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
             console.log('🔄 Using error fallback with custom theme')
           }
