@@ -2814,19 +2814,31 @@ ${themeContent}
           // AIにお任せモード：レベルに応じた最適なテーマを自動選択
           console.log('✅ AI auto-generation mode activated')
           
-          try {
-            const openaiApiKey = c.env?.OPENAI_API_KEY
+          // セッションに既にテーマがある場合はそれを使用（再生成しない）
+          if (session?.essaySession?.lastThemeTitle && session?.essaySession?.lastThemeContent) {
+            themeTitle = session.essaySession.lastThemeTitle
+            themeContent = session.essaySession.lastThemeContent
+            console.log('♻️ Reusing existing theme from session:', themeTitle)
+            console.log('📚 Theme content length:', themeContent.length)
+          } else {
+            // 新規生成
+            console.log('🆕 Generating new theme for AI mode')
             
-            if (!openaiApiKey) {
-              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
-              throw new Error('OpenAI API key not configured')
-            }
-            
-            console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
-            
-            // タイムスタンプでランダム性を確保
-            const timestamp = Date.now()
-            console.log('🎲 Timestamp for randomization:', timestamp)
+            try {
+              const openaiApiKey = c.env?.OPENAI_API_KEY
+              
+              if (!openaiApiKey) {
+                console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+                throw new Error('OpenAI API key not configured')
+              }
+              
+              console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
+              
+              // タイムスタンプ + ランダム値でランダム性を強化
+              const timestamp = Date.now()
+              const randomSeed = Math.random().toString(36).substring(2, 15)
+              console.log('🎲 Timestamp for randomization:', timestamp)
+              console.log('🎲 Random seed:', randomSeed)
             
             // 学習スタイルに応じた指示を追加
             let styleInstruction = ''
@@ -2838,16 +2850,18 @@ ${themeContent}
               styleInstruction = '\n- 事例と解説をバランスよく含める\n- 理解しやすさを重視'
             }
             
-            const systemPrompt = `あなたは小論文の先生です。対象レベルに応じた最適なテーマを選択し、そのテーマについての読み物を作成してください。
+              const systemPrompt = `あなたは小論文の先生です。対象レベルに応じた最適なテーマを選択し、そのテーマについての読み物を作成してください。
 
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
 タイムスタンプ: ${timestamp}
+ランダムシード: ${randomSeed}
 
 【テーマ選択の基準】
 - ${targetLevel === 'high_school' ? '高校生が理解しやすい身近な社会問題' : targetLevel === 'vocational' ? '専門学校生の興味関心に合った実践的テーマ' : '大学受験で頻出する本格的なテーマ'}
 - 小論文の題材として適切で、議論の余地があるテーマ
-- 毎回異なるテーマを選ぶこと（タイムスタンプを参考にランダム性を持たせる）
+- **重要**: 毎回異なるテーマを選ぶこと（タイムスタンプとランダムシードを参考に、推奨テーマ例からランダムに1つ選ぶ）
+- 推奨テーマ例はあくまで参考であり、それ以外のテーマも選択可能
 
 【推奨テーマ例】
 ${targetLevel === 'high_school' ? '- SNSと人間関係\n- 環境問題と私たちの生活\n- AI技術の発展と社会\n- 少子高齢化と地域社会\n- グローバル化と文化' : targetLevel === 'vocational' ? '- 医療技術の進歩と倫理\n- 観光業の発展と地域活性化\n- デジタル化と働き方改革\n- 食の安全と持続可能性\n- 福祉社会の実現' : '- 科学技術と倫理の問題\n- グローバリゼーションと格差\n- 民主主義と市民参加\n- 持続可能な開発目標（SDGs）\n- 情報社会とプライバシー'}
@@ -2905,40 +2919,67 @@ ${targetLevel === 'high_school' ? '- SNSと人間関係\n- 環境問題と私た
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
             console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
             
-            // テーマと読み物を抽出
-            const themeMatch = generatedText.match(/【テーマ】\s*(.+)/)
-            const contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
-            
-            if (themeMatch && contentMatch && contentMatch[1].length > 50) {
-              themeTitle = themeMatch[1].trim()
-              themeContent = contentMatch[1].trim()
-              console.log('✅ AI-generated theme:', themeTitle)
-              console.log('✅ AI-generated content length:', themeContent.length)
-            } else {
-              console.warn('⚠️ Failed to parse AI response, using fallback')
-              // フォールバック：レベルに応じたデフォルトテーマ
-              if (targetLevel === 'high_school') {
-                themeTitle = 'SNSと人間関係'
-                themeContent = 'SNS（ソーシャル・ネットワーキング・サービス）は、現代社会において欠かせないコミュニケーションツールとなっています。多くの人々が日常的にSNSを利用し、友人や家族との交流、情報収集、自己表現の場として活用しています。一方で、SNSの普及により、対面でのコミュニケーションが減少し、人間関係が希薄化するという懸念も指摘されています。また、誹謗中傷やプライバシーの問題、情報の真偽を見極める難しさなど、新たな課題も生じています。私たちは、SNSの便利さを享受しながらも、その使い方について慎重に考える必要があります。'
-              } else if (targetLevel === 'vocational') {
-                themeTitle = '医療技術の進歩と倫理'
-                themeContent = '医療技術の進歩は、人々の生活の質を向上させ、多くの命を救ってきました。遺伝子治療や再生医療、AIを活用した診断技術など、これまで不可能だった治療が現実のものとなっています。一方で、技術の進歩は新たな倫理的問題も生み出しています。例えば、遺伝子編集技術により「デザイナーベビー」を作ることの是非や、延命治療における患者の意思決定の問題などです。医療従事者には、技術を適切に活用しながら、患者の尊厳を守り、倫理的な判断を下すことが求められています。'
+              // テーマと読み物を抽出
+              const themeMatch = generatedText.match(/【テーマ】\s*(.+)/)
+              const contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
+              
+              console.log('🔍 Parsing AI response:', {
+                hasThemeMatch: !!themeMatch,
+                hasContentMatch: !!contentMatch,
+                themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
+                contentLength: contentMatch ? contentMatch[1].length : 0
+              })
+              
+              if (themeMatch && contentMatch && contentMatch[1].length > 50) {
+                themeTitle = themeMatch[1].trim()
+                themeContent = contentMatch[1].trim()
+                console.log('✅ ✨ AI-generated NEW theme:', themeTitle)
+                console.log('✅ AI-generated content length:', themeContent.length)
+                console.log('🎯 This is a UNIQUE theme for this session')
               } else {
-                themeTitle = '持続可能な開発目標（SDGs）'
-                themeContent = '持続可能な開発目標（SDGs）は、2015年に国連で採択された、2030年までに達成すべき17の国際目標です。貧困、飢餓、教育、ジェンダー平等、気候変動など、地球規模の課題を包括的に扱っています。SDGsは「誰一人取り残さない」という理念のもと、先進国と途上国が共に取り組むべき目標として設定されました。企業や自治体、個人レベルでも様々な取り組みが始まっていますが、目標達成には依然として多くの課題が残されています。私たち一人ひとりが、日常生活の中でSDGsを意識し、行動することが重要です。'
+                console.warn('⚠️ Failed to parse AI response, using fallback')
+                console.warn('⚠️ Reason: Missing sections or content too short')
+                console.warn('⚠️ Full AI response:', generatedText)
+                
+                // フォールバック：レベルに応じたデフォルトテーマ（ランダム選択）
+                const fallbackThemes = {
+                  high_school: [
+                    { title: 'SNSと人間関係', content: 'SNS（ソーシャル・ネットワーキング・サービス）は、現代社会において欠かせないコミュニケーションツールとなっています。多くの人々が日常的にSNSを利用し、友人や家族との交流、情報収集、自己表現の場として活用しています。一方で、SNSの普及により、対面でのコミュニケーションが減少し、人間関係が希薄化するという懸念も指摘されています。また、誹謗中傷やプライバシーの問題、情報の真偽を見極める難しさなど、新たな課題も生じています。私たちは、SNSの便利さを享受しながらも、その使い方について慎重に考える必要があります。' },
+                    { title: '環境問題と私たちの生活', content: '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。私たち一人ひとりができることから始めることが重要です。' },
+                    { title: 'AI技術の発展と社会', content: '人工知能（AI）技術は、近年急速に発展し、私たちの生活に大きな影響を与えています。医療診断、自動運転、翻訳など、様々な分野でAIが活用されています。一方で、AIの発展により雇用が失われる懸念や、倫理的な問題も指摘されています。AIと共存する社会をどう築くかが、現代の重要な課題です。' }
+                  ],
+                  vocational: [
+                    { title: '医療技術の進歩と倫理', content: '医療技術の進歩は、人々の生活の質を向上させ、多くの命を救ってきました。遺伝子治療や再生医療、AIを活用した診断技術など、これまで不可能だった治療が現実のものとなっています。一方で、技術の進歩は新たな倫理的問題も生み出しています。例えば、遺伝子編集技術により「デザイナーベビー」を作ることの是非や、延命治療における患者の意思決定の問題などです。医療従事者には、技術を適切に活用しながら、患者の尊厳を守り、倫理的な判断を下すことが求められています。' },
+                    { title: '観光業の発展と地域活性化', content: '観光業は、地域経済の活性化に大きく貢献する産業です。観光客の増加は、地域の雇用創出や文化の発信につながります。しかし、オーバーツーリズムによる環境破壊や、地域住民の生活への影響も問題となっています。持続可能な観光を実現するためには、地域の特性を活かしながら、環境や文化を守る取り組みが必要です。' }
+                  ],
+                  university: [
+                    { title: '持続可能な開発目標（SDGs）', content: '持続可能な開発目標（SDGs）は、2015年に国連で採択された、2030年までに達成すべき17の国際目標です。貧困、飢餓、教育、ジェンダー平等、気候変動など、地球規模の課題を包括的に扱っています。SDGsは「誰一人取り残さない」という理念のもと、先進国と途上国が共に取り組むべき目標として設定されました。企業や自治体、個人レベルでも様々な取り組みが始まっていますが、目標達成には依然として多くの課題が残されています。私たち一人ひとりが、日常生活の中でSDGsを意識し、行動することが重要です。' },
+                    { title: '情報社会とプライバシー', content: '現代の情報社会では、個人情報が様々な場面で収集・利用されています。インターネットやスマートフォンの普及により、私たちの行動履歴や位置情報が記録され、マーケティングや広告に活用されています。便利さの裏側で、プライバシーの侵害やデータ漏洩のリスクも高まっています。個人情報を守りながら、技術の恩恵を受けるための仕組み作りが求められています。' }
+                  ]
+                }
+                
+                const levelThemes = fallbackThemes[targetLevel] || fallbackThemes.high_school
+                const randomIndex = Math.floor(Math.random() * levelThemes.length)
+                const selectedTheme = levelThemes[randomIndex]
+                
+                themeTitle = selectedTheme.title
+                themeContent = selectedTheme.content
+                console.log(`🔄 Using fallback theme (${randomIndex + 1}/${levelThemes.length}):`, themeTitle)
               }
+            } catch (error) {
+              console.error('❌ AI auto-generation error:', error)
+              console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+              })
+              // エラー時のフォールバック（ランダム選択）
+              const errorFallbacks = ['環境問題', 'SNSと人間関係', 'AI技術と社会']
+              const randomIndex = Math.floor(Math.random() * errorFallbacks.length)
+              themeTitle = errorFallbacks[randomIndex]
+              themeContent = '現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。'
+              console.log('🔄 Using error fallback theme:', themeTitle)
             }
-          } catch (error) {
-            console.error('❌ AI auto-generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
-            // エラー時のフォールバック
-            themeTitle = '環境問題'
-            themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
-            console.log('🔄 Using error fallback theme')
           }
         } else if (problemMode === 'theme' && customInput) {
           // ユーザーが入力したテーマを使用
