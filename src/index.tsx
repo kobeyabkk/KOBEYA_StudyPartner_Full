@@ -29,9 +29,6 @@ const app = new Hono<{ Bindings: Bindings }>()
 // 開発モード設定
 const USE_MOCK_RESPONSES = false
 
-// 学習セッション管理（インメモリ + D1永続化）
-const learningSessions = new Map()
-
 // D1セッション管理ヘルパー関数
 async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: any) {
   try {
@@ -350,6 +347,13 @@ loadEducationalPolicy()
 import type { StudentInfo } from './types'
 import { studentDatabase, findStudent, updateStudentLogin } from './config/students'
 
+// Import handlers
+import { handleLogin } from './handlers/login'
+
+// Import utilities
+import { learningSessions, generateSessionId, saveSessionToMemory, getSessionFromMemory } from './utils/session'
+import { fileToDataUrl, arrayBufferToBase64, MAX_IMAGE_SIZE } from './utils/base64'
+
 console.log('🚀 Study Partner server starting...')
 
 // CORS設定
@@ -506,40 +510,8 @@ app.post('/api/admin/migrate-db', async (c) => {
   }
 })
 
-// ログインAPI（最小限追加）
-app.post('/api/login', async (c) => {
-  try {
-    const { appkey, sid } = await c.req.json()
-    console.log('🔑 Login attempt:', { appkey, sid })
-    
-    const validAppKeys = ['KOBEYA2024', '180418']
-    if (!validAppKeys.includes(appkey)) {
-      return c.json({ success: false, message: 'APP_KEYが正しくありません' }, 401)
-    }
-    
-    const studentInfo = studentDatabase[sid]
-    if (!studentInfo) {
-      return c.json({ success: false, message: '生徒IDが見つかりません' }, 404)
-    }
-    
-    studentInfo.lastLogin = new Date().toISOString()
-    
-    return c.json({ 
-      success: true, 
-      message: 'ログインに成功しました', 
-      studentInfo: {
-        studentId: studentInfo.studentId,
-        name: studentInfo.name,
-        grade: studentInfo.grade,
-        subjects: studentInfo.subjects,
-        weakSubjects: studentInfo.weakSubjects
-      }
-    })
-  } catch (error) {
-    console.error('❌ Login error:', error)
-    return c.json({ success: false, message: 'ログイン処理でエラーが発生しました' }, 500)
-  }
-})
+// ログインAPI
+app.post('/api/login', handleLogin)
 
 // 画像解析 + 段階学習開始 endpoint
 app.post('/api/analyze-and-learn', async (c) => {
