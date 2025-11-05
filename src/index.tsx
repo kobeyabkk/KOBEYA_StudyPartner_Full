@@ -10369,19 +10369,19 @@ app.get('/study-partner', (c) => {
                 <!-- Vertical container for image preview/crop/analysis sections -->
                 <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
                     <!-- 画像プレビューエリア (1段目) -->
-                    <div id="imagePreviewArea" style="display: none;">
-                        <div style="padding: 1rem; border-bottom: 1px solid #d1d5db; background: #f9fafb;">
+                    <div id="imagePreviewArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 0.5rem; background: white; overflow: hidden;">
+                        <div style="padding: 1rem; background: #f9fafb;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 📸 選択された画像
                             </p>
                         </div>
                         
-                        <div style="padding: 1rem; text-align: center; max-height: 400px; overflow: hidden;">
+                        <div style="padding: 1rem; text-align: center; max-height: 400px; overflow: hidden; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
                             <img id="previewImage" style="max-width: 100%; max-height: 350px; border-radius: 0.25rem; object-fit: contain;">
                         </div>
                         
                         <!-- 画像付きメッセージ入力エリア -->
-                        <div style="padding: 1rem; border-top: 1px solid #d1d5db;">
+                        <div style="padding: 1rem;">
                             <div style="margin-bottom: 1rem;">
                                 <label for="imageMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
                                     💬 この画像について質問や説明を入力してください（任意）
@@ -10404,20 +10404,20 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- クロップエリア (2段目) -->
-                    <div id="cropArea" style="display: none;">
-                        <div style="padding: 1rem; border-bottom: 1px solid #7c3aed; background: #f3f4f6;">
+                    <div id="cropArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #7c3aed; border-radius: 0.5rem; background: white; overflow: hidden;">
+                        <div style="padding: 1rem; background: #f3f4f6;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 ✂️ 解析範囲を選択してください
                             </p>
                         </div>
                         
-                        <div style="padding: 1rem; text-align: center;">
+                        <div style="padding: 1rem; text-align: center; border-top: 1px solid #e9d5ff; border-bottom: 1px solid #e9d5ff;">
                             <div id="cropperContainer">
                                 <img id="cropImage" style="max-width: 100%; max-height: 350px;">
                             </div>
                         </div>
                         
-                        <div style="padding: 1rem; border-top: 1px solid #7c3aed;">
+                        <div style="padding: 1rem;">
                             <div style="margin-bottom: 1rem;">
                                 <label for="cropMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
                                     💬 この画像について質問や説明を入力してください（任意）
@@ -10440,7 +10440,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- アップロード中インジケーター -->
-                    <div id="uploadingIndicator" style="display: none; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
+                    <div id="uploadingIndicator" style="display: none; width: 100%; box-sizing: border-box; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
                             <div class="loading-spinner"></div>
                             <span style="font-weight: 500;">写真を解析中...</span>
@@ -10451,7 +10451,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- 解析結果表示エリア (3段目) -->
-                    <div id="analysisResult" style="display: none; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
+                    <div id="analysisResult" style="display: none; width: 100%; box-sizing: border-box; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
                         <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
                             <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
                             <span style="font-weight: 500;">解析完了</span>
