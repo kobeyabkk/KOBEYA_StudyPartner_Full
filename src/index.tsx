@@ -10534,7 +10534,6 @@ app.get('/study-partner', (c) => {
           
           // カメラボタン - Trigger camera input (mobile: camera, desktop: file picker)
           const cameraButton = document.getElementById('cameraButton');
-          const cameraInput = document.getElementById('cameraInput');
           if (cameraButton && cameraInput) {
             cameraButton.addEventListener('click', function() {
               console.log('📷 Camera button clicked - triggering camera input');
