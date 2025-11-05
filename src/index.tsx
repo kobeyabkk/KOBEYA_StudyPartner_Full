@@ -594,111 +594,22 @@ app.post('/api/analyze-and-learn', async (c) => {
     console.log('🔑 API Key check:', apiKey ? 'Present (length: ' + apiKey.length + ')' : 'Missing')
     
     if (!apiKey) {
-      console.error('❌ OPENAI_API_KEY not found - using fallback')
-      // フォールバック: ダミーデータを使用
-      const problemTypes = ['quadratic_equation', 'english_grammar']
-      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
-      let learningData = generateLearningData(problemType)
-      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ AI接続でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
-      
-      // 学習セッションを保存（フォールバック）
-      const learningSession = {
-        sessionId,
-        appkey,
-        sid,
-        problemType,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: 0,
-        status: 'learning',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // 修正1: フォールバック時も構造の一貫性を保持
-        originalImageData: null,
-        originalUserMessage: ''
-      }
-      learningSessions.set(sessionId, learningSession)
-      
-      // D1に保存（非同期、エラーが発生してもレスポンスは返す）
-      const db = c.env?.DB
-      if (db) {
-        try {
-          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
-        } catch (dbError) {
-          console.error('⚠️ D1 save error (non-critical):', dbError)
-          // エラーは無視してメモリ内セッションを使用
-        }
-      }
-      
+      console.error('❌ OPENAI_API_KEY not found')
       return c.json({
-        ok: true,
-        sessionId,
-        analysis: learningData.analysis,
-        subject: problemType === 'quadratic_equation' ? '数学' : '英語',
-        grade: studentInfo ? studentInfo.grade : 2,
-        difficulty: 'standard',
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: learningSession.steps[0],
-        totalSteps: learningSession.steps.length,
-        status: 'learning',
-        message: '段階学習を開始します'
-      })
+        ok: false,
+        error: 'api_key_missing',
+        message: 'OpenAI API Keyが設定されていません。管理者にお問い合わせください。'
+      }, 500)
     }
     
     // 画像サポート形式チェック
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(imageField.type)) {
       console.warn('⚠️ Unsupported image type:', imageField.type)
-      // フォールバック処理
-      const problemTypes = ['quadratic_equation', 'english_grammar']
-      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
-      let learningData = generateLearningData(problemType)
-      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ サポートされていない画像形式です。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
-      
-      const learningSession = {
-        sessionId,
-        appkey,
-        sid,
-        problemType,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: 0,
-        status: 'learning',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      learningSessions.set(sessionId, learningSession)
-      
-      // D1に保存
-      const db = c.env?.DB
-      if (db) {
-        try {
-          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
-        } catch (dbError) {
-          console.error('⚠️ D1 save error (non-critical):', dbError)
-        }
-      }
-      
       return c.json({
-        ok: true,
-        sessionId,
-        analysis: learningData.analysis,
-        subject: problemType === 'quadratic_equation' ? '数学' : '英語',
-        grade: studentInfo ? studentInfo.grade : 2,
-        difficulty: 'standard',
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: learningSession.steps[0],
-        totalSteps: learningSession.steps.length,
-        status: 'learning',
-        message: '段階学習を開始します'
-      })
+        ok: false,
+        error: 'unsupported_image_type',
+        message: `サポートされていない画像形式です: ${imageField.type}。JPEG、PNG、WebP形式の画像をご使用ください。`
+      }, 400)
     }
     
     // 画像をBase64に変換（Cloudflare Workers環境対応）
@@ -707,8 +618,13 @@ app.post('/api/analyze-and-learn', async (c) => {
       const arrayBuffer = await imageField.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
       
-      if (uint8Array.length > 500000) { // 500KB制限
-        throw new Error('Image too large for Base64 encoding')
+      if (uint8Array.length > 5000000) { // 5MB制限
+        console.error('❌ Image too large:', uint8Array.length, 'bytes')
+        return c.json({
+          ok: false,
+          error: 'image_too_large',
+          message: '画像サイズが大きすぎます。5MB以下の画像をご使用ください。'
+        }, 400)
       }
       
       // Cloudflare Workers環境でのBase64エンコーディング
@@ -717,52 +633,14 @@ app.post('/api/analyze-and-learn', async (c) => {
         binary += String.fromCharCode(uint8Array[i])
       }
       base64Image = btoa(binary)
+      console.log('✅ Image converted to base64, size:', base64Image.length, 'chars')
     } catch (base64Error) {
       console.error('❌ Base64 encoding failed:', base64Error)
-      // フォールバック処理
-      const problemTypes = ['quadratic_equation', 'english_grammar']
-      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
-      let learningData = generateLearningData(problemType)
-      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ 画像処理でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
-      
-      const learningSession = {
-        sessionId,
-        appkey,
-        sid,
-        problemType,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: 0,
-        status: 'learning',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      learningSessions.set(sessionId, learningSession)
-      
-      // D1に保存
-      const db = c.env?.DB
-      if (db) {
-        try {
-          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
-        } catch (dbError) {
-          console.error('⚠️ D1 save error (non-critical):', dbError)
-        }
-      }
-      
       return c.json({
-        ok: true,
-        sessionId,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
-        currentStep: learningSession.steps[0],
-        totalSteps: learningSession.steps.length,
-        status: 'learning',
-        message: '段階学習を開始します'
-      })
+        ok: false,
+        error: 'base64_encoding_failed',
+        message: '画像の処理に失敗しました。別の画像をお試しください。'
+      }, 500)
     }
     
     const dataUrl = `data:${imageField.type};base64,${base64Image}`
@@ -9706,14 +9584,8 @@ app.post('/api/similar/check', async (c) => {
   }
 })
 
-// 段階学習データ生成関数（フォールバック用 - 動的生成失敗時のみ使用）
-function generateLearningData(problemType) {
-  console.log('❌ AI分析失敗 - フォールバック呼び出し禁止')
-  console.log(`問題タイプ: ${problemType}`)
-  
-  // ダミーデータの代わりに詳細なエラー情報を提供
-  throw new Error(`AI分析に失敗しました。問題タイプ「${problemType}」のダミーデータは使用しません。先生にお知らせください。`)
-}
+// generateLearningData function removed - no longer using fallback data
+// All learning content is now dynamically generated by OpenAI GPT-4o
 
 // ルートパスハンドラー
 app.get('/', (c) => {
