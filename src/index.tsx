@@ -590,7 +590,7 @@ app.post('/api/analyze-and-learn', async (c) => {
     console.log('👨‍🎓 Student info:', studentInfo ? `${studentInfo.name} (中学${studentInfo.grade}年)` : 'Not found')
     
     // OpenAI API Key の確認
-    const apiKey = c.env.OPENAI_API_KEY?.trim()
+    const apiKey = c.env?.OPENAI_API_KEY ? String(c.env.OPENAI_API_KEY).trim() : null
     console.log('🔑 API Key check:', apiKey ? 'Present (length: ' + apiKey.length + ')' : 'Missing')
     
     if (!apiKey) {
@@ -624,7 +624,12 @@ app.post('/api/analyze-and-learn', async (c) => {
       // D1に保存（非同期、エラーが発生してもレスポンスは返す）
       const db = c.env?.DB
       if (db) {
-        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        try {
+          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        } catch (dbError) {
+          console.error('⚠️ D1 save error (non-critical):', dbError)
+          // エラーは無視してメモリ内セッションを使用
+        }
       }
       
       return c.json({
@@ -672,7 +677,11 @@ app.post('/api/analyze-and-learn', async (c) => {
       // D1に保存
       const db = c.env?.DB
       if (db) {
-        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        try {
+          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        } catch (dbError) {
+          console.error('⚠️ D1 save error (non-critical):', dbError)
+        }
       }
       
       return c.json({
@@ -735,7 +744,11 @@ app.post('/api/analyze-and-learn', async (c) => {
       // D1に保存
       const db = c.env?.DB
       if (db) {
-        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        try {
+          await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+        } catch (dbError) {
+          console.error('⚠️ D1 save error (non-critical):', dbError)
+        }
       }
       
       return c.json({
