@@ -10247,10 +10247,10 @@ app.get('/study-partner', (c) => {
           border-color: rgba(0, 0, 0, 0.16) !important;
         }
         
-        /* Photo upload section wrapper */
+        /* Photo upload section wrapper - Horizontal 2 columns */
         section:nth-of-type(2) > div:has(#cameraButton) {
-          display: flex !important;
-          flex-direction: column !important;
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
           gap: 1rem !important;
           grid-column: 1 / -1 !important;
         }
@@ -10366,96 +10366,99 @@ app.get('/study-partner', (c) => {
                     </div>
                 </div>
 
-                <!-- 画像プレビューエリア -->
-                <div id="imagePreviewArea" style="display: none; margin-bottom: 1rem;">
-                    <div style="padding: 1rem; border-bottom: 1px solid #d1d5db; background: #f9fafb;">
-                        <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
-                            📸 選択された画像
-                        </p>
-                    </div>
-                    
-                    <div style="padding: 1rem; text-align: center; max-height: 400px; overflow: hidden;">
-                        <img id="previewImage" style="max-width: 100%; max-height: 350px; border-radius: 0.25rem; object-fit: contain;">
-                    </div>
-                    
-                    <!-- 画像付きメッセージ入力エリア -->
-                    <div style="padding: 1rem; border-top: 1px solid #d1d5db;">
-                        <div style="margin-bottom: 1rem;">
-                            <label for="imageMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
-                                💬 この画像について質問や説明を入力してください（任意）
-                            </label>
-                            <textarea id="imageMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
-                                style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                <!-- Vertical container for image preview/crop/analysis sections -->
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
+                    <!-- 画像プレビューエリア (1段目) -->
+                    <div id="imagePreviewArea" style="display: none;">
+                        <div style="padding: 1rem; border-bottom: 1px solid #d1d5db; background: #f9fafb;">
+                            <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
+                                📸 選択された画像
+                            </p>
                         </div>
                         
-                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                            <button id="btnStartCrop" class="secondary" style="flex: 1; min-width: 150px; margin: 0;">
-                                <i class="fas fa-crop" style="margin-right: 0.5rem;"></i>
-                                🔲 範囲を調整して送信
-                            </button>
-                            <button id="btnSendDirect" class="contrast" style="flex: 1; min-width: 150px; margin: 0;">
-                                <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>
-                                📤 この画像で送信
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- クロップエリア -->
-                <div id="cropArea" style="display: none; margin-bottom: 1rem;">
-                    <div style="padding: 1rem; border-bottom: 1px solid #7c3aed; background: #f3f4f6;">
-                        <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
-                            ✂️ 解析範囲を選択してください
-                        </p>
-                    </div>
-                    
-                    <div style="padding: 1rem; text-align: center;">
-                        <div id="cropperContainer">
-                            <img id="cropImage" style="max-width: 100%; max-height: 350px;">
-                        </div>
-                    </div>
-                    
-                    <div style="padding: 1rem; border-top: 1px solid #7c3aed;">
-                        <div style="margin-bottom: 1rem;">
-                            <label for="cropMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
-                                💬 この画像について質問や説明を入力してください（任意）
-                            </label>
-                            <textarea id="cropMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
-                                style="width: 100%; padding: 0.75rem; border: 2px solid #e9d5ff; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                        <div style="padding: 1rem; text-align: center; max-height: 400px; overflow: hidden;">
+                            <img id="previewImage" style="max-width: 100%; max-height: 350px; border-radius: 0.25rem; object-fit: contain;">
                         </div>
                         
-                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                            <button id="btnCancelCrop" class="secondary" style="flex: 1; min-width: 120px; margin: 0;">
-                                <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
-                                キャンセル
-                            </button>
-                            <button id="btnConfirmCrop" class="contrast" style="flex: 2; min-width: 150px; margin: 0;">
-                                <i class="fas fa-check" style="margin-right: 0.5rem;"></i>
-                                ✅ この範囲で送信
-                            </button>
+                        <!-- 画像付きメッセージ入力エリア -->
+                        <div style="padding: 1rem; border-top: 1px solid #d1d5db;">
+                            <div style="margin-bottom: 1rem;">
+                                <label for="imageMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
+                                    💬 この画像について質問や説明を入力してください（任意）
+                                </label>
+                                <textarea id="imageMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
+                                    style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <button id="btnStartCrop" class="secondary" style="flex: 1; min-width: 150px; margin: 0;">
+                                    <i class="fas fa-crop" style="margin-right: 0.5rem;"></i>
+                                    🔲 範囲を調整して送信
+                                </button>
+                                <button id="btnSendDirect" class="contrast" style="flex: 1; min-width: 150px; margin: 0;">
+                                    <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>
+                                    📤 この画像で送信
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- アップロード中インジケーター -->
-                <div id="uploadingIndicator" style="display: none; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #7c3aed;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
-                        <div class="loading-spinner"></div>
-                        <span style="font-weight: 500;">写真を解析中...</span>
+                    <!-- クロップエリア (2段目) -->
+                    <div id="cropArea" style="display: none;">
+                        <div style="padding: 1rem; border-bottom: 1px solid #7c3aed; background: #f3f4f6;">
+                            <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
+                                ✂️ 解析範囲を選択してください
+                            </p>
+                        </div>
+                        
+                        <div style="padding: 1rem; text-align: center;">
+                            <div id="cropperContainer">
+                                <img id="cropImage" style="max-width: 100%; max-height: 350px;">
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 1rem; border-top: 1px solid #7c3aed;">
+                            <div style="margin-bottom: 1rem;">
+                                <label for="cropMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
+                                    💬 この画像について質問や説明を入力してください（任意）
+                                </label>
+                                <textarea id="cropMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
+                                    style="width: 100%; padding: 0.75rem; border: 2px solid #e9d5ff; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <button id="btnCancelCrop" class="secondary" style="flex: 1; min-width: 120px; margin: 0;">
+                                    <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+                                    キャンセル
+                                </button>
+                                <button id="btnConfirmCrop" class="contrast" style="flex: 2; min-width: 150px; margin: 0;">
+                                    <i class="fas fa-check" style="margin-right: 0.5rem;"></i>
+                                    ✅ この範囲で送信
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size: 0.875rem; opacity: 0.8;">
-                        大きな画像の場合、しばらく時間がかかることがあります
-                    </div>
-                </div>
 
-                <!-- 解析結果表示エリア -->
-                <div id="analysisResult" style="display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                        <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
-                        <span style="font-weight: 500;">解析完了</span>
+                    <!-- アップロード中インジケーター -->
+                    <div id="uploadingIndicator" style="display: none; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
+                            <div class="loading-spinner"></div>
+                            <span style="font-weight: 500;">写真を解析中...</span>
+                        </div>
+                        <div style="font-size: 0.875rem; opacity: 0.8;">
+                            大きな画像の場合、しばらく時間がかかることがあります
+                        </div>
                     </div>
-                    <div id="analysisContent" style="font-size: 0.875rem; line-height: 1.6;">
-                        <!-- 解析結果がここに表示されます -->
+
+                    <!-- 解析結果表示エリア (3段目) -->
+                    <div id="analysisResult" style="display: none; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
+                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
+                            <span style="font-weight: 500;">解析完了</span>
+                        </div>
+                        <div id="analysisContent" style="font-size: 0.875rem; line-height: 1.6;">
+                            <!-- 解析結果がここに表示されます -->
+                        </div>
                     </div>
                 </div>
 
