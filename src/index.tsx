@@ -2501,7 +2501,7 @@ app.post('/api/essay/chat', async (c) => {
         // AIで模範解答を生成
         let passAnswer = `【模範解答】\n1. ${themeTitle}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${themeTitle}に関連して、様々な影響や課題が考えられます。\n3. ${themeTitle}について、自分なりの意見を持ち、行動することが重要です。`
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput && themeContent) {
+        if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle) && themeContent) {
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
             
@@ -2664,22 +2664,24 @@ ${themeContent}
         console.log('✅ Matched: 読んだ')
         
         // デバッグ情報をログ出力
+        const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+        const themeContent = session?.essaySession?.lastThemeContent || ''
+        
         console.log('🔍 Step 1 Questions Generation - Conditions:', {
           problemMode,
           customInput,
-          hasCustomInput: !!customInput,
-          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && !!customInput,
+          themeTitle,
+          hasThemeTitle: !!themeTitle,
+          hasThemeContent: !!themeContent,
+          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && (!!customInput || !!themeTitle),
           condition_problem: problemMode === 'problem' && !!customInput
         })
         
         // カスタムテーマに基づいた質問を生成
         let questions = '1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。'
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          console.log('✅ Generating questions for theme:', customInput)
-          
-          // セッションから読み物を取得
-          const themeContent = session?.essaySession?.lastThemeContent || ''
+        if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) {
+          console.log('✅ Generating questions for theme:', themeTitle)
           
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
@@ -2703,7 +2705,7 @@ ${themeContent}
             
             const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
 
-テーマ: ${customInput}
+テーマ: ${themeTitle}
 
 読み物の内容:
 ${themeContent}
@@ -2763,7 +2765,7 @@ ${themeContent}
               console.log('✅ Using AI-generated questions with learning style')
             } else {
               // AI応答が短すぎる場合もカスタムテーマを使ったフォールバック
-              questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+              questions = `1. ${themeTitle}の基本的な概念や定義について説明してください。\n2. ${themeTitle}に関する現代社会における問題点や課題は何ですか？\n3. ${themeTitle}について、あなた自身の考えや意見を述べてください。`
               console.warn('⚠️ AI questions too short (length: ' + (generatedQuestions?.length || 0) + '), using custom fallback')
             }
           } catch (error) {
@@ -2774,7 +2776,7 @@ ${themeContent}
               name: error.name
             })
             // エラー時もカスタムテーマを使ったフォールバック
-            questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+            questions = `1. ${themeTitle}の基本的な概念や定義について説明してください。\n2. ${themeTitle}に関する現代社会における問題点や課題は何ですか？\n3. ${themeTitle}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
           }
         } else if (problemMode === 'problem' && customInput) {
@@ -2808,7 +2810,137 @@ ${themeContent}
           return c.json({ ok: true, response, stepCompleted: false })
         }
         
-        if (problemMode === 'theme' && customInput) {
+        if (problemMode === 'ai') {
+          // AIにお任せモード：レベルに応じた最適なテーマを自動選択
+          console.log('✅ AI auto-generation mode activated')
+          
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
+            
+            // タイムスタンプでランダム性を確保
+            const timestamp = Date.now()
+            console.log('🎲 Timestamp for randomization:', timestamp)
+            
+            // 学習スタイルに応じた指示を追加
+            let styleInstruction = ''
+            if (learningStyle === 'example') {
+              styleInstruction = '\n- 具体的な事例を多く含める（歴史的事例、現代の事例など）\n- 解説は簡潔に、事例を中心に構成'
+            } else if (learningStyle === 'explanation') {
+              styleInstruction = '\n- 理論的な説明を詳しく含める\n- 概念の定義や背景を丁寧に説明\n- 因果関係や論理展開を明確に'
+            } else {
+              styleInstruction = '\n- 事例と解説をバランスよく含める\n- 理解しやすさを重視'
+            }
+            
+            const systemPrompt = `あなたは小論文の先生です。対象レベルに応じた最適なテーマを選択し、そのテーマについての読み物を作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
+タイムスタンプ: ${timestamp}
+
+【テーマ選択の基準】
+- ${targetLevel === 'high_school' ? '高校生が理解しやすい身近な社会問題' : targetLevel === 'vocational' ? '専門学校生の興味関心に合った実践的テーマ' : '大学受験で頻出する本格的なテーマ'}
+- 小論文の題材として適切で、議論の余地があるテーマ
+- 毎回異なるテーマを選ぶこと（タイムスタンプを参考にランダム性を持たせる）
+
+【推奨テーマ例】
+${targetLevel === 'high_school' ? '- SNSと人間関係\n- 環境問題と私たちの生活\n- AI技術の発展と社会\n- 少子高齢化と地域社会\n- グローバル化と文化' : targetLevel === 'vocational' ? '- 医療技術の進歩と倫理\n- 観光業の発展と地域活性化\n- デジタル化と働き方改革\n- 食の安全と持続可能性\n- 福祉社会の実現' : '- 科学技術と倫理の問題\n- グローバリゼーションと格差\n- 民主主義と市民参加\n- 持続可能な開発目標（SDGs）\n- 情報社会とプライバシー'}
+
+要求:
+- まず1つのテーマを選択（テーマ名は10文字以内で簡潔に）
+- そのテーマについて500〜800文字程度の読み物を作成
+- テーマの基本的な概念・定義を含める
+- 歴史的背景や現状を説明
+- 関連する問題点や課題を提示
+- 社会的な意義や影響を説明${styleInstruction}
+- 専門用語は必要に応じて使用し、わかりやすく説明
+- 問いかけは含めず、情報提供に徹する
+- この読み物を読めば、後の質問に答えられる知識が得られる内容にする
+
+出力形式（この形式を厳守）：
+【テーマ】テーマ名
+
+【読み物】
+（500〜800文字の読み物本文）`
+            
+            console.log('🤖 Calling OpenAI API for AI auto-generation...')
+            console.log('📋 System prompt length:', systemPrompt.length)
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: 'レベルに応じた最適なテーマを選択し、読み物を作成してください。' }
+                ],
+                max_tokens: 1500,
+                temperature: 0.9 // 高めの温度でランダム性を確保
+              })
+            })
+            
+            console.log('📡 OpenAI API response status:', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response:', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
+            const result = await response.json()
+            console.log('✅ OpenAI API call successful for AI mode')
+            console.log('📊 API result structure:', Object.keys(result))
+            
+            const generatedText = result.choices?.[0]?.message?.content || ''
+            console.log('📊 AI Generated text length:', generatedText?.length || 0)
+            console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
+            
+            // テーマと読み物を抽出
+            const themeMatch = generatedText.match(/【テーマ】\s*(.+)/)
+            const contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
+            
+            if (themeMatch && contentMatch && contentMatch[1].length > 50) {
+              themeTitle = themeMatch[1].trim()
+              themeContent = contentMatch[1].trim()
+              console.log('✅ AI-generated theme:', themeTitle)
+              console.log('✅ AI-generated content length:', themeContent.length)
+            } else {
+              console.warn('⚠️ Failed to parse AI response, using fallback')
+              // フォールバック：レベルに応じたデフォルトテーマ
+              if (targetLevel === 'high_school') {
+                themeTitle = 'SNSと人間関係'
+                themeContent = 'SNS（ソーシャル・ネットワーキング・サービス）は、現代社会において欠かせないコミュニケーションツールとなっています。多くの人々が日常的にSNSを利用し、友人や家族との交流、情報収集、自己表現の場として活用しています。一方で、SNSの普及により、対面でのコミュニケーションが減少し、人間関係が希薄化するという懸念も指摘されています。また、誹謗中傷やプライバシーの問題、情報の真偽を見極める難しさなど、新たな課題も生じています。私たちは、SNSの便利さを享受しながらも、その使い方について慎重に考える必要があります。'
+              } else if (targetLevel === 'vocational') {
+                themeTitle = '医療技術の進歩と倫理'
+                themeContent = '医療技術の進歩は、人々の生活の質を向上させ、多くの命を救ってきました。遺伝子治療や再生医療、AIを活用した診断技術など、これまで不可能だった治療が現実のものとなっています。一方で、技術の進歩は新たな倫理的問題も生み出しています。例えば、遺伝子編集技術により「デザイナーベビー」を作ることの是非や、延命治療における患者の意思決定の問題などです。医療従事者には、技術を適切に活用しながら、患者の尊厳を守り、倫理的な判断を下すことが求められています。'
+              } else {
+                themeTitle = '持続可能な開発目標（SDGs）'
+                themeContent = '持続可能な開発目標（SDGs）は、2015年に国連で採択された、2030年までに達成すべき17の国際目標です。貧困、飢餓、教育、ジェンダー平等、気候変動など、地球規模の課題を包括的に扱っています。SDGsは「誰一人取り残さない」という理念のもと、先進国と途上国が共に取り組むべき目標として設定されました。企業や自治体、個人レベルでも様々な取り組みが始まっていますが、目標達成には依然として多くの課題が残されています。私たち一人ひとりが、日常生活の中でSDGsを意識し、行動することが重要です。'
+              }
+            }
+          } catch (error) {
+            console.error('❌ AI auto-generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
+            // エラー時のフォールバック
+            themeTitle = '環境問題'
+            themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
+            console.log('🔄 Using error fallback theme')
+          }
+        } else if (problemMode === 'theme' && customInput) {
           // ユーザーが入力したテーマを使用
           themeTitle = customInput
           console.log('✅ Generating theme content for:', customInput)
@@ -3170,18 +3302,21 @@ ${themeContent}
       }
       // OKまたは「はい」で課題提示
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
+        const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+        
         console.log('🔍 Step 3 Short Essay - Conditions:', {
           problemMode,
           customInput,
-          hasCustomInput: !!customInput
+          themeTitle,
+          hasThemeTitle: !!themeTitle
         })
         
         // カスタムテーマに基づいた短文問題を生成
         let shortProblem = '環境問題について、200字程度で小論文を書いてください。'
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          shortProblem = `${customInput}について、200字程度で小論文を書いてください。`
-          console.log('✅ Using custom theme for short essay:', customInput)
+        if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) {
+          shortProblem = `${themeTitle}について、200字程度で小論文を書いてください。`
+          console.log('✅ Using theme for short essay:', themeTitle)
         } else if (problemMode === 'problem' && customInput) {
           // 問題文がある場合は、そのまま使用
           shortProblem = customInput
@@ -3445,7 +3580,8 @@ ${themeContent}
               throw new Error('OpenAI API key not configured')
             }
             
-            const baseTheme = (problemMode === 'theme' && customInput) ? customInput : '社会問題'
+            const themeTitle = session?.essaySession?.lastThemeTitle || customInput || '社会問題'
+            const baseTheme = ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) ? themeTitle : '社会問題'
             const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
             const timestamp = Date.now() // 毎回違う問題を生成するため
             
