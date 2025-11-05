@@ -10266,6 +10266,55 @@ app.get('/study-partner', (c) => {
           border-color: rgba(0, 0, 0, 0.06) !important;
         }
 
+        /* Image sections responsive layout */
+        /* For tablets and PC: horizontal cards with limited width */
+        @media (min-width: 768px) {
+          /* Limit section width to create horizontal card appearance */
+          #imagePreviewArea,
+          #cropArea,
+          #analysisResult,
+          #uploadingIndicator {
+            max-width: 95% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+          
+          /* Image preview - make content more compact horizontally */
+          #imagePreviewArea .image-content-wrapper {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 1rem !important;
+          }
+          
+          /* Reduce image preview height on larger screens */
+          #imagePreviewArea img#previewImage {
+            max-height: 250px !important;
+          }
+          
+          #cropArea img#cropImage {
+            max-height: 250px !important;
+          }
+        }
+        
+        /* For mobile: keep full-width vertical layout */
+        @media (max-width: 767px) {
+          #imagePreviewArea,
+          #cropArea,
+          #analysisResult,
+          #uploadingIndicator {
+            width: 100% !important;
+          }
+          
+          /* Taller images on mobile for better viewing */
+          #imagePreviewArea img#previewImage {
+            max-height: 350px !important;
+          }
+          
+          #cropArea img#cropImage {
+            max-height: 350px !important;
+          }
+        }
+
 
         </style>
     </head>
@@ -10367,9 +10416,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <!-- Vertical container for image preview/crop/analysis sections -->
-                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; align-items: center;">
                     <!-- 画像プレビューエリア (1段目) -->
-                    <div id="imagePreviewArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 0.5rem; background: white; overflow: hidden;">
+                    <div id="imagePreviewArea" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 0.5rem; background: white; overflow: hidden;">
                         <div style="padding: 1rem; background: #f9fafb;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 📸 選択された画像
@@ -10404,7 +10453,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- クロップエリア (2段目) -->
-                    <div id="cropArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #7c3aed; border-radius: 0.5rem; background: white; overflow: hidden;">
+                    <div id="cropArea" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; border: 1px solid #7c3aed; border-radius: 0.5rem; background: white; overflow: hidden;">
                         <div style="padding: 1rem; background: #f3f4f6;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 ✂️ 解析範囲を選択してください
@@ -10440,7 +10489,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- アップロード中インジケーター -->
-                    <div id="uploadingIndicator" style="display: none; width: 100%; box-sizing: border-box; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
+                    <div id="uploadingIndicator" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
                             <div class="loading-spinner"></div>
                             <span style="font-weight: 500;">写真を解析中...</span>
@@ -10451,7 +10500,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- 解析結果表示エリア (3段目) -->
-                    <div id="analysisResult" style="display: none; width: 100%; box-sizing: border-box; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
+                    <div id="analysisResult" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
                         <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
                             <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
                             <span style="font-weight: 500;">解析完了</span>
