@@ -9746,6 +9746,29 @@ app.get('/study-partner', (c) => {
         <!-- Cropper.js CSS -->
         <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
         
+        <!-- MathJax for LaTeX rendering -->
+        <script>
+          window.MathJax = {
+            tex: {
+              inlineMath: [['\\(', '\\)'], ['$', '$']],
+              displayMath: [['\\[', '\\]'], ['$$', '$$']],
+              processEscapes: true,
+              processEnvironments: true
+            },
+            options: {
+              skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+            startup: {
+              pageReady: () => {
+                return MathJax.startup.defaultPageReady().then(() => {
+                  console.log('✅ MathJax loaded and ready');
+                });
+              }
+            }
+          };
+        </script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        
         <style>
         /* Notion-Inspired Modern Design */
         
@@ -10280,16 +10303,17 @@ app.get('/study-partner', (c) => {
         }
 
         /* Image sections responsive layout */
-        /* For tablets and PC: horizontal cards with limited width */
+        /* For tablets and PC: wider horizontal cards */
         @media (min-width: 768px) {
-          /* Limit section width to create horizontal card appearance */
+          /* Allow sections to expand wider on PC/iPad */
           #imagePreviewArea,
           #cropArea,
           #analysisResult,
           #uploadingIndicator {
-            max-width: 95% !important;
-            margin-left: auto !important;
-            margin-right: auto !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
           }
           
           /* Image preview - make content more compact horizontally */
@@ -10299,7 +10323,7 @@ app.get('/study-partner', (c) => {
             gap: 1rem !important;
           }
           
-          /* Reduce image preview height on larger screens */
+          /* Reduce image preview height on larger screens for wider appearance */
           #imagePreviewArea img#previewImage {
             max-height: 250px !important;
           }
@@ -10429,9 +10453,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <!-- Vertical container for image preview/crop/analysis sections -->
-                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; align-items: center;">
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
                     <!-- 画像プレビューエリア (1段目) -->
-                    <div id="imagePreviewArea" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 0.5rem; background: white; overflow: hidden;">
+                    <div id="imagePreviewArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 0.5rem; background: white; overflow: hidden;">
                         <div style="padding: 1rem; background: #f9fafb;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 📸 選択された画像
@@ -10466,7 +10490,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- クロップエリア (2段目) -->
-                    <div id="cropArea" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; border: 1px solid #7c3aed; border-radius: 0.5rem; background: white; overflow: hidden;">
+                    <div id="cropArea" style="display: none; width: 100%; box-sizing: border-box; border: 1px solid #7c3aed; border-radius: 0.5rem; background: white; overflow: hidden;">
                         <div style="padding: 1rem; background: #f3f4f6;">
                             <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
                                 ✂️ 解析範囲を選択してください
@@ -10502,7 +10526,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- アップロード中インジケーター -->
-                    <div id="uploadingIndicator" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
+                    <div id="uploadingIndicator" style="display: none; width: 100%; box-sizing: border-box; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; border: 1px solid #7c3aed;">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
                             <div class="loading-spinner"></div>
                             <span style="font-weight: 500;">写真を解析中...</span>
@@ -10513,7 +10537,7 @@ app.get('/study-partner', (c) => {
                     </div>
 
                     <!-- 解析結果表示エリア (3段目) -->
-                    <div id="analysisResult" style="display: none; width: 100%; max-width: 800px; box-sizing: border-box; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
+                    <div id="analysisResult" style="display: none; width: 100%; box-sizing: border-box; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
                         <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
                             <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
                             <span style="font-weight: 500;">解析完了</span>
@@ -10540,6 +10564,25 @@ app.get('/study-partner', (c) => {
         
         <script>
         console.log('📱 Study Partner JavaScript loading...');
+        
+        // MathJax helper function to typeset math formulas
+        function typesetMath(element) {
+          if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([element]).then(() => {
+              console.log('✅ MathJax typeset completed');
+            }).catch((err) => {
+              console.error('❌ MathJax typeset error:', err);
+            });
+          } else {
+            console.log('⏳ MathJax not ready yet, will typeset when loaded');
+            // Retry after MathJax loads
+            setTimeout(() => {
+              if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([element]).catch(err => console.error('❌ MathJax delayed typeset error:', err));
+              }
+            }, 1000);
+          }
+        }
         
         // DOM要素の取得
         let cameraInput, fileInput, previewImage, imagePreviewArea, cropArea, cropImage;
@@ -11075,6 +11118,7 @@ app.get('/study-partner', (c) => {
           stepHtml += '</div>';
           
           out.innerHTML = stepHtml;
+          typesetMath(out);
         }
         
         // ステップ回答送信
@@ -11190,6 +11234,7 @@ app.get('/study-partner', (c) => {
           
           resultHtml += '</div>';
           out.innerHTML = resultHtml;
+          typesetMath(out);
         }
         
         // 次のステップに進む（APIレスポンスから自動的に処理される）
@@ -11244,6 +11289,7 @@ app.get('/study-partner', (c) => {
           
           html += '</div>';
           out.innerHTML = html;
+          typesetMath(out);
         }
         
         // 確認問題回答送信
@@ -11343,6 +11389,7 @@ app.get('/study-partner', (c) => {
           
           html += '</div>';
           out.innerHTML = html;
+          typesetMath(out);
         }
         
         // === 類似問題システム ===
@@ -11445,6 +11492,7 @@ app.get('/study-partner', (c) => {
           
           html += '</div>';
           out.innerHTML = html;
+          typesetMath(out);
         }
         
         // 類似問題回答送信
