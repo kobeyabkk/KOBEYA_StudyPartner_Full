@@ -10532,22 +10532,17 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // カメラボタン - Open camera modal (not file input)
+          // カメラボタン - Trigger camera input (mobile: camera, desktop: file picker)
           const cameraButton = document.getElementById('cameraButton');
-          if (cameraButton) {
+          const cameraInput = document.getElementById('cameraInput');
+          if (cameraButton && cameraInput) {
             cameraButton.addEventListener('click', function() {
-              console.log('📷 Camera button clicked - opening camera modal');
+              console.log('📷 Camera button clicked - triggering camera input');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
-              const cameraModal = document.getElementById('cameraModal');
-              if (cameraModal) {
-                cameraModal.style.display = 'flex';
-                startCamera();
-              } else {
-                console.error('❌ Camera modal not found');
-              }
+              cameraInput.click(); // Mobile: opens camera, Desktop: opens file picker
             });
           }
           
