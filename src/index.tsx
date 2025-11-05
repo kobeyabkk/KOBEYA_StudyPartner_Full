@@ -10249,8 +10249,8 @@ app.get('/study-partner', (c) => {
         
         /* Photo upload section wrapper */
         section:nth-of-type(2) > div:has(#cameraButton) {
-          display: grid !important;
-          grid-template-columns: 1fr 1fr !important;
+          display: flex !important;
+          flex-direction: column !important;
           gap: 1rem !important;
           grid-column: 1 / -1 !important;
         }
