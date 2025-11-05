@@ -2919,15 +2919,43 @@ ${targetLevel === 'high_school' ? '- SNSと人間関係\n- 環境問題と私た
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
             console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
             
-              // テーマと読み物を抽出
-              const themeMatch = generatedText.match(/【テーマ】\s*(.+)/)
-              const contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
+              // テーマと読み物を抽出（複数パターンに対応）
+              // パターン1: 【テーマ】テーマ名 【読み物】本文
+              let themeMatch = generatedText.match(/【テーマ】\s*(.+?)(?=\n|【)/)
+              let contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
+              
+              // パターン2: テーマ: テーマ名
+              if (!themeMatch) {
+                themeMatch = generatedText.match(/テーマ[：:]\s*(.+?)(?=\n|$)/)
+              }
+              
+              // パターン3: 最初の行がテーマの可能性
+              if (!themeMatch && generatedText.trim()) {
+                const firstLine = generatedText.trim().split('\n')[0]
+                if (firstLine.length < 30 && firstLine.length > 3) {
+                  themeMatch = [null, firstLine]
+                  console.log('🔍 Using first line as theme:', firstLine)
+                }
+              }
+              
+              // 読み物がマッチしない場合、全文を読み物として使用
+              if (!contentMatch && generatedText.length > 200) {
+                // テーマ行を除いた残りを読み物とする
+                const lines = generatedText.split('\n')
+                const contentText = lines.slice(themeMatch ? 1 : 0).join('\n').trim()
+                if (contentText.length > 200) {
+                  contentMatch = [null, contentText]
+                  console.log('🔍 Using remaining text as content')
+                }
+              }
               
               console.log('🔍 Parsing AI response:', {
                 hasThemeMatch: !!themeMatch,
                 hasContentMatch: !!contentMatch,
                 themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
-                contentLength: contentMatch ? contentMatch[1].length : 0
+                contentLength: contentMatch ? contentMatch[1]?.length : 0,
+                fullTextLength: generatedText.length,
+                firstLine: generatedText.split('\n')[0]
               })
               
               if (themeMatch && contentMatch && contentMatch[1].length > 50) {
@@ -2939,6 +2967,12 @@ ${targetLevel === 'high_school' ? '- SNSと人間関係\n- 環境問題と私た
               } else {
                 console.warn('⚠️ Failed to parse AI response, using fallback')
                 console.warn('⚠️ Reason: Missing sections or content too short')
+                console.warn('⚠️ Parse results:', {
+                  themeMatch: !!themeMatch,
+                  contentMatch: !!contentMatch,
+                  themeValue: themeMatch ? themeMatch[1] : null,
+                  contentLength: contentMatch ? contentMatch[1]?.length : 0
+                })
                 console.warn('⚠️ Full AI response:', generatedText)
                 
                 // フォールバック：レベルに応じたデフォルトテーマ（ランダム選択）
