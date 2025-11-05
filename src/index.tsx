@@ -346,34 +346,9 @@ async function loadEducationalPolicy() {
 // 起動時に教育方針を読み込み
 loadEducationalPolicy()
 
-// 生徒情報データベース（必要最小限追加）
-interface StudentInfo {
-  studentId: string
-  name: string
-  grade: number
-  subjects: string[]
-  weakSubjects: string[]
-  lastLogin: string
-}
-
-const studentDatabase: Record<string, StudentInfo> = {
-  'JS2-04': {
-    studentId: 'JS2-04',
-    name: '田中太郎',
-    grade: 2,
-    subjects: ['数学', '理科'],
-    weakSubjects: ['英語'],
-    lastLogin: new Date().toISOString()
-  },
-  'test123': {
-    studentId: 'test123',
-    name: 'テスト生徒',
-    grade: 1,
-    subjects: ['国語'],
-    weakSubjects: ['数学'],
-    lastLogin: new Date().toISOString()
-  }
-}
+// Import types and config
+import type { StudentInfo } from './types'
+import { studentDatabase, findStudent, updateStudentLogin } from './config/students'
 
 console.log('🚀 Study Partner server starting...')
 
