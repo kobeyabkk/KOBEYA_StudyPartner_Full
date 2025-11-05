@@ -3996,18 +3996,21 @@ app.get('/ai-chat/:sessionId', (c) => {
         
         .image-controls {
           display: flex;
-          gap: 0.5rem;
+          flex-direction: column;
+          gap: 0.75rem;
           margin-bottom: 1rem;
         }
         
         .image-btn {
-          padding: 0.5rem 1rem;
+          width: 100%;
+          padding: 0.875rem 1rem;
           background: #f1f5f9;
           border: 1px solid #cbd5e1;
           border-radius: 0.5rem;
           cursor: pointer;
-          font-size: 0.875rem;
+          font-size: 0.9rem;
           color: #475569;
+          text-align: center;
         }
         
         .image-btn:hover {
@@ -10358,67 +10361,6 @@ app.get('/study-partner', (c) => {
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
                 🤔 AIに質問する
             </button>
-            
-            <!-- カメラモーダル -->
-            <div class="modal" id="cameraModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2><i class="fas fa-camera"></i> 問題を撮影</h2>
-                        <button class="close-btn" onclick="closeCameraSP()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- ワークフロー説明 -->
-                    <div class="workflow-instructions">
-                        <div class="workflow-step">1️⃣ 問題を撮影</div>
-                        <div class="workflow-arrow">→</div>
-                        <div class="workflow-step">2️⃣ 範囲を調整</div>
-                        <div class="workflow-arrow">→</div>
-                        <div class="workflow-step">3️⃣ OCR処理</div>
-                    </div>
-                    
-                    <div class="camera-container">
-                        <video id="cameraPreviewSP" autoplay playsinline></video>
-                        <canvas id="cropCanvasSP" class="hidden"></canvas>
-                        <img id="capturedImageSP" class="hidden" alt="撮影した画像">
-                    </div>
-                    
-                    <!-- ステータス表示 -->
-                    <div id="cameraStatusSP" class="camera-status"></div>
-                    
-                    <div class="camera-controls">
-                        <button class="btn btn-capture" id="captureBtnSP" onclick="capturePhotoSP()">
-                            <i class="fas fa-camera"></i> 撮影する
-                        </button>
-                        <button class="btn btn-retake hidden" id="retakeBtnSP" onclick="retakePhotoSP()">
-                            <i class="fas fa-redo"></i> 再撮影
-                        </button>
-                        <button class="btn btn-crop hidden" id="cropBtnSP" onclick="showCropInterfaceSP()">
-                            <i class="fas fa-crop"></i> 範囲を調整
-                        </button>
-                        <button class="btn btn-crop-confirm hidden" id="cropConfirmBtnSP" onclick="applyCropSP()">
-                            <i class="fas fa-check"></i> この範囲でOK
-                        </button>
-                        <button class="btn btn-upload hidden" id="uploadBtnSP" onclick="uploadAndProcessImageSP()">
-                            <i class="fas fa-check-circle"></i> OCR処理を開始
-                        </button>
-                        <button class="btn btn-cancel" onclick="closeCameraSP()">
-                            <i class="fas fa-times"></i> キャンセル
-                        </button>
-                    </div>
-                    
-                    <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
-                        <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
-                        <ul style="margin-left: 1.5rem; line-height: 1.8;">
-                            <li>問題全体が画面に入るように撮影してください</li>
-                            <li>明るい場所で撮影し、影ができないようにしてください</li>
-                            <li>文字がはっきり見えるように、ピントを合わせてください</li>
-                            <li>問題用紙を平らに置いて撮影してください</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </main>
 
         <!-- Scripts -->
