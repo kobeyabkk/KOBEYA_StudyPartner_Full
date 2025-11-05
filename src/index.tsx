@@ -7180,6 +7180,40 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           margin: 0;
         }
         
+        /* Camera and file buttons (vertical stack) */
+        .camera-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .camera-buttons button {
+          width: 100%;
+          padding: 0.875rem 1rem;
+          background: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          font-size: 0.9rem;
+          color: #475569;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+        
+        .camera-buttons button:hover {
+          background: #e2e8f0;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .camera-buttons button i {
+          font-size: 1rem;
+        }
+        
         #sendBtn {
           background: #7c3aed;
           color: white;
@@ -7892,14 +7926,25 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                     </div>
                     
                     <!-- 入力エリア -->
-                    <div class="input-area">
-                        <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
-                        <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="原稿を撮影">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                        <button id="sendBtn" onclick="sendMessage()">
-                            <i class="fas fa-paper-plane"></i> 送信
-                        </button>
+                    <div class="input-container">
+                        <!-- Camera and File buttons -->
+                        <div class="camera-buttons">
+                            <button id="cameraButton" type="button">
+                                <i class="fas fa-camera"></i> 📷 カメラ
+                            </button>
+                            <button id="fileButton" type="button">
+                                <i class="fas fa-folder-open"></i> 📁 ファイル
+                            </button>
+                        </div>
+                        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                        
+                        <div class="input-area">
+                            <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
+                            <button id="sendBtn" onclick="sendMessage()">
+                                <i class="fas fa-paper-plane"></i> 送信
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -8285,6 +8330,68 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         let isDragging = false;
         let startX = 0;
         let startY = 0;
+        
+        // Camera and File button event listeners
+        const cameraButton = document.getElementById('cameraButton');
+        const fileButton = document.getElementById('fileButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const fileInput = document.getElementById('fileInput');
+        
+        if (cameraButton) {
+            cameraButton.addEventListener('click', () => {
+                console.log('📷 Camera button clicked');
+                openCamera();
+            });
+        }
+        
+        if (fileButton) {
+            fileButton.addEventListener('click', () => {
+                console.log('📁 File button clicked');
+                if (fileInput) {
+                    fileInput.click();
+                }
+            });
+        }
+        
+        // Handle file selection from camera or file input
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            console.log('📸 File selected:', file.name);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                capturedImageData = e.target.result;
+                originalImageData = capturedImageData;
+                
+                // Open camera modal to show the selected image
+                document.getElementById('cameraModal').classList.add('active');
+                
+                // Show the captured image
+                document.getElementById('cameraPreview').classList.add('hidden');
+                const img = document.getElementById('capturedImage');
+                img.src = capturedImageData;
+                img.classList.remove('hidden');
+                
+                // Show appropriate buttons
+                document.getElementById('captureBtn').classList.add('hidden');
+                document.getElementById('retakeBtn').classList.remove('hidden');
+                document.getElementById('cropBtn').classList.remove('hidden');
+                document.getElementById('uploadBtn').classList.remove('hidden');
+                
+                updateCameraStatus('画像を読み込みました！必要に応じて「範囲を調整」してから「OCR処理を開始」を押してください', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        if (cameraInput) {
+            cameraInput.addEventListener('change', handleFileSelect);
+        }
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
         
         // カメラモーダルを開く
         function openCamera() {
