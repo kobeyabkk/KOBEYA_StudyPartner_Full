@@ -4177,12 +4177,15 @@ app.get('/international-student/:sessionId', (c) => {
         async function sendImageWithQuestion() {
             if (!currentImageData) return;
             
+            // Save image data before clearing
+            const imageData = currentImageData;
             const messageText = imageQuestionInput.value.trim() || 'この問題を教えてください';
+            
             addMessage(\`[Image sent] \${messageText}\`, true);
             imageQuestionInput.value = '';
             clearImage();
             
-            await sendImageMessage(currentImageData, messageText);
+            await sendImageMessage(imageData, messageText);
         }
         
         // Event listeners
