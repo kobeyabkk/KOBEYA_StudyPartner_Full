@@ -2531,16 +2531,30 @@ app.post('/api/international-chat-image', async (c) => {
       })
     }
     
-    // 画像をBase64に変換
-    console.log('🔄 Converting image to Base64...')
-    const arrayBuffer = await image.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
+    // 画像をBase64に変換（最適化された方法）
+    console.log('🔄 Converting image to base64...')
+    let base64Image
+    try {
+      const arrayBuffer = await image.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      
+      // チャンクごとに変換してメモリ効率を改善
+      let binary = ''
+      const chunkSize = 8192
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length))
+        binary += String.fromCharCode.apply(null, Array.from(chunk))
+      }
+      base64Image = btoa(binary)
+      
+      console.log('✅ Image converted to base64 (length:', base64Image.length, ')')
+    } catch (conversionError) {
+      console.error('❌ Image conversion error:', conversionError)
+      return c.json({ 
+        ok: false, 
+        message: `画像の変換に失敗しました: ${conversionError.message}` 
+      })
     }
-    const base64Image = btoa(binary)
-    console.log('✅ Image converted to Base64:', base64Image.substring(0, 50) + '...')
     
     // OpenAI Vision APIを呼び出し（バイリンガル対応）
     console.log('🔄 Calling OpenAI Vision API for bilingual response...')
