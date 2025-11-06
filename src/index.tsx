@@ -2388,6 +2388,8 @@ app.post('/api/international-chat', async (c) => {
     console.log('📍 Session ID:', sessionId)
     console.log('❓ Question:', question)
     
+    const db = c.env?.DB
+    
     // OpenAI APIキーを環境変数から取得
     const openaiApiKey = c.env.OPENAI_API_KEY
     
@@ -2399,20 +2401,36 @@ app.post('/api/international-chat', async (c) => {
       })
     }
     
-    // OpenAI APIを呼び出し（バイリンガル対応）
-    console.log('🔄 Calling OpenAI API for bilingual response...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a learning support AI for international students (middle school level). Follow these rules:
+    // Import database functions dynamically
+    const { 
+      getOrCreateInternationalSession,
+      saveConversationMessage,
+      getConversationHistory,
+      updateInternationalSession,
+      formatHistoryForOpenAI
+    } = await import('./services/international-database')
+    
+    // セッションを取得または作成（DBがある場合のみ）
+    if (db) {
+      try {
+        await getOrCreateInternationalSession(db, sessionId)
+      } catch (dbError) {
+        console.warn('⚠️ DB operation failed, continuing without history:', dbError)
+      }
+    }
+    
+    // 会話履歴を取得（DBがある場合のみ）
+    let conversationHistory: any[] = []
+    if (db) {
+      try {
+        const history = await getConversationHistory(db, sessionId, 10)
+        conversationHistory = history
+      } catch (dbError) {
+        console.warn('⚠️ Failed to get conversation history:', dbError)
+      }
+    }
+    
+    const systemPrompt = `You are a learning support AI for international students (middle school level). Follow these rules:
 
 【CONVERSATION FLOW - CRITICAL】
 1. If the user asks a NEW question: Provide EXPLANATION ONLY (no practice problem yet)
@@ -2475,12 +2493,27 @@ Do you want to try another practice problem?
 - Point out mistakes gently
 
 Be friendly, clear, and supportive in both languages.`
-          },
-          {
-            role: 'user',
-            content: question
-          }
-        ],
+    
+    // 会話履歴をOpenAI形式に変換
+    const messages = formatHistoryForOpenAI(conversationHistory, systemPrompt)
+    
+    // 新しいユーザーメッセージを追加
+    messages.push({
+      role: 'user',
+      content: question
+    })
+    
+    // OpenAI APIを呼び出し（バイリンガル対応）
+    console.log('🔄 Calling OpenAI API with', messages.length, 'messages (including history)...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: messages,
         temperature: 0.7,
         max_tokens: 2000
       })
@@ -2500,6 +2533,40 @@ Be friendly, clear, and supportive in both languages.`
     
     console.log('✅ OpenAI API bilingual response received')
     console.log('💬 Answer:', answer.substring(0, 150) + '...')
+    
+    // 会話履歴を保存（DBがある場合のみ）
+    if (db) {
+      try {
+        // ユーザーメッセージを保存
+        await saveConversationMessage(db, sessionId, {
+          role: 'user',
+          content: question
+        })
+        
+        // AIレスポンスを保存
+        await saveConversationMessage(db, sessionId, {
+          role: 'assistant',
+          content: answer
+        })
+        
+        // 類題が生成された場合、セッション情報を更新
+        if (answer.includes('---PRACTICE PROBLEM')) {
+          await updateInternationalSession(db, sessionId, {
+            lastProblem: answer
+          })
+        }
+        
+        // 新しい質問の場合、セッション情報を更新
+        if (!question.startsWith('REQUEST PRACTICE PROBLEM') && 
+            !question.startsWith('ANSWER SUBMISSION')) {
+          await updateInternationalSession(db, sessionId, {
+            lastQuestion: question
+          })
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Failed to save conversation:', dbError)
+      }
+    }
     
     return c.json({ 
       ok: true, 
@@ -2551,6 +2618,8 @@ app.post('/api/international-chat-image', async (c) => {
       })
     }
     
+    const db = c.env?.DB
+    
     // OpenAI APIキーを環境変数から取得
     const openaiApiKey = c.env.OPENAI_API_KEY
     
@@ -2560,6 +2629,34 @@ app.post('/api/international-chat-image', async (c) => {
         ok: false, 
         message: 'OpenAI APIキーが設定されていません' 
       })
+    }
+    
+    // Import database functions dynamically
+    const { 
+      getOrCreateInternationalSession,
+      saveConversationMessage,
+      getConversationHistory,
+      updateInternationalSession
+    } = await import('./services/international-database')
+    
+    // セッションを取得または作成（DBがある場合のみ）
+    if (db) {
+      try {
+        await getOrCreateInternationalSession(db, sessionId)
+      } catch (dbError) {
+        console.warn('⚠️ DB operation failed, continuing without history:', dbError)
+      }
+    }
+    
+    // 会話履歴を取得（DBがある場合のみ）
+    let conversationHistory: any[] = []
+    if (db) {
+      try {
+        const history = await getConversationHistory(db, sessionId, 8) // Fewer messages for image API
+        conversationHistory = history
+      } catch (dbError) {
+        console.warn('⚠️ Failed to get conversation history:', dbError)
+      }
     }
     
     // 画像をBase64に変換（最適化された方法）
@@ -2587,22 +2684,7 @@ app.post('/api/international-chat-image', async (c) => {
       })
     }
     
-    // OpenAI Vision APIを呼び出し（バイリンガル対応）
-    console.log('🔄 Calling OpenAI Vision API for bilingual response...')
-    let response
-    try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a learning support AI for international students (middle school level). Follow these rules:
+    const systemPrompt = `You are a learning support AI for international students (middle school level). Follow these rules:
 
 【CONVERSATION FLOW - CRITICAL】
 1. If the user asks a NEW question: Provide EXPLANATION ONLY (no practice problem yet)
@@ -2670,24 +2752,56 @@ Do you want to try another practice problem?
 - Point out mistakes gently
 
 Be friendly, clear, and supportive in both languages.`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: message || '画像の内容を説明してください。 / Please explain the content of this image.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`,
-                    detail: 'high'
-                  }
-                }
-              ]
-            }
-          ],
+    
+    // Build messages array with conversation history
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: systemPrompt
+      }
+    ]
+    
+    // Add conversation history (text-only messages for context)
+    for (const msg of conversationHistory) {
+      if (!msg.hasImage) {
+        messages.push({
+          role: msg.role,
+          content: msg.content
+        })
+      }
+    }
+    
+    // Add current user message with image
+    messages.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: message || '画像の内容を説明してください。 / Please explain the content of this image.'
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:image/jpeg;base64,${base64Image}`,
+            detail: 'high'
+          }
+        }
+      ]
+    })
+    
+    // OpenAI Vision APIを呼び出し（バイリンガル対応）
+    console.log('🔄 Calling OpenAI Vision API with', messages.length, 'messages (including history)...')
+    let response
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: messages,
           temperature: 0.7,
           max_tokens: 2000
         })
@@ -2716,6 +2830,42 @@ Be friendly, clear, and supportive in both languages.`
     
     console.log('✅ OpenAI Vision API bilingual response received')
     console.log('💬 Answer:', answer.substring(0, 150) + '...')
+    
+    // 会話履歴を保存（DBがある場合のみ）
+    if (db) {
+      try {
+        // ユーザーメッセージを保存（画像付き）
+        await saveConversationMessage(db, sessionId, {
+          role: 'user',
+          content: message || '画像の内容を説明してください',
+          hasImage: true,
+          imageData: base64Image
+        })
+        
+        // AIレスポンスを保存
+        await saveConversationMessage(db, sessionId, {
+          role: 'assistant',
+          content: answer
+        })
+        
+        // 類題が生成された場合、セッション情報を更新
+        if (answer.includes('---PRACTICE PROBLEM')) {
+          await updateInternationalSession(db, sessionId, {
+            lastProblem: answer
+          })
+        }
+        
+        // 新しい質問の場合、セッション情報を更新
+        if (!message.startsWith('REQUEST PRACTICE PROBLEM') && 
+            !message.startsWith('ANSWER SUBMISSION')) {
+          await updateInternationalSession(db, sessionId, {
+            lastQuestion: message
+          })
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Failed to save conversation:', dbError)
+      }
+    }
     
     return c.json({ 
       ok: true, 
