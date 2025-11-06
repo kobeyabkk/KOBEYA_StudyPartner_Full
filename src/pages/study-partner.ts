@@ -710,9 +710,9 @@ export function renderStudyPartnerPage(c: Context) {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="interSeiYou" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="interSeiYou" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.3s;">
                         <i class="fas fa-globe" style="margin-right: 0.5rem;"></i>
-                        🌍 インター生用（実装予定）
+                        🌍 インター生用（Bilingual Learning）
                     </button>
                 </div>
 
@@ -922,6 +922,21 @@ export function renderStudyPartnerPage(c: Context) {
             shoronbunButton.addEventListener('click', function() {
               console.log('📝 Essay coaching button clicked');
               window.location.href = '/essay-coaching';
+            });
+          }
+          
+          // インター生用ボタン - International Student button
+          const interSeiYouButton = document.getElementById('interSeiYou');
+          if (interSeiYouButton) {
+            interSeiYouButton.addEventListener('click', function() {
+              console.log('🌍 International Student button clicked');
+              
+              // Generate new session ID for international student chat
+              const internationalSessionId = 'intl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+              console.log('🆔 Generated international session ID:', internationalSessionId);
+              
+              // Redirect to international student page
+              window.location.href = \`/international-student/\${internationalSessionId}\`;
             });
           }
           
