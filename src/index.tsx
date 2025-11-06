@@ -2378,6 +2378,285 @@ app.post('/api/ai-chat-image', async (c) => {
 })
 
 // ==========================================
+// International Student API エンドポイント（テキスト）
+// ==========================================
+app.post('/api/international-chat', async (c) => {
+  try {
+    const { sessionId, question } = await c.req.json()
+    
+    console.log('🌍 International Chat API: Received request')
+    console.log('📍 Session ID:', sessionId)
+    console.log('❓ Question:', question)
+    
+    // OpenAI APIキーを環境変数から取得
+    const openaiApiKey = c.env.OPENAI_API_KEY
+    
+    if (!openaiApiKey) {
+      console.error('❌ OPENAI_API_KEY not found in environment')
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIキーが設定されていません' 
+      })
+    }
+    
+    // OpenAI APIを呼び出し（バイリンガル対応）
+    console.log('🔄 Calling OpenAI API for bilingual response...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a learning support AI for international students (middle school level). You MUST follow these rules:
+
+【BILINGUAL RESPONSE RULES - CRITICAL】
+- ALL answers MUST be provided in BOTH English and Japanese
+- Use this exact format:
+
+---ENGLISH---
+[English explanation here]
+
+---日本語---
+[Japanese explanation here]
+
+---PRACTICE PROBLEM / 類題---
+[One practice problem in both languages]
+
+【EXPLANATION RULES】
+- Use simple, clear language suitable for middle school students
+- Break down complex concepts into steps
+- For math: Use $$formula$$ for display math, $formula$ for inline math
+- For geometry: Use symbols like ∠ (angle), △ (triangle), ≡ (congruent), ∥ (parallel), ⊥ (perpendicular)
+
+【PRACTICE PROBLEM RULES】
+- Generate ONE practice problem similar to the original question
+- Same difficulty level as the original
+- Include clear instructions in both languages
+- The practice problem should help check comprehension
+
+【SUBJECTS】
+- Support ALL subjects: math, English, science, social studies, etc.
+- Adapt explanation style to the subject
+
+Be friendly, clear, and accurate in both languages.`
+          },
+          {
+            role: 'user',
+            content: question
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', response.status, errorText)
+      return c.json({ 
+        ok: false, 
+        message: `OpenAI APIエラー: ${response.status}` 
+      })
+    }
+    
+    const data = await response.json()
+    const answer = data.choices[0].message.content
+    
+    console.log('✅ OpenAI API bilingual response received')
+    console.log('💬 Answer:', answer.substring(0, 150) + '...')
+    
+    return c.json({ 
+      ok: true, 
+      answer: answer 
+    })
+    
+  } catch (error) {
+    console.error('❌ International Chat API error:', error)
+    return c.json({ 
+      ok: false, 
+      message: 'サーバーエラーが発生しました' 
+    })
+  }
+})
+
+// ==========================================
+// International Student API エンドポイント（画像）
+// ==========================================
+app.post('/api/international-chat-image', async (c) => {
+  try {
+    console.log('🌍📸 International Chat Image API: Received request')
+    
+    // FormDataから画像とテキストを取得
+    let formData
+    try {
+      formData = await c.req.formData()
+      console.log('✅ FormData parsed successfully')
+    } catch (formError) {
+      console.error('❌ FormData parsing error:', formError)
+      return c.json({ 
+        ok: false, 
+        message: 'FormDataの解析に失敗しました' 
+      })
+    }
+    
+    const image = formData.get('image') as File | null
+    const sessionId = formData.get('sessionId') as string
+    const message = formData.get('message') as string
+    
+    console.log('📍 Session ID:', sessionId)
+    console.log('💬 Message:', message)
+    console.log('🖼️ Image:', image ? `${image.name} (${image.size} bytes)` : 'none')
+    
+    if (!image) {
+      console.error('❌ No image found in FormData')
+      return c.json({ 
+        ok: false, 
+        message: '画像が見つかりません' 
+      })
+    }
+    
+    // OpenAI APIキーを環境変数から取得
+    const openaiApiKey = c.env.OPENAI_API_KEY
+    
+    if (!openaiApiKey) {
+      console.error('❌ OPENAI_API_KEY not found in environment')
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIキーが設定されていません' 
+      })
+    }
+    
+    // 画像をBase64に変換
+    console.log('🔄 Converting image to Base64...')
+    const arrayBuffer = await image.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    let binary = ''
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    const base64Image = btoa(binary)
+    console.log('✅ Image converted to Base64:', base64Image.substring(0, 50) + '...')
+    
+    // OpenAI Vision APIを呼び出し（バイリンガル対応）
+    console.log('🔄 Calling OpenAI Vision API for bilingual response...')
+    let response
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a learning support AI for international students (middle school level). You MUST follow these rules:
+
+【BILINGUAL RESPONSE RULES - CRITICAL】
+- ALL answers MUST be provided in BOTH English and Japanese
+- Use this exact format:
+
+---ENGLISH---
+[English explanation here]
+
+---日本語---
+[Japanese explanation here]
+
+---PRACTICE PROBLEM / 類題---
+[One practice problem in both languages]
+
+【EXPLANATION RULES】
+- Use simple, clear language suitable for middle school students
+- Break down complex concepts into steps
+- For math: Use $$formula$$ for display math, $formula$ for inline math
+- For geometry: Use symbols like ∠ (angle), △ (triangle), ≡ (congruent), ∥ (parallel), ⊥ (perpendicular)
+
+【IMAGE ANALYSIS】
+- Carefully analyze the image content
+- Identify: equations, graphs, maps, text documents, diagrams, etc.
+- Explain what you see in the image before answering
+
+【PRACTICE PROBLEM RULES】
+- Generate ONE practice problem similar to the original question
+- Same difficulty level as the original
+- Include clear instructions in both languages
+- The practice problem should help check comprehension
+
+【SUBJECTS】
+- Support ALL subjects: math, English, science, social studies, etc.
+- Adapt explanation style to the subject
+
+Be friendly, clear, and accurate in both languages.`
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: message || '画像の内容を説明してください。 / Please explain the content of this image.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`,
+                    detail: 'high'
+                  }
+                }
+              ]
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      })
+      
+      console.log('✅ OpenAI Vision API response status:', response.status)
+    } catch (fetchError) {
+      console.error('❌ OpenAI Vision API fetch error:', fetchError)
+      return c.json({ 
+        ok: false, 
+        message: 'OpenAI APIへの接続に失敗しました' 
+      })
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI Vision API error:', response.status, errorText)
+      return c.json({ 
+        ok: false, 
+        message: `OpenAI APIエラー: ${response.status}` 
+      })
+    }
+    
+    const data = await response.json()
+    const answer = data.choices[0].message.content
+    
+    console.log('✅ OpenAI Vision API bilingual response received')
+    console.log('💬 Answer:', answer.substring(0, 150) + '...')
+    
+    return c.json({ 
+      ok: true, 
+      answer: answer 
+    })
+    
+  } catch (error) {
+    console.error('❌ International Chat Image API error:', error)
+    console.error('Error details:', error.message, error.stack)
+    return c.json({ 
+      ok: false, 
+      message: `サーバーエラーが発生しました: ${error.message}` 
+    })
+  }
+})
+
+// ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
 app.get('/ai-chat-v2/:sessionId', (c) => {
@@ -3137,6 +3416,792 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         }
         
         console.log('✅ Camera functions initialized');
+    </script>
+</body>
+</html>
+  `)
+})
+
+// ==========================================
+// International Student Page (インター生用)
+// ==========================================
+app.get('/international-student/:sessionId', (c) => {
+  const sessionId = c.req.param('sessionId')
+  console.log('🌍 International Student Page: Requested for session:', sessionId)
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>International Student Learning - KOBEYA</title>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <!-- Cropper.js for image cropping -->
+    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
+    <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .chat-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .chat-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+        
+        .message {
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            line-height: 1.8;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            background: #dbeafe;
+            margin-left: auto;
+            max-width: 80%;
+        }
+        
+        .message.ai {
+            background: white;
+            border: 2px solid #e5e7eb;
+            max-width: 100%;
+        }
+        
+        .message.ai .language-section {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .message.ai .english-section {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .message.ai .japanese-section {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .message.ai .practice-section {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Image handling styles */
+        .image-preview-area {
+            display: none;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.5rem;
+            border: 2px solid #e5e7eb;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .image-preview-area.active {
+            display: block;
+        }
+        
+        .preview-image-container {
+            position: relative;
+            max-width: 100%;
+            margin-bottom: 1rem;
+            max-height: 50vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-image-container img {
+            max-width: 100%;
+            max-height: 50vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+        
+        .preview-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .preview-actions button {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-crop {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-send {
+            background: #10b981;
+            color: white;
+        }
+        
+        .crop-area {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .crop-area.active {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .crop-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            min-height: 0;
+            max-height: calc(100vh - 120px);
+            overflow: hidden;
+        }
+        
+        .crop-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .crop-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 0.5rem;
+            position: sticky;
+            bottom: 0;
+        }
+        
+        .crop-actions button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .chat-input {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .input-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .input-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .input-buttons button:hover {
+            background: #059669;
+        }
+        
+        .input-buttons input[type="file"] {
+            display: none;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .input-group textarea {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+        }
+        
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        
+        .input-group button {
+            padding: 0 2rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .input-group button:hover {
+            background: #059669;
+        }
+        
+        .input-group button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🌍 International Student Learning / インター生用学習</h1>
+            <p>Ask questions in any language - Get answers in English AND Japanese</p>
+            <p>すべての質問に英語と日本語の両方で回答します</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                <div class="language-section english-section">
+                    <div class="section-title">🇬🇧 Welcome!</div>
+                    <p>Hello! I'm your bilingual learning assistant. Ask me any question about math, English, science, social studies, or any other subject.</p>
+                    <p><strong>How to use:</strong></p>
+                    <ul>
+                        <li>Type your question in the text box</li>
+                        <li>OR take a photo of your textbook/worksheet</li>
+                        <li>OR upload an image file</li>
+                    </ul>
+                    <p>I'll explain in both English and Japanese, then give you a practice problem!</p>
+                </div>
+                <div class="language-section japanese-section">
+                    <div class="section-title">🇯🇵 ようこそ！</div>
+                    <p>こんにちは！私はバイリンガル学習アシスタントです。数学、英語、理科、社会など、どんな教科の質問でも聞いてください。</p>
+                    <p><strong>使い方：</strong></p>
+                    <ul>
+                        <li>テキストボックスに質問を入力</li>
+                        <li>または教科書・プリントの写真を撮影</li>
+                        <li>または画像ファイルをアップロード</li>
+                    </ul>
+                    <p>英語と日本語の両方で説明した後、類題を出します！</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <!-- Image Preview Area -->
+            <div class="image-preview-area" id="imagePreviewArea">
+                <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f0f9ff; border-radius: 0.375rem; font-size: 0.875rem; color: #1e40af;">
+                    💡 <strong>ヒント：</strong>下のテキスト欄に質問を入力してから送信できます / You can type your question below before sending
+                </div>
+                <div class="preview-image-container">
+                    <img id="previewImage" alt="Preview">
+                </div>
+                <div class="preview-actions">
+                    <button class="btn-clear" id="btnClearImage">
+                        <i class="fas fa-times"></i> クリア / Clear
+                    </button>
+                    <button class="btn-crop" id="btnStartCrop">
+                        <i class="fas fa-crop"></i> トリミング / Crop
+                    </button>
+                </div>
+                
+                <!-- Image Question Input -->
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                        📝 この画像について質問を入力 / Enter your question about this image:
+                    </label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <textarea 
+                            id="imageQuestionInput" 
+                            placeholder="例：この問題の解き方を教えてください / e.g., Please explain how to solve this problem"
+                            rows="2"
+                            style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 1rem; font-family: inherit; resize: none;"
+                        ></textarea>
+                        <button class="btn-send" id="btnSendWithQuestion" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+                            <i class="fas fa-paper-plane"></i><br>送信<br>Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Crop Area -->
+            <div class="crop-area" id="cropArea">
+                <div class="crop-container">
+                    <img id="cropImage" alt="Crop">
+                </div>
+                <div class="crop-actions">
+                    <button class="btn-clear" id="btnCancelCrop">
+                        <i class="fas fa-times"></i> キャンセル / Cancel
+                    </button>
+                    <button class="btn-send" id="btnConfirmCrop">
+                        <i class="fas fa-check"></i> 確定 / Confirm
+                    </button>
+                </div>
+            </div>
+            
+            <div class="input-buttons">
+                <button id="cameraButton">
+                    <i class="fas fa-camera"></i> カメラ / Camera
+                </button>
+                <button id="fileButton">
+                    <i class="fas fa-folder-open"></i> ファイル / File
+                </button>
+            </div>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+            <input type="file" id="fileInput" accept="image/*">
+            
+            <div class="input-group">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="質問を入力してください... / Type your question..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton">送信<br>Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // セッションID
+        const SESSION_ID = ${JSON.stringify(sessionId)};
+        
+        // DOM要素
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // Camera elements
+        const cameraButton = document.getElementById('cameraButton');
+        const fileButton = document.getElementById('fileButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreviewArea = document.getElementById('imagePreviewArea');
+        const previewImage = document.getElementById('previewImage');
+        const btnClearImage = document.getElementById('btnClearImage');
+        const btnStartCrop = document.getElementById('btnStartCrop');
+        const imageQuestionInput = document.getElementById('imageQuestionInput');
+        const btnSendWithQuestion = document.getElementById('btnSendWithQuestion');
+        const cropArea = document.getElementById('cropArea');
+        const cropImage = document.getElementById('cropImage');
+        const btnCancelCrop = document.getElementById('btnCancelCrop');
+        const btnConfirmCrop = document.getElementById('btnConfirmCrop');
+        
+        let cropper = null;
+        let currentImageData = null;
+        
+        // KaTeX delimiters
+        const backslash = String.fromCharCode(92);
+        const leftBracket = backslash + '[';
+        const rightBracket = backslash + ']';
+        
+        // メッセージを追加
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = \`message \${isUser ? 'user' : 'ai'}\`;
+            
+            if (isUser) {
+                messageDiv.textContent = content;
+            } else {
+                // Parse bilingual response
+                messageDiv.innerHTML = parseBilingualResponse(content);
+                
+                // Render math after adding to DOM
+                setTimeout(() => {
+                    renderMathInElement(messageDiv, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
+                }, 100);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Parse bilingual response into sections
+        function parseBilingualResponse(text) {
+            const sections = {
+                english: '',
+                japanese: '',
+                practice: ''
+            };
+            
+            // Split by section markers
+            const englishMatch = text.match(/---ENGLISH---(.*?)(?=---)/s);
+            const japaneseMatch = text.match(/---日本語---(.*?)(?=---)/s);
+            const practiceMatch = text.match(/---PRACTICE PROBLEM.*?---(.*?)$/s);
+            
+            if (englishMatch) sections.english = englishMatch[1].trim();
+            if (japaneseMatch) sections.japanese = japaneseMatch[1].trim();
+            if (practiceMatch) sections.practice = practiceMatch[1].trim();
+            
+            let html = '';
+            
+            if (sections.english) {
+                html += \`
+                    <div class="language-section english-section">
+                        <div class="section-title">🇬🇧 English</div>
+                        <div>\${formatText(sections.english)}</div>
+                    </div>
+                \`;
+            }
+            
+            if (sections.japanese) {
+                html += \`
+                    <div class="language-section japanese-section">
+                        <div class="section-title">🇯🇵 日本語</div>
+                        <div>\${formatText(sections.japanese)}</div>
+                    </div>
+                \`;
+            }
+            
+            if (sections.practice) {
+                html += \`
+                    <div class="practice-section">
+                        <div class="section-title">📝 Practice Problem / 類題</div>
+                        <div>\${formatText(sections.practice)}</div>
+                    </div>
+                \`;
+            }
+            
+            // Fallback: if no sections found, show original text
+            if (!html) {
+                html = \`<div>\${formatText(text)}</div>\`;
+            }
+            
+            return html;
+        }
+        
+        // Format text (preserve line breaks)
+        function formatText(text) {
+            return text
+                .split('\\n')
+                .map(line => line.trim())
+                .filter(line => line)
+                .join('<br>');
+        }
+        
+        // ローディングメッセージ
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai loading';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.innerHTML = \`
+                <div class="spinner"></div>
+                <p>Thinking... 考え中...</p>
+            \`;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function hideLoading() {
+            const loading = document.getElementById('loadingMessage');
+            if (loading) loading.remove();
+        }
+        
+        // テキストメッセージ送信
+        async function sendTextMessage() {
+            const question = messageInput.value.trim();
+            if (!question) return;
+            
+            addMessage(question, true);
+            messageInput.value = '';
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/international-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: SESSION_ID,
+                        question: question
+                    })
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.ok) {
+                    addMessage(data.answer);
+                } else {
+                    addMessage('Error: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage('Error: Failed to send message / メッセージの送信に失敗しました');
+                console.error(error);
+            }
+        }
+        
+        // 画像メッセージ送信
+        async function sendImageMessage(imageFile, messageText = '') {
+            showLoading();
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('sessionId', SESSION_ID);
+                formData.append('message', messageText || 'この画像について説明してください / Please explain this image');
+                
+                const response = await fetch('/api/international-chat-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.ok) {
+                    addMessage(data.answer);
+                } else {
+                    addMessage('Error: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage('Error: Failed to send image / 画像の送信に失敗しました');
+                console.error(error);
+            }
+        }
+        
+        // Image handling
+        function handleImageSelect(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                currentImageData = file;
+                imagePreviewArea.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function clearImage() {
+            previewImage.src = '';
+            currentImageData = null;
+            imagePreviewArea.classList.remove('active');
+            cameraInput.value = '';
+            fileInput.value = '';
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        }
+        
+        function startCrop() {
+            cropImage.src = previewImage.src;
+            cropArea.classList.add('active');
+            
+            setTimeout(() => {
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: NaN,
+                    viewMode: 1,
+                    autoCropArea: 1
+                });
+            }, 100);
+        }
+        
+        function cancelCrop() {
+            cropArea.classList.remove('active');
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        }
+        
+        function confirmCrop() {
+            if (!cropper) return;
+            
+            cropper.getCroppedCanvas().toBlob((blob) => {
+                const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+                currentImageData = croppedFile;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                };
+                reader.readAsDataURL(croppedFile);
+                
+                cancelCrop();
+            }, 'image/jpeg');
+        }
+        
+        async function sendImageWithQuestion() {
+            if (!currentImageData) return;
+            
+            const messageText = imageQuestionInput.value.trim() || 'この問題を教えてください';
+            addMessage(\`[Image sent] \${messageText}\`, true);
+            imageQuestionInput.value = '';
+            clearImage();
+            
+            await sendImageMessage(currentImageData, messageText);
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendTextMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendTextMessage();
+            }
+        });
+        
+        cameraButton.addEventListener('click', () => cameraInput.click());
+        fileButton.addEventListener('click', () => fileInput.click());
+        cameraInput.addEventListener('change', (e) => handleImageSelect(e.target.files[0]));
+        fileInput.addEventListener('change', (e) => handleImageSelect(e.target.files[0]));
+        
+        btnClearImage.addEventListener('click', clearImage);
+        btnStartCrop.addEventListener('click', startCrop);
+        btnSendWithQuestion.addEventListener('click', sendImageWithQuestion);
+        btnCancelCrop.addEventListener('click', cancelCrop);
+        btnConfirmCrop.addEventListener('click', confirmCrop);
+        
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+        
+        // Auto-resize image question textarea
+        imageQuestionInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
     </script>
 </body>
 </html>
