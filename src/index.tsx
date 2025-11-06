@@ -2531,11 +2531,50 @@ app.post('/api/international-chat-image', async (c) => {
       })
     }
     
-    // 画像をBase64に変換（最適化された方法）
+    // 画像をBase64に変換
     console.log('🔄 Converting image to base64...')
+    console.log('🔍 Image type:', typeof image)
+    console.log('🔍 Image constructor:', image?.constructor?.name)
+    console.log('🔍 Has arrayBuffer method:', typeof image?.arrayBuffer)
+    
     let base64Image
     try {
-      const arrayBuffer = await image.arrayBuffer()
+      // Cloudflare Workers環境に対応した変換方法
+      let arrayBuffer
+      
+      if (typeof image.arrayBuffer === 'function') {
+        // 標準的な方法
+        arrayBuffer = await image.arrayBuffer()
+      } else if (image instanceof Blob) {
+        // Blobとして扱う
+        arrayBuffer = await image.arrayBuffer()
+      } else if (typeof image.stream === 'function') {
+        // Streamから読み取る
+        const reader = image.stream().getReader()
+        const chunks = []
+        let done = false
+        
+        while (!done) {
+          const { value, done: streamDone } = await reader.read()
+          done = streamDone
+          if (value) {
+            chunks.push(value)
+          }
+        }
+        
+        // チャンクを結合
+        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
+        const result = new Uint8Array(totalLength)
+        let offset = 0
+        for (const chunk of chunks) {
+          result.set(chunk, offset)
+          offset += chunk.length
+        }
+        arrayBuffer = result.buffer
+      } else {
+        throw new Error('Unsupported image format')
+      }
+      
       const bytes = new Uint8Array(arrayBuffer)
       
       // チャンクごとに変換してメモリ効率を改善
@@ -2550,6 +2589,7 @@ app.post('/api/international-chat-image', async (c) => {
       console.log('✅ Image converted to base64 (length:', base64Image.length, ')')
     } catch (conversionError) {
       console.error('❌ Image conversion error:', conversionError)
+      console.error('❌ Error stack:', conversionError.stack)
       return c.json({ 
         ok: false, 
         message: `画像の変換に失敗しました: ${conversionError.message}` 
