@@ -2416,9 +2416,13 @@ app.post('/api/international-chat', async (c) => {
 
 【CONVERSATION FLOW - CRITICAL】
 1. If the user asks a NEW question: Provide EXPLANATION ONLY (no practice problem yet)
-2. If the user says "no questions" or "ready for practice": Provide ONE PRACTICE PROBLEM
+2. If the user says "no questions" or "ready for practice" OR message starts with "REQUEST PRACTICE PROBLEM": Provide ONE PRACTICE PROBLEM
 3. If the user submits an ANSWER to practice problem: GRADE it and give feedback
 4. After grading: Ask if they want another practice problem
+
+【SPECIAL PREFIXES】
+- "REQUEST PRACTICE PROBLEM" → Generate a practice problem immediately
+- "ANSWER SUBMISSION" → Grade the submitted answer
 
 【BILINGUAL RESPONSE RULES】
 - ALL responses MUST be in BOTH English and Japanese
@@ -2602,9 +2606,13 @@ app.post('/api/international-chat-image', async (c) => {
 
 【CONVERSATION FLOW - CRITICAL】
 1. If the user asks a NEW question: Provide EXPLANATION ONLY (no practice problem yet)
-2. If the user says "no questions" or "ready for practice": Provide ONE PRACTICE PROBLEM
+2. If the user says "no questions" or "ready for practice" OR message starts with "REQUEST PRACTICE PROBLEM": Provide ONE PRACTICE PROBLEM
 3. If the user submits an ANSWER to practice problem: GRADE it and give feedback
 4. After grading: Ask if they want another practice problem
+
+【SPECIAL PREFIXES】
+- "REQUEST PRACTICE PROBLEM" → Generate a practice problem immediately
+- "ANSWER SUBMISSION" → Grade the submitted answer
 
 【BILINGUAL RESPONSE RULES】
 - ALL responses MUST be in BOTH English and Japanese
@@ -3957,6 +3965,10 @@ app.get('/international-student/:sessionId', (c) => {
                     placeholder="質問を入力してください... / Type your question..."
                     rows="1"
                 ></textarea>
+                <button id="practiceProblemButton" style="background: #f59e0b; border-radius: 0.5rem; padding: 0.75rem 1rem; border: none; color: white; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
+                    <i class="fas fa-clipboard-list" style="font-size: 1.2rem; margin-bottom: 0.25rem;"></i>
+                    <span style="font-size: 0.85rem;">類題<br>Practice</span>
+                </button>
                 <button id="sendButton">送信<br>Send</button>
             </div>
         </div>
@@ -3970,6 +3982,7 @@ app.get('/international-student/:sessionId', (c) => {
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const practiceProblemButton = document.getElementById('practiceProblemButton');
         
         // Camera elements
         const cameraButton = document.getElementById('cameraButton');
@@ -4140,6 +4153,40 @@ app.get('/international-student/:sessionId', (c) => {
             }
         }
         
+        // 類題リクエスト送信
+        async function requestPracticeProblem() {
+            const practiceRequest = 'REQUEST PRACTICE PROBLEM: 類題をお願いします / Please give me a practice problem';
+            
+            addMessage('📝 類題をリクエストしました / Requesting practice problem...', true);
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/international-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: SESSION_ID,
+                        question: practiceRequest
+                    })
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.ok) {
+                    addMessage(data.answer);
+                } else {
+                    addMessage('Error: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage('Error: Failed to send message / メッセージの送信に失敗しました');
+                console.error(error);
+            }
+        }
+        
         // 画像メッセージ送信
         async function sendImageMessage(imageFile, messageText = '') {
             showLoading();
@@ -4270,6 +4317,7 @@ app.get('/international-student/:sessionId', (c) => {
         
         // Event listeners
         sendButton.addEventListener('click', sendTextMessage);
+        practiceProblemButton.addEventListener('click', requestPracticeProblem);
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
