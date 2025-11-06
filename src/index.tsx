@@ -3882,17 +3882,22 @@ app.get('/international-student/:sessionId', (c) => {
                 <!-- Image Question Input -->
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        📝 この画像について質問を入力 / Enter your question about this image:
+                        📝 この画像について入力 / Enter text about this image:
                     </label>
                     <div style="display: flex; gap: 0.5rem;">
                         <textarea 
                             id="imageQuestionInput" 
-                            placeholder="例：この問題の解き方を教えてください / e.g., Please explain how to solve this problem"
+                            placeholder="質問または解答を入力 / Enter question or answer"
                             rows="2"
                             style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 1rem; font-family: inherit; resize: none;"
                         ></textarea>
-                        <button class="btn-send" id="btnSendWithQuestion" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
-                            <i class="fas fa-paper-plane"></i><br>送信<br>Send
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn-send" id="btnSendQuestion" style="flex: 1; padding: 0.75rem; background: #3b82f6;">
+                            <i class="fas fa-question-circle"></i> 質問する / Ask Question
+                        </button>
+                        <button class="btn-send" id="btnSubmitAnswer" style="flex: 1; padding: 0.75rem; background: #10b981;">
+                            <i class="fas fa-check-circle"></i> 解答提出 / Submit Answer
                         </button>
                     </div>
                 </div>
@@ -3954,7 +3959,8 @@ app.get('/international-student/:sessionId', (c) => {
         const btnClearImage = document.getElementById('btnClearImage');
         const btnStartCrop = document.getElementById('btnStartCrop');
         const imageQuestionInput = document.getElementById('imageQuestionInput');
-        const btnSendWithQuestion = document.getElementById('btnSendWithQuestion');
+        const btnSendQuestion = document.getElementById('btnSendQuestion');
+        const btnSubmitAnswer = document.getElementById('btnSubmitAnswer');
         const cropArea = document.getElementById('cropArea');
         const cropImage = document.getElementById('cropImage');
         const btnCancelCrop = document.getElementById('btnCancelCrop');
@@ -4206,18 +4212,38 @@ app.get('/international-student/:sessionId', (c) => {
             }, 'image/jpeg');
         }
         
-        async function sendImageWithQuestion() {
+        async function sendImageAsQuestion() {
             if (!currentImageData) return;
             
             // Save image data before clearing
             const imageData = currentImageData;
             const messageText = imageQuestionInput.value.trim() || 'この問題を教えてください';
             
-            addMessage(\`[Image sent] \${messageText}\`, true);
+            // Add prefix to indicate this is a question
+            const questionText = messageText;
+            
+            addMessage(\`[Image sent] \${questionText}\`, true);
             imageQuestionInput.value = '';
             clearImage();
             
-            await sendImageMessage(imageData, messageText);
+            await sendImageMessage(imageData, questionText);
+        }
+        
+        async function sendImageAsAnswer() {
+            if (!currentImageData) return;
+            
+            // Save image data before clearing
+            const imageData = currentImageData;
+            const messageText = imageQuestionInput.value.trim();
+            
+            // Add prefix to indicate this is an answer submission
+            const answerText = 'ANSWER SUBMISSION / 解答提出: ' + (messageText || '画像の解答を確認してください');
+            
+            addMessage('[Answer submitted] ' + (messageText || '解答画像'), true);
+            imageQuestionInput.value = '';
+            clearImage();
+            
+            await sendImageMessage(imageData, answerText);
         }
         
         // Event listeners
@@ -4236,7 +4262,8 @@ app.get('/international-student/:sessionId', (c) => {
         
         btnClearImage.addEventListener('click', clearImage);
         btnStartCrop.addEventListener('click', startCrop);
-        btnSendWithQuestion.addEventListener('click', sendImageWithQuestion);
+        btnSendQuestion.addEventListener('click', sendImageAsQuestion);
+        btnSubmitAnswer.addEventListener('click', sendImageAsAnswer);
         btnCancelCrop.addEventListener('click', cancelCrop);
         btnConfirmCrop.addEventListener('click', confirmCrop);
         
