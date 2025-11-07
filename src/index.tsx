@@ -29,6 +29,9 @@ const app = new Hono<{ Bindings: Bindings }>()
 // 開発モード設定
 const USE_MOCK_RESPONSES = false
 
+// 学習セッション管理（インメモリ + D1永続化）
+const learningSessions = new Map()
+
 // D1セッション管理ヘルパー関数
 async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: any) {
   try {
@@ -343,24 +346,34 @@ async function loadEducationalPolicy() {
 // 起動時に教育方針を読み込み
 loadEducationalPolicy()
 
-// Import types and config
-import type { StudentInfo } from './types'
-import { studentDatabase, findStudent, updateStudentLogin } from './config/students'
+// 生徒情報データベース（必要最小限追加）
+interface StudentInfo {
+  studentId: string
+  name: string
+  grade: number
+  subjects: string[]
+  weakSubjects: string[]
+  lastLogin: string
+}
 
-// Import handlers
-import { handleLogin } from './handlers/login'
-import { handleAnalyzeAndLearn } from './handlers/analyze'
-import { handleStepCheck } from './handlers/step-check'
-import { handleConfirmationCheck } from './handlers/confirmation-check'
-import { handleSimilarCheck } from './handlers/similar-check'
-
-// Import pages
-import { renderStudyPartnerPage } from './pages/study-partner'
-import { registerEssayRoutes } from './routes/essay'
-
-// Import utilities
-import { learningSessions, generateSessionId, saveSessionToMemory, getSessionFromMemory } from './utils/session'
-import { fileToDataUrl, arrayBufferToBase64, MAX_IMAGE_SIZE } from './utils/base64'
+const studentDatabase: Record<string, StudentInfo> = {
+  'JS2-04': {
+    studentId: 'JS2-04',
+    name: '田中太郎',
+    grade: 2,
+    subjects: ['数学', '理科'],
+    weakSubjects: ['英語'],
+    lastLogin: new Date().toISOString()
+  },
+  'test123': {
+    studentId: 'test123',
+    name: 'テスト生徒',
+    grade: 1,
+    subjects: ['国語'],
+    weakSubjects: ['数学'],
+    lastLogin: new Date().toISOString()
+  }
+}
 
 console.log('🚀 Study Partner server starting...')
 
@@ -518,17 +531,918 @@ app.post('/api/admin/migrate-db', async (c) => {
   }
 })
 
-// ログインAPI
-app.post('/api/login', handleLogin)
+// ログインAPI（最小限追加）
+app.post('/api/login', async (c) => {
+  try {
+    const { appkey, sid } = await c.req.json()
+    console.log('🔑 Login attempt:', { appkey, sid })
+    
+    const validAppKeys = ['KOBEYA2024', '180418']
+    if (!validAppKeys.includes(appkey)) {
+      return c.json({ success: false, message: 'APP_KEYが正しくありません' }, 401)
+    }
+    
+    const studentInfo = studentDatabase[sid]
+    if (!studentInfo) {
+      return c.json({ success: false, message: '生徒IDが見つかりません' }, 404)
+    }
+    
+    studentInfo.lastLogin = new Date().toISOString()
+    
+    return c.json({ 
+      success: true, 
+      message: 'ログインに成功しました', 
+      studentInfo: {
+        studentId: studentInfo.studentId,
+        name: studentInfo.name,
+        grade: studentInfo.grade,
+        subjects: studentInfo.subjects,
+        weakSubjects: studentInfo.weakSubjects
+      }
+    })
+  } catch (error) {
+    console.error('❌ Login error:', error)
+    return c.json({ success: false, message: 'ログイン処理でエラーが発生しました' }, 500)
+  }
+})
 
 // 画像解析 + 段階学習開始 endpoint
-app.post('/api/analyze-and-learn', handleAnalyzeAndLearn)
+app.post('/api/analyze-and-learn', async (c) => {
+  console.log('📸 Analyze and learn endpoint called')
+  
+  try {
+    const formData = await c.req.formData()
+    const appkey = formData.get('appkey')?.toString() || '180418'
+    const sid = formData.get('sid')?.toString() || 'JS2-04'
+    const imageField = formData.get('image')
+    const userMessage = formData.get('message')?.toString() || ''
+    
+    console.log('📸 Image analysis request:', { appkey, sid, hasImage: !!imageField, hasMessage: !!userMessage })
+    
+    if (!imageField || !(imageField instanceof File)) {
+      throw new Error('画像ファイルが必要です')
+    }
+    
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // 生徒情報の取得
+    const studentInfo = studentDatabase[sid]
+    console.log('👨‍🎓 Student info:', studentInfo ? `${studentInfo.name} (中学${studentInfo.grade}年)` : 'Not found')
+    
+    // OpenAI API Key の確認
+    const apiKey = c.env.OPENAI_API_KEY?.trim()
+    console.log('🔑 API Key check:', apiKey ? 'Present (length: ' + apiKey.length + ')' : 'Missing')
+    
+    if (!apiKey) {
+      console.error('❌ OPENAI_API_KEY not found - using fallback')
+      // フォールバック: ダミーデータを使用
+      const problemTypes = ['quadratic_equation', 'english_grammar']
+      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
+      let learningData = generateLearningData(problemType)
+      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ AI接続でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
+      
+      // 学習セッションを保存（フォールバック）
+      const learningSession = {
+        sessionId,
+        appkey,
+        sid,
+        problemType,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: 0,
+        status: 'learning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // 修正1: フォールバック時も構造の一貫性を保持
+        originalImageData: null,
+        originalUserMessage: ''
+      }
+      learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存（非同期、エラーが発生してもレスポンスは返す）
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
+      return c.json({
+        ok: true,
+        sessionId,
+        analysis: learningData.analysis,
+        subject: problemType === 'quadratic_equation' ? '数学' : '英語',
+        grade: studentInfo ? studentInfo.grade : 2,
+        difficulty: 'standard',
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: learningSession.steps[0],
+        totalSteps: learningSession.steps.length,
+        status: 'learning',
+        message: '段階学習を開始します'
+      })
+    }
+    
+    // 画像サポート形式チェック
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(imageField.type)) {
+      console.warn('⚠️ Unsupported image type:', imageField.type)
+      // フォールバック処理
+      const problemTypes = ['quadratic_equation', 'english_grammar']
+      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
+      let learningData = generateLearningData(problemType)
+      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ サポートされていない画像形式です。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
+      
+      const learningSession = {
+        sessionId,
+        appkey,
+        sid,
+        problemType,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: 0,
+        status: 'learning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
+      return c.json({
+        ok: true,
+        sessionId,
+        analysis: learningData.analysis,
+        subject: problemType === 'quadratic_equation' ? '数学' : '英語',
+        grade: studentInfo ? studentInfo.grade : 2,
+        difficulty: 'standard',
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: learningSession.steps[0],
+        totalSteps: learningSession.steps.length,
+        status: 'learning',
+        message: '段階学習を開始します'
+      })
+    }
+    
+    // 画像をBase64に変換（Cloudflare Workers環境対応）
+    let base64Image
+    try {
+      const arrayBuffer = await imageField.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      
+      if (uint8Array.length > 500000) { // 500KB制限
+        throw new Error('Image too large for Base64 encoding')
+      }
+      
+      // Cloudflare Workers環境でのBase64エンコーディング
+      let binary = ''
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i])
+      }
+      base64Image = btoa(binary)
+    } catch (base64Error) {
+      console.error('❌ Base64 encoding failed:', base64Error)
+      // フォールバック処理
+      const problemTypes = ['quadratic_equation', 'english_grammar']
+      const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
+      let learningData = generateLearningData(problemType)
+      learningData.analysis = `【AI学習アシスタント】\n\n⚠️ 画像処理でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
+      
+      const learningSession = {
+        sessionId,
+        appkey,
+        sid,
+        problemType,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: 0,
+        status: 'learning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
+      return c.json({
+        ok: true,
+        sessionId,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: learningSession.steps[0],
+        totalSteps: learningSession.steps.length,
+        status: 'learning',
+        message: '段階学習を開始します'
+      })
+    }
+    
+    const dataUrl = `data:${imageField.type};base64,${base64Image}`
+    console.log('🤖 Starting OpenAI Vision API analysis...')
+    
+    // OpenAI Vision API 呼び出し
+    try {
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `あなたは中学生向けの学習サポート専門教師です。バンコクの日本人向け教育塾「プログラミングのKOBEYA」で中学1-3年生の勉強をお手伝いしています。
+
+【重要】この画像は教育目的の学習教材です：
+- 中学生の勉強をサポートするための問題画像です
+- 数学、英語、国語、理科、社会などの教科書や問題集のページです
+- 教育的な内容分析をお願いします
+- 読み取りにくい部分があっても、教育的観点から適切な学習内容を作成してください
+
+【参考：現在の生徒情報】
+${studentInfo ? 
+  `生徒名：${studentInfo.name}
+学年：中学${studentInfo.grade}年生
+得意分野：${studentInfo.subjects.join('・')}
+苦手分野：${studentInfo.weakSubjects.join('・')}
+
+※この情報は参考程度に活用し、問題の本来の難易度や内容は正確に分析してください。
+説明方法や例え話で生徒に配慮した指導をお願いします。` : 
+  '生徒情報なし（問題内容に基づいて適切なレベルで指導してください）'
+}
+
+【教育方針（文部科学省学習指導要領準拠）】
+- 人間中心の学習重視：一人一人の人格を尊重し、個性を生かす指導
+- 主体的・対話的で深い学び：段階的思考プロセスの明示支援
+- 3つの観点重視：知識・技能、思考・判断・表現、主体的学習態度の育成
+- 中学生向けのやさしい敬語で説明（学習者の発達段階に応じた言葉遣い）
+- 海外在住への配慮：「日本でも同じ内容を学習するよ」「心配しないで大丈夫」
+- 問題解決能力育成：複数解決方法の提示、比較検討の促進
+- 温かい励ましと支援姿勢：失敗を学習機会として前向きに捉える
+- 個別最適化支援：学習履歴と理解度に応じた説明方法の選択
+
+【学年判定ルール（文部科学省学習指導要領準拠）】
+■数学
+- 中学1年：正負の数、文字式、一次方程式、比例・反比例、平面図形、空間図形
+- 中学2年：連立方程式、一次関数、図形の性質（合同）、確率
+- 中学3年：二次方程式、二次関数、図形の相似、三平方の定理、標本調査
+
+■英語
+- 中学1年：be動詞、一般動詞、現在形、過去形、疑問文・否定文の基本
+- 中学2年：未来形、助動詞、不定詞、動名詞、比較級・最上級
+- 中学3年：現在完了、受動態、関係代名詞、分詞
+
+■国語
+- 中学1年：品詞、文の組み立て、説明文・物語文の読解、漢字・語彙
+- 中学2年：文章の構成と要約、古典入門、表現技法、作文・小論文の基礎
+- 中学3年：論理的文章、古文・漢文、小論文、高校入試対策
+
+■理科
+- 中学1年：生物（植物・動物）、地学（地層・地震）、物理（光・音・力）
+- 中学2年：化学（原子・分子・化学変化）、生物（消化・呼吸・血液）、物理（電流）
+- 中学3年：物理（運動・エネルギー）、化学（イオン・酸アルカリ）、生物（遺伝）、地学（太陽系）
+
+■社会
+- 中学1年：地理（世界・日本の地形・気候・産業）
+- 中学2年：歴史（古代〜近世）
+- 中学3年：歴史（近現代）、公民（憲法・政治・経済）
+
+【分析と学習コンテンツ作成の要求】
+
+【段階学習ステップ生成ルール】
+- 問題の複雑さに応じて4-7ステップを動的生成してください
+- 基礎問題：4-5ステップ（基本概念確認→練習→応用）
+- 標準問題：5-6ステップ（概念確認→基本練習→発展練習→総合）  
+- 応用問題：6-7ステップ（概念分解→段階的練習→複合練習→応用→総合）
+- 各ステップは前のステップの理解を前提とした段階的構成
+- 最終ステップは必ず元問題レベルの総合演習にしてください
+
+【選択肢問題の重要な要件】
+- **全ての段階学習ステップは必ず選択肢問題（type: "choice"）にしてください**
+- **input形式は絶対に使用しないでください**
+- **各ステップには必ず4つの選択肢（A, B, C, D）を作成してください**
+- **選択肢は具体的で教育的価値があるものにしてください**
+- **正解以外の選択肢も学習に有益な内容にしてください**
+
+【正解位置の分散について】
+- **正解がすべてA（選択肢1）にならないよう、意図的にランダム化してください**
+- **段階学習ステップでは正解をA, B, C, Dにバランスよく分散させてください**
+- **確認問題と類似問題でも正解の位置をランダムにしてください**
+- **Fisher-Yatesシャッフルのように、最初に内容を決めてから選択肢順序をランダム化してください**
+
+【類似問題生成ルール】
+- 元画像の問題内容を分析し、5-8問の類似問題を動的生成してください
+- 難易度段階：easy(2-3問)→medium(2-3問)→hard(1-2問)
+- 数値や文字を変更した同パターン問題
+- 解法は同じで表現形式を変えた問題
+- 一歩発展させた応用問題を含める
+- 各問題は独立して解けるよう設計してください
+
+【類似問題の形式指定】
+- **選択問題と記述問題を混ぜてください**
+- **easy問題の60%**: choice形式（選択肢4つ）
+- **easy問題の40%**: input形式（記述回答）
+- **medium問題の50%**: choice形式（選択肢4つ）
+- **medium問題の50%**: input形式（記述回答）
+- **hard問題の30%**: choice形式（選択肢4つ）  
+- **hard問題の70%**: input形式（記述回答）
+- input形式では具体的な計算過程や解法手順を求める問題にしてください
+
+【回答形式】
+以下のJSON形式で回答してください：
+{
+  "subject": "数学|英語|プログラミング|その他",
+  "problemType": "custom",
+  "difficulty": "basic|intermediate|advanced", 
+  "analysis": "【詳細分析】\\n\\n①問題の整理\\n（どんな問題か、何を求めるかを整理）\\n\\n②使う知識\\n（この問題を解くために必要な基礎知識）\\n\\n③解法のポイント\\n（解き方の流れと重要なポイント）\\n\\n④解答例\\n（解答と計算過程）\\n\\n⑤確認・振り返り\\n（解答の確認方法、類似問題への応用）\\n\\n※中学生向けのやさしい言葉で、励ましの言葉も含めて詳細に説明してください",
+  "confidence": 0.0-1.0,
+  "steps": [
+    {
+      "stepNumber": 0,
+      "instruction": "ステップ1の指導内容（問いかけ形式で思考を促す）",
+      "type": "choice",
+      "options": ["A) 選択肢1", "B) 選択肢2", "C) 選択肢3", "D) 選択肢4"],
+      "correctAnswer": "C",
+      "explanation": "励ましを含む詳細解説"
+    },
+    {
+      "stepNumber": 1,
+      "instruction": "ステップ2の指導内容",
+      "type": "choice",
+      "options": ["A) 選択肢1", "B) 選択肢2", "C) 選択肢3", "D) 選択肢4"],
+      "correctAnswer": "D",
+      "explanation": "前ステップを踏まえた詳細解説"
+    }
+    // 問題の複雑さに応じて4-7ステップまで動的生成
+    // 【重要】全てのステップはtype: "choice"で4つの選択肢必須
+  ],
+  "confirmationProblem": {
+    "question": "確認問題の内容（元問題と同レベル）",
+    "type": "choice",
+    "options": ["A) 選択肢1", "B) 選択肢2", "C) 選択肢3", "D) 選択肢4"],
+    "correctAnswer": "A",
+    "explanation": "中学生向けの確認問題解説"
+  },
+  "similarProblems": [
+    {
+      "problemNumber": 1,
+      "question": "類似問題1（easy）",
+      "type": "choice",
+      "options": ["A) 選択肢1", "B) 選択肢2", "C) 選択肢3", "D) 選択肢4"],
+      "correctAnswer": "A",
+      "explanation": "類似問題1の詳細解説",
+      "difficulty": "easy"
+    },
+    {
+      "problemNumber": 2,
+      "question": "類似問題2（easy）- 計算過程を示して解答してください",
+      "type": "input", 
+      "correctAnswers": ["正解例1", "正解例2"],
+      "explanation": "類似問題2の詳細解説と解法手順",
+      "difficulty": "easy"
+    }
+    // 5-8問まで動的生成（easy→medium→hardの順）
+  ]
+}
+
+【重要な指示】
+- ChatGPT学習支援モードで回答してください
+- 画像を正確に詳細分析し、教科・難易度を精密判定してください
+- 生徒情報は参考程度に活用（問題本来の難易度は維持）
+- analysisには従来通り高品質な詳細分析を記載（表示制御は別途実装）
+- 段階学習の品質は最高レベルを維持してください
+
+【動的コンテンツ生成の必須要件】
+- **段階学習**：問題分析に基づき4-7ステップを適切に生成してください
+- **類似問題**：元画像内容を詳細分析し、5-8問を段階的難易度で生成してください
+- 固定パターンではなく、各問題に最適化されたコンテンツを作成してください
+- 段階的な問いかけで生徒の思考を促進
+- 即答せず、考えさせる指導スタイル
+- 温かく励ましの言葉を多用
+- 各ステップは前のステップの理解を前提とした構成
+- 解説は詳細で分かりやすく、温かい励ましを含める
+- すべて日本語で作成
+
+【品質保証】
+- stepsは最低4個、最大7個まで生成してください（固定1-3個は禁止）
+- similarProblemsは最低5個、最大8個まで生成してください（固定3個は禁止）
+- 各コンテンツは問題の内容・難易度・教科特性に完全に対応させてください
+
+【選択肢問題の絶対要件】
+- **段階学習の全ステップは必ずtype: "choice"にしてください**
+- **確認問題も必ずtype: "choice"にしてください**
+- **類似問題はtype: "choice"とtype: "input"を混ぜてください**
+- **choice形式の問題には必ず4つの選択肢（A, B, C, D）を含めてください**
+- **choice形式ではoptionsフィールドが必須で、4要素の配列にしてください**
+- **input形式ではcorrectAnswersフィールドに正解例の配列を含めてください**
+- **段階学習と確認問題では選択肢がない問題は絶対に作らないでください**
+
+【正解位置の工夫】
+- **正解がすべてA（1番目）になることを絶対に避けてください**
+- **段階学習ステップの正解はA, B, C, Dにバランス良く分散させてください**
+- **意図的に正解位置を変更し、1つの問題セットで正解が偏らないようにしてください**
+- **例：step0→C、step1→A、step2→D、step3→B のように多様化してください**`
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: userMessage ? 
+                    `ユーザーからの質問・要望: ${userMessage}\n\n上記の内容を踏まえて、この画像を分析し、適切な学習内容を提案してください。` :
+                    'この画像を分析して、適切な学習内容を提案してください。'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: dataUrl,
+                    detail: 'high'
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 8000,
+          temperature: 0.3
+        })
+      })
+      
+      if (!openaiResponse.ok) {
+        const errorText = await openaiResponse.text()
+        console.error('❌ OpenAI API error:', openaiResponse.status, errorText)
+        throw new Error(`OpenAI API Error: ${openaiResponse.status}`)
+      }
+      
+      const aiContent = (await openaiResponse.json())?.choices?.[0]?.message?.content || ''
+      console.log('🤖 AI content length:', aiContent.length)
+      console.log('🤖 AI content preview (first 500 chars):', aiContent.substring(0, 500))
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
+      let aiAnalysis
+      
+      if (jsonMatch) {
+        try {
+          aiAnalysis = JSON.parse(jsonMatch[0])
+          console.log('🤖 AI分析成功:', {
+            subject: aiAnalysis.subject,
+            problemType: aiAnalysis.problemType,
+            difficulty: aiAnalysis.difficulty,
+            confidence: aiAnalysis.confidence
+          })
+        } catch (parseError) {
+          console.error('❌ AI分析結果のJSON解析エラー:', parseError)
+          throw new Error('AI分析結果の解析に失敗しました')
+        }
+      } else {
+        console.error('❌ AI分析結果にJSONが見つかりません:', aiContent.substring(0, 200))
+        
+        // OpenAIが拒否した場合の対処
+        if (aiContent.includes("I'm sorry") || aiContent.includes("I can't") || aiContent.includes("Sorry") || aiContent.toLowerCase().includes("assist")) {
+          throw new Error('この画像は分析できません。以下の理由が考えられます：\n\n• 個人情報（名前、顔写真など）が含まれている\n• 著作権のある教材（教科書、問題集など）\n• 実際のテスト・試験問題\n\n別の画像をお試しいただくか、問題を手書きで作成してください。')
+        }
+        
+        throw new Error('AI分析結果の形式が不正です。画像が不鮮明か、問題が読み取れない可能性があります。')
+      }
+      
+      // AI分析結果から学習データを構築
+      const selectedProblemType = aiAnalysis.problemType || 'custom'
+      
+      // AIが生成した学習データを使用（カスタムコンテンツ）
+      let learningData
+      if (aiAnalysis.steps && Array.isArray(aiAnalysis.steps)) {
+        // AIが完全な学習データを生成した場合
+        console.log('✅ AI generated complete steps:', aiAnalysis.steps.length)
+        console.log('🔍 First step details:', {
+          stepNumber: aiAnalysis.steps[0]?.stepNumber,
+          instruction: aiAnalysis.steps[0]?.instruction?.substring(0, 50) + '...',
+          type: aiAnalysis.steps[0]?.type,
+          optionsCount: aiAnalysis.steps[0]?.options?.length,
+          options: aiAnalysis.steps[0]?.options
+        })
+        
+        learningData = {
+          analysis: `【AI学習アシスタント分析結果】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🎯 **段階的学習を開始します**<br>一緒に問題を解いていきましょう。<br>各ステップで丁寧に説明しながら進めます！`,
+          steps: aiAnalysis.steps.map(step => {
+            // 選択肢問題でない場合、強制的に選択肢問題に変換
+            if (step.type !== 'choice' || !step.options || !Array.isArray(step.options) || step.options.length < 4) {
+              console.warn(`⚠️ Step ${step.stepNumber} is not choice type or missing options, converting to choice`)
+              return {
+                ...step,
+                type: 'choice',
+                options: [
+                  "A) 基礎的な概念を確認する",
+                  "B) 中程度の理解を示す", 
+                  "C) 応用的な考え方をする",
+                  "D) 発展的な解法を選ぶ"
+                ],
+                correctAnswer: "A",
+                completed: false,
+                attempts: []
+              }
+            }
+            return {
+              ...step,
+              completed: false,
+              attempts: []
+            }
+          }),
+          confirmationProblem: (() => {
+            const confirmation = aiAnalysis.confirmationProblem || {
+              question: "確認問題: 学習内容を理解できましたか？",
+              type: "choice",
+              options: ["A) よく理解できた", "B) 少し理解できた", "C) もう一度説明が欲しい", "D) 全く分からない"],
+              correctAnswer: "A",
+              explanation: "素晴らしい！理解が深まりましたね。",
+              attempts: []
+            }
+            
+            // 確認問題も選択肢問題を強制
+            if (confirmation.type !== 'choice' || !confirmation.options || !Array.isArray(confirmation.options) || confirmation.options.length < 4) {
+              console.warn('⚠️ Confirmation problem is not choice type, converting to choice')
+              confirmation.type = 'choice'
+              confirmation.options = [
+                "A) よく理解できた",
+                "B) 少し理解できた", 
+                "C) もう一度説明が欲しい",
+                "D) 全く分からない"
+              ]
+              confirmation.correctAnswer = "A"
+            }
+            
+            return {
+              ...confirmation,
+              attempts: []
+            }
+          })(),
+          similarProblems: (aiAnalysis.similarProblems || []).map(problem => {
+            // 類似問題は選択肢問題と記述問題の混合を許可
+            if (problem.type === 'choice') {
+              // choice形式の検証
+              if (!problem.options || !Array.isArray(problem.options) || problem.options.length < 4) {
+                console.warn(`⚠️ Similar problem ${problem.problemNumber} is choice type but missing proper options`)
+                return {
+                  ...problem,
+                  type: 'choice',
+                  options: [
+                    "A) 基本的な解法",
+                    "B) 標準的なアプローチ",
+                    "C) 応用的な考え方", 
+                    "D) 発展的な解法"
+                  ],
+                  correctAnswer: "A",
+                  attempts: []
+                }
+              }
+            } else if (problem.type === 'input') {
+              // input形式の検証
+              if (!problem.correctAnswers || !Array.isArray(problem.correctAnswers)) {
+                console.warn(`⚠️ Similar problem ${problem.problemNumber} is input type but missing correctAnswers`)
+                return {
+                  ...problem,
+                  type: 'input',
+                  correctAnswers: ["計算過程を記述してください"],
+                  attempts: []
+                }
+              }
+            } else {
+              // 不明な形式の場合はchoice形式に変換
+              console.warn(`⚠️ Similar problem ${problem.problemNumber} has unknown type, converting to choice`)
+              return {
+                ...problem,
+                type: 'choice',
+                options: [
+                  "A) 基本的な解法",
+                  "B) 標準的なアプローチ",
+                  "C) 応用的な考え方", 
+                  "D) 発展的な解法"
+                ],
+                correctAnswer: "A",
+                attempts: []
+              }
+            }
+            
+            return {
+              ...problem,
+              attempts: []
+            }
+          })
+        }
+      } else {
+        // AIが部分的なデータしか生成しなかった場合のフォールバック
+        console.log('⚠️ AI did not generate complete steps, using fallback')
+        learningData = generateLearningData('quadratic_equation')
+        learningData.analysis = `【AI学習アシスタント分析結果】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🎯 **段階的学習を開始します**<br>一緒に問題を解いていきましょう。<br>各ステップで丁寧に説明しながら進めます！`
+      }
+      
+      // 学習セッションを保存（AI分析成功）- 修正1: 元画像データも保存
+      const learningSession = {
+        sessionId,
+        appkey,
+        sid,
+        problemType: selectedProblemType,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: 0,
+        status: 'learning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // 修正1: 再生成用に元画像データとメッセージを保存
+        originalImageData: dataUrl,  // base64形式の元画像
+        originalUserMessage: userMessage || ''  // ユーザーが入力したメッセージ
+      }
+      learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
+      console.log('✅ AI analysis completed successfully')
+      
+      return c.json({
+        ok: true,
+        sessionId,
+        analysis: learningData.analysis,
+        subject: aiAnalysis.subject || '学習',
+        grade: aiAnalysis.grade || (studentInfo ? studentInfo.grade : 2),
+        difficulty: aiAnalysis.difficulty || 'standard',
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: learningSession.steps[0],
+        totalSteps: learningSession.steps.length,
+        status: 'learning',
+        message: 'AI解析完了 - 段階学習を開始します'
+      })
+      
+    } catch (aiError) {
+      console.error('❌ OpenAI API呼び出しエラー:', aiError)
+      
+      // AI分析に失敗した場合の安全なフォールバック
+      const problemTypes = ['quadratic_equation', 'english_grammar']
+      const selectedProblemType = problemTypes[Math.floor(Math.random() * problemTypes.length)]
+      let learningData = generateLearningData(selectedProblemType)
+      learningData.analysis = '【AI学習アシスタント】\n\n⚠️ AI分析でエラーが発生しました。画像の内容を推測してサンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！'
+      
+      // 学習セッションを保存（AI分析エラーフォールバック）
+      const learningSession = {
+        sessionId,
+        appkey,
+        sid,
+        problemType: selectedProblemType,
+        analysis: learningData.analysis,
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: 0,
+        status: 'learning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // 修正1: エラー時フォールバックでも構造の一貫性を保持  
+        originalImageData: null,
+        originalUserMessage: ''
+      }
+      learningSessions.set(sessionId, learningSession)
+      
+      // D1に保存
+      const db = c.env?.DB
+      if (db) {
+        await saveStudyPartnerSessionToDB(db, sessionId, learningSession)
+      }
+      
+      return c.json({
+        ok: true,
+        sessionId,
+        analysis: learningData.analysis,
+        subject: selectedProblemType === 'quadratic_equation' ? '数学' : '英語',
+        grade: studentInfo ? studentInfo.grade : 2,
+        difficulty: 'standard',
+        steps: learningData.steps,
+        confirmationProblem: learningData.confirmationProblem,
+        similarProblems: learningData.similarProblems,
+        currentStep: learningSession.steps[0],
+        totalSteps: learningSession.steps.length,
+        status: 'learning',
+        message: 'フォールバック動作 - 段階学習を開始します'
+      })
+    }
+
+    
+  } catch (error) {
+    console.error('❌ Analyze and learn error:', error)
+    return c.json({
+      ok: false,
+      error: 'analyze_error',
+      message: error.message || 'AI解析でエラーが発生しました',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
 
 // 段階学習 - ステップ回答チェック endpoint
-app.post('/api/step/check', handleStepCheck)
+app.post('/api/step/check', async (c) => {
+  console.log('📝 Step check endpoint called')
+  
+  try {
+    const body = await c.req.json()
+    const { sessionId, stepNumber, answer } = body
+    
+    console.log('📝 Step check request:', { sessionId, stepNumber, answer })
+    
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
+    if (!session) {
+      console.error('❌ Session not found for step check:', sessionId)
+      throw new Error('学習セッションが見つかりません')
+    }
+    
+    console.log('✅ Session retrieved for step check:', sessionId)
+    
+    // 現在のステップ取得（stepNumberで検索）
+    const currentStep = session.steps.find(step => step.stepNumber === stepNumber)
+    if (!currentStep) {
+      console.error('❌ Step not found:', { stepNumber, availableSteps: session.steps.map(s => s.stepNumber) })
+      throw new Error('無効なステップ番号です')
+    }
+    
+    // 回答評価
+    const isCorrect = answer === currentStep.correctAnswer
+    
+    // 回答を記録
+    currentStep.attempts.push({
+      answer,
+      isCorrect,
+      timestamp: new Date().toISOString()
+    })
+    
+    let nextAction = 'retry' // デフォルトは再挑戦
+    let nextStep = null
+    
+    if (isCorrect) {
+      currentStep.completed = true
+      
+      // 現在のステップインデックスを取得
+      const currentStepIndex = session.steps.findIndex(step => step.stepNumber === stepNumber)
+      const nextStepIndex = currentStepIndex + 1
+      
+      if (nextStepIndex >= session.steps.length) {
+        // すべてのステップ完了 → 確認問題に移行
+        session.currentStep = session.steps.length // 全ステップ完了を示す
+        session.status = 'confirmation'
+        nextAction = 'confirmation'
+      } else {
+        // 次のステップに進む
+        session.currentStep = nextStepIndex
+        nextAction = 'next_step'
+        nextStep = session.steps[nextStepIndex]
+      }
+    }
+    
+    session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Step check: session updated in D1')
+    }
+    
+    const response = {
+      ok: true,
+      sessionId,
+      stepNumber,
+      isCorrect,
+      feedback: isCorrect ? 
+        `✅ 正解です！\n\n💡 ${currentStep.explanation}` :
+        `❌ 正解は ${currentStep.correctAnswer} です。\n\n💡 ${currentStep.explanation}`,
+      nextAction,
+      nextStep,
+      confirmationProblem: nextAction === 'confirmation' ? session.confirmationProblem : null,
+      currentStepNumber: session.currentStep,
+      totalSteps: session.steps.length,
+      timestamp: new Date().toISOString()
+    }
+    
+    console.log('📝 Step check response:', { isCorrect, nextAction })
+    return c.json(response, 200)
+    
+  } catch (error) {
+    console.error('❌ Step check error:', error)
+    return c.json({
+      ok: false,
+      error: 'step_check_error',
+      message: error.message || 'ステップチェックでエラーが発生しました',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
 
 // 確認問題 - 回答チェック endpoint
-app.post('/api/confirmation/check', handleConfirmationCheck)
+app.post('/api/confirmation/check', async (c) => {
+  console.log('🎯 Confirmation check endpoint called')
+  
+  try {
+    const body = await c.req.json()
+    const { sessionId, answer } = body
+    
+    console.log('🎯 Confirmation check request:', { sessionId, answer })
+    
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
+    if (!session) {
+      console.error('❌ Session not found for confirmation check:', sessionId)
+      throw new Error('学習セッションが見つかりません')
+    }
+    
+    console.log('✅ Session retrieved for confirmation check:', sessionId)
+    
+    if (!session.confirmationProblem) {
+      throw new Error('確認問題が見つかりません')
+    }
+    
+    // 回答評価
+    const isCorrect = answer === session.confirmationProblem.correctAnswer
+    
+    // 回答を記録
+    if (!session.confirmationProblem.attempts) {
+      session.confirmationProblem.attempts = []
+    }
+    session.confirmationProblem.attempts.push({
+      answer,
+      isCorrect,
+      timestamp: new Date().toISOString()
+    })
+    
+    let nextAction = 'retry'
+    
+    if (isCorrect) {
+      session.status = 'similar_problems' // 類似問題フェーズに移行
+      nextAction = 'similar_problems'
+      
+      // 確認問題完了時のログ記録（中間ログ）
+      try {
+        console.log('📝 Confirmation completed, sending intermediate log for:', sessionId)
+        const { logCompletedSession } = await import('./utils/session-logger')
+        await logCompletedSession(sessionId, learningSessions, {}, c.env)
+      } catch (error) {
+        console.error('❌ Failed to log confirmation completion:', error)
+      }
+    }
+    
+    session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Confirmation check: session updated in D1')
+    }
+    
+    const response = {
+      ok: true,
+      sessionId,
+      isCorrect,
+      feedback: isCorrect ?
+        `✅ 確認問題正解！\n\n🚀 次は類似問題にチャレンジしましょう！\n\n💡 ${session.confirmationProblem.explanation}` :
+        `❌ 正解は ${session.confirmationProblem.correctAnswer} です。\n\n💡 ${session.confirmationProblem.explanation}`,
+      nextAction,
+      timestamp: new Date().toISOString()
+    }
+    
+    console.log('🎯 Confirmation check response:', { isCorrect, nextAction })
+    return c.json(response, 200)
+    
+  } catch (error) {
+    console.error('❌ Confirmation check error:', error)
+    return c.json({
+      ok: false,
+      error: 'confirmation_error',
+      message: error.message || '確認問題チェックでエラーが発生しました',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
 
 // AI質問チャットAPI（画像対応）
 app.post('/api/ai/chat', async (c) => {
@@ -819,10 +1733,1800 @@ ${contextInfo}
   }
 })
 
-// =====================================
-// Essay Coaching Routes (Extracted)
-// =====================================
-registerEssayRoutes(app)
+// 小論文指導 - セッション初期化API
+app.post('/api/essay/init-session', async (c) => {
+  console.log('📝 Essay session init API called')
+  
+  try {
+    const { 
+      sessionId, 
+      targetLevel, 
+      lessonFormat, 
+      problemMode, 
+      customInput, 
+      learningStyle 
+    } = await c.req.json()
+    
+    if (!sessionId || !targetLevel || !lessonFormat || !problemMode) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '必要なパラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const now = new Date().toISOString()
+    
+    // セッションデータを初期化
+    const essaySession = {
+      sessionId,
+      targetLevel,
+      lessonFormat,
+      problemMode: problemMode || 'ai',
+      customInput: customInput || null,
+      learningStyle: learningStyle || 'auto',
+      currentStep: 1,
+      stepStatus: { "1": "in_progress" },
+      createdAt: now,
+      uploadedImages: [],
+      ocrResults: [],
+      feedbacks: []
+    }
+    
+    const session = {
+      sessionId,
+      essaySession,
+      chatHistory: [],
+      vocabularyProgress: {}
+    }
+    
+    // インメモリに保存
+    learningSessions.set(sessionId, session)
+    
+    // D1に永続化
+    const db = c.env?.DB
+    if (db) {
+      await saveSessionToDB(db, sessionId, session)
+      console.log('✅ Essay session initialized and saved to D1:', {
+        sessionId,
+        problemMode: essaySession.problemMode,
+        customInput: essaySession.customInput,
+        learningStyle: essaySession.learningStyle,
+        targetLevel: essaySession.targetLevel
+      })
+    } else {
+      console.warn('⚠️ D1 not available, session only in memory:', sessionId)
+    }
+    
+    return c.json({
+      ok: true,
+      sessionId,
+      message: 'セッションを初期化しました',
+      timestamp: now
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Essay session init error:', error)
+    return c.json({
+      ok: false,
+      error: 'init_error',
+      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - 画像アップロードAPI
+app.post('/api/essay/upload-image', async (c) => {
+  console.log('📸 Essay image upload API called')
+  
+  try {
+    const { sessionId, imageData, currentStep } = await c.req.json()
+    
+    if (!sessionId || !imageData) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '画像データが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
+    if (!session || !session.essaySession) {
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // 画像を保存
+    if (!session.essaySession.uploadedImages) {
+      session.essaySession.uploadedImages = []
+    }
+    
+    session.essaySession.uploadedImages.push({
+      step: currentStep,
+      imageData: imageData,
+      uploadedAt: new Date().toISOString()
+    })
+    
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
+    
+    console.log('✅ Image uploaded for session:', sessionId)
+    
+    return c.json({
+      ok: true,
+      message: '画像をアップロードしました',
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Image upload error:', error)
+    return c.json({
+      ok: false,
+      error: 'upload_error',
+      message: '画像アップロードでエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - OCR処理API
+app.post('/api/essay/ocr', async (c) => {
+  console.log('🔍 Essay OCR API called')
+  
+  try {
+    const { sessionId, imageData, currentStep } = await c.req.json()
+    
+    if (!sessionId || !imageData) {
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: 'パラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
+    if (!session || !session.essaySession) {
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // OpenAI APIキーを取得（開発環境とCloudflare環境の両方に対応）
+    const openaiApiKey = c.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY
+    
+    // 開発環境でAPIキーがない場合はモックレスポンスを返す
+    if (!openaiApiKey) {
+      console.warn('⚠️ OPENAI_API_KEY not found - using mock OCR response for development')
+      
+      // モックOCR結果を返す
+      const mockResult = {
+        readable: true,
+        readabilityScore: 85,
+        text: 'SNSは現代社会に大きな影響を与えている。まず、情報の伝達速度が飛躍的に向上した。災害時には即座に安否確認ができ、重要な情報を多くの人々と共有できる。また、地理的な距離を超えて人々がつながることができるようになった。\n\n一方で、誤った情報の拡散や、プライバシーの問題も深刻化している。フェイクニュースが瞬時に広まり、社会に混乱をもたらすこともある。また、SNS依存症や誹謗中傷の問題も無視できない。\n\n私は、SNSは使い方次第で社会に良い影響も悪い影響も与えうると考える。メディアリテラシーを高め、適切に活用することが重要である。',
+        charCount: 245,
+        issues: []
+      }
+      
+      // セッションにOCR結果を保存
+      if (!session.essaySession.ocrResults) {
+        session.essaySession.ocrResults = []
+      }
+      session.essaySession.ocrResults.push({
+        ...mockResult,
+        processedAt: new Date().toISOString(),
+        isMock: true,
+        step: currentStep || 4
+      })
+      
+      // インメモリとD1の両方を更新
+      await updateSession(db, sessionId, { essaySession: session.essaySession })
+      
+      return c.json({
+        ok: true,
+        result: mockResult,
+        timestamp: new Date().toISOString()
+      }, 200)
+    }
+    
+    // OpenAI Vision APIで画像を分析
+    console.log('🤖 Calling OpenAI Vision API...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + openaiApiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'あなたは手書き原稿用紙のOCR専門家です。画像から手書きの日本語テキストを正確に読み取り、以下の形式でJSON形式で返してください：\n{\n  "readable": true/false,\n  "readabilityScore": 0-100,\n  "text": "読み取ったテキスト",\n  "charCount": 文字数,\n  "issues": ["問題点1", "問題点2"]\n}\n\n読み取り可能性の判断基準：\n- 文字が明瞭に書かれているか\n- 適切な明るさと焦点\n- 原稿用紙全体が写っているか\n\nreadableがfalseの場合は、issuesに具体的な問題点を記載してください。'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'この画像から手書きの小論文を読み取ってください。読み取り可能性も評価してください。'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', errorText)
+      return c.json({
+        ok: false,
+        error: 'openai_error',
+        message: 'OCR処理でエラーが発生しました',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    const data = await response.json()
+    console.log('✅ OpenAI response received')
+    
+    const aiResponse = data.choices[0].message.content
+    let ocrResult
+    
+    try {
+      // JSONレスポンスをパース
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        ocrResult = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error('JSON not found in response')
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse OCR result:', parseError)
+      // パース失敗時はデフォルト値を返す
+      ocrResult = {
+        readable: false,
+        readabilityScore: 0,
+        text: '',
+        charCount: 0,
+        issues: ['OCR結果のパースに失敗しました。画像を再度アップロードしてください。']
+      }
+    }
+    
+    // セッションにOCR結果を保存
+    if (!session.essaySession.ocrResults) {
+      session.essaySession.ocrResults = []
+    }
+    session.essaySession.ocrResults.push({
+      ...ocrResult,
+      processedAt: new Date().toISOString(),
+      step: currentStep || 4
+    })
+    
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
+    
+    console.log('✅ OCR completed:', { readable: ocrResult.readable, charCount: ocrResult.charCount })
+    
+    return c.json({
+      ok: true,
+      result: ocrResult,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ OCR error:', error)
+    return c.json({
+      ok: false,
+      error: 'ocr_error',
+      message: 'OCR処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - AI添削API
+app.post('/api/essay/feedback', async (c) => {
+  console.log('🤖 Essay AI feedback API called')
+  
+  try {
+    const { sessionId } = await c.req.json()
+    console.log('🤖 Received sessionId:', sessionId)
+    
+    if (!sessionId) {
+      console.error('❌ Missing sessionId')
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: 'セッションIDが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッションを取得（D1から復元も試みる）
+    const db = c.env?.DB
+    let session = await getOrCreateSession(db, sessionId)
+    
+    console.log('🤖 Session found:', !!session)
+    console.log('🤖 EssaySession exists:', !!(session && session.essaySession))
+    console.log('🤖 All sessions in memory:', Array.from(learningSessions.keys()))
+    
+    if (!session || !session.essaySession) {
+      console.error('❌ Session not found:', sessionId)
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません。ページをリフレッシュして再度お試しください。',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    // OCR結果を取得
+    const ocrResults = session.essaySession.ocrResults
+    if (!ocrResults || ocrResults.length === 0) {
+      return c.json({
+        ok: false,
+        error: 'no_ocr_data',
+        message: 'OCR結果が見つかりません。先に原稿を撮影してください。',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    const latestOCR = ocrResults[ocrResults.length - 1]
+    const essayText = latestOCR.text || ''
+    
+    // OpenAI APIキーを取得
+    const openaiApiKey = c.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY
+    
+    // モックフィードバック（開発環境用・APIキーがない場合）
+    if (!openaiApiKey) {
+      console.warn('⚠️ OPENAI_API_KEY not found - using mock feedback')
+      console.log('📝 Essay text for mock:', essayText.substring(0, 100) + '...')
+      
+      const actualCharCount = latestOCR.charCount || essayText.length
+      const targetMin = 400
+      const targetMax = 600
+      
+      // 実際の文字数に基づいてフィードバックを調整
+      let charCountFeedback = ''
+      let scoreAdjustment = 0
+      
+      if (actualCharCount < targetMin) {
+        charCountFeedback = `文字数が${actualCharCount}字と、指定の${targetMin}〜${targetMax}字に達していません。各段落をもう少し詳しく展開してください。`
+        scoreAdjustment = -10
+      } else if (actualCharCount > targetMax) {
+        charCountFeedback = `文字数が${actualCharCount}字と、指定の${targetMin}〜${targetMax}字を超えています。要点を絞って簡潔に書きましょう。`
+        scoreAdjustment = -5
+      } else {
+        charCountFeedback = `文字数が${actualCharCount}字と、指定の${targetMin}〜${targetMax}字の範囲内に収まっています。`
+        scoreAdjustment = 5
+      }
+      
+      const mockFeedback = {
+        goodPoints: [
+          '小論文の課題に真剣に取り組んでいる姿勢が伝わってきます。',
+          '文章全体の構成を意識して書こうとしている点が評価できます。',
+          '自分の考えを述べようとする姿勢が見られます。'
+        ],
+        improvements: [
+          '序論・本論・結論の構成をより明確にすると、論理的な展開になります。',
+          '具体例をもう1〜2つ追加すると、説得力が増します。',
+          charCountFeedback
+        ],
+        exampleImprovement: '【改善例】\n「SNSは便利だが、問題もある。」\n↓\n「SNSは情報共有の利便性という大きなメリットを持つ一方で、誤情報の拡散やプライバシー侵害といった深刻な課題も抱えている。」\n\n（このように、抽象的な表現を具体的に展開しましょう）',
+        nextSteps: [
+          '次回は、具体例を2つ以上含めて、それぞれ詳しく説明してみましょう。',
+          '序論で問題提起、本論で具体例、結論で自分の意見という構成を意識しましょう。',
+          '「なぜそう言えるのか」という理由づけを丁寧に書いてみましょう。'
+        ],
+        overallScore: Math.max(50, Math.min(90, 70 + scoreAdjustment)),
+        charCount: actualCharCount,
+        isMock: true
+      }
+      
+      // セッションに保存
+      if (!session.essaySession.feedbacks) {
+        session.essaySession.feedbacks = []
+      }
+      session.essaySession.feedbacks.push({
+        ...mockFeedback,
+        createdAt: new Date().toISOString(),
+        isMock: true
+      })
+      
+      // インメモリとD1の両方を更新
+      await updateSession(db, sessionId, { essaySession: session.essaySession })
+      
+      return c.json({
+        ok: true,
+        feedback: mockFeedback,
+        timestamp: new Date().toISOString()
+      }, 200)
+    }
+    
+    // 実際のOpenAI APIを使用
+    console.log('🤖 Calling OpenAI API for feedback...')
+    console.log('📝 Essay text length:', essayText.length, 'chars')
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + openaiApiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `あなたは経験豊富な小論文指導の専門家です。生徒の小論文を読んで、建設的で具体的なフィードバックを提供してください。
+
+【評価基準】
+- 論理構成（序論・本論・結論のバランス）
+- 具体例の質と数
+- 文章の明確さ
+- 語彙の適切さ
+- 文字数（目標: 400〜600字）
+
+【重要】以下のJSON形式で必ず返してください。他の文章は含めないでください：
+{
+  "goodPoints": ["良い点1", "良い点2", "良い点3"],
+  "improvements": ["改善点1", "改善点2", "改善点3"],
+  "exampleImprovement": "【改善例】\\n「元の文」\\n↓\\n「改善後の文」\\n\\n（このように具体的な書き直し例を示す）",
+  "nextSteps": ["次のアクション1", "次のアクション2", "次のアクション3"],
+  "overallScore": 85
+}
+
+【注意点】
+- goodPoints: 必ず3つ、具体的に褒める
+- improvements: 必ず3つ、改善方法も含める
+- exampleImprovement: 実際の文章から1箇所を選んで改善例を示す
+- nextSteps: 今後の学習で取り組むべき具体的なアクション3つ
+- overallScore: 0-100の整数
+
+生徒を励ましつつ、実践的で具体的なアドバイスを心がけてください。`
+          },
+          {
+            role: 'user',
+            content: `以下の小論文を添削してください。
+
+【課題】SNSが社会に与える影響について、あなたの考えを述べなさい（400〜600字）
+
+【小論文】
+${essayText}
+
+【文字数】${essayText.length}字`
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ OpenAI API error:', errorText)
+      return c.json({
+        ok: false,
+        error: 'openai_error',
+        message: 'AI添削でエラーが発生しました',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    const data = await response.json()
+    console.log('🤖 OpenAI response received')
+    
+    const aiResponse = data.choices[0].message.content
+    console.log('🤖 AI response content:', aiResponse.substring(0, 100) + '...')
+    
+    let feedback
+    try {
+      // response_format: json_object を使っているので、直接パース可能
+      feedback = JSON.parse(aiResponse)
+      
+      // バリデーション: 必須フィールドの確認
+      if (!feedback.goodPoints || !Array.isArray(feedback.goodPoints)) {
+        console.warn('⚠️ Missing or invalid goodPoints, using defaults')
+        feedback.goodPoints = ['小論文に取り組んだ姿勢が素晴らしいです。']
+      }
+      if (!feedback.improvements || !Array.isArray(feedback.improvements)) {
+        console.warn('⚠️ Missing or invalid improvements, using defaults')
+        feedback.improvements = ['さらに詳しく展開してみましょう。']
+      }
+      if (!feedback.exampleImprovement) {
+        console.warn('⚠️ Missing exampleImprovement, using default')
+        feedback.exampleImprovement = '具体例を追加することで、説得力が増します。'
+      }
+      if (!feedback.nextSteps || !Array.isArray(feedback.nextSteps)) {
+        console.warn('⚠️ Missing or invalid nextSteps, using defaults')
+        feedback.nextSteps = ['次回も頑張りましょう。']
+      }
+      if (typeof feedback.overallScore !== 'number') {
+        console.warn('⚠️ Invalid overallScore, using default')
+        feedback.overallScore = 70
+      }
+      
+      // 文字数を追加（OCR結果から取得）
+      feedback.charCount = latestOCR.charCount || essayText.length
+      
+      console.log('✅ Feedback validated successfully')
+      
+    } catch (parseError) {
+      console.error('❌ Failed to parse feedback:', parseError)
+      console.error('❌ AI response was:', aiResponse)
+      
+      // パースエラー時はモックフィードバックを返す
+      console.warn('⚠️ Falling back to mock feedback due to parse error')
+      feedback = {
+        goodPoints: [
+          '小論文に真剣に取り組んでいる姿勢が伝わってきます。',
+          '文章の構成を意識して書こうとしている点が良いです。',
+          '具体的な内容を含めようと努力している点が評価できます。'
+        ],
+        improvements: [
+          'より詳しい展開を心がけると、説得力が増します。',
+          '具体例をもう少し詳しく説明すると良いでしょう。',
+          '結論部分で自分の意見をより明確に述べましょう。'
+        ],
+        exampleImprovement: '具体例を追加して、論理的な展開を心がけましょう。',
+        nextSteps: [
+          '次回は文字数を意識して書きましょう。',
+          '具体例を2つ以上含めるよう心がけましょう。',
+          '序論・本論・結論の構成を明確にしましょう。'
+        ],
+        overallScore: 65,
+        charCount: latestOCR.charCount || essayText.length,
+        isFallback: true
+      }
+    }
+    
+    // セッションに保存
+    if (!session.essaySession.feedbacks) {
+      session.essaySession.feedbacks = []
+    }
+    session.essaySession.feedbacks.push({
+      ...feedback,
+      createdAt: new Date().toISOString()
+    })
+    
+    // インメモリとD1の両方を更新
+    await updateSession(db, sessionId, { essaySession: session.essaySession })
+    
+    console.log('✅ AI feedback completed and saved to D1')
+    
+    return c.json({
+      ok: true,
+      feedback,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Feedback error:', error)
+    return c.json({
+      ok: false,
+      error: 'feedback_error',
+      message: 'AI添削でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 小論文指導 - チャットAPI
+app.post('/api/essay/chat', async (c) => {
+  console.log('📝 Essay chat API called')
+  
+  try {
+    const { sessionId, message, currentStep } = await c.req.json()
+    console.log('📝 Received:', { sessionId, message, currentStep })
+    
+    if (!sessionId || !message) {
+      console.log('❌ Missing parameters')
+      return c.json({
+        ok: false,
+        error: 'missing_parameters',
+        message: '必要なパラメータが不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッションデータを取得してカスタムテーマを使用
+    const db = c.env?.DB
+    const session = await getOrCreateSession(db, sessionId)
+    
+    if (!session || !session.essaySession) {
+      console.error('❌ Essay session not found:', sessionId)
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    const essaySession = session.essaySession
+    const problemMode = essaySession?.problemMode || 'ai'
+    const customInput = essaySession?.customInput || null
+    const learningStyle = essaySession?.learningStyle || 'auto'
+    const targetLevel = essaySession?.targetLevel || 'high_school'
+    
+    console.log('📝 Essay chat - Session data:', { 
+      sessionId, 
+      problemMode, 
+      customInput, 
+      learningStyle, 
+      targetLevel,
+      currentStep,
+      message: message.substring(0, 50)
+    })
+    
+    // Session data validation
+    if (!problemMode) {
+      console.warn('⚠️ problemMode is missing in session')
+    }
+    if (!customInput && (problemMode === 'theme' || problemMode === 'problem')) {
+      console.warn('⚠️ customInput is missing but problemMode is:', problemMode)
+    }
+    
+    let response = ''
+    let stepCompleted = false
+    
+    // ステップごとの簡易応答
+    if (currentStep === 1) {
+      console.log('📝 Step 1 processing, message:', message)
+      
+      // 画像がアップロードされたかチェック（OCR処理済みの回答）
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 1)
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+      
+      // OCR結果がある場合、AI添削を実行
+      if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
+        console.log('📝 Step 1: OCR confirmed, generating feedback...')
+        
+        try {
+          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const latestOCR = step1OCRs[step1OCRs.length - 1]
+          const essayText = latestOCR.text || ''
+          
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          // 質問を取得（セッションに保存されているはず）
+          const themeTitle = session.essaySession.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対して手書きで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${essayText}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 feedback error:', error)
+          response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
+      }
+      // 画像アップロードがあった場合
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n読み取り結果が表示されたら、内容を確認して「確認完了」と入力してください。修正が必要な場合は、正しいテキストを入力して送信してください。'
+      }
+      // パス機能
+      else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        console.log('✅ Matched: パス')
+        
+        // セッションから読み物と質問を取得
+        const themeContent = session?.essaySession?.lastThemeContent || ''
+        const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'このテーマ'
+        
+        // AIで模範解答を生成
+        let passAnswer = `【模範解答】\n1. ${themeTitle}は現代社会において重要なテーマです。基本的な知識を学ぶことが大切です。\n2. ${themeTitle}に関連して、様々な影響や課題が考えられます。\n3. ${themeTitle}について、自分なりの意見を持ち、行動することが重要です。`
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput && themeContent) {
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for pass answer!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🤖 Generating model answer for pass...')
+            console.log('📚 Theme content available:', themeContent.length, 'characters')
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒が「パス」を選択したので、読み物の内容に基づいた模範解答を提供してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+生徒への質問（これらに答える必要があります）:
+1. ${themeTitle}の基本的な概念や定義について
+2. ${themeTitle}に関する現代社会における問題点や課題
+3. ${themeTitle}について、自分自身の考えや意見
+
+要求:
+- 3つの質問すべてに答える
+- 読み物の内容に基づいた具体的な解答
+- 小論文で使うような丁寧な文体（「です・ます」調）
+- 各解答は2-3文程度
+- 番号付きリストで出力
+- 解答のみで説明は不要
+
+出力形式：
+【模範解答】
+1. （1つ目の質問への解答：読み物に書かれている基本概念や定義）
+2. （2つ目の質問への解答：読み物に書かれている問題点や課題）
+3. （3つ目の質問への解答：テーマについての意見や考察）`
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '模範解答を生成してください。' }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (pass answer):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (pass answer):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedAnswer = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated pass answer length:', generatedAnswer.length)
+            
+            if (generatedAnswer && generatedAnswer.length > 50) {
+              passAnswer = generatedAnswer
+              console.log('✅ Using AI-generated model answer')
+            } else {
+              console.warn('⚠️ AI answer too short, using fallback')
+            }
+            
+          } catch (error) {
+            console.error('❌ Pass answer generation error:', error)
+            console.log('🔄 Using fallback pass answer')
+          }
+        }
+        
+        response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+        stepCompleted = true
+      }
+      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
+      else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('✅ Matched: Long answer - generating feedback')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 text feedback')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対してテキストで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+- 質問への適切な回答
+- 文章の明確さと論理性
+- 小論文らしい丁寧な文体
+- 具体性と説得力
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 text feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${message}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 text feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Step 1 text feedback generated')
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Step 1 text feedback error:', error)
+          response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
+      }
+      // 「読んだ」
+      else if (message.includes('読んだ') || message.includes('読みました')) {
+        console.log('✅ Matched: 読んだ')
+        
+        // デバッグ情報をログ出力
+        console.log('🔍 Step 1 Questions Generation - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput,
+          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && !!customInput,
+          condition_problem: problemMode === 'problem' && !!customInput
+        })
+        
+        // カスタムテーマに基づいた質問を生成
+        let questions = '1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。'
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          console.log('✅ Generating questions for theme:', customInput)
+          
+          // セッションから読み物を取得
+          const themeContent = session?.essaySession?.lastThemeContent || ''
+          
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for questions!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status (questions):', openaiApiKey ? 'Present' : 'Missing')
+            
+            // 学習スタイルに応じた質問形式の調整
+            let questionStyleInstruction = ''
+            if (learningStyle === 'example') {
+              questionStyleInstruction = '\n- 質問1と2では具体例を挙げて答えやすい形式にする\n- 「〜の例を挙げて説明してください」のような形式を含める'
+            } else if (learningStyle === 'explanation') {
+              questionStyleInstruction = '\n- 理論的な理解を問う質問を重視\n- 「なぜ〜なのか説明してください」「〜の背景について論じてください」のような形式を含める'
+            } else {
+              questionStyleInstruction = '\n- 理解度確認と意見表明のバランスを取る'
+            }
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
+
+テーマ: ${customInput}
+
+読み物の内容:
+${themeContent}
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
+
+要求:
+- 読み物の内容に直接関連した質問を3つ作成
+- 質問1: 読み物で説明されている基本的な概念や定義を問う（読み物に書かれている内容から答えられる）
+- 質問2: 読み物で述べられている問題点や影響、背景を問う（読み物に書かれている内容から答えられる）
+- 質問3: テーマについての自分自身の考えや意見を問う（読み物を踏まえた上での自分の意見）${questionStyleInstruction}
+- 番号付きリスト形式で出力（1. 2. 3.）
+- 質問のみで説明は不要
+- 読み物を読めば答えられる質問にすること（質問1と2は特に重要）`
+            
+            console.log('🤖 Calling OpenAI API for questions generation...')
+            console.log('📋 System prompt length (questions):', systemPrompt.length)
+            console.log('📄 Theme content length:', themeContent?.length || 0)
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '質問を3つ生成してください。' }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (questions):', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response (questions):', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
+            const result = await response.json()
+            console.log('✅ OpenAI API call successful for questions')
+            console.log('📊 API result structure (questions):', Object.keys(result))
+            
+            const generatedQuestions = result.choices?.[0]?.message?.content || ''
+            console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
+            console.log('📚 Learning style applied to questions:', learningStyle)
+            console.log('📝 Generated questions preview:', generatedQuestions?.substring(0, 200) || 'EMPTY')
+            
+            if (generatedQuestions && generatedQuestions.length > 20) {
+              questions = generatedQuestions
+              console.log('✅ Using AI-generated questions with learning style')
+            } else {
+              // AI応答が短すぎる場合もカスタムテーマを使ったフォールバック
+              questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+              console.warn('⚠️ AI questions too short (length: ' + (generatedQuestions?.length || 0) + '), using custom fallback')
+            }
+          } catch (error) {
+            console.error('❌ Questions generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
+            // エラー時もカスタムテーマを使ったフォールバック
+            questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+            console.log('🔄 Using error fallback with custom theme')
+          }
+        } else if (problemMode === 'problem' && customInput) {
+          // 問題文が与えられている場合は、その問題について確認
+          questions = `問題文を確認しました。\n\n問題: ${customInput.substring(0, 200)}${customInput.length > 200 ? '...' : ''}\n\nこの問題について考えを整理してから書き始めましょう。`
+        }
+        
+        response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
+      }
+      // 「OK」のみ
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('✅ Matched: OK/はい')
+        
+        // カスタムテーマに基づいた問題を生成
+        let themeTitle = '環境問題'
+        let themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
+        
+        // デバッグ情報をログ出力
+        console.log('🔍 Step 1 Theme Generation - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput,
+          condition_theme: problemMode === 'theme' && !!customInput,
+          condition_problem: problemMode === 'problem' && !!customInput
+        })
+        
+        // セッションデータが不正な場合の警告
+        if ((problemMode === 'theme' || problemMode === 'problem') && !customInput) {
+          console.error('❌ CRITICAL: customInput is missing! Session may be from before fixes.')
+          response = `⚠️ セッションデータに問題があります。\n\nこのセッションは古いデータの可能性があります。\n「新しいセッション」ボタンを押して、もう一度最初からやり直してください。\n\n（デバッグ情報: problemMode=${problemMode}, customInput=${customInput ? 'exists' : 'missing'}）`
+          return c.json({ ok: true, response, stepCompleted: false })
+        }
+        
+        if (problemMode === 'theme' && customInput) {
+          // ユーザーが入力したテーマを使用
+          themeTitle = customInput
+          console.log('✅ Generating theme content for:', customInput)
+          
+          // AIでテーマに関する読み物を生成
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
+            
+            // 学習スタイルに応じた指示を追加
+            let styleInstruction = ''
+            if (learningStyle === 'example') {
+              styleInstruction = '\n- 具体的な事例を多く含める（歴史的事例、現代の事例など）\n- 解説は簡潔に、事例を中心に構成'
+            } else if (learningStyle === 'explanation') {
+              styleInstruction = '\n- 理論的な説明を詳しく含める\n- 概念の定義や背景を丁寧に説明\n- 因果関係や論理展開を明確に'
+            } else {
+              styleInstruction = '\n- 事例と解説をバランスよく含める\n- 理解しやすさを重視'
+            }
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、生徒が小論文を書くための基礎知識となる読み物を作成してください。
+
+テーマ: ${customInput}
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
+
+要求:
+- 500〜800文字程度の読み物
+- テーマの基本的な概念・定義を含める
+- 歴史的背景や現状を説明
+- 関連する問題点や課題を提示
+- 社会的な意義や影響を説明${styleInstruction}
+- 専門用語は必要に応じて使用し、わかりやすく説明
+- 問いかけは含めず、情報提供に徹する
+- この読み物を読めば、後の質問に答えられる知識が得られる内容にする
+
+生徒はこの読み物を読んだ後、以下のような質問に答えることになります：
+1. ${customInput}の基本的な概念や定義について
+2. ${customInput}に関する現代社会における問題点や課題
+3. ${customInput}について、自分自身の考えや意見
+
+これらの質問に答えるための十分な情報を含めてください。`
+            
+            console.log('🤖 Calling OpenAI API for theme content generation...')
+            console.log('📋 System prompt length:', systemPrompt.length)
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '読み物を作成してください。' }
+                ],
+                max_tokens: 1500,
+                temperature: 0.7
+              })
+            })
+            
+            console.log('📡 OpenAI API response status:', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response:', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
+            const result = await response.json()
+            console.log('✅ OpenAI API call successful')
+            console.log('📊 API result structure:', Object.keys(result))
+            
+            const generatedText = result.choices?.[0]?.message?.content || ''
+            console.log('📊 AI Generated text length:', generatedText?.length || 0)
+            console.log('📚 Learning style applied:', learningStyle)
+            console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
+            
+            // 生成されたテキストが50文字以上あれば使用（200文字の条件を緩和）
+            if (generatedText && generatedText.length > 50) {
+              themeContent = generatedText
+              console.log('✅ Using AI-generated theme content with learning style')
+            } else {
+              // AIが短すぎる場合でもカスタムテーマを使ったフォールバック
+              themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
+              console.warn('⚠️ AI text too short (length: ' + (generatedText?.length || 0) + '), using custom fallback')
+            }
+          } catch (error) {
+            console.error('❌ Theme generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
+            // エラー時もカスタムテーマを使ったフォールバック
+            themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
+            console.log('🔄 Using error fallback with custom theme')
+          }
+        } else if (problemMode === 'problem' && customInput) {
+          // ユーザーが問題文を入力した場合、その問題からテーマを抽出
+          const match = customInput.match(/(.{1,20}?)について/)
+          if (match) {
+            themeTitle = match[1]
+          }
+          themeContent = `今回取り組む問題:\n${customInput.substring(0, 150)}${customInput.length > 150 ? '...' : ''}`
+        }
+        
+        // 読み物をセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.lastThemeContent = themeContent
+          session.essaySession.lastThemeTitle = themeTitle
+          learningSessions.set(sessionId, session)
+          await saveSessionToDB(db, sessionId, session)
+          console.log('✅ Theme content saved to session')
+        }
+        
+        response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
+      }
+      // 回答が短すぎる
+      else {
+        console.log('⚠️ Answer too short')
+        response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
+      }
+    } else if (currentStep === 2) {
+      // ステップ2: 語彙力強化
+      // パス機能
+      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        response = 'わかりました。解答例をお見せしますね。\n\n【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
+      else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        response = '素晴らしい言い換えですね！\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      // 「OK」または「はい」で演習開始
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('🔍 Step 2 Vocab Generation - Starting')
+        
+        // 毎回違う語彙力強化問題を生成
+        let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?'
+        let vocabExample = '「すごく大事」→「極めて重要」'
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for vocab!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const timestamp = Date.now() // 毎回違う問題を生成
+          console.log('✅ Generating vocab problems with timestamp:', timestamp)
+          console.log('🔑 OpenAI API Key status (vocab):', openaiApiKey ? 'Present' : 'Missing')
+          
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を3つ作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+タイムスタンプ: ${timestamp}
+
+要求:
+- よく使う口語表現を3つ選ぶ（例：「すごく」「やっぱり」「だから」など）
+- 番号付きリスト形式で出力：「1. 「口語表現」→ ?」
+- 小論文でよく使う格調高い表現への言い換え問題
+- 毎回異なる表現を出題すること
+- 問題のみを出力（解答は含めない）
+- 最後に1つ目の例を提示：「例：「すごい」→「非常に」」のような形式
+
+出力形式：
+1. 「口語表現1」→ ?
+2. 「口語表現2」→ ?
+3. 「口語表現3」→ ?
+
+例：「口語表現の例」→「小論文風の表現」`
+          
+          console.log('🤖 Calling OpenAI API for vocab problems...')
+          
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題を3つ生成してください。' }
+              ],
+              max_tokens: 300,
+              temperature: 0.8
+            })
+          })
+          
+          console.log('📡 OpenAI API response status (vocab):', response.status)
+          
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('❌ OpenAI API error response (vocab):', errorText)
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+          }
+          
+          const result = await response.json()
+          console.log('✅ OpenAI API call successful for vocab problems')
+          
+          const generated = result.choices?.[0]?.message?.content || ''
+          console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          console.log('📝 Generated vocab preview:', generated?.substring(0, 200) || 'EMPTY')
+          
+          if (generated && generated.length > 20) {
+            // 例を抽出
+            const exampleMatch = generated.match(/例[：:]\s*(.+)/)
+            if (exampleMatch) {
+              vocabExample = exampleMatch[1].trim()
+              // 例の部分を削除
+              vocabProblems = generated.replace(/例[：:].*\n?/, '').trim()
+            } else {
+              vocabProblems = generated.trim()
+            }
+            console.log('✅ Using AI-generated vocab problems')
+          } else {
+            console.warn('⚠️ AI vocab too short, using fallback')
+          }
+        } catch (error) {
+          console.error('❌ Vocab problems generation error:', error)
+          console.log('🔄 Using fallback vocab problems')
+        }
+        
+        // すぐに語彙問題を表示
+        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+      }
+      // 回答が短すぎる
+      else {
+        response = '回答が短すぎるようです。\n\n3つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n（わからない場合は「パス」と入力すると解答例を見られます）'
+      }
+    } else if (currentStep === 3) {
+      // ステップ3: 短文演習（AI添削付き）
+      
+      // 長い回答（200字以上）が送られてきた場合 → AI添削実行
+      if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('📝 Step 3: Received short essay for feedback')
+        console.log('📏 Essay length:', message.length, 'characters')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for short essay!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          console.log('🤖 Calling OpenAI API for short essay feedback...')
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
+
+【評価基準】
+- 論理構成（主張→理由→具体例→結論）
+- 文章の明確さと説得力
+- 語彙の適切さ
+- 文字数（目標: 200字前後）
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 75,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の短文小論文を添削してください。\n\n【小論文】\n${message}\n\n【文字数】${message.length}字` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (short essay):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const data = await response_api.json()
+          const feedback = JSON.parse(data.choices[0].message.content)
+          
+          console.log('✅ Short essay feedback generated')
+          
+          // フィードバックを整形して表示
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+        } catch (error) {
+          console.error('❌ Short essay feedback error:', error)
+          response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
+        }
+      }
+      // OKまたは「はい」で課題提示
+      else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
+        console.log('🔍 Step 3 Short Essay - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput
+        })
+        
+        // カスタムテーマに基づいた短文問題を生成
+        let shortProblem = '環境問題について、200字程度で小論文を書いてください。'
+        
+        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          shortProblem = `${customInput}について、200字程度で小論文を書いてください。`
+          console.log('✅ Using custom theme for short essay:', customInput)
+        } else if (problemMode === 'problem' && customInput) {
+          // 問題文がある場合は、そのまま使用
+          shortProblem = customInput
+          console.log('✅ Using custom problem for short essay')
+        } else {
+          console.warn('⚠️ Using fallback short essay problem')
+        }
+        
+        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n書き終えたら、この入力エリアにそのまま入力して送信してください。AIが添削します。`
+      }
+      // 短すぎる回答
+      else {
+        response = '短文小論文は150字以上で書いてください。\n\n主張→理由→具体例→結論の構成を意識しましょう。\n\n書き終えたら、この入力エリアに入力して送信してください。'
+      }
+    } else if (currentStep === 4) {
+      // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
+      // セッションを取得
+      const session = learningSessions.get(sessionId)
+      
+      // 画像がアップロードされたかチェック
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 4)
+      
+      // OCR結果があるかチェック
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.length > 0
+      
+      // 添削完了フラグをチェック
+      const hasFeedback = session && session.essaySession && session.essaySession.feedbacks && 
+                          session.essaySession.feedbacks.length > 0
+      
+      if (message.includes('次へ') || message.includes('完了')) {
+        // 添削完了後、次のステップへ
+        response = '本練習のステップを完了しました！\n\nAI添削のフィードバックを確認していただきました。\n次のステップでは、さらに難しいテーマのチャレンジ問題に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      else if (message.includes('確認完了') || message.includes('これで完了')) {
+        // OCR確認完了 → すぐにAI添削を実行
+        if (!hasOCR) {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        } else {
+          response = 'OCR内容を確認しました。\n\nAI添削を実行中です。少々お待ちください...'
+          // クライアント側でAI添削APIを呼び出すフラグを返す
+        }
+      }
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
+        // ユーザーが修正したテキストを入力した場合
+        // OCR結果を修正版で上書き
+        if (session && session.essaySession && session.essaySession.ocrResults) {
+          const latestOCR = session.essaySession.ocrResults[session.essaySession.ocrResults.length - 1]
+          
+          // 修正後のテキストを保存
+          session.essaySession.ocrResults.push({
+            ...latestOCR,
+            text: message,
+            charCount: message.length,
+            processedAt: new Date().toISOString(),
+            isCorrected: true
+          })
+          
+          // インメモリとD1の両方を更新
+          const db = c.env?.DB
+          await updateSession(db, sessionId, { essaySession: session.essaySession })
+          console.log('✏️ OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
+          
+          response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+        } else {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        }
+      }
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
+      }
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('🔍 Step 4 Main Practice - Conditions:', {
+          problemMode,
+          customInput,
+          hasCustomInput: !!customInput
+        })
+        
+        // カスタムテーマに基づいた本練習問題を生成
+        let mainProblem = 'SNSが社会に与える影響について、あなたの考えを述べなさい'
+        let charCount = '400〜600字'
+        
+        if (problemMode === 'problem' && customInput) {
+          // ユーザーが問題文を入力した場合、そのまま使用
+          mainProblem = customInput
+          console.log('✅ Using custom problem text directly')
+          // 文字数を抽出
+          const charMatch = customInput.match(/(\d+).*?字/)
+          if (charMatch) {
+            charCount = charMatch[0]
+          }
+        } else if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
+          console.log('✅ Generating detailed problem from theme:', customInput)
+          // テーマから具体的な問題を生成
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for Step 4 problem!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            const wordCount = targetLevel === 'high_school' ? '400字' : targetLevel === 'vocational' ? '500字' : '600字'
+            
+            console.log('🚀 Generating Step 4 main problem with OpenAI')
+            console.log('🔑 OpenAI API Key status (Step 4):', openaiApiKey ? 'Present' : 'Missing')
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
+
+テーマ: ${customInput}
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+文字数: ${wordCount}
+
+要求:
+- 問題文は具体的な状況や論点を含める
+- 単に「〇〇について」ではなく、「〇〇において□□は△△だが、あなたは...」のような具体性
+- 賛否が分かれるテーマ、または多面的な思考が必要な問題
+- 「あなたの考えを述べなさい」で締める
+- 問題文のみ（条件や説明は不要）
+- 60文字以上150文字以内`
+            
+            console.log('🤖 Calling OpenAI API for Step 4 main problem...')
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: '本格的な小論文問題を1つ作成してください。' }
+                ],
+                max_tokens: 300,
+                temperature: 0.8
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (Step 4):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error response (Step 4):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
+            }
+            
+            const result = await response_api.json()
+            console.log('✅ OpenAI API call successful for Step 4 problem')
+            
+            const generatedProblem = result.choices?.[0]?.message?.content || ''
+            console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
+            console.log('📝 Generated problem preview:', generatedProblem?.substring(0, 100) || 'EMPTY')
+            
+            if (generatedProblem && generatedProblem.length > 10) {
+              mainProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+              console.log('✅ Using OpenAI-generated problem for Step 4')
+            } else {
+              mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
+              console.warn('⚠️ AI problem too short, using custom fallback')
+            }
+            charCount = wordCount
+          } catch (error) {
+            console.error('❌ Step 4 problem generation error:', error)
+            console.error('❌ Error details:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            })
+            mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
+            console.log('🔄 Using error fallback with custom theme')
+          }
+        } else {
+          console.warn('⚠️ Using fallback main problem (no custom input)')
+        }
+        
+        response = `【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「${mainProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります`
+      }
+      else {
+        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+      }
+    } else if (currentStep === 5) {
+      // ステップ5: チャレンジ問題（新しいテーマの小論文）
+      const session = learningSessions.get(sessionId)
+      
+      // 画像がアップロードされたかチェック
+      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
+                       session.essaySession.uploadedImages.some(img => img.step === 5)
+      
+      // このステップのOCR結果があるかチェック（Step 5用の新しい原稿）
+      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
+                     session.essaySession.ocrResults.some(ocr => ocr.step === 5)
+      
+      if (message.includes('次へ') || message.includes('完了')) {
+        response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+      }
+      else if (message.includes('確認完了') || message.includes('これで完了')) {
+        // OCR確認完了 → AI添削を実行
+        if (!hasOCR) {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        } else {
+          response = 'OCR内容を確認しました。\n\nAI添削を実行中です。少々お待ちください...'
+        }
+      }
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
+        // ユーザーが修正したテキストを入力した場合
+        if (session && session.essaySession && session.essaySession.ocrResults) {
+          const step5OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 5)
+          if (step5OCRs.length > 0) {
+            const latestOCR = step5OCRs[step5OCRs.length - 1]
+            
+            // 修正後のテキストを保存
+            session.essaySession.ocrResults.push({
+              ...latestOCR,
+              text: message,
+              charCount: message.length,
+              processedAt: new Date().toISOString(),
+              isCorrected: true,
+              step: 5
+            })
+            
+            // インメモリとD1の両方を更新
+            const db = c.env?.DB
+            await updateSession(db, sessionId, { essaySession: session.essaySession })
+            console.log('✏️ Step 5 OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
+            
+            response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+          } else {
+            response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+          }
+        } else {
+          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+        }
+      }
+      else if (hasImage) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n（画像が表示され、読み取り結果が自動で表示されます）'
+      }
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        // チャレンジ問題は毎回違う問題を生成（customInputに関連するが、より難易度の高い問題）
+        let challengeProblem = '人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい'
+        let charCount = '500〜800字'
+        
+        if (problemMode === 'problem' && customInput) {
+          // ユーザーが問題文を入力した場合、そのまま使用
+          challengeProblem = customInput
+          const charMatch = customInput.match(/(\d+).*?字/)
+          if (charMatch) {
+            charCount = charMatch[0]
+          }
+        } else {
+          // カスタムテーマまたはAIモードの場合、毎回違う高難度問題を生成
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for challenge problem!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            const baseTheme = (problemMode === 'theme' && customInput) ? customInput : '社会問題'
+            const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
+            const timestamp = Date.now() // 毎回違う問題を生成するため
+            
+            console.log('🚀 Generating challenge problem for:', baseTheme)
+            console.log('🔑 OpenAI API Key status (challenge):', openaiApiKey ? 'Present' : 'Missing')
+            
+            const systemPrompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
+
+ベーステーマ: ${baseTheme}
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+文字数: ${wordCount}
+タイムスタンプ: ${timestamp}
+
+要求:
+- ベーステーマに関連するが、より深い思考を要する問題
+- 多角的な視点が必要な問題（メリット・デメリット、賛成・反対など）
+- 現代社会の課題に関連する問題
+- 問題文は1〜2文で簡潔に
+- 「〜について、あなたの考えを述べなさい」という形式で終わる
+- 賛否両論があるテーマを選ぶ
+- 毎回異なる問題になるよう、具体的な論点を変える
+- 問題文のみを出力（説明や条件は含めない）
+
+出力例：
+「人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい」`
+            
+            console.log('🤖 Calling OpenAI API for challenge problem...')
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: 'チャレンジ問題を1つ生成してください。' }
+                ],
+                max_tokens: 200,
+                temperature: 0.9
+              })
+            })
+            
+            console.log('📡 OpenAI API response status (challenge):', response_api.status)
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (challenge):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const result = await response_api.json()
+            const generatedProblem = result.choices?.[0]?.message?.content || ''
+            
+            console.log('📝 Generated challenge problem:', generatedProblem)
+            
+            if (generatedProblem && generatedProblem.length > 10) {
+              challengeProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+              console.log('✅ Using AI-generated challenge problem')
+            } else {
+              console.warn('⚠️ AI challenge problem too short, using fallback')
+            }
+            charCount = wordCount
+          } catch (error) {
+            console.error('❌ Challenge problem generation error:', error)
+            if (problemMode === 'theme' && customInput) {
+              challengeProblem = `${customInput}の将来的な課題と解決策について、あなたの考えを述べなさい`
+            }
+          }
+        }
+        
+        response = `【チャレンジ問題】\nさらに難しいテーマの小論文に挑戦しましょう。\n\n＜課題＞\n「${challengeProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（メリット・デメリット）→結論（自分の意見）\n- 具体例を3つ以上含めること\n- 客観的なデータや事例を引用すること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります`
+      }
+      else {
+        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+      }
+    } else {
+      response = 'ステップ' + currentStep + 'の内容は準備中です。「完了」と入力して次に進んでください。'
+      if (message.includes('完了')) {
+        stepCompleted = true
+      }
+    }
+    
+    // ステップ完了時にセッションを更新
+    if (stepCompleted && session && session.essaySession) {
+      session.essaySession.stepStatus = session.essaySession.stepStatus || {}
+      session.essaySession.stepStatus[currentStep] = 'completed'
+      session.essaySession.currentStep = currentStep
+      
+      // インメモリとD1の両方を更新
+      learningSessions.set(sessionId, session)
+      await saveSessionToDB(db, sessionId, session)
+      console.log('✅ Session updated for step completion:', currentStep)
+    } else if (session && session.essaySession) {
+      // ステップ完了していなくても、currentStepを更新
+      session.essaySession.currentStep = currentStep
+      learningSessions.set(sessionId, session)
+      await saveSessionToDB(db, sessionId, session)
+      console.log('📝 Session currentStep updated:', currentStep)
+    }
+    
+    console.log('📝 Essay chat response for step ' + currentStep)
+    console.log('📤 Sending response:', { response: response.substring(0, 50) + '...', stepCompleted })
+    
+    return c.json({
+      ok: true,
+      response,
+      stepCompleted,
+      timestamp: new Date().toISOString()
+    }, 200)
+    
+  } catch (error) {
+    console.error('❌ Essay chat error:', error)
+    return c.json({
+      ok: false,
+      error: 'chat_error',
+      message: 'チャット処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
 
 // AI質問ウインドウ用ページ
 app.get('/ai-chat/:sessionId', (c) => {
@@ -938,21 +3642,18 @@ app.get('/ai-chat/:sessionId', (c) => {
         
         .image-controls {
           display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
+          gap: 0.5rem;
           margin-bottom: 1rem;
         }
         
         .image-btn {
-          width: 100%;
-          padding: 0.875rem 1rem;
+          padding: 0.5rem 1rem;
           background: #f1f5f9;
           border: 1px solid #cbd5e1;
           border-radius: 0.5rem;
           cursor: pointer;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: #475569;
-          text-align: center;
         }
         
         .image-btn:hover {
@@ -2378,586 +5079,6 @@ app.post('/api/ai-chat-image', async (c) => {
 })
 
 // ==========================================
-// International Student API エンドポイント（テキスト）
-// ==========================================
-app.post('/api/international-chat', async (c) => {
-  try {
-    const { sessionId, question } = await c.req.json()
-    
-    console.log('🌍 International Chat API: Received request')
-    console.log('📍 Session ID:', sessionId)
-    console.log('❓ Question:', question)
-    
-    const db = c.env?.DB
-    
-    // OpenAI APIキーを環境変数から取得
-    const openaiApiKey = c.env.OPENAI_API_KEY
-    
-    if (!openaiApiKey) {
-      console.error('❌ OPENAI_API_KEY not found in environment')
-      return c.json({ 
-        ok: false, 
-        message: 'OpenAI APIキーが設定されていません' 
-      })
-    }
-    
-    // Import database functions dynamically
-    const { 
-      getOrCreateInternationalSession,
-      saveConversationMessage,
-      getConversationHistory,
-      updateInternationalSession,
-      formatHistoryForOpenAI
-    } = await import('./services/international-database')
-    
-    // セッションを取得または作成（DBがある場合のみ）
-    if (db) {
-      try {
-        await getOrCreateInternationalSession(db, sessionId)
-      } catch (dbError) {
-        console.warn('⚠️ DB operation failed, continuing without history:', dbError)
-      }
-    }
-    
-    // 会話履歴を取得（DBがある場合のみ）
-    let conversationHistory: any[] = []
-    if (db) {
-      try {
-        const history = await getConversationHistory(db, sessionId, 10)
-        conversationHistory = history
-        console.log(`📚 Retrieved ${history.length} messages from conversation history for session:`, sessionId)
-        if (history.length > 0) {
-          console.log('📝 First message:', history[0].content.substring(0, 100))
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Failed to get conversation history:', dbError)
-        console.error('Database error details:', dbError)
-      }
-    } else {
-      console.warn('⚠️ No database available - conversation history disabled')
-    }
-    
-    const systemPrompt = `You are a learning support AI for international students (middle school level). Follow these rules STRICTLY and EXACTLY:
-
-【CRITICAL MATH RENDERING RULES - MUST FOLLOW】
-ABSOLUTELY NEVER use these:
-- \\( or \\) for inline math - FORBIDDEN
-- \\[ or \\] for display math - FORBIDDEN
-
-ALWAYS use these instead:
-- Inline math: $formula$ (single dollar signs)
-- Display math: $$formula$$ (double dollar signs)
-- Example: Use $$x^2 + y^2 = z^2$$ NOT \\[x^2 + y^2 = z^2\\]
-- Example: Use $x = 5$ NOT \\(x = 5\\)
-
-【CONVERSATION FLOW - MANDATORY - NO EXCEPTIONS】
-
-STEP 1: When user asks a NEW question (not "REQUEST PRACTICE PROBLEM")
-→ Provide detailed EXPLANATION in both languages
-→ ALWAYS end EVERY explanation with this EXACT section:
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-STEP 2a: If user asks a FOLLOW-UP question
-→ Answer the question clearly in both languages
-→ ALWAYS end with the SAME "NEXT ACTION" section above
-
-STEP 2b: If message starts with "REQUEST PRACTICE PROBLEM"
-→ SEARCH conversation history for the ORIGINAL problem
-→ Generate practice problem with IDENTICAL topic/type
-→ ONLY change numbers/names, keep everything else the same
-
-STEP 3: If message starts with "ANSWER SUBMISSION"
-→ Grade the student's answer in both languages
-→ Provide detailed feedback
-→ ALWAYS end with the "NEXT ACTION" section
-
-【CRITICAL: PRACTICE PROBLEM GENERATION - MUST MATCH ORIGINAL】
-When you see "REQUEST PRACTICE PROBLEM":
-1. LOOK BACK at conversation history
-2. FIND the ORIGINAL problem (the first question the student asked)
-3. IDENTIFY its topic: geometry? algebra? word problem? functions?
-4. Generate practice problem with:
-   ✅ EXACT SAME topic (geometry → geometry, NOT equation)
-   ✅ EXACT SAME type (proof → proof, NOT calculation)
-   ✅ EXACT SAME difficulty level
-   ✅ ONLY change: numbers, variable names, object names
-   ❌ NEVER change: topic, method, concept, structure
-
-Examples of CORRECT practice problems:
-- Original: "Prove triangle congruence using SAS"
-  Practice: "Prove triangle congruence using SAS" ✅
-- Original: "Find curve equation with absolute value"
-  Practice: "Find curve equation with absolute value" ✅
-- Original: "Solve quadratic equation"
-  Practice: "Solve quadratic equation" ✅
-
-Examples of WRONG practice problems (NEVER DO THIS):
-- Original: "Prove triangle congruence"
-  Practice: "Solve equation 3x + 5 = 14" ❌ WRONG TOPIC!
-- Original: "Find absolute value curve"
-  Practice: "Calculate derivative" ❌ WRONG TOPIC!
-
-【RESPONSE FORMAT - MANDATORY】
-
-For EXPLANATION (after answering a question):
----ENGLISH---
-[Detailed step-by-step explanation in English]
-
----日本語---
-[Detailed step-by-step explanation in Japanese]
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-For PRACTICE PROBLEM:
----PRACTICE PROBLEM / 類題---
-[Problem in English]
-
-[Problem in Japanese]
-
-For GRADING:
----GRADING / 採点---
-[Feedback in English]
-
-[Feedback in Japanese]
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-【IMPORTANT REMINDERS】
-- ALWAYS include "NEXT ACTION" section after explanations and grading
-- ALWAYS use $$ and $ for math, NEVER \\( \\) or \\[ \\]
-- ALWAYS match practice problem topic to original question
-- Be encouraging, clear, and supportive in both languages`
-    
-    // 会話履歴をOpenAI形式に変換
-    const messages = formatHistoryForOpenAI(conversationHistory, systemPrompt)
-    
-    // 新しいユーザーメッセージを追加
-    messages.push({
-      role: 'user',
-      content: question
-    })
-    
-    // OpenAI APIを呼び出し（バイリンガル対応）
-    console.log('🔄 Calling OpenAI API with', messages.length, 'messages (including history)...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ OpenAI API error:', response.status, errorText)
-      return c.json({ 
-        ok: false, 
-        message: `OpenAI APIエラー: ${response.status}` 
-      })
-    }
-    
-    const data = await response.json()
-    const answer = data.choices[0].message.content
-    
-    console.log('✅ OpenAI API bilingual response received')
-    console.log('💬 Answer:', answer.substring(0, 150) + '...')
-    
-    // 会話履歴を保存（DBがある場合のみ）
-    if (db) {
-      try {
-        // ユーザーメッセージを保存
-        await saveConversationMessage(db, sessionId, {
-          role: 'user',
-          content: question
-        })
-        
-        // AIレスポンスを保存
-        await saveConversationMessage(db, sessionId, {
-          role: 'assistant',
-          content: answer
-        })
-        
-        // 類題が生成された場合、セッション情報を更新
-        if (answer.includes('---PRACTICE PROBLEM')) {
-          await updateInternationalSession(db, sessionId, {
-            lastProblem: answer
-          })
-        }
-        
-        // 新しい質問の場合、セッション情報を更新
-        if (!question.startsWith('REQUEST PRACTICE PROBLEM') && 
-            !question.startsWith('ANSWER SUBMISSION')) {
-          await updateInternationalSession(db, sessionId, {
-            lastQuestion: question
-          })
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Failed to save conversation:', dbError)
-      }
-    }
-    
-    return c.json({ 
-      ok: true, 
-      answer: answer 
-    })
-    
-  } catch (error) {
-    console.error('❌ International Chat API error:', error)
-    return c.json({ 
-      ok: false, 
-      message: 'サーバーエラーが発生しました' 
-    })
-  }
-})
-
-// ==========================================
-// International Student API エンドポイント（画像）
-// ==========================================
-app.post('/api/international-chat-image', async (c) => {
-  try {
-    console.log('🌍📸 International Chat Image API: Received request')
-    
-    // FormDataから画像とテキストを取得
-    let formData
-    try {
-      formData = await c.req.formData()
-      console.log('✅ FormData parsed successfully')
-    } catch (formError) {
-      console.error('❌ FormData parsing error:', formError)
-      return c.json({ 
-        ok: false, 
-        message: 'FormDataの解析に失敗しました' 
-      })
-    }
-    
-    const image = formData.get('image') as File | null
-    const sessionId = formData.get('sessionId') as string
-    const message = formData.get('message') as string
-    
-    console.log('📍 Session ID:', sessionId)
-    console.log('💬 Message:', message)
-    console.log('🖼️ Image:', image ? `${image.name} (${image.size} bytes)` : 'none')
-    
-    if (!image) {
-      console.error('❌ No image found in FormData')
-      return c.json({ 
-        ok: false, 
-        message: '画像が見つかりません' 
-      })
-    }
-    
-    const db = c.env?.DB
-    
-    // OpenAI APIキーを環境変数から取得
-    const openaiApiKey = c.env.OPENAI_API_KEY
-    
-    if (!openaiApiKey) {
-      console.error('❌ OPENAI_API_KEY not found in environment')
-      return c.json({ 
-        ok: false, 
-        message: 'OpenAI APIキーが設定されていません' 
-      })
-    }
-    
-    // Import database functions dynamically
-    const { 
-      getOrCreateInternationalSession,
-      saveConversationMessage,
-      getConversationHistory,
-      updateInternationalSession
-    } = await import('./services/international-database')
-    
-    // セッションを取得または作成（DBがある場合のみ）
-    if (db) {
-      try {
-        await getOrCreateInternationalSession(db, sessionId)
-      } catch (dbError) {
-        console.warn('⚠️ DB operation failed, continuing without history:', dbError)
-      }
-    }
-    
-    // 会話履歴を取得（DBがある場合のみ）
-    let conversationHistory: any[] = []
-    if (db) {
-      try {
-        const history = await getConversationHistory(db, sessionId, 8) // Fewer messages for image API
-        conversationHistory = history
-      } catch (dbError) {
-        console.warn('⚠️ Failed to get conversation history:', dbError)
-      }
-    }
-    
-    // 画像をBase64に変換（最適化された方法）
-    console.log('🔄 Converting image to base64...')
-    let base64Image
-    try {
-      const arrayBuffer = await image.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      
-      // チャンクごとに変換してメモリ効率を改善
-      let binary = ''
-      const chunkSize = 8192
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length))
-        binary += String.fromCharCode.apply(null, Array.from(chunk))
-      }
-      base64Image = btoa(binary)
-      
-      console.log('✅ Image converted to base64 (length:', base64Image.length, ')')
-    } catch (conversionError) {
-      console.error('❌ Image conversion error:', conversionError)
-      return c.json({ 
-        ok: false, 
-        message: '画像の変換に失敗しました' 
-      })
-    }
-    
-    const systemPrompt = `You are a learning support AI for international students (middle school level). Follow these rules STRICTLY and EXACTLY:
-
-【CRITICAL MATH RENDERING RULES - MUST FOLLOW】
-ABSOLUTELY NEVER use these:
-- \\( or \\) for inline math - FORBIDDEN
-- \\[ or \\] for display math - FORBIDDEN
-
-ALWAYS use these instead:
-- Inline math: $formula$ (single dollar signs)
-- Display math: $$formula$$ (double dollar signs)
-- Example: Use $$x^2 + y^2 = z^2$$ NOT \\[x^2 + y^2 = z^2\\]
-- Example: Use $x = 5$ NOT \\(x = 5\\)
-
-【IMAGE ANALYSIS】
-- Carefully analyze the image content first
-- Identify: equations, graphs, maps, text documents, diagrams, geometry figures, etc.
-- Describe what you see in the image
-
-【CONVERSATION FLOW - MANDATORY - NO EXCEPTIONS】
-
-STEP 1: When user asks a NEW question (not "REQUEST PRACTICE PROBLEM")
-→ Provide detailed EXPLANATION in both languages
-→ ALWAYS end EVERY explanation with this EXACT section:
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-STEP 2a: If user asks a FOLLOW-UP question
-→ Answer the question clearly in both languages
-→ ALWAYS end with the SAME "NEXT ACTION" section above
-
-STEP 2b: If message starts with "REQUEST PRACTICE PROBLEM"
-→ SEARCH conversation history for the ORIGINAL problem
-→ Generate practice problem with IDENTICAL topic/type
-→ ONLY change numbers/names, keep everything else the same
-
-STEP 3: If message starts with "ANSWER SUBMISSION"
-→ Grade the student's answer in both languages
-→ Provide detailed feedback
-→ ALWAYS end with the "NEXT ACTION" section
-
-【CRITICAL: PRACTICE PROBLEM GENERATION - MUST MATCH ORIGINAL】
-When you see "REQUEST PRACTICE PROBLEM":
-1. LOOK BACK at conversation history
-2. FIND the ORIGINAL problem (the first question the student asked)
-3. IDENTIFY its topic: geometry? algebra? word problem? functions?
-4. Generate practice problem with:
-   ✅ EXACT SAME topic (geometry → geometry, NOT equation)
-   ✅ EXACT SAME type (proof → proof, NOT calculation)
-   ✅ EXACT SAME difficulty level
-   ✅ ONLY change: numbers, variable names, object names
-   ❌ NEVER change: topic, method, concept, structure
-
-Examples of CORRECT practice problems:
-- Original: "Prove triangle congruence using SAS"
-  Practice: "Prove triangle congruence using SAS" ✅
-- Original: "Find curve equation with absolute value"
-  Practice: "Find curve equation with absolute value" ✅
-- Original: "Solve quadratic equation"
-  Practice: "Solve quadratic equation" ✅
-
-Examples of WRONG practice problems (NEVER DO THIS):
-- Original: "Prove triangle congruence"
-  Practice: "Solve equation 3x + 5 = 14" ❌ WRONG TOPIC!
-- Original: "Find absolute value curve"
-  Practice: "Calculate derivative" ❌ WRONG TOPIC!
-
-【RESPONSE FORMAT - MANDATORY】
-
-For EXPLANATION (after answering a question):
----ENGLISH---
-[Detailed step-by-step explanation in English]
-
----日本語---
-[Detailed step-by-step explanation in Japanese]
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-For PRACTICE PROBLEM:
----PRACTICE PROBLEM / 類題---
-[Problem in English]
-
-[Problem in Japanese]
-
-For GRADING:
----GRADING / 採点---
-[Feedback in English]
-
-[Feedback in Japanese]
-
----NEXT ACTION / 次のアクション---
-If you have any questions, please type them. To try a practice problem, click the Practice button.
-何か疑問点があれば質問を入力してください。類題をやってみたいときは、類題ボタンを押してください。
-
-【IMPORTANT REMINDERS】
-- ALWAYS include "NEXT ACTION" section after explanations and grading
-- ALWAYS use $$ and $ for math, NEVER \\( \\) or \\[ \\]
-- ALWAYS match practice problem topic to original question
-- Be encouraging, clear, and supportive in both languages`
-    
-    // Build messages array with conversation history
-    const messages: any[] = [
-      {
-        role: 'system',
-        content: systemPrompt
-      }
-    ]
-    
-    // Add conversation history (text-only messages for context)
-    for (const msg of conversationHistory) {
-      if (!msg.hasImage) {
-        messages.push({
-          role: msg.role,
-          content: msg.content
-        })
-      }
-    }
-    
-    // Add current user message with image
-    messages.push({
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: message || '画像の内容を説明してください。 / Please explain the content of this image.'
-        },
-        {
-          type: 'image_url',
-          image_url: {
-            url: `data:image/jpeg;base64,${base64Image}`,
-            detail: 'high'
-          }
-        }
-      ]
-    })
-    
-    // OpenAI Vision APIを呼び出し（バイリンガル対応）
-    console.log('🔄 Calling OpenAI Vision API with', messages.length, 'messages (including history)...')
-    let response
-    try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 2000
-        })
-      })
-      
-      console.log('✅ OpenAI Vision API response status:', response.status)
-    } catch (fetchError) {
-      console.error('❌ OpenAI Vision API fetch error:', fetchError)
-      return c.json({ 
-        ok: false, 
-        message: 'OpenAI APIへの接続に失敗しました' 
-      })
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ OpenAI Vision API error:', response.status, errorText)
-      return c.json({ 
-        ok: false, 
-        message: `OpenAI APIエラー: ${response.status}` 
-      })
-    }
-    
-    const data = await response.json()
-    const answer = data.choices[0].message.content
-    
-    console.log('✅ OpenAI Vision API bilingual response received')
-    console.log('💬 Answer:', answer.substring(0, 150) + '...')
-    
-    // 会話履歴を保存（DBがある場合のみ）
-    if (db) {
-      try {
-        // ユーザーメッセージを保存（画像付き）
-        await saveConversationMessage(db, sessionId, {
-          role: 'user',
-          content: message || '画像の内容を説明してください',
-          hasImage: true,
-          imageData: base64Image
-        })
-        
-        // AIレスポンスを保存
-        await saveConversationMessage(db, sessionId, {
-          role: 'assistant',
-          content: answer
-        })
-        
-        // 類題が生成された場合、セッション情報を更新
-        if (answer.includes('---PRACTICE PROBLEM')) {
-          await updateInternationalSession(db, sessionId, {
-            lastProblem: answer
-          })
-        }
-        
-        // 新しい質問の場合、セッション情報を更新
-        if (!message.startsWith('REQUEST PRACTICE PROBLEM') && 
-            !message.startsWith('ANSWER SUBMISSION')) {
-          await updateInternationalSession(db, sessionId, {
-            lastQuestion: message
-          })
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Failed to save conversation:', dbError)
-      }
-    }
-    
-    return c.json({ 
-      ok: true, 
-      answer: answer 
-    })
-    
-  } catch (error) {
-    console.error('❌ International Chat Image API error:', error)
-    console.error('Error details:', error.message, error.stack)
-    return c.json({ 
-      ok: false, 
-      message: `サーバーエラーが発生しました: ${error.message}` 
-    })
-  }
-})
-
-// ==========================================
 // 新しいシンプル版AIチャット (v2)
 // ==========================================
 app.get('/ai-chat-v2/:sessionId', (c) => {
@@ -3723,964 +5844,2652 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
   `)
 })
 
-// ==========================================
-// International Student Page (インター生用)
-// ==========================================
-app.get('/international-student/:sessionId', (c) => {
-  const sessionId = c.req.param('sessionId')
-  console.log('🌍 International Student Page: Requested for session:', sessionId)
+// 小論文指導ページ
+app.get('/essay-coaching', (c) => {
+  console.log('📝 Essay Coaching page requested')
+  
+  // セッションID生成
+  const sessionId = `essay-${Date.now()}-${Math.random().toString(36).substring(7)}`
   
   return c.html(`
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>International Student Learning - KOBEYA</title>
-    <!-- KaTeX for math rendering -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <!-- Cropper.js for image cropping -->
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
-    <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>小論文指導 - KOBEYA</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
         
         body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
+          font-family: 'Noto Sans JP', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          padding: 1rem;
+          color: #333;
         }
         
-        .chat-container {
-            width: 100%;
-            max-width: 900px;
-            height: 90vh;
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          overflow: hidden;
         }
         
-        .chat-header {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
+        .header {
+          background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+          color: white;
+          padding: 2rem;
+          text-align: center;
         }
         
-        .chat-header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+        .header h1 {
+          font-size: 1.75rem;
+          margin-bottom: 0.5rem;
         }
         
-        .chat-header p {
-            font-size: 0.9rem;
-            opacity: 0.9;
+        .header p {
+          opacity: 0.9;
+          font-size: 1rem;
         }
         
-        .chat-messages {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-            background: #f8fafc;
+        .content {
+          padding: 2rem;
         }
         
-        .message {
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            border-radius: 1rem;
-            line-height: 1.8;
-            animation: slideIn 0.3s ease;
+        .setup-section {
+          background: #f8fafc;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
         }
         
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .setup-section h2 {
+          font-size: 1.25rem;
+          margin-bottom: 1rem;
+          color: #374151;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
         
-        .message.user {
-            background: #dbeafe;
-            margin-left: auto;
-            max-width: 80%;
+        .setup-section h2 .step-number {
+          background: #7c3aed;
+          color: white;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.875rem;
+          font-weight: 600;
         }
         
-        .message.ai {
-            background: white;
-            border: 2px solid #e5e7eb;
-            max-width: 100%;
+        .button-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
         }
         
-        .message.ai .language-section {
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
+        .choice-button {
+          padding: 1.25rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 0.75rem;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: left;
         }
         
-        .message.ai .english-section {
-            background: #f0f9ff;
-            border-left: 4px solid #3b82f6;
+        .choice-button:hover {
+          border-color: #7c3aed;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
         }
         
-        .message.ai .japanese-section {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
+        .choice-button.selected {
+          border-color: #7c3aed;
+          background: #f5f3ff;
         }
         
-        .message.ai .practice-section {
-            background: #f0fdf4;
-            border-left: 4px solid #10b981;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
+        .choice-button .title {
+          font-weight: 600;
+          font-size: 1.125rem;
+          margin-bottom: 0.5rem;
+          color: #1f2937;
         }
         
-        .section-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
-            color: #1f2937;
+        .choice-button .description {
+          font-size: 0.875rem;
+          color: #6b7280;
+          line-height: 1.5;
         }
         
-        .loading {
-            text-align: center;
-            color: #6b7280;
-            padding: 2rem;
+        .choice-button .icon {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          display: block;
         }
         
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #10b981;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+        .start-button {
+          width: 100%;
+          padding: 1rem 2rem;
+          background: #7c3aed;
+          color: white;
+          border: none;
+          border-radius: 0.75rem;
+          font-size: 1.125rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1.5rem;
+          display: none;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .start-button:hover {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
         }
         
-        /* Image handling styles */
-        .image-preview-area {
-            display: none;
-            margin: 1rem 0;
-            padding: 1rem;
-            background: white;
-            border-radius: 0.5rem;
-            border: 2px solid #e5e7eb;
-            max-height: 60vh;
-            overflow-y: auto;
+        .start-button.visible {
+          display: block;
         }
         
-        .image-preview-area.active {
-            display: block;
+        .dev-start-button {
+          width: 100%;
+          padding: 1rem 2rem;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          border: 2px dashed rgba(255, 255, 255, 0.3);
+          border-radius: 0.75rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1rem;
+          display: block;
+          opacity: 0.9;
         }
         
-        .preview-image-container {
-            position: relative;
-            max-width: 100%;
-            margin-bottom: 1rem;
-            max-height: 50vh;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .dev-start-button:hover {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+          opacity: 1;
         }
         
-        .preview-image-container img {
-            max-width: 100%;
-            max-height: 50vh;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 0.5rem;
+        .dev-start-button i {
+          margin-right: 0.5rem;
         }
         
-        .preview-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: #f3f4f6;
+          color: #374151;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-bottom: 1.5rem;
         }
         
-        .preview-actions button {
-            flex: 1;
-            min-width: 120px;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+        .back-button:hover {
+          background: #e5e7eb;
         }
         
-        .btn-clear {
-            background: #ef4444;
-            color: white;
+        .hidden {
+          display: none !important;
         }
         
-        .btn-crop {
-            background: #3b82f6;
-            color: white;
+        /* カスタム問題設定用スタイル */
+        .radio-group {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
         
-        .btn-send {
-            background: #10b981;
-            color: white;
+        .radio-option {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 0.75rem;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
         }
         
-        .crop-area {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 1000;
-            padding: 1rem;
-            overflow-y: auto;
+        .radio-option:hover {
+          border-color: #7c3aed;
+          background: #f5f3ff;
         }
         
-        .crop-area.active {
-            display: flex;
-            flex-direction: column;
+        .radio-option.selected {
+          border-color: #7c3aed;
+          background: #f5f3ff;
         }
         
-        .crop-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            min-height: 0;
-            max-height: calc(100vh - 120px);
-            overflow: hidden;
+        .radio-option input[type="radio"] {
+          margin-top: 0.25rem;
         }
         
-        .crop-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+        .radio-label {
+          flex: 1;
         }
         
-        .crop-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 0.5rem;
-            position: sticky;
-            bottom: 0;
+        .radio-title {
+          font-weight: 600;
+          font-size: 1rem;
+          margin-bottom: 0.25rem;
+          color: #1f2937;
         }
         
-        .crop-actions button {
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            font-size: 1rem;
-            cursor: pointer;
+        .radio-description {
+          font-size: 0.875rem;
+          color: #6b7280;
         }
         
-        .chat-input {
-            padding: 1.5rem;
-            background: white;
-            border-top: 1px solid #e5e7eb;
+        .input-area {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 0.5rem;
+          border: 1px solid #e2e8f0;
         }
         
-        .input-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+        .input-area textarea {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.5rem;
+          font-family: 'Noto Sans JP', sans-serif;
+          font-size: 0.875rem;
+          resize: vertical;
+          min-height: 60px;
         }
         
-        .input-buttons button {
-            flex: 1;
-            padding: 0.75rem;
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+        .input-area textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
         
-        .input-buttons button:hover {
-            background: #059669;
+        .char-count {
+          text-align: right;
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin-top: 0.5rem;
         }
         
-        .input-buttons input[type="file"] {
-            display: none;
+        .learning-style-section {
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 2px solid #e2e8f0;
         }
         
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
+        .learning-style-section h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: #374151;
         }
         
-        .input-group textarea {
-            flex: 1;
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-family: inherit;
-            resize: none;
-            min-height: 50px;
-            max-height: 150px;
+        .input-ok-button {
+          display: block;
+          width: 100%;
+          padding: 0.75rem 1.5rem;
+          margin-top: 1rem;
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2);
         }
         
-        .input-group textarea:focus {
-            outline: none;
-            border-color: #10b981;
+        .input-ok-button:hover {
+          background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+          box-shadow: 0 6px 8px rgba(124, 58, 237, 0.3);
+          transform: translateY(-2px);
         }
         
-        .input-group button {
-            padding: 0 2rem;
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+        .input-ok-button:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
         }
-        
-        .input-group button:hover {
-            background: #059669;
-        }
-        
-        .input-group button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-    </style>
-</head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>🌍 International Student Learning / インター生用学習</h1>
-            <p>Ask questions in any language - Get answers in English AND Japanese</p>
-            <p>すべての質問に英語と日本語の両方で回答します</p>
-        </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">
-                <div class="language-section english-section">
-                    <div class="section-title">🇬🇧 Welcome!</div>
-                    <p>Hello! I'm your bilingual learning assistant. Ask me any question about math, English, science, social studies, or any other subject.</p>
-                    <p><strong>How to use:</strong></p>
-                    <ul>
-                        <li>Type your question in the text box</li>
-                        <li>OR take a photo of your textbook/worksheet</li>
-                        <li>OR upload an image file</li>
-                    </ul>
-                    <p>I'll explain in both English and Japanese, then give you a practice problem!</p>
-                </div>
-                <div class="language-section japanese-section">
-                    <div class="section-title">🇯🇵 ようこそ！</div>
-                    <p>こんにちは！私はバイリンガル学習アシスタントです。数学、英語、理科、社会など、どんな教科の質問でも聞いてください。</p>
-                    <p><strong>使い方：</strong></p>
-                    <ul>
-                        <li>テキストボックスに質問を入力</li>
-                        <li>または教科書・プリントの写真を撮影</li>
-                        <li>または画像ファイルをアップロード</li>
-                    </ul>
-                    <p>英語と日本語の両方で説明した後、類題を出します！</p>
-                </div>
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1><i class="fas fa-pen-fancy"></i> 小論文指導</h1>
+                <p>丁寧な指導で、あなたの小論文力を伸ばします</p>
             </div>
-        </div>
-        
-        <div class="chat-input">
-            <!-- Image Preview Area -->
-            <div class="image-preview-area" id="imagePreviewArea">
-                <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f0f9ff; border-radius: 0.375rem; font-size: 0.875rem; color: #1e40af;">
-                    💡 <strong>ヒント：</strong>下のテキスト欄に質問を入力してから送信できます / You can type your question below before sending
-                </div>
-                <div class="preview-image-container">
-                    <img id="previewImage" alt="Preview">
-                </div>
-                <div class="preview-actions">
-                    <button type="button" class="btn-clear" id="btnClearImage">
-                        <i class="fas fa-times"></i> クリア / Clear
-                    </button>
-                    <button type="button" class="btn-crop" id="btnStartCrop">
-                        <i class="fas fa-crop"></i> トリミング / Crop
-                    </button>
-                </div>
+            
+            <div class="content">
+                <button class="back-button" onclick="window.location.href='/study-partner'">
+                    <i class="fas fa-arrow-left"></i> メインページに戻る
+                </button>
                 
-                <!-- Image Question Input -->
-                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        📝 この画像について入力 / Enter text about this image:
-                    </label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <textarea 
-                            id="imageQuestionInput" 
-                            placeholder="質問または解答を入力 / Enter question or answer"
-                            rows="2"
-                            style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 1rem; font-family: inherit; resize: none;"
-                        ></textarea>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button type="button" class="btn-send" id="btnSendQuestion" style="flex: 1; padding: 0.75rem; background: #3b82f6;">
-                            <i class="fas fa-question-circle"></i> 質問する / Ask Question
+                <!-- Step 1: 対象レベル選択 -->
+                <div class="setup-section" id="levelSelection">
+                    <h2>
+                        <span class="step-number">1</span>
+                        対象レベルを選択してください
+                    </h2>
+                    <div class="button-grid">
+                        <button class="choice-button" onclick="selectLevel('high_school', event)">
+                            <span class="icon">🎓</span>
+                            <div class="title">高校入試対策</div>
+                            <div class="description">字数: 200-300字<br>基本構成の習得を重視</div>
                         </button>
-                        <button type="button" class="btn-send" id="btnSubmitAnswer" style="flex: 1; padding: 0.75rem; background: #10b981;">
-                            <i class="fas fa-check-circle"></i> 解答提出 / Submit Answer
+                        <button class="choice-button" onclick="selectLevel('vocational', event)">
+                            <span class="icon">💼</span>
+                            <div class="title">専門学校入試</div>
+                            <div class="description">字数: 300-400字<br>実践性を重視</div>
+                        </button>
+                        <button class="choice-button" onclick="selectLevel('university', event)">
+                            <span class="icon">🏛️</span>
+                            <div class="title">大学入試対策</div>
+                            <div class="description">字数: 400-600字<br>論理の深さを重視</div>
                         </button>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Crop Area -->
-            <div class="crop-area" id="cropArea">
-                <div class="crop-container">
-                    <img id="cropImage" alt="Crop">
+                
+                <!-- Step 2: 問題設定 -->
+                <div class="setup-section hidden" id="problemSetup">
+                    <h2>
+                        <span class="step-number">2</span>
+                        問題設定
+                    </h2>
+                    
+                    <div class="radio-group">
+                        <label class="radio-option" onclick="selectProblemMode('ai', event)">
+                            <input type="radio" name="problemMode" value="ai">
+                            <div class="radio-label">
+                                <div class="radio-title">🤖 AIにお任せ</div>
+                                <div class="radio-description">レベルに応じた最適なテーマをAIが自動選択します</div>
+                            </div>
+                        </label>
+                        
+                        <label class="radio-option" onclick="selectProblemMode('theme', event)">
+                            <input type="radio" name="problemMode" value="theme">
+                            <div class="radio-label">
+                                <div class="radio-title">💡 テーマを入力</div>
+                                <div class="radio-description">学習したいテーマ（環境問題、AI技術など）を入力してください</div>
+                            </div>
+                        </label>
+                        
+                        <label class="radio-option" onclick="selectProblemMode('problem', event)">
+                            <input type="radio" name="problemMode" value="problem">
+                            <div class="radio-label">
+                                <div class="radio-title">📝 問題文を入力</div>
+                                <div class="radio-description">過去問など、具体的な問題文を入力してください</div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <!-- テーマ入力エリア -->
+                    <div class="input-area hidden" id="themeInput">
+                        <label>
+                            <strong>テーマを入力してください</strong>
+                            <textarea id="themeText" maxlength="100" placeholder="例: 医療技術の発展と倫理、少子高齢化社会の課題、グローバル化と文化"></textarea>
+                            <div class="char-count"><span id="themeCharCount">0</span>/100文字</div>
+                        </label>
+                        <button class="input-ok-button" onclick="confirmThemeInput()">✓ OK</button>
+                    </div>
+                    
+                    <!-- 問題文入力エリア -->
+                    <div class="input-area hidden" id="problemInput">
+                        <label>
+                            <strong>問題文を入力してください</strong>
+                            <textarea id="problemText" maxlength="5000" placeholder="例: あなたは将来医療従事者を目指していますが、高齢化が進む日本社会において、医療・看護の専門家にはどのような役割が求められると考えますか。具体的な課題を挙げながら、あなたの考えを400字以内で述べなさい。"></textarea>
+                            <div class="char-count"><span id="problemCharCount">0</span>/5000文字</div>
+                        </label>
+                        <button class="input-ok-button" onclick="confirmProblemInput()">✓ OK</button>
+                    </div>
+                    
+                    <!-- 学習スタイル選択 -->
+                    <div class="learning-style-section hidden" id="learningStyleSection">
+                        <h3>📚 学習スタイルを選んでください</h3>
+                        <div class="button-grid">
+                            <button class="choice-button" onclick="selectLearningStyle('explanation', event)">
+                                <span class="icon">📖</span>
+                                <div class="title">テーマの解説</div>
+                                <div class="description">基礎から理解したい</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('example', event)">
+                                <span class="icon">✨</span>
+                                <div class="title">参考例を見る</div>
+                                <div class="description">良い書き方を真似したい</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('points', event)">
+                                <span class="icon">📋</span>
+                                <div class="title">論点整理</div>
+                                <div class="description">何を書けばいいか迷う</div>
+                            </button>
+                            <button class="choice-button" onclick="selectLearningStyle('auto', event)">
+                                <span class="icon">🤖</span>
+                                <div class="title">AIにお任せ</div>
+                                <div class="description">自動で最適なものを選ぶ</div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="crop-actions">
-                    <button type="button" class="btn-clear" id="btnCancelCrop">
-                        <i class="fas fa-times"></i> キャンセル / Cancel
-                    </button>
-                    <button type="button" class="btn-send" id="btnConfirmCrop">
-                        <i class="fas fa-check"></i> 確定 / Confirm
-                    </button>
+                
+                <!-- Step 3: 授業形式選択 -->
+                <div class="setup-section hidden" id="formatSelection">
+                    <h2>
+                        <span class="step-number">3</span>
+                        授業形式を選択してください
+                    </h2>
+                    <div class="button-grid">
+                        <button class="choice-button" onclick="selectFormat('full_55min', event)">
+                            <span class="icon">📚</span>
+                            <div class="title">55分フル授業</div>
+                            <div class="description">導入→語彙→短文→本練習→チャレンジ→まとめ<br>総合的な学習</div>
+                        </button>
+                        <button class="choice-button" onclick="selectFormat('vocabulary_focus', event)">
+                            <span class="icon">✍️</span>
+                            <div class="title">語彙力強化中心</div>
+                            <div class="description">25分構成<br>多くの語彙を反復練習</div>
+                        </button>
+                        <button class="choice-button" onclick="selectFormat('short_essay_focus', event)">
+                            <span class="icon">📝</span>
+                            <div class="title">短文演習中心</div>
+                            <div class="description">30分構成<br>構成力強化を重視</div>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="input-buttons">
-                <button id="cameraButton" type="button">
-                    <i class="fas fa-camera"></i> カメラ / Camera
+                
+                <!-- 授業開始ボタン -->
+                <button class="start-button" id="startButton" onclick="startLesson()">
+                    <i class="fas fa-play-circle"></i> 授業を開始
                 </button>
-                <button id="fileButton" type="button">
-                    <i class="fas fa-folder-open"></i> ファイル / File
+                
+                <!-- 開発者モードボタン -->
+                <button class="dev-start-button" id="devStartButton" onclick="startDevLesson()">
+                    <i class="fas fa-code"></i> 🛠️ 開発モードで開始（Step 4へ直接ジャンプ）
                 </button>
-            </div>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
-            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-            
-            <div class="input-group">
-                <textarea 
-                    id="messageInput" 
-                    placeholder="質問を入力してください... / Type your question..."
-                    rows="1"
-                ></textarea>
-                <button type="button" id="practiceProblemButton" style="background: #f59e0b; border-radius: 0.5rem; padding: 0.75rem 1rem; border: none; color: white; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
-                    <i class="fas fa-clipboard-list" style="font-size: 1.2rem; margin-bottom: 0.25rem;"></i>
-                    <span style="font-size: 0.85rem;">類題<br>Practice</span>
-                </button>
-                <button type="button" id="sendButton">送信<br>Send</button>
             </div>
         </div>
-    </div>
-    
-    <script>
-        // セッションID
-        const SESSION_ID = ${JSON.stringify(sessionId)};
         
-        // DOM要素
-        const chatMessages = document.getElementById('chatMessages');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const practiceProblemButton = document.getElementById('practiceProblemButton');
+        <script>
+        const sessionId = '${sessionId}';
+        let selectedLevel = null;
+        let selectedProblemMode = null;
+        let customInput = null;
+        let selectedLearningStyle = null;
+        let selectedFormat = null;
         
-        // Camera elements
-        const cameraButton = document.getElementById('cameraButton');
-        const fileButton = document.getElementById('fileButton');
-        const cameraInput = document.getElementById('cameraInput');
-        const fileInput = document.getElementById('fileInput');
-        const imagePreviewArea = document.getElementById('imagePreviewArea');
-        const previewImage = document.getElementById('previewImage');
-        const btnClearImage = document.getElementById('btnClearImage');
-        const btnStartCrop = document.getElementById('btnStartCrop');
-        const imageQuestionInput = document.getElementById('imageQuestionInput');
-        const btnSendQuestion = document.getElementById('btnSendQuestion');
-        const btnSubmitAnswer = document.getElementById('btnSubmitAnswer');
-        const cropArea = document.getElementById('cropArea');
-        const cropImage = document.getElementById('cropImage');
-        const btnCancelCrop = document.getElementById('btnCancelCrop');
-        const btnConfirmCrop = document.getElementById('btnConfirmCrop');
+        // 文字数カウント機能
+        const themeTextarea = document.getElementById('themeText');
+        const problemTextarea = document.getElementById('problemText');
         
-        let cropper = null;
-        let currentImageData = null;
-        
-        // KaTeX delimiters
-        const backslash = String.fromCharCode(92);
-        const leftBracket = backslash + '[';
-        const rightBracket = backslash + ']';
-        
-        // Clean up math notation - convert LaTeX \\( \\) to $ $
-        function cleanupMathNotation(text) {
-            // Replace LaTeX delimiters with standard math delimiters
-            // Using split/join to avoid regex escaping issues
-            text = text.split('\\\\(').join('$');
-            text = text.split('\\\\)').join('$');
-            text = text.split('\\\\[').join('$$');
-            text = text.split('\\\\]').join('$$');
-            return text;
+        if (themeTextarea) {
+            themeTextarea.addEventListener('input', function() {
+                document.getElementById('themeCharCount').textContent = this.value.length;
+            });
         }
         
-        // メッセージを追加
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = \`message \${isUser ? 'user' : 'ai'}\`;
-            
-            if (isUser) {
-                messageDiv.textContent = content;
-            } else {
-                // Clean up math notation BEFORE parsing
-                content = cleanupMathNotation(content);
-                
-                // Parse bilingual response
-                messageDiv.innerHTML = parseBilingualResponse(content);
-                
-                // Render math after adding to DOM
-                setTimeout(() => {
-                    renderMathInElement(messageDiv, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false
-                    });
-                }, 100);
-            }
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (problemTextarea) {
+            problemTextarea.addEventListener('input', function() {
+                document.getElementById('problemCharCount').textContent = this.value.length;
+            });
         }
         
-        // Parse bilingual response into sections
-        function parseBilingualResponse(text) {
-            const sections = {
-                english: '',
-                japanese: '',
-                practice: '',
-                nextAction: '',
-                grading: ''
-            };
+        function selectLevel(level, event) {
+            selectedLevel = level;
             
-            // Split by section markers
-            const englishMatch = text.match(/---ENGLISH---(.*?)(?=---)/s);
-            const japaneseMatch = text.match(/---日本語---(.*?)(?=---)/s);
-            const practiceMatch = text.match(/---PRACTICE PROBLEM.*?---(.*?)(?=---)/s);
-            const nextActionMatch = text.match(/---NEXT ACTION.*?---(.*?)(?=---|$)/s);
-            const gradingMatch = text.match(/---GRADING.*?---(.*?)(?=---)/s);
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#levelSelection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
             
-            if (englishMatch) sections.english = englishMatch[1].trim();
-            if (japaneseMatch) sections.japanese = japaneseMatch[1].trim();
-            if (practiceMatch) sections.practice = practiceMatch[1].trim();
-            if (nextActionMatch) sections.nextAction = nextActionMatch[1].trim();
-            if (gradingMatch) sections.grading = gradingMatch[1].trim();
+            // 次のステップ（問題設定）を表示
+            document.getElementById('problemSetup').classList.remove('hidden');
             
-            let html = '';
-            
-            if (sections.english) {
-                html += \`
-                    <div class="language-section english-section">
-                        <div class="section-title">🇬🇧 English</div>
-                        <div>\${formatText(sections.english)}</div>
-                    </div>
-                \`;
-            }
-            
-            if (sections.japanese) {
-                html += \`
-                    <div class="language-section japanese-section">
-                        <div class="section-title">🇯🇵 日本語</div>
-                        <div>\${formatText(sections.japanese)}</div>
-                    </div>
-                \`;
-            }
-            
-            if (sections.grading) {
-                html += \`
-                    <div class="language-section" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
-                        <div class="section-title">📊 Grading / 採点</div>
-                        <div>\${formatText(sections.grading)}</div>
-                    </div>
-                \`;
-            }
-            
-            if (sections.practice) {
-                html += \`
-                    <div class="practice-section">
-                        <div class="section-title">📝 Practice Problem / 類題</div>
-                        <div>\${formatText(sections.practice)}</div>
-                    </div>
-                \`;
-            }
-            
-            if (sections.nextAction) {
-                html += \`
-                    <div class="language-section" style="background: #f0fdf4; border-left: 4px solid #10b981;">
-                        <div class="section-title">👉 Next Action / 次のアクション</div>
-                        <div>\${formatText(sections.nextAction)}</div>
-                    </div>
-                \`;
-            }
-            
-            // Fallback: if no sections found, show original text
-            if (!html) {
-                html = \`<div>\${formatText(text)}</div>\`;
-            }
-            
-            return html;
+            console.log('Selected level:', level);
         }
         
-        // Format text (preserve line breaks)
-        function formatText(text) {
-            return text
-                .split('\\n')
-                .map(line => line.trim())
-                .filter(line => line)
-                .join('<br>');
-        }
-        
-        // ローディングメッセージ
-        function showLoading() {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'message ai loading';
-            loadingDiv.id = 'loadingMessage';
-            loadingDiv.innerHTML = \`
-                <div class="spinner"></div>
-                <p>Thinking... 考え中...</p>
-            \`;
-            chatMessages.appendChild(loadingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function hideLoading() {
-            const loading = document.getElementById('loadingMessage');
-            if (loading) loading.remove();
-        }
-        
-        // テキストメッセージ送信
-        async function sendTextMessage() {
-            const question = messageInput.value.trim();
-            if (!question) return;
+        function selectProblemMode(mode, event) {
+            selectedProblemMode = mode;
             
-            addMessage(question, true);
-            messageInput.value = '';
-            showLoading();
+            // ラジオボタンの選択状態を更新
+            document.querySelectorAll('.radio-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.target.closest('.radio-option').classList.add('selected');
             
+            // 対応する入力エリアを表示/非表示
+            document.getElementById('themeInput').classList.add('hidden');
+            document.getElementById('problemInput').classList.add('hidden');
+            document.getElementById('learningStyleSection').classList.add('hidden');
+            document.getElementById('formatSelection').classList.add('hidden');
+            
+            if (mode === 'theme') {
+                document.getElementById('themeInput').classList.remove('hidden');
+                // 学習スタイルとフォーマット選択はOKボタン後に表示
+            } else if (mode === 'problem') {
+                document.getElementById('problemInput').classList.remove('hidden');
+                // 学習スタイルとフォーマット選択はOKボタン後に表示
+            } else if (mode === 'ai') {
+                // AIにお任せの場合はすぐに次のステップへ
+                document.getElementById('learningStyleSection').classList.remove('hidden');
+                document.getElementById('formatSelection').classList.remove('hidden');
+            }
+            
+            console.log('Selected problem mode:', mode);
+        }
+        
+        function confirmThemeInput() {
+            const themeText = document.getElementById('themeText').value.trim();
+            if (!themeText) {
+                alert('テーマを入力してください');
+                return;
+            }
+            // 学習スタイルとフォーマット選択を表示
+            document.getElementById('learningStyleSection').classList.remove('hidden');
+            document.getElementById('formatSelection').classList.remove('hidden');
+            console.log('Theme confirmed:', themeText);
+        }
+        
+        function confirmProblemInput() {
+            const problemText = document.getElementById('problemText').value.trim();
+            if (!problemText) {
+                alert('問題文を入力してください');
+                return;
+            }
+            // 学習スタイルとフォーマット選択を表示
+            document.getElementById('learningStyleSection').classList.remove('hidden');
+            document.getElementById('formatSelection').classList.remove('hidden');
+            console.log('Problem confirmed:', problemText);
+        }
+        
+        function selectLearningStyle(style, event) {
+            selectedLearningStyle = style;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#learningStyleSection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
+            
+            console.log('Selected learning style:', style);
+        }
+        
+        function selectFormat(format, event) {
+            selectedFormat = format;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('#formatSelection .choice-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.choice-button').classList.add('selected');
+            
+            // 開始ボタンを表示
+            document.getElementById('startButton').classList.add('visible');
+            
+            console.log('Selected format:', format);
+        }
+        
+        async function startLesson() {
+            if (!selectedLevel || !selectedFormat || !selectedProblemMode) {
+                alert('すべての項目を選択してください');
+                return;
+            }
+            
+            // テーマまたは問題文の取得
+            if (selectedProblemMode === 'theme') {
+                customInput = document.getElementById('themeText').value.trim();
+                if (!customInput) {
+                    alert('テーマを入力してください');
+                    return;
+                }
+            } else if (selectedProblemMode === 'problem') {
+                customInput = document.getElementById('problemText').value.trim();
+                if (!customInput) {
+                    alert('問題文を入力してください');
+                    return;
+                }
+            }
+            
+            // 学習スタイルが選択されているか確認（AIにお任せ以外の場合）
+            if (selectedProblemMode !== 'ai' && !selectedLearningStyle) {
+                alert('学習スタイルを選択してください');
+                return;
+            }
+            
+            console.log('Starting lesson:', { 
+                sessionId, 
+                selectedLevel, 
+                selectedProblemMode, 
+                customInput,
+                selectedLearningStyle,
+                selectedFormat 
+            });
+            
+            // セッション初期化API呼び出し
             try {
-                const response = await fetch('/api/international-chat', {
+                const response = await fetch('/api/essay/init-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sessionId: SESSION_ID,
-                        question: question
+                        sessionId,
+                        targetLevel: selectedLevel,
+                        lessonFormat: selectedFormat,
+                        problemMode: selectedProblemMode,
+                        customInput: customInput || null,
+                        learningStyle: selectedLearningStyle || 'auto'
                     })
                 });
                 
-                const data = await response.json();
-                hideLoading();
+                const result = await response.json();
                 
-                if (data.ok) {
-                    addMessage(data.answer);
+                if (result.ok) {
+                    // 授業ページに遷移
+                    window.location.href = '/essay-coaching/session/' + sessionId;
                 } else {
-                    addMessage('Error: ' + (data.message || 'Unknown error'));
+                    alert('セッションの初期化に失敗しました: ' + result.message);
                 }
             } catch (error) {
-                hideLoading();
-                addMessage('Error: Failed to send message / メッセージの送信に失敗しました');
-                console.error(error);
+                console.error('Session init error:', error);
+                alert('エラーが発生しました。もう一度お試しください。');
             }
         }
         
-        // 類題リクエスト送信
-        async function requestPracticeProblem() {
-            const practiceRequest = 'REQUEST PRACTICE PROBLEM: 類題をお願いします / Please give me a practice problem';
+        async function startDevLesson() {
+            // 開発者モード：レベル・形式選択なしで開始
+            const defaultLevel = 'high_school';
+            const defaultFormat = 'individual';
             
-            addMessage('📝 類題をリクエストしました / Requesting practice problem...', true);
-            showLoading();
+            console.log('🛠️ Starting in DEVELOPER MODE:', { sessionId, defaultLevel, defaultFormat });
             
+            // セッション初期化API呼び出し
             try {
-                const response = await fetch('/api/international-chat', {
+                const response = await fetch('/api/essay/init-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sessionId: SESSION_ID,
-                        question: practiceRequest
+                        sessionId,
+                        targetLevel: defaultLevel,
+                        lessonFormat: defaultFormat
                     })
                 });
                 
-                const data = await response.json();
-                hideLoading();
+                const result = await response.json();
                 
-                if (data.ok) {
-                    addMessage(data.answer);
+                if (result.ok) {
+                    // 授業ページに開発者モードパラメータ付きで遷移
+                    window.location.href = '/essay-coaching/session/' + sessionId + '?dev=true&debug=true';
                 } else {
-                    addMessage('Error: ' + (data.message || 'Unknown error'));
+                    alert('セッションの初期化に失敗しました: ' + result.message);
                 }
             } catch (error) {
-                hideLoading();
-                addMessage('Error: Failed to send message / メッセージの送信に失敗しました');
-                console.error(error);
+                console.error('Session init error:', error);
+                alert('エラーが発生しました。もう一度お試しください。');
             }
         }
-        
-        // 画像メッセージ送信
-        async function sendImageMessage(imageFile, messageText = '') {
-            showLoading();
-            
-            try {
-                const formData = new FormData();
-                formData.append('image', imageFile, imageFile.name || 'image.jpg');
-                formData.append('sessionId', SESSION_ID);
-                formData.append('message', messageText || 'この画像について説明してください / Please explain this image');
-                
-                const response = await fetch('/api/international-chat-image', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                hideLoading();
-                
-                if (data.ok) {
-                    addMessage(data.answer);
-                } else {
-                    addMessage('Error: ' + (data.message || 'Unknown error'));
-                }
-            } catch (error) {
-                hideLoading();
-                addMessage('Error: Failed to send image / 画像の送信に失敗しました');
-                console.error(error);
-            }
-        }
-        
-        // Image handling
-        function handleImageSelect(file) {
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImage.src = e.target.result;
-                currentImageData = file;
-                imagePreviewArea.classList.add('active');
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        function clearImage() {
-            previewImage.src = '';
-            currentImageData = null;
-            imagePreviewArea.classList.remove('active');
-            cameraInput.value = '';
-            fileInput.value = '';
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-        }
-        
-        function startCrop() {
-            cropImage.src = previewImage.src;
-            cropArea.classList.add('active');
-            
-            setTimeout(() => {
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(cropImage, {
-                    aspectRatio: NaN,
-                    viewMode: 1,
-                    autoCropArea: 1
-                });
-            }, 100);
-        }
-        
-        function cancelCrop() {
-            cropArea.classList.remove('active');
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-        }
-        
-        function confirmCrop() {
-            if (!cropper) return;
-            
-            cropper.getCroppedCanvas().toBlob((blob) => {
-                const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
-                currentImageData = croppedFile;
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    previewImage.src = e.target.result;
-                };
-                reader.readAsDataURL(croppedFile);
-                
-                cancelCrop();
-            }, 'image/jpeg');
-        }
-        
-        async function sendImageAsQuestion() {
-            if (!currentImageData) return;
-            
-            // Save image data before clearing
-            const imageData = currentImageData;
-            const messageText = imageQuestionInput.value.trim() || 'この問題を教えてください';
-            
-            // Add prefix to indicate this is a question
-            const questionText = messageText;
-            
-            addMessage(\`[Image sent] \${questionText}\`, true);
-            imageQuestionInput.value = '';
-            clearImage();
-            
-            await sendImageMessage(imageData, questionText);
-        }
-        
-        async function sendImageAsAnswer() {
-            if (!currentImageData) return;
-            
-            // Save image data before clearing
-            const imageData = currentImageData;
-            const messageText = imageQuestionInput.value.trim();
-            
-            // Add prefix to indicate this is an answer submission
-            const answerText = 'ANSWER SUBMISSION / 解答提出: ' + (messageText || '画像の解答を確認してください');
-            
-            addMessage('[Answer submitted] ' + (messageText || '解答画像'), true);
-            imageQuestionInput.value = '';
-            clearImage();
-            
-            await sendImageMessage(imageData, answerText);
-        }
-        
-        // Event listeners - with debug logging
-        console.log('🔧 Setting up event listeners...');
-        
-        if (sendButton) {
-            sendButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('📤 Send button clicked');
-                sendTextMessage();
-            });
-            console.log('✅ Send button listener added');
-        }
-        
-        if (practiceProblemButton) {
-            practiceProblemButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('📝 Practice button clicked');
-                requestPracticeProblem();
-            });
-            console.log('✅ Practice button listener added');
-        }
-        
-        if (messageInput) {
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendTextMessage();
-                }
-            });
-        }
-        
-        if (cameraButton && cameraInput) {
-            cameraButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('📷 Camera button clicked');
-                cameraInput.click();
-            });
-            console.log('✅ Camera button listener added');
-        }
-        
-        if (fileButton && fileInput) {
-            fileButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('📁 File button clicked');
-                fileInput.click();
-            });
-            console.log('✅ File button listener added');
-        }
-        
-        if (cameraInput) {
-            cameraInput.addEventListener('change', (e) => {
-                console.log('📷 Camera input changed');
-                handleImageSelect(e.target.files[0]);
-            });
-        }
-        
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                console.log('📁 File input changed');
-                handleImageSelect(e.target.files[0]);
-            });
-        }
-        
-        if (btnClearImage) btnClearImage.addEventListener('click', clearImage);
-        if (btnStartCrop) btnStartCrop.addEventListener('click', startCrop);
-        if (btnSendQuestion) {
-            btnSendQuestion.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('❓ Send question button clicked');
-                sendImageAsQuestion();
-            });
-        }
-        if (btnSubmitAnswer) {
-            btnSubmitAnswer.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('✅ Submit answer button clicked');
-                sendImageAsAnswer();
-            });
-        }
-        if (btnCancelCrop) btnCancelCrop.addEventListener('click', cancelCrop);
-        if (btnConfirmCrop) btnConfirmCrop.addEventListener('click', confirmCrop);
-        
-        console.log('✅ All event listeners set up');
-        
-        // Auto-resize textarea
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
-        });
-        
-        // Auto-resize image question textarea
-        imageQuestionInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
-    </script>
-</body>
-</html>
+        </script>
+    </body>
+    </html>
   `)
 })
 
-// 小論文指導ページ
-
 // 小論文指導 - 授業セッションページ
+app.get('/essay-coaching/session/:sessionId', async (c) => {
+  const sessionId = c.req.param('sessionId')
+  console.log('📝 Essay session page requested:', sessionId)
+  
+  // セッション情報を取得（D1から復元も試みる）
+  const db = c.env?.DB
+  const session = await getOrCreateSession(db, sessionId)
+  if (!session || !session.essaySession) {
+    return c.html('<h1>セッションが見つかりません</h1><p>セッションIDが無効か、有効期限が切れている可能性があります。</p><a href="/essay-coaching">新しいセッションを開始</a>')
+  }
+  
+  const essaySession = session.essaySession
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>小論文授業 - KOBEYA</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <!-- Eruda Mobile Console (for debugging on mobile/tablet) -->
+        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+        <script>
+          // URLパラメータで ?debug=true または 画面幅が1024px以下の場合に有効化
+          const urlParams = new URLSearchParams(window.location.search);
+          const isDebugMode = urlParams.get('debug') === 'true';
+          const isMobile = window.innerWidth < 1024;
+          
+          if (isDebugMode || isMobile) {
+            eruda.init();
+            console.log('🐛 Eruda mobile console initialized');
+          }
+        </script>
+        
+        <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Noto Sans JP', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          padding: 1rem;
+          color: #333;
+        }
+        
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          overflow: hidden;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+          color: white;
+          padding: 1.5rem 2rem;
+        }
+        
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+        
+        .header h1 {
+          font-size: 1.5rem;
+        }
+        
+        .session-info {
+          font-size: 0.875rem;
+          opacity: 0.9;
+        }
+        
+        /* ステップ進捗バー */
+        .progress-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0;
+          margin-top: 1rem;
+        }
+        
+        .step {
+          flex: 1;
+          text-align: center;
+          position: relative;
+        }
+        
+        .step::before {
+          content: '';
+          position: absolute;
+          top: 15px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: rgba(255,255,255,0.3);
+          z-index: 0;
+        }
+        
+        .step:first-child::before {
+          left: 50%;
+        }
+        
+        .step:last-child::before {
+          right: 50%;
+        }
+        
+        .step-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.3);
+          border: 2px solid rgba(255,255,255,0.5);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          position: relative;
+          z-index: 1;
+          margin-bottom: 0.5rem;
+        }
+        
+        .step.completed .step-circle {
+          background: #10b981;
+          border-color: #10b981;
+          color: white;
+        }
+        
+        .step.current .step-circle {
+          background: white;
+          color: #7c3aed;
+          border-color: white;
+          box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
+        }
+        
+        .step-label {
+          font-size: 0.75rem;
+          color: rgba(255,255,255,0.8);
+        }
+        
+        .step.current .step-label {
+          color: white;
+          font-weight: 600;
+        }
+        
+        .content {
+          padding: 2rem;
+        }
+        
+        .chat-section {
+          background: #f9fafb;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .messages {
+          min-height: 300px;
+          max-height: 500px;
+          overflow-y: auto;
+          margin-bottom: 1rem;
+        }
+        
+        .message {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding: 1rem;
+          border-radius: 0.75rem;
+        }
+        
+        .message.teacher {
+          background: #ede9fe;
+          border-left: 4px solid #7c3aed;
+        }
+        
+        .message.student {
+          background: white;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .message .icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+        
+        .input-area {
+          display: flex;
+          gap: 0.75rem;
+        }
+        
+        textarea {
+          flex: 1;
+          min-height: 80px;
+          padding: 0.75rem;
+          border: 2px solid #e5e7eb;
+          border-radius: 0.5rem;
+          font-family: 'Noto Sans JP', sans-serif;
+          font-size: 1rem;
+          resize: vertical;
+        }
+        
+        textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+        }
+        
+        button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        /* カメラ入力ボタン（入力エリア内） */
+        .camera-input-btn {
+          background: #f59e0b;
+          color: white;
+          padding: 0.75rem 1rem;
+          min-width: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+        }
+        
+        .camera-input-btn:hover {
+          background: #d97706;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        .camera-input-btn i {
+          margin: 0;
+        }
+        
+        #sendBtn {
+          background: #7c3aed;
+          color: white;
+          min-width: 100px;
+        }
+        
+        #sendBtn:hover {
+          background: #6d28d9;
+        }
+        
+        #sendBtn:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+        }
+        
+        .action-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: space-between;
+        }
+        
+        .btn {
+          padding: 0.875rem 1.75rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .btn-secondary {
+          background: #e5e7eb;
+          color: #374151;
+        }
+        
+        .btn-secondary:hover {
+          background: #d1d5db;
+        }
+        
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background: #6d28d9;
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        
+        .completion-message {
+          background: #d1fae5;
+          border: 2px solid #10b981;
+          border-radius: 0.75rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-weight: 600;
+          color: #065f46;
+        }
+        
+        .completion-message i {
+          font-size: 1.5rem;
+          color: #10b981;
+        }
+        
+        /* カメラボタン（ヘッダー - 非表示） */
+        .camera-btn {
+          display: none;
+        }
+        
+        /* カメラモーダル */
+        .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .modal.active {
+          display: flex;
+        }
+        
+        .modal-content {
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          max-width: 600px;
+          width: 90%;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+          .modal-content {
+            width: 95%;
+            padding: 1rem;
+            max-height: 95vh;
+          }
+        }
+        
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h2 {
+          color: #7c3aed;
+          font-size: 1.5rem;
+        }
+        
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #6b7280;
+          padding: 0;
+          width: 2rem;
+          height: 2rem;
+        }
+        
+        .close-btn:hover {
+          color: #374151;
+        }
+        
+        #cameraPreview, #cameraPreviewSP {
+          width: 100%;
+          max-height: 50vh;
+          max-width: 100%;
+          height: auto;
+          background: #000;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          object-fit: contain;
+        }
+        
+        #capturedImage, #capturedImageSP {
+          width: 100%;
+          max-height: 50vh;
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          object-fit: contain;
+        }
+        
+        /* Mobile adjustments for camera */
+        @media (max-width: 768px) {
+          #cameraPreview, #cameraPreviewSP {
+            max-height: 40vh;
+          }
+          
+          #capturedImage, #capturedImageSP {
+            max-height: 40vh;
+          }
+        }
+        
+        .camera-controls {
+          display: flex;
+          gap: 0.75rem;
+          justify-content: center;
+          margin-top: 1rem;
+        }
+        
+        .camera-controls button {
+          flex: 1;
+          max-width: 200px;
+        }
+        
+        .btn-capture {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-capture:hover {
+          background: #6d28d9;
+        }
+        
+        .btn-retake {
+          background: #f59e0b;
+          color: white;
+        }
+        
+        .btn-retake:hover {
+          background: #d97706;
+        }
+        
+        .btn-crop {
+          background: #f59e0b;
+          color: white;
+        }
+        
+        .btn-crop:hover {
+          background: #d97706;
+        }
+        
+        .btn-crop-confirm {
+          background: #3b82f6;
+          color: white;
+        }
+        
+        .btn-crop-confirm:hover {
+          background: #2563eb;
+        }
+        
+        .btn-upload {
+          background: #10b981;
+          color: white;
+        }
+        
+        .btn-upload:hover {
+          background: #059669;
+        }
+        
+        /* ワークフロー説明 */
+        .workflow-instructions {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 0.75rem;
+          color: white;
+        }
+        
+        .workflow-step {
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.5rem 1rem;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 0.5rem;
+          backdrop-filter: blur(10px);
+        }
+        
+        .workflow-arrow {
+          font-size: 1.25rem;
+          font-weight: bold;
+        }
+        
+        /* カメラステータス */
+        .camera-status {
+          text-align: center;
+          padding: 0.75rem;
+          margin: 1rem 0;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          display: none;
+        }
+        
+        .camera-status.active {
+          display: block;
+        }
+        
+        .camera-status.info {
+          background: #dbeafe;
+          color: #1e40af;
+          border: 1px solid #3b82f6;
+        }
+        
+        .camera-status.success {
+          background: #dcfce7;
+          color: #166534;
+          border: 1px solid #22c55e;
+        }
+        
+        /* Crop Canvas */
+        #cropCanvas {
+          width: 100%;
+          max-height: 400px;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          cursor: crosshair;
+          border: 2px solid #7c3aed;
+        }
+        
+        .camera-container {
+          position: relative;
+          width: 100%;
+          max-height: 60vh;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #000;
+          border-radius: 0.5rem;
+        }
+        
+        .btn-cancel {
+          background: #6b7280;
+          color: white;
+        }
+        
+        .btn-cancel:hover {
+          background: #4b5563;
+        }
+        
+        /* OCR結果表示 */
+        .ocr-result {
+          background: #f3f4f6;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1rem 0;
+        }
+        
+        .ocr-result h3 {
+          color: #7c3aed;
+          margin-bottom: 1rem;
+          font-size: 1.125rem;
+        }
+        
+        .ocr-text {
+          background: white;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+          line-height: 1.8;
+          white-space: pre-wrap;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        
+        .ocr-stats {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1rem;
+          font-size: 0.875rem;
+        }
+        
+        .ocr-stat {
+          background: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .ocr-stat strong {
+          color: #7c3aed;
+        }
+        
+        .ocr-issues {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-top: 1rem;
+        }
+        
+        .ocr-issues h4 {
+          color: #dc2626;
+          margin-bottom: 0.5rem;
+          font-size: 0.875rem;
+        }
+        
+        .ocr-issues ul {
+          margin-left: 1.5rem;
+          color: #991b1b;
+          font-size: 0.875rem;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 2rem;
+          color: #7c3aed;
+        }
+        
+        .loading i {
+          font-size: 2rem;
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+        
+        /* AI添削結果表示 */
+        .ai-feedback {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 1rem;
+          padding: 2rem;
+          margin: 1.5rem 0;
+          color: white;
+        }
+        
+        .ai-feedback h3 {
+          font-size: 1.5rem;
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+        
+        .ai-feedback h3 i {
+          margin-right: 0.5rem;
+        }
+        
+        .feedback-score {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+        
+        .score-circle {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          background: white;
+          color: #7c3aed;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.5rem;
+          font-weight: bold;
+          margin: 0 auto 0.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .score-label {
+          font-size: 1rem;
+          opacity: 0.9;
+        }
+        
+        .feedback-section {
+          background: rgba(255,255,255,0.15);
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          backdrop-filter: blur(10px);
+        }
+        
+        .feedback-section h4 {
+          font-size: 1.125rem;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .feedback-section ul {
+          margin-left: 1.5rem;
+          line-height: 1.8;
+        }
+        
+        .feedback-section ul li {
+          margin-bottom: 0.75rem;
+        }
+        
+        .feedback-section.good-points {
+          border-left: 4px solid #10b981;
+        }
+        
+        .feedback-section.improvements {
+          border-left: 4px solid #f59e0b;
+        }
+        
+        .feedback-section.example {
+          border-left: 4px solid #3b82f6;
+        }
+        
+        .feedback-section.next-steps {
+          border-left: 4px solid #8b5cf6;
+        }
+        
+        .example-text {
+          background: rgba(255,255,255,0.2);
+          padding: 1rem;
+          border-radius: 0.5rem;
+          line-height: 1.8;
+          white-space: pre-wrap;
+        }
+        
+        /* クイックアクションボタン */
+        .quick-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+        }
+        
+        .quick-action-btn {
+          padding: 0.5rem 1rem;
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+        }
+        
+        .quick-action-btn:hover {
+          background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+          box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        .quick-action-btn:active {
+          transform: translateY(0);
+        }
+        
+        .quick-action-btn.hidden {
+          display: none;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 640px) {
+          .input-area {
+            gap: 0.5rem;
+          }
+          
+          textarea {
+            min-height: 60px;
+            font-size: 0.875rem;
+          }
+          
+          .camera-input-btn {
+            padding: 0.625rem 0.75rem;
+            min-width: 50px;
+            font-size: 1.125rem;
+          }
+          
+          #sendBtn {
+            padding: 0.625rem 1rem;
+            min-width: 80px;
+            font-size: 0.875rem;
+          }
+          
+          .quick-actions {
+            gap: 0.375rem;
+          }
+          
+          .quick-action-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
+          }
+        }
+        
+        /* 開発者用クイックジャンプボタン */
+        .dev-quick-jump {
+          position: fixed;
+          bottom: 80px;
+          right: 20px;
+          z-index: 9998;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 60px;
+          height: 60px;
+          font-size: 1.5rem;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .dev-quick-jump:hover {
+          transform: scale(1.1);
+          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+        }
+        
+        .dev-quick-jump:active {
+          transform: scale(0.95);
+        }
+        
+        .dev-quick-jump-label {
+          position: fixed;
+          bottom: 85px;
+          right: 90px;
+          z-index: 9998;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          font-size: 0.75rem;
+          white-space: nowrap;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        
+        .dev-quick-jump:hover + .dev-quick-jump-label {
+          opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+          .dev-quick-jump {
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+            bottom: 70px;
+            right: 15px;
+          }
+          
+          .dev-quick-jump-label {
+            bottom: 75px;
+            right: 75px;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.8rem;
+          }
+        }
+        
+        /* スピナーアニメーション */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .fa-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        /* ローディングインジケーター用の追加スタイル */
+        .loading-indicator {
+          opacity: 0.8;
+        }
+        
+        .loading-indicator .fa-spin {
+          display: inline-block;
+          margin-right: 0.5rem;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-top">
+                    <h1>📝 小論文指導</h1>
+                    <div class="session-info">
+                        <button class="camera-btn" id="cameraBtn" onclick="openCamera()">
+                            <i class="fas fa-camera"></i>
+                            撮影
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 進捗バー -->
+                <div class="progress-bar">
+                    <div class="step current" id="step-1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">導入</div>
+                    </div>
+                    <div class="step" id="step-2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">語彙</div>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">短文</div>
+                    </div>
+                    <div class="step" id="step-4">
+                        <div class="step-circle">4</div>
+                        <div class="step-label">本練習</div>
+                    </div>
+                    <div class="step" id="step-5">
+                        <div class="step-circle">5</div>
+                        <div class="step-label">チャレンジ</div>
+                    </div>
+                    <div class="step" id="step-6">
+                        <div class="step-circle">6</div>
+                        <div class="step-label">まとめ</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <!-- チャットエリア -->
+                <div class="chat-section">
+                    <div class="messages" id="messages">
+                        <div class="message teacher">
+                            <span class="icon">👨‍🏫</span>
+                            <div>
+                              こんにちは！小論文指導を始めましょう。<br>
+                              まずは今日のテーマについて読み物を読んでいただきます。<br>
+                              準備ができたら「OK」と入力して、送信ボタンを押してください。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- クイックアクションボタン -->
+                    <div class="quick-actions" id="quickActions">
+                        <button class="quick-action-btn" id="btnOK" onclick="quickAction('OK')">✓ OK</button>
+                        <button class="quick-action-btn hidden" id="btnYonda" onclick="quickAction('読んだ')">📖 読んだ</button>
+                        <button class="quick-action-btn hidden" id="btnPass" onclick="quickAction('パス')">⏭️ パス</button>
+                        <button class="quick-action-btn hidden" id="btnKanryo" onclick="quickAction('完了')">✅ 完了</button>
+                    </div>
+                    
+                    <!-- 入力エリア -->
+                    <div class="input-area">
+                        <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
+                        <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="原稿を撮影">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button id="sendBtn" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i> 送信
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- アクションボタン -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="window.location.href='/essay-coaching'">
+                        <i class="fas fa-arrow-left"></i> 戻る
+                    </button>
+                    <button class="btn btn-primary hidden" id="nextStepBtn" onclick="moveToNextStep()">
+                        <i class="fas fa-arrow-right"></i> 次のステップへ
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- カメラモーダル -->
+        <div class="modal" id="cameraModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-camera"></i> 原稿を撮影</h2>
+                    <button class="close-btn" onclick="closeCamera()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- ワークフロー説明 -->
+                <div class="workflow-instructions">
+                    <div class="workflow-step">1️⃣ 原稿を撮影</div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">2️⃣ 範囲を調整</div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">3️⃣ OCR処理</div>
+                </div>
+                
+                <div class="camera-container">
+                    <video id="cameraPreview" autoplay playsinline></video>
+                    <canvas id="cropCanvas" class="hidden"></canvas>
+                    <img id="capturedImage" class="hidden" alt="撮影した画像">
+                </div>
+                
+                <!-- ステータス表示 -->
+                <div id="cameraStatus" class="camera-status"></div>
+                
+                <div class="camera-controls">
+                    <button class="btn btn-capture" id="captureBtn" onclick="capturePhoto()">
+                        <i class="fas fa-camera"></i> 撮影する
+                    </button>
+                    <button class="btn btn-retake hidden" id="retakeBtn" onclick="retakePhoto()">
+                        <i class="fas fa-redo"></i> 再撮影
+                    </button>
+                    <button class="btn btn-crop hidden" id="cropBtn" onclick="showCropInterface()">
+                        <i class="fas fa-crop"></i> 範囲を調整
+                    </button>
+                    <button class="btn btn-crop-confirm hidden" id="cropConfirmBtn" onclick="applyCrop()">
+                        <i class="fas fa-check"></i> この範囲でOK
+                    </button>
+                    <button class="btn btn-upload hidden" id="uploadBtn" onclick="uploadAndProcessImage()">
+                        <i class="fas fa-check-circle"></i> OCR処理を開始
+                    </button>
+                    <button class="btn btn-cancel" onclick="closeCamera()">
+                        <i class="fas fa-times"></i> キャンセル
+                    </button>
+                </div>
+                
+                <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
+                    <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        <li>原稿用紙全体が画面に入るように撮影してください</li>
+                        <li>明るい場所で撮影し、影ができないようにしてください</li>
+                        <li>文字がはっきり見えるように、ピントを合わせてください</li>
+                        <li>原稿用紙を平らに置いて撮影してください</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        const sessionId = '${sessionId}';
+        let currentStep = 1;
+        
+        // セッション設定をコンソールに表示（デバッグ用）
+        console.log('🔍 Essay Session Configuration:', {
+          sessionId: sessionId,
+          problemMode: '${essaySession.problemMode}',
+          customInput: '${essaySession.customInput || '(empty)'}',
+          learningStyle: '${essaySession.learningStyle}',
+          targetLevel: '${essaySession.targetLevel}',
+          timestamp: new Date().toISOString()
+        });
+        
+        function addMessage(text, isTeacher = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
+            
+            const icon = isTeacher ? '👨‍🏫' : '👤';
+            const formattedText = text.split('\\n').join('<br>');
+            messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // 重複リクエスト防止フラグ
+        let isProcessing = false;
+        
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // 重複リクエスト防止
+            if (isProcessing) {
+                console.warn('⚠️ Already processing a request, please wait...');
+                return;
+            }
+            
+            isProcessing = true;
+            
+            // ユーザーメッセージを表示
+            addMessage(text, false);
+            input.value = '';
+            
+            // 送信ボタンを無効化してローディング状態を表示
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> しばらくお待ちください...';
+            sendBtn.style.opacity = '0.6';
+            sendBtn.style.cursor = 'not-allowed';
+            
+            // 入力エリアも無効化
+            input.disabled = true;
+            input.style.opacity = '0.6';
+            
+            // ローディングメッセージを追加
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message teacher loading-indicator';
+            loadingMsg.innerHTML = '<span class="icon">⏳</span><div><i class="fas fa-spinner fa-spin"></i> 回答を生成しています...</div>';
+            loadingMsg.id = 'loading-indicator';
+            document.getElementById('messages').appendChild(loadingMsg);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            
+            try {
+                console.log('📤 Sending message:', { sessionId, message: text, currentStep });
+                
+                // AIに送信
+                const response = await fetch('/api/essay/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId,
+                        message: text,
+                        currentStep
+                    })
+                });
+                
+                console.log('📥 Response status:', response.status);
+                const result = await response.json();
+                console.log('📥 Response data:', result);
+                
+                if (result.ok) {
+                    // AI応答を表示
+                    addMessage(result.response, true);
+                    
+                    // クイックアクションボタンを更新
+                    updateQuickActions(result.response);
+                    
+                    // Step 4 または Step 5で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
+                    if ((currentStep === 4 || currentStep === 5) && 
+                        (text.includes('確認完了') || text.includes('修正完了') || 
+                         (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')))) {
+                        // OCR結果があることを確認してからAI添削を実行
+                        await requestAIFeedback();
+                    }
+                    
+                    // ステップ完了チェック
+                    console.log('🔍 Checking step completion:', result.stepCompleted);
+                    if (result.stepCompleted) {
+                        console.log('✅ Step completed! Showing completion message');
+                        showStepCompletion();
+                    }
+                } else {
+                    addMessage('エラーが発生しました: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('❌ Send message error:', error);
+                addMessage('通信エラーが発生しました。もう一度お試しください。', true);
+            } finally {
+                // ローディングインジケーターを削除
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+                
+                // 送信ボタンを有効化
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+                sendBtn.style.opacity = '1';
+                sendBtn.style.cursor = 'pointer';
+                
+                // 入力エリアを有効化
+                input.disabled = false;
+                input.style.opacity = '1';
+                input.focus();
+                
+                // 重複防止フラグをリセット
+                isProcessing = false;
+            }
+        }
+        
+        function quickAction(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            sendMessage();
+        }
+        
+        function updateQuickActions(aiResponse) {
+            // AIの応答内容に基づいてクイックアクションボタンを表示/非表示
+            const btnOK = document.getElementById('btnOK');
+            const btnYonda = document.getElementById('btnYonda');
+            const btnPass = document.getElementById('btnPass');
+            const btnKanryo = document.getElementById('btnKanryo');
+            
+            // すべてのボタンを非表示にする
+            btnOK.classList.add('hidden');
+            btnYonda.classList.add('hidden');
+            btnPass.classList.add('hidden');
+            btnKanryo.classList.add('hidden');
+            
+            if (!aiResponse) return;
+            
+            // 応答内容に応じてボタンを表示
+            if (aiResponse.includes('「OK」と入力') || aiResponse.includes('準備ができたら')) {
+                btnOK.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「読んだ」と入力') || aiResponse.includes('読み終えたら')) {
+                btnYonda.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「パス」と入力') || aiResponse.includes('わからない場合は')) {
+                btnPass.classList.remove('hidden');
+            }
+            
+            if (aiResponse.includes('「完了」と入力') || aiResponse.includes('書いたつもりで')) {
+                btnKanryo.classList.remove('hidden');
+            }
+        }
+        
+        function showStepCompletion() {
+            console.log('🎯 showStepCompletion called');
+            const messagesDiv = document.getElementById('messages');
+            
+            const completionDiv = document.createElement('div');
+            completionDiv.className = 'completion-message';
+            completionDiv.innerHTML = '<i class="fas fa-check-circle"></i> このステップが完了しました。次のステップに進みましょう！';
+            messagesDiv.appendChild(completionDiv);
+            
+            // 次へボタンを表示
+            const nextBtn = document.getElementById('nextStepBtn');
+            nextBtn.classList.remove('hidden');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function moveToNextStep() {
+            currentStep++;
+            if (currentStep > 6) {
+                alert('全てのステップが完了しました！');
+                window.location.href = '/essay-coaching';
+                return;
+            }
+            
+            // 進捗バーを更新
+            updateProgressBar();
+            
+            // 次へボタンを非表示
+            document.getElementById('nextStepBtn').classList.add('hidden');
+            
+            // 新しいステップのメッセージを表示
+            const introMessage = getStepIntroMessage(currentStep);
+            addMessage(introMessage, true);
+            
+            // クイックアクションボタンを更新
+            updateQuickActions(introMessage);
+        }
+        
+        function updateProgressBar() {
+            for (let i = 1; i <= 6; i++) {
+                const stepDiv = document.getElementById('step-' + i);
+                stepDiv.classList.remove('current', 'completed');
+                
+                if (i < currentStep) {
+                    stepDiv.classList.add('completed');
+                } else if (i === currentStep) {
+                    stepDiv.classList.add('current');
+                }
+            }
+        }
+        
+        function getStepIntroMessage(step) {
+            const messages = {
+                1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                2: '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                3: '【短文演習】指定字数で短い小論文を書いてみましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                4: '【本練習】より長い小論文に挑戦します。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                5: '【チャレンジ問題】応用的なテーマに取り組みます。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                6: '【まとめ】今日の学習を振り返りましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
+            };
+            return messages[step] || 'ステップを進めましょう。';
+        }
+        
+        // AI添削をリクエスト
+        async function requestAIFeedback() {
+            try {
+                console.log('🤖 Requesting AI feedback...', {
+                    sessionId: sessionId,
+                    currentStep: currentStep
+                });
+                
+                addMessage('AI添削を実行中です。少々お待ちください...', true);
+                
+                const response = await fetch('/api/essay/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId })
+                });
+                
+                console.log('🤖 Feedback API response status:', response.status);
+                
+                const result = await response.json();
+                console.log('🤖 Feedback API result:', result);
+                
+                if (result.ok && result.feedback) {
+                    displayFeedback(result.feedback);
+                } else {
+                    console.error('❌ Feedback API error:', result);
+                    addMessage('AI添削でエラーが発生しました: ' + (result.message || result.error || '不明なエラー'), true);
+                }
+            } catch (error) {
+                console.error('❌ AI feedback error:', error);
+                addMessage('AI添削の通信エラーが発生しました。', true);
+            }
+        }
+        
+        // フィードバックを表示
+        function displayFeedback(feedback) {
+            const feedbackHtml = '<div class="ai-feedback">' +
+                '<h3><i class="fas fa-robot"></i> AI自動添削結果</h3>' +
+                '<div class="feedback-score">' +
+                '<div class="score-circle">' + (feedback.overallScore || 0) + '</div>' +
+                '<div class="score-label">総合評価</div>' +
+                '</div>' +
+                '<div class="feedback-section good-points">' +
+                '<h4><i class="fas fa-thumbs-up"></i> 良い点</h4>' +
+                '<ul>' + (feedback.goodPoints || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '<div class="feedback-section improvements">' +
+                '<h4><i class="fas fa-wrench"></i> 改善点</h4>' +
+                '<ul>' + (feedback.improvements || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '<div class="feedback-section example">' +
+                '<h4><i class="fas fa-lightbulb"></i> 改善例文</h4>' +
+                '<div class="example-text">' + (feedback.exampleImprovement || '').split('\\n').join('<br>') + '</div>' +
+                '</div>' +
+                '<div class="feedback-section next-steps">' +
+                '<h4><i class="fas fa-flag-checkered"></i> 次のアクション</h4>' +
+                '<ul>' + (feedback.nextSteps || []).map(p => '<li>' + p + '</li>').join('') + '</ul>' +
+                '</div>' +
+                '</div>';
+            
+            addMessage(feedbackHtml, true);
+            addMessage('添削が完了しました！\\n内容を確認して、「完了」と入力してください。', true);
+        }
+        
+        // カメラ関連の変数
+        let stream = null;
+        let capturedImageData = null;
+        let originalImageData = null;
+        let cropArea = null;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        
+        // カメラモーダルを開く
+        function openCamera() {
+            // カメラ機能はStep 1, 3, 4, 5で使用可能
+            if (currentStep !== 1 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
+                alert('カメラ機能はStep 1（導入）、Step 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
+                return;
+            }
+            
+            document.getElementById('cameraModal').classList.add('active');
+            updateCameraStatus('カメラを起動しています...', 'info');
+            startCamera();
+        }
+        
+        // ステータス更新
+        function updateCameraStatus(message, type) {
+            const statusDiv = document.getElementById('cameraStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = 'camera-status active ' + type;
+        }
+        
+        // カメラを起動
+        async function startCamera() {
+            try {
+                const preview = document.getElementById('cameraPreview');
+                const cropCanvas = document.getElementById('cropCanvas');
+                const capturedImg = document.getElementById('capturedImage');
+                
+                preview.classList.remove('hidden');
+                cropCanvas.classList.add('hidden');
+                capturedImg.classList.add('hidden');
+                
+                document.getElementById('captureBtn').classList.remove('hidden');
+                document.getElementById('retakeBtn').classList.add('hidden');
+                document.getElementById('cropBtn').classList.add('hidden');
+                document.getElementById('cropConfirmBtn').classList.add('hidden');
+                document.getElementById('uploadBtn').classList.add('hidden');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } 
+                });
+                preview.srcObject = stream;
+                preview.play();
+                updateCameraStatus('原稿用紙を画面に収めて「撮影する」を押してください', 'info');
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('カメラの起動に失敗しました。\\nブラウザの設定でカメラへのアクセスを許可してください。');
+                closeCamera();
+            }
+        }
+        
+        // 写真を撮影
+        function capturePhoto() {
+            const preview = document.getElementById('cameraPreview');
+            
+            // ビデオのサイズを確認
+            console.log('📹 Video dimensions:', {
+                videoWidth: preview.videoWidth,
+                videoHeight: preview.videoHeight,
+                readyState: preview.readyState
+            });
+            
+            if (preview.videoWidth === 0 || preview.videoHeight === 0) {
+                alert('カメラの準備ができていません。\\nもう一度お試しください。');
+                console.error('❌ Video dimensions are 0');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = preview.videoWidth;
+            canvas.height = preview.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(preview, 0, 0);
+            
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            originalImageData = capturedImageData;
+            
+            console.log('📸 Image captured:', {
+                dataLength: capturedImageData.length,
+                dataPrefix: capturedImageData.substring(0, 50)
+            });
+            
+            // 画像データが空でないか確認
+            if (!capturedImageData || capturedImageData.length < 100) {
+                alert('画像の撮影に失敗しました。\\nもう一度お試しください。');
+                console.error('❌ Captured image data is empty or too small');
+                return;
+            }
+            
+            // プレビューを停止
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // 撮影した画像を表示
+            document.getElementById('cameraPreview').classList.add('hidden');
+            const img = document.getElementById('capturedImage');
+            img.src = capturedImageData;
+            img.classList.remove('hidden');
+            
+            // ボタンを切り替え
+            document.getElementById('captureBtn').classList.add('hidden');
+            document.getElementById('retakeBtn').classList.remove('hidden');
+            document.getElementById('cropBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.remove('hidden');
+            
+            updateCameraStatus('撮影完了！必要に応じて「範囲を調整」してから「OCR処理を開始」を押してください', 'success');
+        }
+        
+        // クロップインターフェースを表示
+        function showCropInterface() {
+            const img = document.getElementById('capturedImage');
+            const cropCanvas = document.getElementById('cropCanvas');
+            
+            // キャンバスに画像を描画
+            const image = new Image();
+            image.onload = function() {
+                cropCanvas.width = image.width;
+                cropCanvas.height = image.height;
+                
+                const ctx = cropCanvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                // デフォルトのクロップ領域を設定（画像全体の90%）
+                const margin = Math.min(image.width, image.height) * 0.05;
+                cropArea = {
+                    x: margin,
+                    y: margin,
+                    width: image.width - margin * 2,
+                    height: image.height - margin * 2
+                };
+                
+                drawCropArea();
+            };
+            image.src = originalImageData;
+            
+            // UI切り替え
+            img.classList.add('hidden');
+            cropCanvas.classList.remove('hidden');
+            document.getElementById('cropBtn').classList.add('hidden');
+            document.getElementById('cropConfirmBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.add('hidden');
+            
+            updateCameraStatus('マウスでドラッグして範囲を選択してください', 'info');
+            
+            // イベントリスナーを追加
+            setupCropListeners(cropCanvas);
+        }
+        
+        // クロップリスナー設定
+        function setupCropListeners(canvas) {
+            canvas.onmousedown = function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                startX = (e.clientX - rect.left) * scaleX;
+                startY = (e.clientY - rect.top) * scaleY;
+                isDragging = true;
+            };
+            
+            canvas.onmousemove = function(e) {
+                if (!isDragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const currentX = (e.clientX - rect.left) * scaleX;
+                const currentY = (e.clientY - rect.top) * scaleY;
+                
+                cropArea = {
+                    x: Math.min(startX, currentX),
+                    y: Math.min(startY, currentY),
+                    width: Math.abs(currentX - startX),
+                    height: Math.abs(currentY - startY)
+                };
+                
+                drawCropArea();
+            };
+            
+            canvas.onmouseup = function() {
+                isDragging = false;
+            };
+            
+            // タッチイベント対応
+            canvas.ontouchstart = function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                startX = (touch.clientX - rect.left) * scaleX;
+                startY = (touch.clientY - rect.top) * scaleY;
+                isDragging = true;
+            };
+            
+            canvas.ontouchmove = function(e) {
+                e.preventDefault();
+                if (!isDragging) return;
+                
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const currentX = (touch.clientX - rect.left) * scaleX;
+                const currentY = (touch.clientY - rect.top) * scaleY;
+                
+                cropArea = {
+                    x: Math.min(startX, currentX),
+                    y: Math.min(startY, currentY),
+                    width: Math.abs(currentX - startX),
+                    height: Math.abs(currentY - startY)
+                };
+                
+                drawCropArea();
+            };
+            
+            canvas.ontouchend = function() {
+                isDragging = false;
+            };
+        }
+        
+        // クロップ領域を描画
+        function drawCropArea() {
+            const canvas = document.getElementById('cropCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 画像を再描画
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                // 暗い背景
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // クロップ領域をクリア（明るく表示）
+                ctx.clearRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+                ctx.drawImage(img, 
+                    cropArea.x, cropArea.y, cropArea.width, cropArea.height,
+                    cropArea.x, cropArea.y, cropArea.width, cropArea.height
+                );
+                
+                // 枠線
+                ctx.strokeStyle = '#7c3aed';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+                
+                // コーナーマーカー
+                const cornerSize = 20;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                
+                // 左上
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x, cropArea.y + cornerSize);
+                ctx.lineTo(cropArea.x, cropArea.y);
+                ctx.lineTo(cropArea.x + cornerSize, cropArea.y);
+                ctx.stroke();
+                
+                // 右上
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x + cropArea.width - cornerSize, cropArea.y);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cornerSize);
+                ctx.stroke();
+                
+                // 左下
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x, cropArea.y + cropArea.height - cornerSize);
+                ctx.lineTo(cropArea.x, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cornerSize, cropArea.y + cropArea.height);
+                ctx.stroke();
+                
+                // 右下
+                ctx.beginPath();
+                ctx.moveTo(cropArea.x + cropArea.width - cornerSize, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cropArea.height);
+                ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cropArea.height - cornerSize);
+                ctx.stroke();
+            };
+            img.src = originalImageData;
+        }
+        
+        // クロップを適用
+        function applyCrop() {
+            if (!cropArea || cropArea.width < 10 || cropArea.height < 10) {
+                alert('クロップ範囲が小さすぎます。もう一度選択してください。');
+                return;
+            }
+            
+            const sourceCanvas = document.getElementById('cropCanvas');
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = cropArea.width;
+            resultCanvas.height = cropArea.height;
+            
+            const ctx = resultCanvas.getContext('2d');
+            ctx.drawImage(sourceCanvas,
+                cropArea.x, cropArea.y, cropArea.width, cropArea.height,
+                0, 0, cropArea.width, cropArea.height
+            );
+            
+            capturedImageData = resultCanvas.toDataURL('image/jpeg', 0.9);
+            
+            // 結果を表示
+            const img = document.getElementById('capturedImage');
+            img.src = capturedImageData;
+            img.classList.remove('hidden');
+            document.getElementById('cropCanvas').classList.add('hidden');
+            
+            // ボタンを切り替え
+            document.getElementById('cropConfirmBtn').classList.add('hidden');
+            document.getElementById('cropBtn').classList.remove('hidden');
+            document.getElementById('uploadBtn').classList.remove('hidden');
+            
+            updateCameraStatus('範囲調整完了！「OCR処理を開始」を押してください', 'success');
+        }
+        
+        // 再撮影
+        function retakePhoto() {
+            capturedImageData = null;
+            originalImageData = null;
+            cropArea = null;
+            document.getElementById('cropCanvas').classList.add('hidden');
+            document.getElementById('capturedImage').classList.add('hidden');
+            startCamera();
+        }
+        
+        // 画像をアップロードしてOCR処理
+        async function uploadAndProcessImage() {
+            console.log('🔍 Checking capturedImageData...', {
+                exists: !!capturedImageData,
+                type: typeof capturedImageData,
+                length: capturedImageData ? capturedImageData.length : 0
+            });
+            
+            if (!capturedImageData) {
+                alert('画像が撮影されていません。\\nもう一度撮影してください。');
+                console.error('❌ capturedImageData is null or undefined');
+                return;
+            }
+            
+            if (capturedImageData.length < 100) {
+                alert('画像データが不正です。\\nもう一度撮影してください。');
+                console.error('❌ capturedImageData is too small:', capturedImageData.length);
+                return;
+            }
+            
+            // closeCamera()を呼ぶ前に画像データをローカル変数に保存
+            const imageDataToUpload = capturedImageData;
+            
+            console.log('💾 Saved image data to local variable:', {
+                length: imageDataToUpload.length,
+                prefix: imageDataToUpload.substring(0, 50)
+            });
+            
+            closeCamera();
+            
+            // ローディングメッセージを表示
+            addMessage('📸 画像をアップロード中...', true);
+            
+            try {
+                console.log('🚀 Starting image upload...', {
+                    sessionId: sessionId,
+                    imageDataLength: imageDataToUpload.length,
+                    imageDataPrefix: imageDataToUpload.substring(0, 50),
+                    currentStep: currentStep
+                });
+                
+                // 画像をアップロード
+                const uploadResponse = await fetch('/api/essay/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        imageData: imageDataToUpload,
+                        currentStep: currentStep
+                    })
+                });
+                
+                console.log('📤 Upload response status:', uploadResponse.status);
+                
+                if (!uploadResponse.ok) {
+                    const errorText = await uploadResponse.text();
+                    console.error('❌ Upload failed:', errorText);
+                    throw new Error('アップロードに失敗しました (ステータス: ' + uploadResponse.status + ')');
+                }
+                
+                const uploadResult = await uploadResponse.json();
+                console.log('✅ Upload successful:', uploadResult);
+                
+                // OCR処理を開始
+                addMessage('🔍 OCR処理を開始しています。しばらくお待ちください...', true);
+                
+                const ocrResponse = await fetch('/api/essay/ocr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        imageData: imageDataToUpload,
+                        currentStep: currentStep
+                    })
+                });
+                
+                console.log('🔍 OCR response status:', ocrResponse.status);
+                
+                if (!ocrResponse.ok) {
+                    const errorText = await ocrResponse.text();
+                    console.error('❌ OCR failed:', errorText);
+                    throw new Error('OCR処理に失敗しました (ステータス: ' + ocrResponse.status + ')');
+                }
+                
+                const ocrResult = await ocrResponse.json();
+                console.log('📄 OCR result:', ocrResult);
+                
+                if (ocrResult.ok && ocrResult.result) {
+                    displayOCRResult(ocrResult.result);
+                } else {
+                    throw new Error('OCR結果が無効です: ' + JSON.stringify(ocrResult));
+                }
+                
+            } catch (error) {
+                console.error('❌ Upload/OCR error:', error);
+                const errorMessage = error.message || 'エラーが発生しました';
+                addMessage('❌ ' + errorMessage + '\\n\\nもう一度お試しください。\\n問題が続く場合は、ブラウザのコンソール（F12キー）でエラー詳細を確認してください。', true);
+            }
+        }
+        
+        // OCR結果を表示
+        function displayOCRResult(result) {
+            const resultHtml = '<div class="ocr-result">' +
+                '<h3><i class="fas fa-file-alt"></i> OCR読み取り結果</h3>' +
+                '<div class="ocr-text">' + (result.text || '読み取れませんでした') + '</div>' +
+                '<div class="ocr-stats">' +
+                '<div class="ocr-stat"><strong>文字数:</strong> ' + (result.charCount || 0) + '字</div>' +
+                '<div class="ocr-stat"><strong>読取率:</strong> ' + (result.readabilityScore || 0) + '%</div>' +
+                '</div>' +
+                (result.issues && result.issues.length > 0 ? 
+                    '<div class="ocr-issues">' +
+                    '<h4><i class="fas fa-exclamation-triangle"></i> 改善点</h4>' +
+                    '<ul>' + result.issues.map(issue => '<li>' + issue + '</li>').join('') + '</ul>' +
+                    '</div>' : '') +
+                '</div>';
+            
+            addMessage(resultHtml, true);
+            
+            if (result.readable) {
+                const instructionHtml = '<div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 1rem; margin: 1rem 0; border-radius: 0.5rem;">' +
+                    '<h4 style="color: #1e40af; margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> 次のステップ</h4>' +
+                    '<p style="margin: 0.5rem 0; line-height: 1.6;">OCR処理が完了しました。上記の読み取り結果を確認してください。</p>' +
+                    '<div style="background: white; padding: 0.75rem; margin-top: 0.5rem; border-radius: 0.375rem;">' +
+                    '<strong>✅ 内容が正しい場合：</strong><br>' +
+                    '下の入力欄に「<strong>確認完了</strong>」と入力して送信ボタンを押してください。<br>' +
+                    '<span style="color: #059669; font-size: 0.9em;">→ すぐにAI添削が開始されます</span><br><br>' +
+                    '<strong>✏️ 修正が必要な場合：</strong><br>' +
+                    '修正後の正しいテキスト全文を入力して送信してください。<br>' +
+                    '<span style="color: #059669; font-size: 0.9em;">→ 修正内容が保存され、AI添削が開始されます</span>' +
+                    '</div>' +
+                    '</div>';
+                addMessage(instructionHtml, true);
+            } else {
+                addMessage('❌ 画像の読み取りに問題があります。\\n上記の改善点を参考に、カメラボタン（📷）を押してもう一度撮影してください。', true);
+            }
+        }
+        
+        // カメラを閉じる
+        function closeCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraModal').classList.remove('active');
+            capturedImageData = null;
+        }
+        
+        // Enterキーで改行可能（送信は送信ボタンのみ）
+        // キーイベントリスナーは不要
+        
+        // 開発者用：Step 4へクイックジャンプ
+        function quickJumpToStep4() {
+            if (confirm('開発者モード：Step 4（本練習）へジャンプしますか？')) {
+                console.log('🚀 Quick jump to Step 4 (Camera step)');
+                currentStep = 4;
+                
+                // 進捗バーを更新
+                for (let i = 1; i <= 6; i++) {
+                    const stepDiv = document.getElementById('step-' + i);
+                    if (stepDiv) {
+                        if (i < 4) {
+                            stepDiv.classList.add('completed');
+                            stepDiv.classList.remove('current');
+                        } else if (i === 4) {
+                            stepDiv.classList.add('current');
+                            stepDiv.classList.remove('completed');
+                        } else {
+                            stepDiv.classList.remove('completed', 'current');
+                        }
+                    }
+                }
+                
+                // Step 4のメッセージを表示
+                addMessage('【開発者モード】Step 4（本練習）へジャンプしました！\\n\\nこれから800字程度の小論文を書いていただきます。\\n原稿用紙に手書きで書いて、カメラボタン📷で撮影してください。', true);
+                addMessage('準備ができたら、下のオレンジ色のカメラボタン📷をタップして原稿を撮影してください。', true);
+                
+                // カメラボタンを有効化
+                document.getElementById('cameraBtn').style.display = 'flex';
+                document.getElementById('cameraInputBtn').style.display = 'flex';
+            }
+        }
+        
+        // URLパラメータで ?dev=true の場合のみクイックジャンプボタンを表示
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDevMode = urlParams.get('dev') === 'true';
+            const isDebugMode = urlParams.get('debug') === 'true';
+            
+            if (isDevMode) {
+                // クイックジャンプボタンを追加
+                const jumpBtn = document.createElement('button');
+                jumpBtn.className = 'dev-quick-jump';
+                jumpBtn.innerHTML = '⚡';
+                jumpBtn.onclick = quickJumpToStep4;
+                jumpBtn.title = 'Step 4へジャンプ（開発者用）';
+                
+                const jumpLabel = document.createElement('div');
+                jumpLabel.className = 'dev-quick-jump-label';
+                jumpLabel.textContent = 'Step 4へジャンプ';
+                
+                document.body.appendChild(jumpBtn);
+                document.body.appendChild(jumpLabel);
+                
+                console.log('🛠️ Developer mode enabled. Quick jump button added.');
+                console.log('💡 Click the ⚡ button to jump to Step 4 (Camera step)');
+                
+                // 開発者モードの案内メッセージを追加
+                addMessage('🛠️ 【開発者モード有効】\\n右下の⚡ボタンでStep 4（カメラ機能）へ直接ジャンプできます。', true);
+            }
+            
+            // デバッグモードまたはモバイルの場合の案内
+            if (isDebugMode || window.innerWidth < 1024) {
+                setTimeout(function() {
+                    console.log('📱 Eruda console is active. Tap the 🐛 button in the bottom-right corner to open the console.');
+                    addMessage('📱 デバッグモード：画面右下の🐛ボタンをタップすると、コンソールログが確認できます。', true);
+                }, 1000);
+            }
+        });
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// デバッグ用：セッションデータ確認API（一時的）
 app.get('/api/debug/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
   const db = c.env?.DB
@@ -5238,7 +9047,198 @@ function updateSessionWithRegeneratedData(session, aiAnalysis) {
 }
 
 // 類似問題チェックAPI
-app.post('/api/similar/check', handleSimilarCheck)
+app.post('/api/similar/check', async (c) => {
+  console.log('🔥 Similar problem check API called')
+  
+  try {
+    const { sessionId, problemNumber, answer } = await c.req.json()
+    
+    if (!sessionId || problemNumber === undefined || answer === undefined) {
+      return c.json({
+        ok: false,
+        error: 'missing_params',
+        message: 'セッションID、問題番号、または回答が不足しています',
+        timestamp: new Date().toISOString()
+      }, 400)
+    }
+    
+    // セッション取得（インメモリ → D1フォールバック）
+    const db = c.env?.DB
+    const session = await getStudyPartnerSession(db, sessionId)
+    
+    if (!session) {
+      console.error('❌ Session not found for similar check:', sessionId)
+      return c.json({
+        ok: false,
+        error: 'session_not_found',
+        message: 'セッションが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    console.log('✅ Session retrieved for similar check:', sessionId)
+    
+    console.log('🔍 Similar check - session keys:', Object.keys(session))
+    console.log('🔍 Similar check - has similarProblems:', !!session.similarProblems)
+    console.log('🔍 Similar check - similarProblems type:', typeof session.similarProblems)
+    console.log('🔍 Similar check - similarProblems count:', session.similarProblems?.length || 0)
+    
+    // 類似問題データの取得と検証
+    if (!Array.isArray(session.similarProblems)) {
+      console.error('❌ similarProblems is not an array:', typeof session.similarProblems)
+      return c.json({
+        ok: false,
+        error: 'invalid_similar_problems',
+        message: '類似問題データの形式が不正です',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    const problemIndex = problemNumber - 1
+    if (problemIndex < 0 || problemIndex >= session.similarProblems.length) {
+      console.error('❌ Invalid problemNumber:', { problemNumber, arrayLength: session.similarProblems.length })
+      return c.json({
+        ok: false,
+        error: 'problem_not_found',
+        message: `指定された類似問題が見つかりません（問題番号: ${problemNumber}）`,
+        timestamp: new Date().toISOString()
+      }, 404)
+    }
+    
+    const similarProblem = session.similarProblems[problemIndex]
+    
+    if (!similarProblem || typeof similarProblem !== 'object') {
+      console.error('❌ Invalid similarProblem at index:', { problemIndex, similarProblem })
+      return c.json({
+        ok: false,
+        error: 'invalid_problem_data',
+        message: '類似問題データが不正です',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
+    // 回答チェック
+    let isCorrect = false
+    
+    if (similarProblem.type === 'choice') {
+      // 選択肢問題の場合
+      isCorrect = answer === similarProblem.correctAnswer
+    } else if (similarProblem.type === 'input') {
+      // 記述問題の場合 - 複数の正解パターンをチェック
+      const normalizedAnswer = answer.trim()
+      isCorrect = similarProblem.correctAnswers.some(correct => 
+        normalizedAnswer === correct.trim()
+      )
+    }
+    
+    console.log('🎯 Similar problem check:', {
+      problemNumber,
+      type: similarProblem.type,
+      userAnswer: answer,
+      expected: similarProblem.type === 'choice' ? similarProblem.correctAnswer : similarProblem.correctAnswers,
+      isCorrect
+    })
+    
+    // 回答履歴を記録（attemptsが未定義の場合は初期化）
+    if (!similarProblem.attempts) {
+      similarProblem.attempts = [];
+    }
+    similarProblem.attempts.push({
+      answer,
+      isCorrect,
+      timestamp: new Date().toISOString()
+    })
+    
+    // 全体の進捗をチェック
+    if (!session.similarProblems) {
+      console.error('❌ No similarProblems in session:', session);
+      return c.json({
+        ok: false,
+        error: 'missing_similar_problems',
+        message: '類似問題データが見つかりません',
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+    
+    const completedProblems = session.similarProblems.filter(p => 
+      p.attempts && p.attempts.some(attempt => attempt.isCorrect)
+    ).length
+    
+    let nextAction = 'continue'
+    let feedback = ''
+    
+    if (isCorrect) {
+      feedback = `✅ 類似問題${problemNumber}正解！\n\n💡 ${similarProblem.explanation}`
+      
+      if (completedProblems === session.similarProblems.length) {
+        session.status = 'fully_completed'
+        nextAction = 'all_completed'
+        feedback += '\n\n🎉 すべての類似問題が完了しました！お疲れ様でした！'
+        
+        // 学習完了時のログ記録
+        try {
+          console.log('📝 Session completed, sending log for:', sessionId)
+          const { logCompletedSession } = await import('./utils/session-logger')
+          await logCompletedSession(sessionId, learningSessions, {}, c.env)
+        } catch (error) {
+          console.error('❌ Failed to log completed session:', error)
+        }
+      } else {
+        nextAction = 'next_problem'
+      }
+    } else {
+      if (similarProblem.type === 'choice') {
+        feedback = `❌ 正解は ${similarProblem.correctAnswer} です。\n\n💡 ${similarProblem.explanation}`
+      } else {
+        feedback = `❌ 正解例: ${similarProblem.correctAnswers[0]}\n\n💡 ${similarProblem.explanation}`
+      }
+      nextAction = 'retry'
+    }
+    
+    session.updatedAt = new Date().toISOString()
+    
+    // D1に更新されたセッションを保存
+    if (db) {
+      await saveStudyPartnerSessionToDB(db, sessionId, session)
+      console.log('✅ Similar check: session updated in D1')
+    }
+    
+    const response = {
+      ok: true,
+      sessionId,
+      problemNumber,
+      isCorrect,
+      feedback,
+      nextAction,
+      completedProblems,
+      totalProblems: session.similarProblems.length,
+      timestamp: new Date().toISOString()
+    }
+    
+    console.log('🎯 Similar check response:', { isCorrect, nextAction, completedProblems })
+    return c.json(response, 200)
+    
+  } catch (error) {
+    console.error('❌ Similar check error:', error)
+    return c.json({
+      ok: false,
+      error: 'similar_check_error',
+      message: error.message || '類似問題チェックでエラーが発生しました',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// 段階学習データ生成関数（フォールバック用 - 動的生成失敗時のみ使用）
+function generateLearningData(problemType) {
+  console.log('❌ AI分析失敗 - フォールバック呼び出し禁止')
+  console.log(`問題タイプ: ${problemType}`)
+  
+  // ダミーデータの代わりに詳細なエラー情報を提供
+  throw new Error(`AI分析に失敗しました。問題タイプ「${problemType}」のダミーデータは使用しません。先生にお知らせください。`)
+}
+
+// ルートパスハンドラー
 app.get('/', (c) => {
   return c.redirect('/study-partner', 302)
 })
@@ -5246,8 +9246,2152 @@ app.get('/', (c) => {
 // Study Partner Simple - ログイン修正版
 app.get('/study-partner-simple', studyPartnerSimple)
 
-// Study Partner SPA
-app.get('/study-partner', renderStudyPartnerPage)
+// Study Partner SPA - 完全復元版
+app.get('/study-partner', (c) => {
+  console.log('📱 Study Partner SPA requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <!-- Cropper.js CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
+        
+        <style>
+        /* Notion-Inspired Modern Design */
+        
+        /* Clean White Base with Subtle Gradient */
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          margin: 0;
+          padding: 0;
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+          min-height: 100vh;
+          color: #37352f;
+        }
+        
+        /* Centered Modern Container - A Plan */
+        .container { 
+          max-width: 900px; 
+          margin: 0 auto; 
+          padding: 3rem 2rem;
+        }
+        
+        @media (max-width: 960px) {
+          .container { 
+            max-width: 95%; 
+            padding: 2rem 1.5rem;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .container { 
+            padding: 1.5rem 1rem; 
+          }
+        }
+        
+        /* Modern Input Styling - Clean Box Model */
+        input { 
+          padding: 0.875rem 1rem; 
+          margin: 0; 
+          width: 100%; 
+          border-radius: 0.375rem;
+          border: 1px solid #e0e0e0;
+          font-size: 15px;
+          background: white;
+          color: #37352f;
+          transition: all 0.15s ease;
+          font-family: inherit;
+          box-sizing: border-box;
+        }
+        
+        input:focus {
+          outline: none;
+          border-color: #2383e2;
+          box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.1);
+        }
+        
+        input::placeholder {
+          color: rgba(55, 53, 47, 0.4);
+        }
+        
+        label {
+          display: block;
+          color: #37352f;
+          font-weight: 600;
+          margin-bottom: 0.375rem;
+          font-size: 0.875rem;
+        }
+        
+        /* Card-Style Button Base */
+        button { 
+          padding: 0;
+          margin: 0;
+          width: 100%; 
+          border-radius: 0.5rem;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          font-size: 15px;
+          background: white;
+          color: #37352f;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: inherit;
+        }
+        
+        button:hover {
+          background: #fafafa;
+          border-color: rgba(0, 0, 0, 0.12);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
+        }
+        
+        button:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Notion-style Color Accents */
+        button.secondary {
+          background: #f7f6f3;
+          color: #64645f;
+        }
+        
+        button.secondary:hover {
+          background: #efeeeb;
+        }
+        
+        button.contrast {
+          background: #2383e2;
+          color: white;
+          border-color: #2383e2;
+        }
+        
+        button.contrast:hover {
+          background: #1a6ec7;
+          border-color: #1a6ec7;
+        }
+        
+        button.success {
+          background: #0f7b6c;
+          color: white;
+          border-color: #0f7b6c;
+        }
+        
+        button.success:hover {
+          background: #0c6b5f;
+          border-color: #0c6b5f;
+        }
+        
+        button.ai-question {
+          background: #2383e2;
+          position: fixed;
+          bottom: 30px;
+          right: 30px;
+          border-radius: 50px;
+          padding: 0.875rem 1.75rem;
+          box-shadow: 0 8px 24px rgba(35, 131, 226, 0.35);
+          z-index: 1000;
+          font-weight: 600;
+          border: none;
+          color: white;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-height: auto;
+          width: auto;
+        }
+        
+        button.ai-question:hover {
+          background: #1a6ec7;
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(35, 131, 226, 0.45);
+        }
+        
+        @media (max-width: 768px) {
+          button.ai-question {
+            bottom: 20px;
+            right: 20px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+          }
+        }
+        
+        /* Clean Code Blocks */
+        pre { 
+          background: #f7f6f3; 
+          padding: 1.25rem; 
+          border-radius: 0.5rem; 
+          overflow: auto;
+          font-size: 0.875rem;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          color: #37352f;
+        }
+        
+        /* Unified Grid Layout for All Elements */
+        .grid {
+          display: grid;
+          gap: 1rem;
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 640px) {
+          .grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (min-width: 768px) {
+          .grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Clean Image Preview */
+        #imagePreviewArea {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
+        }
+        
+        #previewImage {
+          max-width: 100%;
+          max-height: 400px;
+          border-radius: 0.375rem;
+          object-fit: contain;
+        }
+        
+        /* Minimal Loading Spinner */
+        .loading-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-top: 2px solid #2383e2;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        
+        /* Font Awesome spinner animation (fallback) */
+        .fa-spin, .fa-spinner {
+          animation: fa-spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fa-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        /* Clean Crop Area */
+        #cropArea {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 0.5rem;
+          background: white;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          padding: 1rem;
+        }
+        
+        #cropperContainer {
+          max-height: 450px;
+          overflow: hidden;
+          border-radius: 0.375rem;
+        }
+        
+        /* Notion-style Cropper.js */
+        .cropper-point {
+          width: 14px !important;
+          height: 14px !important;
+          background-color: #2383e2 !important;
+          border: 2px solid white !important;
+          border-radius: 50% !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+        }
+        
+        .cropper-line {
+          background-color: #2383e2 !important;
+          height: 2px !important;
+        }
+        
+        .cropper-line.cropper-line-v {
+          width: 2px !important;
+          height: auto !important;
+        }
+        
+        .cropper-view-box {
+          outline: 2px solid #2383e2 !important;
+          outline-color: rgba(35, 131, 226, 0.75) !important;
+        }
+        
+        .cropper-crop-box {
+          border: 2px solid #2383e2 !important;
+        }
+        
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+          .cropper-point {
+            width: 18px !important;
+            height: 18px !important;
+            background-color: #2383e2 !important;
+            border: 3px solid white !important;
+            border-radius: 50% !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+          }
+          
+          .cropper-line {
+            background-color: #2383e2 !important;
+            height: 3px !important;
+          }
+          
+          .cropper-line.cropper-line-v {
+            width: 3px !important;
+            height: auto !important;
+          }
+          
+          .cropper-crop-box {
+            border: 3px solid #2383e2 !important;
+          }
+        }
+        
+        /* Clean Section Cards */
+        section {
+          background: white !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          border-radius: 0.75rem !important;
+          padding: 2rem !important;
+          margin-bottom: 1.5rem !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+          transition: box-shadow 0.2s ease !important;
+        }
+        
+        section:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Typography */
+        h1 {
+          color: #37352f;
+          font-weight: 700;
+          margin: 0;
+          font-size: 2rem;
+        }
+        
+        h2 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.5rem;
+        }
+        
+        h3 {
+          color: #37352f;
+          font-weight: 600;
+          font-size: 1.25rem;
+        }
+        
+        p {
+          color: rgba(55, 53, 47, 0.8);
+          line-height: 1.6;
+        }
+        
+        /* Notion-style Icon Styling */
+        .fas, .fa {
+          opacity: 0.6;
+        }
+        
+        /* Override Inline Styles for Notion Look - Centered Header */
+        section[style*="gradient"] {
+          background: white !important;
+          color: #37352f !important;
+          text-align: center !important;
+          padding: 3rem 2rem 2.5rem 2rem !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+          margin-bottom: 2rem !important;
+        }
+        
+        section[style*="gradient"] h1 {
+          color: #37352f !important;
+          font-size: 2.25rem !important;
+          margin-bottom: 0.5rem !important;
+          font-weight: 700 !important;
+        }
+        
+        section[style*="gradient"] p {
+          color: rgba(55, 53, 47, 0.65) !important;
+          opacity: 1 !important;
+          font-size: 1rem !important;
+          margin-bottom: 1.25rem !important;
+        }
+        
+        section[style*="gradient"] div {
+          background: #f7f6f3 !important;
+          border-radius: 0.5rem !important;
+          padding: 0.875rem 1.25rem !important;
+          border: 1px solid rgba(0, 0, 0, 0.06) !important;
+          max-width: 600px !important;
+          margin: 0 auto !important;
+        }
+        
+        section[style*="gradient"] div p {
+          color: rgba(55, 53, 47, 0.7) !important;
+          font-size: 0.875rem !important;
+          margin: 0 !important;
+        }
+        
+        /* Main Section Grid - Unified 3-Column Layout */
+        section:nth-of-type(2) {
+          display: grid;
+          gap: 1rem;
+          grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 640px) {
+          section:nth-of-type(2) {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (min-width: 768px) {
+          section:nth-of-type(2) {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        
+        /* Remove individual div spacing in main section */
+        section:nth-of-type(2) > div {
+          margin-bottom: 0 !important;
+        }
+        
+        /* Feature Card Buttons - Taller & More Spacious */
+        button[id*="Button"],
+        button[id*="Taisaku"],
+        button[id*="flashcard"],
+        button[id*="Sei"],
+        button#cameraButton,
+        button#fileButton {
+          min-height: 140px !important;
+          padding: 1.75rem 1.5rem !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          justify-content: center !important;
+          text-align: left !important;
+          gap: 0.75rem !important;
+          border-radius: 0.75rem !important;
+        }
+        
+        /* Button icons larger */
+        button[id*="Button"] i,
+        button[id*="Taisaku"] i,
+        button[id*="flashcard"] i,
+        button[id*="Sei"] i,
+        button#cameraButton i,
+        button#fileButton i {
+          font-size: 1.25rem;
+          opacity: 0.8;
+        }
+        
+        button[id*="Button"]:not(:disabled),
+        button[id*="Taisaku"]:not(:disabled),
+        button[id*="flashcard"]:not(:disabled),
+        button[id*="Sei"]:not(:disabled) {
+          background: white !important;
+          color: #37352f !important;
+        }
+        
+        /* AI Question Button - Blue Accent */
+        button#aiQuestionMainButton {
+          background: #2383e2 !important;
+          color: white !important;
+          border-color: #2383e2 !important;
+        }
+        
+        button#aiQuestionMainButton:hover {
+          background: #1a6ec7 !important;
+        }
+        
+        /* Login Button - Span Full Width on Desktop */
+        button#btnLogin {
+          min-height: 56px !important;
+          padding: 1rem 1.5rem !important;
+        }
+        
+        @media (min-width: 768px) {
+          section:nth-of-type(2) > div:first-child {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+          }
+          
+          section:nth-of-type(2) > div:first-child > div {
+            margin-bottom: 0 !important;
+          }
+        }
+        
+        /* Fix input field container styling */
+        .grid > div {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* Remove extra margins from grid items */
+        section:nth-of-type(2) .grid {
+          margin-bottom: 0 !important;
+        }
+        
+        /* Camera and File Buttons - Card Style */
+        button#cameraButton,
+        button#fileButton {
+          background: white !important;
+          color: #37352f !important;
+          border: 1px solid rgba(0, 0, 0, 0.12) !important;
+        }
+        
+        button#cameraButton:not(:disabled):hover,
+        button#fileButton:not(:disabled):hover {
+          background: #fafafa !important;
+          border-color: rgba(0, 0, 0, 0.16) !important;
+        }
+        
+        /* Photo upload section wrapper */
+        section:nth-of-type(2) > div:has(#cameraButton) {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 1rem !important;
+          grid-column: 1 / -1 !important;
+        }
+        
+        section:nth-of-type(2) > div:has(#cameraButton) > div {
+          margin-bottom: 0 !important;
+        }
+        
+        /* Disabled Button State */
+        button:disabled {
+          background: #f7f6f3 !important;
+          color: rgba(55, 53, 47, 0.3) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
+        }
+
+
+        </style>
+    </head>
+    <body>
+        <main class="container">
+            <section style="text-align: center; margin-bottom: 1rem; padding: 2rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 1rem; color: white;">
+                <h1 style="margin-bottom: 1rem; color: white;">
+                    <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
+                    KOBEYA Study Partner
+                </h1>
+                <p style="font-size: 1rem; margin-bottom: 1.5rem; opacity: 0.9;">
+                    AI学習パートナーで効果的な個別学習を体験してください
+                </p>
+                <div style="background-color: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                    <p style="margin: 0; font-size: 0.875rem;">
+                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                        APP_KEY と 生徒IDを入力してログインしてください
+                    </p>
+                </div>
+            </section>
+
+            <section style="margin-bottom: 2.5rem;">
+                <!-- 入力欄 -->
+                <div class="grid" style="margin-bottom: 1rem;">
+                    <div>
+                        <label for="appkey">APP_KEY</label>
+                        <input id="appkey" value="180418">
+                    </div>
+                    <div>
+                        <label for="sid">学生ID</label>
+                        <input id="sid" value="JS2-04">
+                    </div>
+                </div>
+
+                <!-- ログインボタン -->
+                <div style="margin-bottom: 1rem;">
+                    <button id="btnLogin" class="contrast" style="width: 100%; margin: 0;">
+                        <i class="fas fa-key" style="margin-right: 0.5rem;"></i>
+                        ログイン/認証して開始
+                    </button>
+                </div>
+
+                <!-- AIに質問ボタン -->
+                <div style="margin-bottom: 1rem;">
+                    <button id="aiQuestionMainButton" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px;">
+                        <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
+                        🤖 AIに質問
+                    </button>
+                </div>
+
+                <!-- 新機能プレースホルダーボタン -->
+                <div style="margin-bottom: 1rem;">
+                    <button id="eikenTaisaku" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                        <i class="fas fa-graduation-cap" style="margin-right: 0.5rem;"></i>
+                        📚 英検対策（実装予定）
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <button id="shoronbunTaisaku" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s;">
+                        <i class="fas fa-pen-fancy" style="margin-right: 0.5rem;"></i>
+                        📝 小論文対策
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <button id="flashcard" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                        <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
+                        🃏 フラッシュカード（実装予定）
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <button id="interSeiYou" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                        <i class="fas fa-globe" style="margin-right: 0.5rem;"></i>
+                        🌍 インター生用（実装予定）
+                    </button>
+                </div>
+
+                <!-- 写真アップロード -->
+                <div style="margin-bottom: 2.5rem;">
+                    <!-- カメラ撮影ボタン -->
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" id="cameraButton" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #374151; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px;">
+                            <i class="fas fa-camera" style="margin-right: 0.5rem;"></i>
+                            📷 カメラで撮影
+                        </button>
+                        <input id="cameraInput" type="file" accept="image/*" capture="environment" style="display: none;">
+                    </div>
+                    
+                    <!-- ファイル選択ボタン -->
+                    <div>
+                        <button type="button" id="fileButton" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #6b7280; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px;">
+                            <i class="fas fa-folder-open" style="margin-right: 0.5rem;"></i>
+                            📁 ファイルから選択
+                        </button>
+                        <input id="fileInput" type="file" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- 画像プレビューエリア -->
+                <div id="imagePreviewArea" style="display: none; margin-bottom: 1rem;">
+                    <div style="padding: 1rem; border-bottom: 1px solid #d1d5db; background: #f9fafb;">
+                        <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
+                            📸 選択された画像
+                        </p>
+                    </div>
+                    
+                    <div style="padding: 1rem; text-align: center; max-height: 400px; overflow: hidden;">
+                        <img id="previewImage" style="max-width: 100%; max-height: 350px; border-radius: 0.25rem; object-fit: contain;">
+                    </div>
+                    
+                    <!-- 画像付きメッセージ入力エリア -->
+                    <div style="padding: 1rem; border-top: 1px solid #d1d5db;">
+                        <div style="margin-bottom: 1rem;">
+                            <label for="imageMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
+                                💬 この画像について質問や説明を入力してください（任意）
+                            </label>
+                            <textarea id="imageMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
+                                style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button id="btnStartCrop" class="secondary" style="flex: 1; min-width: 150px; margin: 0;">
+                                <i class="fas fa-crop" style="margin-right: 0.5rem;"></i>
+                                🔲 範囲を調整して送信
+                            </button>
+                            <button id="btnSendDirect" class="contrast" style="flex: 1; min-width: 150px; margin: 0;">
+                                <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>
+                                📤 この画像で送信
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- クロップエリア -->
+                <div id="cropArea" style="display: none; margin-bottom: 1rem;">
+                    <div style="padding: 1rem; border-bottom: 1px solid #7c3aed; background: #f3f4f6;">
+                        <p style="margin: 0; font-size: 0.875rem; font-weight: 500;">
+                            ✂️ 解析範囲を選択してください
+                        </p>
+                    </div>
+                    
+                    <div style="padding: 1rem; text-align: center;">
+                        <div id="cropperContainer">
+                            <img id="cropImage" style="max-width: 100%; max-height: 350px;">
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 1rem; border-top: 1px solid #7c3aed;">
+                        <div style="margin-bottom: 1rem;">
+                            <label for="cropMessageInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
+                                💬 この画像について質問や説明を入力してください（任意）
+                            </label>
+                            <textarea id="cropMessageInput" placeholder="例: この問題の解き方を教えてください。特に○○の部分が分からないので詳しく説明してください。" 
+                                style="width: 100%; padding: 0.75rem; border: 2px solid #e9d5ff; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button id="btnCancelCrop" class="secondary" style="flex: 1; min-width: 120px; margin: 0;">
+                                <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+                                キャンセル
+                            </button>
+                            <button id="btnConfirmCrop" class="contrast" style="flex: 2; min-width: 150px; margin: 0;">
+                                <i class="fas fa-check" style="margin-right: 0.5rem;"></i>
+                                ✅ この範囲で送信
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アップロード中インジケーター -->
+                <div id="uploadingIndicator" style="display: none; text-align: center; padding: 1.5rem; background: #f3f4f6; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #7c3aed;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
+                        <div class="loading-spinner"></div>
+                        <span style="font-weight: 500;">写真を解析中...</span>
+                    </div>
+                    <div style="font-size: 0.875rem; opacity: 0.8;">
+                        大きな画像の場合、しばらく時間がかかることがあります
+                    </div>
+                </div>
+
+                <!-- 解析結果表示エリア -->
+                <div id="analysisResult" style="display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid #059669; border-radius: 0.5rem; background: #ecfdf5;">
+                    <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #059669; margin-right: 0.5rem;"></i>
+                        <span style="font-weight: 500;">解析完了</span>
+                    </div>
+                    <div id="analysisContent" style="font-size: 0.875rem; line-height: 1.6;">
+                        <!-- 解析結果がここに表示されます -->
+                    </div>
+                </div>
+
+                <!-- API応答の表示先 -->
+                <div id="out" style="background: #f5f5f5; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; min-height: 160px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; word-wrap: break-word; font-family: inherit;"></div>
+            </section>
+            
+            <!-- フローティングAI質問ボタン -->
+            <button id="aiQuestionButton" class="ai-question" onclick="openAIChat()" style="display: none;">
+                <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
+                🤔 AIに質問する
+            </button>
+            
+            <!-- カメラモーダル -->
+            <div class="modal" id="cameraModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-camera"></i> 問題を撮影</h2>
+                        <button class="close-btn" onclick="closeCameraSP()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- ワークフロー説明 -->
+                    <div class="workflow-instructions">
+                        <div class="workflow-step">1️⃣ 問題を撮影</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step">2️⃣ 範囲を調整</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-step">3️⃣ OCR処理</div>
+                    </div>
+                    
+                    <div class="camera-container">
+                        <video id="cameraPreviewSP" autoplay playsinline></video>
+                        <canvas id="cropCanvasSP" class="hidden"></canvas>
+                        <img id="capturedImageSP" class="hidden" alt="撮影した画像">
+                    </div>
+                    
+                    <!-- ステータス表示 -->
+                    <div id="cameraStatusSP" class="camera-status"></div>
+                    
+                    <div class="camera-controls">
+                        <button class="btn btn-capture" id="captureBtnSP" onclick="capturePhotoSP()">
+                            <i class="fas fa-camera"></i> 撮影する
+                        </button>
+                        <button class="btn btn-retake hidden" id="retakeBtnSP" onclick="retakePhotoSP()">
+                            <i class="fas fa-redo"></i> 再撮影
+                        </button>
+                        <button class="btn btn-crop hidden" id="cropBtnSP" onclick="showCropInterfaceSP()">
+                            <i class="fas fa-crop"></i> 範囲を調整
+                        </button>
+                        <button class="btn btn-crop-confirm hidden" id="cropConfirmBtnSP" onclick="applyCropSP()">
+                            <i class="fas fa-check"></i> この範囲でOK
+                        </button>
+                        <button class="btn btn-upload hidden" id="uploadBtnSP" onclick="uploadAndProcessImageSP()">
+                            <i class="fas fa-check-circle"></i> OCR処理を開始
+                        </button>
+                        <button class="btn btn-cancel" onclick="closeCameraSP()">
+                            <i class="fas fa-times"></i> キャンセル
+                        </button>
+                    </div>
+                    
+                    <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
+                        <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
+                        <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                            <li>問題全体が画面に入るように撮影してください</li>
+                            <li>明るい場所で撮影し、影ができないようにしてください</li>
+                            <li>文字がはっきり見えるように、ピントを合わせてください</li>
+                            <li>問題用紙を平らに置いて撮影してください</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Scripts -->
+        <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
+        
+        <script>
+        console.log('📱 Study Partner JavaScript loading...');
+        
+        // DOM要素の取得
+        let cameraInput, fileInput, previewImage, imagePreviewArea, cropArea, cropImage;
+        let cropper = null;
+        let authenticated = false;
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+          console.log('📱 Study Partner initialized');
+          
+          // DOM要素を取得
+          cameraInput = document.getElementById('cameraInput');
+          fileInput = document.getElementById('fileInput');
+          previewImage = document.getElementById('previewImage');
+          imagePreviewArea = document.getElementById('imagePreviewArea');
+          cropArea = document.getElementById('cropArea');
+          cropImage = document.getElementById('cropImage');
+          
+          // イベントリスナーを設定
+          setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+          // カメラ入力
+          if (cameraInput) {
+            cameraInput.addEventListener('change', handlePhotoSelect);
+          }
+          
+          // ファイル入力
+          if (fileInput) {
+            fileInput.addEventListener('change', handlePhotoSelect);
+          }
+          
+          // ログインボタン
+          const btnLogin = document.getElementById('btnLogin');
+          if (btnLogin) {
+            btnLogin.addEventListener('click', handleLogin);
+          }
+          
+          // メインのAIに質問ボタン
+          const aiQuestionMainButton = document.getElementById('aiQuestionMainButton');
+          if (aiQuestionMainButton) {
+            aiQuestionMainButton.addEventListener('click', function() {
+              console.log('🤖 Main AI question button clicked');
+              openAIChatDirect();
+            });
+          }
+          
+          // 小論文対策ボタン
+          const shoronbunButton = document.getElementById('shoronbunTaisaku');
+          if (shoronbunButton) {
+            shoronbunButton.addEventListener('click', function() {
+              console.log('📝 Essay coaching button clicked');
+              window.location.href = '/essay-coaching';
+            });
+          }
+          
+          // カメラボタン - Open camera modal (not file input)
+          const cameraButton = document.getElementById('cameraButton');
+          if (cameraButton) {
+            cameraButton.addEventListener('click', function() {
+              console.log('📷 Camera button clicked - opening camera modal');
+              if (!authenticated) {
+                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+                return;
+              }
+              const cameraModal = document.getElementById('cameraModal');
+              if (cameraModal) {
+                cameraModal.style.display = 'flex';
+                startCamera();
+              } else {
+                console.error('❌ Camera modal not found');
+              }
+            });
+          }
+          
+          // ファイル選択ボタン
+          const fileButton = document.getElementById('fileButton');
+          if (fileButton) {
+            fileButton.addEventListener('click', function() {
+              console.log('📁 File button clicked');
+              if (!authenticated) {
+                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+                return;
+              }
+              if (fileInput) {
+                fileInput.click();
+              }
+            });
+          }
+          
+          // クロップボタン
+          const btnStartCrop = document.getElementById('btnStartCrop');
+          if (btnStartCrop) {
+            btnStartCrop.addEventListener('click', startCrop);
+          }
+          
+          const btnConfirmCrop = document.getElementById('btnConfirmCrop');
+          if (btnConfirmCrop) {
+            btnConfirmCrop.addEventListener('click', confirmCrop);
+          }
+          
+          const btnCancelCrop = document.getElementById('btnCancelCrop');
+          if (btnCancelCrop) {
+            btnCancelCrop.addEventListener('click', cancelCrop);
+          }
+          
+          // 送信ボタン
+          const btnSendDirect = document.getElementById('btnSendDirect');
+          if (btnSendDirect) {
+            btnSendDirect.addEventListener('click', sendDirectly);
+          }
+        }
+        
+        // 写真選択処理
+        function handlePhotoSelect(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+          
+          console.log('📸 Photo selected:', file.name, file.type);
+          
+          // 画像プレビュー表示
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (previewImage) {
+              previewImage.src = e.target.result;
+              showImagePreview();
+              
+              // 短時間待ってから自動的にクロップ画面に移行
+              setTimeout(() => {
+                console.log('🔲 Auto starting crop after photo selection');
+                startCrop();
+              }, 800); // 0.8秒後に自動移行（画像表示確認のため）
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        
+        // 画像プレビュー表示
+        function showImagePreview() {
+          if (imagePreviewArea) {
+            imagePreviewArea.style.display = 'block';
+            
+            // 自動移行メッセージを表示
+            const btnStartCrop = document.getElementById('btnStartCrop');
+            const btnSendDirect = document.getElementById('btnSendDirect');
+            
+            if (btnStartCrop) {
+              btnStartCrop.innerHTML = '<i class="fas fa-hourglass-half" style="margin-right: 0.5rem;"></i>🔲 クロップ画面に移行中...';
+              btnStartCrop.disabled = true;
+              btnStartCrop.style.opacity = '0.7';
+            }
+            
+            if (btnSendDirect) {
+              btnSendDirect.style.display = 'none'; // 自動移行中は非表示
+            }
+          }
+          hideArea(cropArea);
+        }
+        
+        // クロップ開始
+        function startCrop() {
+          if (!previewImage || !previewImage.src) return;
+          
+          console.log('✂️ Starting crop');
+          
+          // プレビュー画像をクロップエリアにコピー
+          if (cropImage) {
+            cropImage.src = previewImage.src;
+          }
+          
+          // メッセージもコピー
+          const imageMessageInput = document.getElementById('imageMessageInput');
+          const cropMessageInput = document.getElementById('cropMessageInput');
+          if (imageMessageInput && cropMessageInput) {
+            cropMessageInput.value = imageMessageInput.value;
+          }
+          
+          showArea(cropArea);
+          hideArea(imagePreviewArea);
+          
+          // Cropper.js初期化
+          if (window.Cropper && cropImage) {
+            if (cropper) {
+              cropper.destroy();
+            }
+            
+            cropper = new Cropper(cropImage, {
+              aspectRatio: NaN, // フリーサイズ
+              viewMode: 1,
+              dragMode: 'move',
+              autoCropArea: 0.95, // ほぼ全体を初期選択（0.8 → 0.95）
+              restore: false,
+              guides: true,
+              center: true,
+              highlight: false,
+              cropBoxMovable: true,
+              cropBoxResizable: true,
+              toggleDragModeOnDblclick: false,
+              ready: function() {
+                console.log('✂️ Cropper initialized with almost full area selection');
+              }
+            });
+          }
+        }
+        
+        // クロップ確定
+        function confirmCrop() {
+          console.log('✅ Confirming crop');
+          
+          let croppedImageData = null;
+          
+          if (cropper) {
+            // Cropper.js を使用してクロップ
+            const canvas = cropper.getCroppedCanvas({
+              maxWidth: 2000,
+              maxHeight: 2000,
+              fillColor: '#fff',
+              imageSmoothingEnabled: true,
+              imageSmoothingQuality: 'high',
+            });
+            
+            croppedImageData = canvas.toDataURL('image/jpeg', 0.8);
+          } else {
+            // Cropper.js が利用できない場合は元画像を使用
+            croppedImageData = previewImage.src;
+          }
+          
+          // メッセージ入力欄から値を取得
+          const messageInput = document.getElementById('cropMessageInput');
+          const userMessage = messageInput ? messageInput.value.trim() : '';
+          
+          // 画像を送信
+          sendAnalysisRequest(croppedImageData, true, userMessage);
+        }
+        
+        // クロップキャンセル
+        function cancelCrop() {
+          console.log('❌ Canceling crop');
+          
+          if (cropper) {
+            cropper.destroy();
+            cropper = null;
+          }
+          
+          hideArea(cropArea);
+          
+          // プレビューボタンを元の状態に戻す
+          const btnStartCrop = document.getElementById('btnStartCrop');
+          const btnSendDirect = document.getElementById('btnSendDirect');
+          
+          if (btnStartCrop) {
+            btnStartCrop.innerHTML = '<i class="fas fa-crop" style="margin-right: 0.5rem;"></i>🔲 この範囲で解析';
+            btnStartCrop.disabled = false;
+            btnStartCrop.style.opacity = '1';
+          }
+          
+          if (btnSendDirect) {
+            btnSendDirect.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>📤 そのまま送信';
+            btnSendDirect.style.display = 'flex'; // 再表示
+          }
+          
+          // メッセージも戻す
+          const imageMessageInput = document.getElementById('imageMessageInput');
+          const cropMessageInput = document.getElementById('cropMessageInput');
+          if (imageMessageInput && cropMessageInput) {
+            imageMessageInput.value = cropMessageInput.value;
+          }
+          
+          showImagePreview();
+        }
+        
+        // エリア表示/非表示ヘルパー
+        function showArea(element) {
+          if (element) {
+            element.style.display = 'block';
+          }
+        }
+        
+        function hideArea(element) {
+          if (element) {
+            element.style.display = 'none';
+          }
+        }
+        
+        // 直接送信
+        function sendDirectly() {
+          console.log('📤 Sending directly');
+          
+          if (previewImage && previewImage.src) {
+            // メッセージ入力欄から値を取得
+            const messageInput = document.getElementById('imageMessageInput');
+            const userMessage = messageInput ? messageInput.value.trim() : '';
+            
+            sendAnalysisRequest(previewImage.src, false, userMessage);
+          }
+        }
+        
+        // ログイン処理
+        async function handleLogin() {
+          console.log('🔑 Login attempt started');
+          
+          try {
+            const appkey = document.getElementById('appkey')?.value || '180418';
+            const sid = document.getElementById('sid')?.value || 'JS2-04';
+            
+            console.log('🔍 Credentials:', { appkey, sid });
+            
+            // Validate input fields
+            if (!appkey || !sid) {
+              throw new Error('APP_KEY と Student ID を両方入力してください');
+            }
+            
+            // Call the actual login API
+            const response = await fetch('/api/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                appkey: appkey,
+                sid: sid
+              })
+            });
+            
+            console.log('📡 Login response:', response.status, response.statusText);
+            
+            const data = await response.json();
+            console.log('📋 Login data:', data);
+            
+            if (response.ok && data.success) {
+              authenticated = true;
+              alert('✅ ログイン成功!' + String.fromCharCode(10) + 
+                    'APP_KEY: ' + appkey + String.fromCharCode(10) + 
+                    'Student ID: ' + sid);
+            } else {
+              authenticated = false;
+              throw new Error(data.message || 'ログインに失敗しました');
+            }
+          } catch (error) {
+            console.error('❌ Login error:', error);
+            authenticated = false;
+            alert('❌ ログインエラー: ' + error.message);
+          }
+        }
+        
+        // 解析リクエスト送信（段階学習システム対応版）
+        async function sendAnalysisRequest(imageData, cropped, userMessage = '') {
+          console.log('📤 Sending analysis request, cropped:', cropped, 'message:', userMessage);
+          
+          if (!authenticated) {
+            alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+            return;
+          }
+          
+          showUploadingIndicator(true);
+          
+          try {
+            // DataURLから実際のファイルデータを取得
+            const response = await fetch(imageData);
+            const blob = await response.blob();
+            
+            // FormDataを作成
+            const formData = new FormData();
+            const appkey = document.getElementById('appkey')?.value || '180418';
+            const sid = document.getElementById('sid')?.value || 'JS2-04';
+            
+            formData.append('image', blob, 'image.jpg');
+            formData.append('appkey', appkey);
+            formData.append('sid', sid);
+            if (userMessage) {
+              formData.append('message', userMessage);
+            }
+            
+            console.log('📤 Sending to /api/analyze-and-learn with FormData');
+            
+            // 段階学習APIエンドポイントに送信
+            const apiResponse = await fetch('/api/analyze-and-learn', {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+            
+            console.log('📡 API Response:', apiResponse.status, apiResponse.statusText);
+            
+            if (!apiResponse.ok) {
+              throw new Error('HTTP ' + apiResponse.status + ': ' + apiResponse.statusText);
+            }
+            
+            const result = await apiResponse.json();
+            console.log('📋 Analysis result:', result);
+            
+            if (result.ok) {
+              // 段階学習システムを開始
+              startLearningSystem(result);
+            } else {
+              throw new Error(result.message || 'API解析でエラーが発生しました');
+            }
+            
+            showUploadingIndicator(false);
+            
+          } catch (error) {
+            console.error('❌ Analysis error:', error);
+            alert('❌ 解析エラー: ' + error.message);
+            showUploadingIndicator(false);
+          }
+        }
+        
+        // 解析結果表示（生徒向け簡潔表示）
+        function displayAnalysisResult(result) {
+          const analysisResult = document.getElementById('analysisResult');
+          const analysisContent = document.getElementById('analysisContent');
+          
+          if (analysisContent) {
+            // 生徒向けの簡潔で励ましのメッセージのみ表示
+            const studentMessage = 
+              '<div style="font-size: 0.9rem; color: #374151;">' +
+                '<strong>📋 問題を分析しました！</strong><br>' +
+                (result.subject || '学習') + 'の問題ですね。<br>' +
+                '段階的に一緒に解いていきましょう！' +
+              '</div>' +
+              // Phase1改善: 再生成タイプ選択UI
+              '<div style="margin-top: 1rem; padding: 1rem; background: rgba(245,158,11,0.1); border-radius: 0.75rem; border: 1px solid #f59e0b;">' +
+                '<div style="text-align: center; margin-bottom: 0.75rem;">' +
+                  '<h4 style="margin: 0; color: #f59e0b; font-size: 0.9rem;">🎯 どのような問題に挑戦したいですか？</h4>' +
+                  '<p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #666;">バンコクで頑張っているあなたを応援します ✨</p>' +
+                '</div>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">' +
+                  '<button onclick="regenerateProblem(\\'similar\\')" ' +
+                  'style="background: #10b981; color: white; border: none; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.75rem; text-align: center;">' +
+                  '🔄 同じような問題' +
+                  '</button>' +
+                  '<button onclick="regenerateProblem(\\'approach\\')" ' +
+                  'style="background: #3b82f6; color: white; border: none; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.75rem; text-align: center;">' +
+                  '🎯 違うアプローチ' +
+                  '</button>' +
+                '</div>' +
+                '<div style="text-align: center;">' +
+                  '<button onclick="regenerateProblem(\\'full\\')" id="regenerateButton" ' +
+                  'style="background: #f59e0b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.75rem; font-weight: 500;">' +
+                  '<i class="fas fa-sync-alt" style="margin-right: 0.5rem;"></i>完全に新しいパターン' +
+                  '</button>' +
+                '</div>' +
+              '</div>';
+            analysisContent.innerHTML = studentMessage;
+            
+            if (analysisResult) {
+              analysisResult.style.display = 'block';
+            }
+          }
+          
+          // 詳細分析は内部ログのみ（生徒には非表示）
+          if (result.analysis) {
+            console.log('🔍 詳細分析結果（内部用）:', result.analysis);
+          }
+        }
+        
+        // アップロード中インジケーター
+        function showUploadingIndicator(show) {
+          const indicator = document.getElementById('uploadingIndicator');
+          if (indicator) {
+            indicator.style.display = show ? 'block' : 'none';
+          }
+        }
+        
+        // === 段階学習システム ===
+        
+        let currentSession = null;
+        
+        // 段階学習システム開始
+        function startLearningSystem(result) {
+          console.log('📚 Starting learning system with session:', result.sessionId);
+          
+          currentSession = result;
+          
+          // 解析結果を表示
+          displayAnalysisResult(result);
+          
+          // 最初のステップを表示
+          displayLearningStep(result);
+          
+          // AI質問ボタンを表示
+          showAIQuestionButton();
+        }
+        
+        // 段階学習ステップ表示
+        function displayLearningStep(result) {
+          console.log('📚 Displaying learning step:', result.currentStep.stepNumber);
+          console.log('🔍 Step details:', {
+            stepNumber: result.currentStep.stepNumber,
+            instruction: result.currentStep.instruction,
+            type: result.currentStep.type,
+            options: result.currentStep.options,
+            optionsLength: result.currentStep.options ? result.currentStep.options.length : 'undefined'
+          });
+          
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          const step = result.currentStep;
+          
+          let stepHtml = '<div style="padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff, #ffffff); border: 2px solid #0369a1; border-radius: 0.75rem; margin-bottom: 1.5rem;">';
+          stepHtml += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+          stepHtml += '<div style="background: #0369a1; color: white; width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 0.75rem;">' + (step.stepNumber + 1) + '</div>';
+          stepHtml += '<h3 style="margin: 0; color: #0369a1;">📚 Step ' + (step.stepNumber + 1) + ' / ' + result.totalSteps + '</h3>';
+          stepHtml += '</div>';
+          
+          stepHtml += '<p style="margin: 0 0 1.5rem 0; line-height: 1.6; font-size: 1rem;">' + step.instruction + '</p>';
+          
+          if (step.type === 'choice') {
+            // 選択肢が存在しない場合のフォールバック処理
+            if (!step.options || !Array.isArray(step.options) || step.options.length === 0) {
+              console.error('❌ No options found for choice step, creating fallback options');
+              step.options = [
+                "A) 選択肢が読み込めませんでした",
+                "B) もう一度お試しください", 
+                "C) システムエラーが発生しています",
+                "D) 管理者にお知らせください"
+              ];
+              step.correctAnswer = "A";
+            }
+            
+            stepHtml += '<div style="margin-bottom: 1.5rem;">';
+            for (let i = 0; i < step.options.length; i++) {
+              stepHtml += '<label style="display: block; margin-bottom: 0.75rem; padding: 0.75rem; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; line-height: 1.5; word-wrap: break-word;">';
+              stepHtml += '<input type="radio" name="stepChoice" value="' + step.options[i].charAt(0) + '" style="margin-right: 0.5rem; vertical-align: top;">';
+              stepHtml += '<span style="display: inline; font-weight: 500;">' + step.options[i] + '</span>';
+              stepHtml += '</label>';
+            }
+            stepHtml += '</div>';
+            
+            stepHtml += '<button onclick="submitStepAnswer()" ';
+            stepHtml += 'style="background: #0369a1; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 1rem;">';
+            stepHtml += '📝 回答する</button>';
+          }
+          
+          stepHtml += '</div>';
+          
+          out.innerHTML = stepHtml;
+        }
+        
+        // ステップ回答送信
+        async function submitStepAnswer() {
+          const selectedOption = document.querySelector('input[name="stepChoice"]:checked');
+          if (!selectedOption) {
+            alert('❌ 選択肢を選んでください');
+            return;
+          }
+          
+          const answer = selectedOption.value;
+          const currentStep = currentSession.currentStep;
+          
+          console.log('📝 Step answer submitted:', answer, 'stepNumber:', currentStep.stepNumber);
+          
+          try {
+            // ステップ回答チェックAPIを呼び出し
+            const response = await fetch('/api/step/check', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId: currentSession.sessionId,
+                stepNumber: currentStep.stepNumber,
+                answer: answer
+              })
+            });
+            
+            console.log('📡 Step check response:', response.status);
+            
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            
+            const result = await response.json();
+            console.log('📋 Step check result:', result);
+            
+            if (result.ok) {
+              // 回答結果に応じて次のアクションを決定
+              if (result.isCorrect) {
+                displayStepResult(true, result.feedback, answer);
+                
+                // 次のアクションに応じて処理を分岐
+                if (result.nextAction === 'next_step') {
+                  // 次のステップがある場合
+                  setTimeout(() => {
+                    currentSession.currentStep = result.nextStep;
+                    displayLearningStep(currentSession);
+                  }, 3000);
+                } else if (result.nextAction === 'confirmation') {
+                  // 確認問題に進む場合
+                  setTimeout(() => {
+                    currentSession.confirmationProblem = result.confirmationProblem;
+                    startConfirmationProblem();
+                  }, 3000);
+                }
+              } else {
+                // 不正解の場合
+                displayStepResult(false, result.feedback, answer);
+              }
+            } else {
+              throw new Error(result.message || 'ステップチェックでエラーが発生しました');
+            }
+            
+          } catch (error) {
+            console.error('❌ Step check error:', error);
+            alert('❌ ステップチェックエラー: ' + error.message);
+          }
+        }
+        
+        // ステップ結果表示
+        function displayStepResult(isCorrect, explanation, userAnswer) {
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          let resultHtml = '<div style="padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 2px solid ';
+          
+          if (isCorrect) {
+            resultHtml += '#16a34a; background: linear-gradient(135deg, #dcfce7, #ffffff);">';
+            resultHtml += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            resultHtml += '<div style="background: #16a34a; color: white; width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">✓</div>';
+            resultHtml += '<h4 style="margin: 0; color: #16a34a; font-size: 1.25rem;">🎉 正解です！よくできました！</h4>';
+            resultHtml += '</div>';
+          } else {
+            resultHtml += '#dc2626; background: linear-gradient(135deg, #fee2e2, #ffffff);">';
+            resultHtml += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            resultHtml += '<div style="background: #dc2626; color: white; width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">✗</div>';
+            resultHtml += '<h4 style="margin: 0; color: #dc2626; font-size: 1.25rem;">📖 もう一度考えてみましょう</h4>';
+            resultHtml += '</div>';
+            resultHtml += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">あなたの答え: ' + userAnswer + '</p>';
+            resultHtml += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.currentStep.correctAnswer + '</p>';
+          }
+          
+          resultHtml += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          resultHtml += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
+          resultHtml += '</div>';
+          
+          if (isCorrect) {
+            // 正解時は既にsubmitStepAnswerでAPIからの指示に従って自動処理されている
+            resultHtml += '<div style="text-align: center;">';
+            resultHtml += '<div style="display: inline-flex; align-items: center; gap: 0.5rem; color: #16a34a; font-weight: 500;">';
+            resultHtml += '<div class="loading-spinner" style="width: 16px; height: 16px;"></div>';
+            resultHtml += '<span>次のステップを準備しています...</span>';
+            resultHtml += '</div>';
+            resultHtml += '</div>';
+          } else {
+            resultHtml += '<div style="text-align: center;">';
+            resultHtml += '<button onclick="retryCurrentStep()" style="background: #dc2626; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">🔄 もう一度挑戦</button>';
+            resultHtml += '</div>';
+          }
+          
+          resultHtml += '</div>';
+          out.innerHTML = resultHtml;
+        }
+        
+        // 次のステップに進む（APIレスポンスから自動的に処理される）
+        function goToNextStep() {
+          console.log('📚 Moving to next step - handled by API response');
+          // この関数はAPIレスポンスで自動的に処理されるため、
+          // 特別な処理は不要（既にsubmitStepAnswerで処理済み）
+        }
+        
+        // 現在のステップを再試行
+        function retryCurrentStep() {
+          console.log('🔄 Retrying current step');
+          displayLearningStep(currentSession);
+        }
+        
+        // 確認問題開始
+        function startConfirmationProblem() {
+          console.log('🎯 Starting confirmation problem');
+          displayConfirmationProblem();
+        }
+        
+        // 確認問題表示
+        function displayConfirmationProblem() {
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          const problem = currentSession.confirmationProblem;
+          
+          let html = '<div style="padding: 1.5rem; background: linear-gradient(135deg, #fef3c7, #ffffff); border: 2px solid #d97706; border-radius: 0.75rem; margin-bottom: 1.5rem;">';
+          html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+          html += '<div style="background: #d97706; color: white; width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 0.75rem;">?</div>';
+          html += '<h3 style="margin: 0; color: #d97706; font-size: 1.25rem;">🎯 確認問題</h3>';
+          html += '</div>';
+          
+          html += '<p style="margin: 0 0 1.5rem 0; line-height: 1.6; font-size: 1rem;">' + problem.question + '</p>';
+          
+          if (problem.type === 'choice') {
+            html += '<div style="margin-bottom: 1.5rem;">';
+            for (let i = 0; i < problem.options.length; i++) {
+              html += '<label style="display: block; margin-bottom: 0.75rem; padding: 0.75rem; background: #fefce8; border: 2px solid #fde68a; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; line-height: 1.5; word-wrap: break-word;">';
+              html += '<input type="radio" name="confirmChoice" value="' + problem.options[i].charAt(0) + '" style="margin-right: 0.5rem; vertical-align: top;">';
+              html += '<span style="display: inline; font-weight: 500;">' + problem.options[i] + '</span>';
+              html += '</label>';
+              html += '</label>';
+            }
+            html += '</div>';
+            
+            html += '<button onclick="submitConfirmationAnswer()" ';
+            html += 'style="background: #d97706; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 1rem;">';
+            html += '🎯 確認問題を解く</button>';
+          }
+          
+          html += '</div>';
+          out.innerHTML = html;
+        }
+        
+        // 確認問題回答送信
+        async function submitConfirmationAnswer() {
+          const selectedOption = document.querySelector('input[name="confirmChoice"]:checked');
+          if (!selectedOption) {
+            alert('❌ 選択肢を選んでください');
+            return;
+          }
+          
+          const answer = selectedOption.value;
+          
+          console.log('🎯 Confirmation answer submitted:', answer);
+          
+          try {
+            // 確認問題回答チェックAPIを呼び出し
+            const response = await fetch('/api/confirmation/check', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId: currentSession.sessionId,
+                answer: answer
+              })
+            });
+            
+            console.log('📡 Confirmation check response:', response.status);
+            
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            
+            const result = await response.json();
+            console.log('📋 Confirmation check result:', result);
+            
+            if (result.ok) {
+              displayConfirmationResult(result.isCorrect, result.feedback, answer, result.nextAction);
+            } else {
+              throw new Error(result.message || '確認問題チェックでエラーが発生しました');
+            }
+            
+          } catch (error) {
+            console.error('❌ Confirmation check error:', error);
+            alert('❌ 確認問題チェックエラー: ' + error.message);
+          }
+        }
+        
+        // 確認問題結果表示
+        function displayConfirmationResult(isCorrect, explanation, userAnswer, nextAction) {
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          let html = '<div style="padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 2px solid ';
+          
+          if (isCorrect) {
+            html += '#16a34a; background: linear-gradient(135deg, #dcfce7, #ffffff);">';
+            html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            html += '<div style="background: #16a34a; color: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-size: 1.25rem;">🎉</div>';
+            html += '<h4 style="margin: 0; color: #16a34a; font-size: 1.25rem;">🏆 確認問題正解！素晴らしいです！</h4>';
+            html += '</div>';
+          } else {
+            html += '#dc2626; background: linear-gradient(135deg, #fee2e2, #ffffff);">';
+            html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            html += '<div style="background: #dc2626; color: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">❌</div>';
+            html += '<h4 style="margin: 0; color: #dc2626; font-size: 1.25rem;">📚 確認問題：もう少し復習しましょう</h4>';
+            html += '</div>';
+            html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">あなたの答え: ' + userAnswer + '</p>';
+            html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.confirmationProblem.correctAnswer + '</p>';
+          }
+          
+          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
+          html += '</div>';
+          
+          if (isCorrect) {
+            if (nextAction === 'similar_problems') {
+              // 類似問題フェーズに移行
+              html += '<div style="text-align: center;">';
+              html += '<p style="margin-bottom: 1rem; color: #16a34a;">🚀 次は類似問題にチャレンジしましょう！</p>';
+              html += '<button onclick="startSimilarProblems()" style="background: #7c3aed; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">📚 類似問題を始める</button>';
+              html += '</div>';
+            } else {
+              // 従来の完了メッセージ
+              html += '<div style="text-align: center;">';
+              html += '<p style="margin-bottom: 1rem; color: #16a34a;">🎊 学習完了！お疲れさまでした！</p>';
+              html += '<div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">';
+              html += '<button onclick="location.reload()" style="background: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">🔄 新しい問題に挑戦</button>';
+              html += '</div>';
+            }
+          } else {
+            html += '<div style="text-align: center;">';
+            html += '<button onclick="displayConfirmationProblem()" style="background: #dc2626; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">🔄 もう一度挑戦</button>';
+            html += '</div>';
+          }
+          
+          html += '</div>';
+          out.innerHTML = html;
+        }
+        
+        // === 類似問題システム ===
+        
+        let currentSimilarProblem = 0;
+        
+        // 類似問題開始
+        async function startSimilarProblems() {
+          console.log('🔥 Starting similar problems');
+          console.log('📋 Current session:', currentSession);
+          
+          if (!currentSession) {
+            console.error('❌ No current session found');
+            alert('❌ セッションが見つかりません。最初からやり直してください。');
+            return;
+          }
+          
+          // デバッグ用：サーバーからセッションデータを確認
+          try {
+            const debugResponse = await fetch('/api/debug/session/' + currentSession.sessionId);
+            const debugData = await debugResponse.json();
+            console.log('🔍 Server session debug:', debugData);
+          } catch (error) {
+            console.error('❌ Debug fetch error:', error);
+          }
+          
+          // セッションデータの構造をチェック
+          console.log('📋 Session keys:', Object.keys(currentSession));
+          console.log('📋 Has similarProblems:', !!currentSession.similarProblems);
+          console.log('📋 similarProblems type:', typeof currentSession.similarProblems);
+          console.log('📋 similarProblems value:', currentSession.similarProblems);
+          
+          if (!currentSession.analysis) {
+            console.error('❌ No analysis data found');
+            alert('❌ 学習データが見つかりません。最初からやり直してください。');
+            return;
+          }
+          
+          if (!currentSession.similarProblems) {
+            console.error('❌ No similar problems found');
+            console.log('📋 Session structure:', currentSession);
+            alert('❌ 類似問題データが見つかりません。最初からやり直してください。');
+            return;
+          }
+          
+          console.log('📚 Similar problems found:', currentSession.similarProblems.length);
+          currentSimilarProblem = 0;
+          displaySimilarProblem(1);
+        }
+        
+        // 類似問題表示
+        function displaySimilarProblem(problemNumber) {
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          const problems = currentSession.similarProblems;
+          const problem = problems[problemNumber - 1];
+          
+          if (!problem) {
+            console.error('❌ Similar problem not found:', problemNumber);
+            return;
+          }
+          
+          currentSimilarProblem = problemNumber;
+          
+          let html = '<div style="padding: 1.5rem; background: linear-gradient(135deg, #f3e8ff, #ffffff); border: 2px solid #7c3aed; border-radius: 0.75rem; margin-bottom: 1.5rem;">';
+          html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+          html += '<div style="background: #7c3aed; color: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 0.75rem;">' + problemNumber + '</div>';
+          html += '<h3 style="margin: 0; color: #7c3aed; font-size: 1.25rem;">📚 類似問題 ' + problemNumber + '/' + problems.length + '</h3>';
+          html += '</div>';
+          
+          html += '<p style="margin: 0 0 1.5rem 0; line-height: 1.6; font-size: 1rem; white-space: pre-wrap;">' + problem.question + '</p>';
+          
+          if (problem.type === 'choice') {
+            // 選択肢問題
+            html += '<div style="margin-bottom: 1.5rem;">';
+            for (let i = 0; i < problem.options.length; i++) {
+              html += '<label style="display: block; margin-bottom: 0.75rem; padding: 0.75rem; background: #faf5ff; border: 2px solid #e9d5ff; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; line-height: 1.5; word-wrap: break-word;">';
+              html += '<input type="radio" name="similarChoice" value="' + problem.options[i].charAt(0) + '" style="margin-right: 0.5rem; vertical-align: top;">';
+              html += '<span style="display: inline; font-weight: 500;">' + problem.options[i] + '</span>';
+              html += '</label>';
+            }
+            html += '</div>';
+            
+            html += '<button onclick="submitSimilarAnswer()" ';
+            html += 'style="background: #7c3aed; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 1rem;">';
+            html += '📝 答えを送信</button>';
+            
+          } else if (problem.type === 'input') {
+            // 記述問題
+            html += '<div style="margin-bottom: 1.5rem;">';
+            html += '<textarea id="similarInput" placeholder="ここに答えを入力してください..." ';
+            html += 'style="width: 100%; padding: 1rem; border: 2px solid #e9d5ff; border-radius: 0.5rem; font-size: 1rem; line-height: 1.5; min-height: 80px; resize: vertical; box-sizing: border-box;"></textarea>';
+            html += '</div>';
+            
+            html += '<button onclick="submitSimilarAnswer()" ';
+            html += 'style="background: #7c3aed; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 1rem;">';
+            html += '📝 答えを送信</button>';
+          }
+          
+          html += '</div>';
+          out.innerHTML = html;
+        }
+        
+        // 類似問題回答送信
+        async function submitSimilarAnswer() {
+          const problems = currentSession.similarProblems;
+          const problem = problems[currentSimilarProblem - 1];
+          let answer = '';
+          
+          if (problem.type === 'choice') {
+            const selectedOption = document.querySelector('input[name="similarChoice"]:checked');
+            if (!selectedOption) {
+              alert('❌ 選択肢を選んでください');
+              return;
+            }
+            answer = selectedOption.value;
+          } else if (problem.type === 'input') {
+            const inputElement = document.getElementById('similarInput');
+            if (!inputElement || !inputElement.value.trim()) {
+              alert('❌ 答えを入力してください');
+              return;
+            }
+            answer = inputElement.value.trim();
+          }
+          
+          console.log('📚 Similar answer submitted:', { problemNumber: currentSimilarProblem, answer });
+          
+          try {
+            // 類似問題回答チェックAPIを呼び出し
+            const response = await fetch('/api/similar/check', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId: currentSession.sessionId,
+                problemNumber: currentSimilarProblem,
+                answer: answer
+              })
+            });
+            
+            console.log('📡 Similar check response:', response.status);
+            
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            
+            const result = await response.json();
+            console.log('📋 Similar check result:', result);
+            
+            if (result.ok) {
+              displaySimilarResult(result.isCorrect, result.feedback, answer, result.nextAction, result.completedProblems, result.totalProblems);
+            } else {
+              throw new Error(result.message || '類似問題チェックでエラーが発生しました');
+            }
+            
+          } catch (error) {
+            console.error('❌ Similar check error:', error);
+            alert('❌ 類似問題チェックエラー: ' + error.message);
+          }
+        }
+        
+        // 類似問題結果表示
+        function displaySimilarResult(isCorrect, explanation, userAnswer, nextAction, completedProblems, totalProblems) {
+          const out = document.getElementById('out');
+          if (!out) return;
+          
+          let html = '<div style="padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 2px solid ';
+          
+          if (isCorrect) {
+            html += '#16a34a; background: linear-gradient(135deg, #dcfce7, #ffffff);">';
+            html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            html += '<div style="background: #16a34a; color: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-size: 1.25rem;">✅</div>';
+            html += '<h4 style="margin: 0; color: #16a34a; font-size: 1.25rem;">🎉 類似問題' + currentSimilarProblem + '正解！</h4>';
+            html += '</div>';
+          } else {
+            html += '#dc2626; background: linear-gradient(135deg, #fee2e2, #ffffff);">';
+            html += '<div style="display: flex; align-items: center; margin-bottom: 1rem;">';
+            html += '<div style="background: #dc2626; color: white; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">❌</div>';
+            html += '<h4 style="margin: 0; color: #dc2626; font-size: 1.25rem;">📚 類似問題' + currentSimilarProblem + '：もう一度考えてみましょう</h4>';
+            html += '</div>';
+            html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">あなたの答え: ' + userAnswer + '</p>';
+          }
+          
+          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
+          html += '</div>';
+          
+          // 進捗表示
+          html += '<div style="background: rgba(124,58,237,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<p style="margin: 0; font-weight: 500; color: #7c3aed;">📊 進捗: ' + completedProblems + '/' + totalProblems + '問正解</p>';
+          html += '</div>';
+          
+          if (isCorrect) {
+            if (nextAction === 'next_problem') {
+              // 次の類似問題に進む
+              html += '<div style="text-align: center;">';
+              html += '<button onclick="displaySimilarProblem(' + (currentSimilarProblem + 1) + ')" style="background: #7c3aed; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">➡️ 次の類似問題へ</button>';
+              html += '</div>';
+            } else if (nextAction === 'all_completed') {
+              // すべての類似問題完了
+              html += '<div style="text-align: center;">';
+              html += '<p style="margin-bottom: 1rem; color: #16a34a; font-weight: 600; font-size: 1.1rem;">🎊 すべての類似問題が完了しました！お疲れ様でした！</p>';
+              html += '<div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">';
+              html += '<button onclick="location.reload()" style="background: #16a34a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">🔄 新しい問題に挑戦</button>';
+              html += '</div>';
+              html += '</div>';
+            }
+          } else {
+            html += '<div style="text-align: center;">';
+            html += '<button onclick="displaySimilarProblem(' + currentSimilarProblem + ')" style="background: #dc2626; color: white; padding: 0.75rem 2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 500;">🔄 もう一度挑戦</button>';
+            html += '</div>';
+          }
+          
+          html += '</div>';
+          out.innerHTML = html;
+        }
+
+        // === AI質問システム ===
+        
+        // AI質問ボタンの表示制御
+        function showAIQuestionButton() {
+          const aiButton = document.getElementById('aiQuestionButton');
+          if (aiButton && currentSession) {
+            aiButton.style.display = 'block';
+          }
+        }
+        
+        function hideAIQuestionButton() {
+          const aiButton = document.getElementById('aiQuestionButton');
+          if (aiButton) {
+            aiButton.style.display = 'none';
+          }
+        }
+        
+        // AI質問ウインドウを開く
+        function openAIChat() {
+          console.log('🤖 Opening AI chat window (direct mode) - V2 Simple Version');
+          
+          // 汎用的なセッションIDを生成
+          const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          
+          // 新しいウインドウでAIチャットを開く（V2版：シンプルで安定した実装）
+          const windowFeatures = 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
+          const aiWindow = window.open('/ai-chat-v2/' + directSessionId, 'ai-chat-v2', windowFeatures);
+          
+          if (!aiWindow) {
+            alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+          } else {
+            // ウインドウにフォーカスを移す
+            aiWindow.focus();
+          }
+        }
+        
+        // 学習セッション無しでAIチャットを開く（メインボタン用）
+        function openAIChatDirect() {
+          console.log('🤖 Opening direct AI chat window - V2 Simple Version');
+          
+          // 汎用的なセッションIDを生成
+          const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          
+          // 新しいウインドウでAIチャットを開く（V2版：シンプルで安定した実装）
+          const windowFeatures = 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
+          const aiWindow = window.open('/ai-chat-v2/' + directSessionId, 'ai-chat-v2', windowFeatures);
+          
+          if (!aiWindow) {
+            alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+          } else {
+            // ウインドウにフォーカスを移す
+            aiWindow.focus();
+          }
+        }
+
+        // === 問題再生成機能（Step 2: フロントエンド実装） ===
+        
+        // 問題再生成関数
+        async function regenerateProblem(regenerationType = 'full') {
+          console.log('🔄 Regenerate problem called, type:', regenerationType);
+          
+          if (!authenticated) {
+            alert('❌ ログインが必要です');
+            return;
+          }
+          
+          if (!currentSession) {
+            alert('❌ 学習セッションが見つかりません');
+            return;
+          }
+          
+          // 全ての再生成ボタンを無効化してローディング表示
+          const buttons = document.querySelectorAll('[onclick*="regenerateProblem"]');
+          const originalButtonStates = [];
+          
+          buttons.forEach((button, index) => {
+            originalButtonStates[index] = {
+              innerHTML: button.innerHTML,
+              disabled: button.disabled
+            };
+            button.disabled = true;
+            
+            // ボタンタイプに応じたローディング表示
+            if (button.innerHTML.includes('同じような問題')) {
+              button.innerHTML = '<div class="loading-spinner" style="display: inline-block; margin-right: 0.25rem; width: 16px; height: 16px;"></div>生成中...';
+            } else if (button.innerHTML.includes('違うアプローチ')) {
+              button.innerHTML = '<div class="loading-spinner" style="display: inline-block; margin-right: 0.25rem; width: 16px; height: 16px;"></div>生成中...';
+            } else {
+              button.innerHTML = '<div class="loading-spinner" style="display: inline-block; margin-right: 0.5rem; width: 16px; height: 16px;"></div>再生成中...';
+            }
+          });
+          
+          try {
+            console.log('🔄 Sending regeneration request for session:', currentSession.sessionId);
+            
+            const response = await fetch('/api/regenerate-problem', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId: currentSession.sessionId,
+                regenerationType: regenerationType
+              })
+            });
+            
+            console.log('📡 Regeneration response status:', response.status);
+            
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            
+            const result = await response.json();
+            console.log('📋 Regeneration result:', result);
+            
+            if (result.ok) {
+              // セッション情報を更新
+              currentSession.analysis = result.analysis;
+              currentSession.steps = result.steps;
+              currentSession.confirmationProblem = result.confirmationProblem;
+              currentSession.similarProblems = result.similarProblems;
+              currentSession.currentStep = result.currentStep;
+              
+              // 成功時はボタンを元の状態に戻す
+              buttons.forEach((button, index) => {
+                if (originalButtonStates[index]) {
+                  button.innerHTML = originalButtonStates[index].innerHTML;
+                  button.disabled = originalButtonStates[index].disabled;
+                }
+              });
+              
+              // 学習システムを新しいデータで再開
+              alert('✅ 新しいパターンの問題を生成しました！');
+              displayLearningStep(result);
+              
+              return; // 成功時はreturnして、finallyブロックの実行を回避
+            } else {
+              throw new Error(result.message || '再生成に失敗しました');
+            }
+            
+          } catch (error) {
+            console.error('❌ Regeneration error:', error);
+            
+            // Step 4: エラーハンドリング強化 - より詳細で分かりやすいエラーメッセージ
+            let errorMessage = '❌ 問題の再生成に失敗しました';
+            
+            if (error.message.includes('HTTP 500')) {
+              errorMessage = '❌ AI機能に問題が発生しています。少し時間をおいてから再度お試しください。';
+            } else if (error.message.includes('HTTP 404')) {
+              errorMessage = '❌ 学習セッションが見つかりません。ページを更新してもう一度お試しください。';
+            } else if (error.message.includes('HTTP 400')) {
+              errorMessage = '❌ リクエストに問題があります。ページを更新してもう一度お試しください。';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+              errorMessage = '❌ ネットワーク接続に問題があります。インターネット接続を確認してください。';
+            } else if (error.message.includes('timeout')) {
+              errorMessage = '❌ 処理に時間がかかりすぎています。もう一度お試しください。';
+            } else {
+              errorMessage = '❌ 問題の再生成に失敗しました。もう一度お試しいただくか、ページを更新してください。';
+            }
+            
+            alert(errorMessage + String.fromCharCode(10) + String.fromCharCode(10) + '（エラー詳細: ' + error.message + '）');
+          } finally {
+            // 全てのボタンを元の状態に戻す
+            buttons.forEach((button, index) => {
+              if (originalButtonStates[index]) {
+                button.innerHTML = originalButtonStates[index].innerHTML;
+                button.disabled = originalButtonStates[index].disabled;
+                button.style.display = 'inline-block'; // エラー時もボタンを再表示
+              }
+            });
+          }
+        }
+
+        // === Study Partner Camera Functions ===
+        let streamSP = null;
+        let capturedImageDataSP = '';
+        let cropperSP = null;
+        
+        async function startCamera() {
+          try {
+            console.log('📷 Starting Study Partner camera...');
+            const preview = document.getElementById('cameraPreviewSP');
+            if (!preview) {
+              console.error('❌ Camera preview element not found');
+              return;
+            }
+            
+            streamSP = await navigator.mediaDevices.getUserMedia({ 
+              video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } 
+            });
+            preview.srcObject = streamSP;
+            preview.play();
+            
+            document.getElementById('captureBtnSP').classList.remove('hidden');
+            console.log('✅ Camera started successfully');
+          } catch (error) {
+            console.error('❌ Camera error:', error);
+            alert('カメラの起動に失敗しました。\\nブラウザの設定でカメラへのアクセスを許可してください。');
+            closeCameraSP();
+          }
+        }
+        
+        function capturePhotoSP() {
+          const preview = document.getElementById('cameraPreviewSP');
+          if (preview.videoWidth === 0) {
+            alert('カメラの準備ができていません。');
+            return;
+          }
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = preview.videoWidth;
+          canvas.height = preview.videoHeight;
+          canvas.getContext('2d').drawImage(preview, 0, 0);
+          capturedImageDataSP = canvas.toDataURL('image/jpeg', 0.9);
+          
+          if (streamSP) {
+            streamSP.getTracks().forEach(track => track.stop());
+            streamSP = null;
+          }
+          
+          document.getElementById('cameraPreviewSP').classList.add('hidden');
+          const img = document.getElementById('capturedImageSP');
+          img.src = capturedImageDataSP;
+          img.classList.remove('hidden');
+          
+          document.getElementById('captureBtnSP').classList.add('hidden');
+          document.getElementById('retakeBtnSP').classList.remove('hidden');
+          document.getElementById('cropBtnSP').classList.remove('hidden');
+          document.getElementById('uploadBtnSP').classList.remove('hidden');
+        }
+        
+        function retakePhotoSP() {
+          document.getElementById('capturedImageSP').classList.add('hidden');
+          document.getElementById('retakeBtnSP').classList.add('hidden');
+          document.getElementById('cropBtnSP').classList.add('hidden');
+          document.getElementById('uploadBtnSP').classList.add('hidden');
+          startCamera();
+        }
+        
+        function showCropInterfaceSP() {
+          alert('クロップ機能は開発中です。現在の画像をそのまま使用します。');
+        }
+        
+        function applyCropSP() {
+          // クロップ適用（今は何もしない）
+        }
+        
+        async function uploadAndProcessImageSP() {
+          if (!capturedImageDataSP) {
+            alert('画像がありません');
+            return;
+          }
+          
+          closeCameraSP();
+          
+          // 画像をプレビューエリアに表示
+          if (previewImage) {
+            previewImage.src = capturedImageDataSP;
+            showImagePreview();
+          }
+          
+          alert('画像を選択しました。「送信」ボタンを押してOCR処理を開始してください。');
+        }
+        
+        function closeCameraSP() {
+          if (streamSP) {
+            streamSP.getTracks().forEach(track => track.stop());
+            streamSP = null;
+          }
+          
+          const modal = document.getElementById('cameraModal');
+          if (modal) {
+            modal.style.display = 'none';
+          }
+          
+          // Reset UI
+          document.getElementById('cameraPreviewSP').classList.remove('hidden');
+          document.getElementById('capturedImageSP').classList.add('hidden');
+          document.getElementById('captureBtnSP').classList.remove('hidden');
+          document.getElementById('retakeBtnSP').classList.add('hidden');
+          document.getElementById('cropBtnSP').classList.add('hidden');
+          document.getElementById('uploadBtnSP').classList.add('hidden');
+        }
+
+        console.log('✅ Study Partner JavaScript loaded successfully');
+        </script>
+    </body>
+    </html>
+  `)
+})
 
 // =====================================
 // 学習ログシステム API エンドポイント
