@@ -4237,11 +4237,11 @@ app.get('/international-student/:sessionId', (c) => {
         // Clean up math notation - convert LaTeX \\( \\) to $ $
         function cleanupMathNotation(text) {
             // Replace \\( and \\) with $ $
-            text = text.replace(/\\\\\(/g, '$');
-            text = text.replace(/\\\\\)/g, '$');
+            text = text.replace(/\\\\(/g, '$');
+            text = text.replace(/\\\\)/g, '$');
             // Replace \\[ and \\] with $$ $$
-            text = text.replace(/\\\\\[/g, '$$');
-            text = text.replace(/\\\\\]/g, '$$');
+            text = text.replace(/\\\\[/g, '$$');
+            text = text.replace(/\\\\]/g, '$$');
             return text;
         }
         
