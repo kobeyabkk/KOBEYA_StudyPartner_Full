@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test-case {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 5px;
+            border-left: 4px solid #007acc;
+        }
+        .success {
+            border-left-color: #4caf50;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        .code {
+            background: #1e1e1e;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        h2 {
+            color: #4ec9b0;
+        }
+        h3 {
+            color: #dcdcaa;
+        }
+        .result {
+            color: #ce9178;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Regex Escaping Debug Test</h1>
+    <p>Testing different backslash escaping patterns for LaTeX notation cleanup</p>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        // Test string with LaTeX notation
+        const testString = 'Equation \\( x = 5 \\) and \\[ y = 10 \\]';
+        console.log('Test string:', testString);
+        
+        function runTest(description, regexString, expectedPattern) {
+            const div = document.createElement('div');
+            div.className = 'test-case';
+            
+            let success = false;
+            let result = '';
+            let error = '';
+            
+            try {
+                // Try to create the regex
+                const regex = eval(regexString);
+                
+                // Try to use it
+                const replaced = testString.replace(regex, 'REPLACED');
+                
+                result = `✅ Success!\n`;
+                result += `Input: ${testString}\n`;
+                result += `Output: ${replaced}\n`;
+                result += `Regex: ${regexString}\n`;
+                result += `Pattern: ${regex.source}`;
+                
+                success = true;
+                console.log(`✅ ${description}:`, replaced);
+            } catch (e) {
+                error = `❌ Error: ${e.message}\n`;
+                error += `Regex: ${regexString}`;
+                console.error(`❌ ${description}:`, e);
+            }
+            
+            div.className = `test-case ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${description}</h3>
+                <div class="code">Regex: <code>${regexString}</code></div>
+                ${success ? 
+                    `<div class="result">${result.replace(/\n/g, '<br>')}</div>` : 
+                    `<div class="result" style="color: #f44336;">${error.replace(/\n/g, '<br>')}</div>`
+                }
+            `;
+            
+            results.appendChild(div);
+            return success;
+        }
+        
+        // Run all test cases
+        console.log('🔍 Starting regex escape tests...\n');
+        
+        runTest(
+            'Test 1: Two backslashes (WRONG - should fail)',
+            '/\\\\(/g',
+            'Should match backslash-paren'
+        );
+        
+        runTest(
+            'Test 2: Four backslashes (EXPECTED)',
+            '/\\\\\\\\(/g',
+            'Should match backslash-paren'
+        );
+        
+        runTest(
+            'Test 3: Six backslashes (TOO MANY)',
+            '/\\\\\\\\\\\\(/g',
+            'Should match two backslashes + paren'
+        );
+        
+        runTest(
+            'Test 4: RegExp constructor with 4 backslashes',
+            'new RegExp("\\\\\\\\\\\\\\\\(", "g")',
+            'Using RegExp constructor'
+        );
+        
+        runTest(
+            'Test 5: RegExp constructor with 2 backslashes',
+            'new RegExp("\\\\\\\\(", "g")',
+            'Using RegExp constructor'
+        );
+        
+        runTest(
+            'Test 6: Alternative - String split approach',
+            '/(\\\\\\(|\\\\\\))/g',
+            'Match with capturing group'
+        );
+        
+        // Test the actual function
+        console.log('\n🧪 Testing cleanupMathNotation function...\n');
+        
+        const testDiv = document.createElement('div');
+        testDiv.className = 'test-case';
+        testDiv.innerHTML = '<h2>Actual Function Test</h2>';
+        
+        try {
+            function cleanupMathNotation(text) {
+                // Test with four backslashes
+                text = text.replace(/\\\\(/g, '$');
+                text = text.replace(/\\\\)/g, '$');
+                text = text.replace(/\\\\/g, '$$');
+                text = text.replace(/\\]/g, '$$');
+                return text;
+            }
+            
+            const input = 'Test \\( inline \\) and \\[ display \\]';
+            const output = cleanupMathNotation(input);
+            
+            testDiv.innerHTML += `
+                <div class="code">
+                    Input: ${input}<br>
+                    Output: ${output}
+                </div>
+                <div class="result" style="color: #4caf50;">✅ Function executed successfully!</div>
+            `;
+            
+            console.log('✅ cleanupMathNotation:', { input, output });
+        } catch (e) {
+            testDiv.innerHTML += `
+                <div class="result" style="color: #f44336;">
+                    ❌ Error: ${e.message}<br>
+                    ${e.stack}
+                </div>
+            `;
+            console.error('❌ cleanupMathNotation failed:', e);
+        }
+        
+        results.appendChild(testDiv);
+        
+        console.log('\n✅ All tests complete! Check the page for results.');
+    </script>
+</body>
+</html>
