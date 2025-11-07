@@ -4126,10 +4126,10 @@ app.get('/international-student/:sessionId', (c) => {
                     <img id="previewImage" alt="Preview">
                 </div>
                 <div class="preview-actions">
-                    <button class="btn-clear" id="btnClearImage">
+                    <button type="button" class="btn-clear" id="btnClearImage">
                         <i class="fas fa-times"></i> クリア / Clear
                     </button>
-                    <button class="btn-crop" id="btnStartCrop">
+                    <button type="button" class="btn-crop" id="btnStartCrop">
                         <i class="fas fa-crop"></i> トリミング / Crop
                     </button>
                 </div>
@@ -4148,10 +4148,10 @@ app.get('/international-student/:sessionId', (c) => {
                         ></textarea>
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="btn-send" id="btnSendQuestion" style="flex: 1; padding: 0.75rem; background: #3b82f6;">
+                        <button type="button" class="btn-send" id="btnSendQuestion" style="flex: 1; padding: 0.75rem; background: #3b82f6;">
                             <i class="fas fa-question-circle"></i> 質問する / Ask Question
                         </button>
-                        <button class="btn-send" id="btnSubmitAnswer" style="flex: 1; padding: 0.75rem; background: #10b981;">
+                        <button type="button" class="btn-send" id="btnSubmitAnswer" style="flex: 1; padding: 0.75rem; background: #10b981;">
                             <i class="fas fa-check-circle"></i> 解答提出 / Submit Answer
                         </button>
                     </div>
@@ -4164,25 +4164,25 @@ app.get('/international-student/:sessionId', (c) => {
                     <img id="cropImage" alt="Crop">
                 </div>
                 <div class="crop-actions">
-                    <button class="btn-clear" id="btnCancelCrop">
+                    <button type="button" class="btn-clear" id="btnCancelCrop">
                         <i class="fas fa-times"></i> キャンセル / Cancel
                     </button>
-                    <button class="btn-send" id="btnConfirmCrop">
+                    <button type="button" class="btn-send" id="btnConfirmCrop">
                         <i class="fas fa-check"></i> 確定 / Confirm
                     </button>
                 </div>
             </div>
             
             <div class="input-buttons">
-                <button id="cameraButton">
+                <button id="cameraButton" type="button">
                     <i class="fas fa-camera"></i> カメラ / Camera
                 </button>
-                <button id="fileButton">
+                <button id="fileButton" type="button">
                     <i class="fas fa-folder-open"></i> ファイル / File
                 </button>
             </div>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment">
-            <input type="file" id="fileInput" accept="image/*">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
             
             <div class="input-group">
                 <textarea 
@@ -4190,11 +4190,11 @@ app.get('/international-student/:sessionId', (c) => {
                     placeholder="質問を入力してください... / Type your question..."
                     rows="1"
                 ></textarea>
-                <button id="practiceProblemButton" style="background: #f59e0b; border-radius: 0.5rem; padding: 0.75rem 1rem; border: none; color: white; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
+                <button type="button" id="practiceProblemButton" style="background: #f59e0b; border-radius: 0.5rem; padding: 0.75rem 1rem; border: none; color: white; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-width: 80px;">
                     <i class="fas fa-clipboard-list" style="font-size: 1.2rem; margin-bottom: 0.25rem;"></i>
                     <span style="font-size: 0.85rem;">類題<br>Practice</span>
                 </button>
-                <button id="sendButton">送信<br>Send</button>
+                <button type="button" id="sendButton">送信<br>Send</button>
             </div>
         </div>
     </div>
@@ -4578,27 +4578,88 @@ app.get('/international-student/:sessionId', (c) => {
             await sendImageMessage(imageData, answerText);
         }
         
-        // Event listeners
-        sendButton.addEventListener('click', sendTextMessage);
-        practiceProblemButton.addEventListener('click', requestPracticeProblem);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+        // Event listeners - with debug logging
+        console.log('🔧 Setting up event listeners...');
+        
+        if (sendButton) {
+            sendButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('📤 Send button clicked');
                 sendTextMessage();
-            }
-        });
+            });
+            console.log('✅ Send button listener added');
+        }
         
-        cameraButton.addEventListener('click', () => cameraInput.click());
-        fileButton.addEventListener('click', () => fileInput.click());
-        cameraInput.addEventListener('change', (e) => handleImageSelect(e.target.files[0]));
-        fileInput.addEventListener('change', (e) => handleImageSelect(e.target.files[0]));
+        if (practiceProblemButton) {
+            practiceProblemButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('📝 Practice button clicked');
+                requestPracticeProblem();
+            });
+            console.log('✅ Practice button listener added');
+        }
         
-        btnClearImage.addEventListener('click', clearImage);
-        btnStartCrop.addEventListener('click', startCrop);
-        btnSendQuestion.addEventListener('click', sendImageAsQuestion);
-        btnSubmitAnswer.addEventListener('click', sendImageAsAnswer);
-        btnCancelCrop.addEventListener('click', cancelCrop);
-        btnConfirmCrop.addEventListener('click', confirmCrop);
+        if (messageInput) {
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendTextMessage();
+                }
+            });
+        }
+        
+        if (cameraButton && cameraInput) {
+            cameraButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('📷 Camera button clicked');
+                cameraInput.click();
+            });
+            console.log('✅ Camera button listener added');
+        }
+        
+        if (fileButton && fileInput) {
+            fileButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('📁 File button clicked');
+                fileInput.click();
+            });
+            console.log('✅ File button listener added');
+        }
+        
+        if (cameraInput) {
+            cameraInput.addEventListener('change', (e) => {
+                console.log('📷 Camera input changed');
+                handleImageSelect(e.target.files[0]);
+            });
+        }
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                console.log('📁 File input changed');
+                handleImageSelect(e.target.files[0]);
+            });
+        }
+        
+        if (btnClearImage) btnClearImage.addEventListener('click', clearImage);
+        if (btnStartCrop) btnStartCrop.addEventListener('click', startCrop);
+        if (btnSendQuestion) {
+            btnSendQuestion.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('❓ Send question button clicked');
+                sendImageAsQuestion();
+            });
+        }
+        if (btnSubmitAnswer) {
+            btnSubmitAnswer.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('✅ Submit answer button clicked');
+                sendImageAsAnswer();
+            });
+        }
+        if (btnCancelCrop) btnCancelCrop.addEventListener('click', cancelCrop);
+        if (btnConfirmCrop) btnConfirmCrop.addEventListener('click', confirmCrop);
+        
+        console.log('✅ All event listeners set up');
         
         // Auto-resize textarea
         messageInput.addEventListener('input', function() {
