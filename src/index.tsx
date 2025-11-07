@@ -2425,9 +2425,16 @@ app.post('/api/international-chat', async (c) => {
       try {
         const history = await getConversationHistory(db, sessionId, 10)
         conversationHistory = history
+        console.log(`📚 Retrieved ${history.length} messages from conversation history for session:`, sessionId)
+        if (history.length > 0) {
+          console.log('📝 First message:', history[0].content.substring(0, 100))
+        }
       } catch (dbError) {
         console.warn('⚠️ Failed to get conversation history:', dbError)
+        console.error('Database error details:', dbError)
       }
+    } else {
+      console.warn('⚠️ No database available - conversation history disabled')
     }
     
     const systemPrompt = `You are a learning support AI for international students (middle school level). Follow these rules STRICTLY and EXACTLY:
@@ -4227,6 +4234,17 @@ app.get('/international-student/:sessionId', (c) => {
         const leftBracket = backslash + '[';
         const rightBracket = backslash + ']';
         
+        // Clean up math notation - convert LaTeX \\( \\) to $ $
+        function cleanupMathNotation(text) {
+            // Replace \\( and \\) with $ $
+            text = text.replace(/\\\\\(/g, '$');
+            text = text.replace(/\\\\\)/g, '$');
+            // Replace \\[ and \\] with $$ $$
+            text = text.replace(/\\\\\[/g, '$$');
+            text = text.replace(/\\\\\]/g, '$$');
+            return text;
+        }
+        
         // メッセージを追加
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -4235,6 +4253,9 @@ app.get('/international-student/:sessionId', (c) => {
             if (isUser) {
                 messageDiv.textContent = content;
             } else {
+                // Clean up math notation BEFORE parsing
+                content = cleanupMathNotation(content);
+                
                 // Parse bilingual response
                 messageDiv.innerHTML = parseBilingualResponse(content);
                 
@@ -4259,17 +4280,23 @@ app.get('/international-student/:sessionId', (c) => {
             const sections = {
                 english: '',
                 japanese: '',
-                practice: ''
+                practice: '',
+                nextAction: '',
+                grading: ''
             };
             
             // Split by section markers
             const englishMatch = text.match(/---ENGLISH---(.*?)(?=---)/s);
             const japaneseMatch = text.match(/---日本語---(.*?)(?=---)/s);
-            const practiceMatch = text.match(/---PRACTICE PROBLEM.*?---(.*?)$/s);
+            const practiceMatch = text.match(/---PRACTICE PROBLEM.*?---(.*?)(?=---)/s);
+            const nextActionMatch = text.match(/---NEXT ACTION.*?---(.*?)(?=---|$)/s);
+            const gradingMatch = text.match(/---GRADING.*?---(.*?)(?=---)/s);
             
             if (englishMatch) sections.english = englishMatch[1].trim();
             if (japaneseMatch) sections.japanese = japaneseMatch[1].trim();
             if (practiceMatch) sections.practice = practiceMatch[1].trim();
+            if (nextActionMatch) sections.nextAction = nextActionMatch[1].trim();
+            if (gradingMatch) sections.grading = gradingMatch[1].trim();
             
             let html = '';
             
@@ -4291,11 +4318,29 @@ app.get('/international-student/:sessionId', (c) => {
                 \`;
             }
             
+            if (sections.grading) {
+                html += \`
+                    <div class="language-section" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                        <div class="section-title">📊 Grading / 採点</div>
+                        <div>\${formatText(sections.grading)}</div>
+                    </div>
+                \`;
+            }
+            
             if (sections.practice) {
                 html += \`
                     <div class="practice-section">
                         <div class="section-title">📝 Practice Problem / 類題</div>
                         <div>\${formatText(sections.practice)}</div>
+                    </div>
+                \`;
+            }
+            
+            if (sections.nextAction) {
+                html += \`
+                    <div class="language-section" style="background: #f0fdf4; border-left: 4px solid #10b981;">
+                        <div class="section-title">👉 Next Action / 次のアクション</div>
+                        <div>\${formatText(sections.nextAction)}</div>
                     </div>
                 \`;
             }
