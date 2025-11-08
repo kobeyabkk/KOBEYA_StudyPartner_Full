@@ -2878,8 +2878,11 @@ ${themeContent}
 【テーマ選択の基準】
 - ${targetLevel === 'high_school' ? '高校生が理解しやすい身近な社会問題' : targetLevel === 'vocational' ? '専門学校生の興味関心に合った実践的テーマ' : '大学受験で頻出する本格的なテーマ'}
 - 小論文の題材として適切で、議論の余地があるテーマ
-- **重要**: 毎回異なるテーマを選ぶこと（タイムスタンプとランダムシードを参考に、推奨テーマ例からランダムに1つ選ぶ）
-- 推奨テーマ例はあくまで参考であり、それ以外のテーマも選択可能
+- **絶対に守ること**: 
+  1. タイムスタンプ${timestamp}とランダムシード${randomSeed}に基づき、毎回異なるテーマを選択
+  2. 全カテゴリーから均等にランダムに選ぶ（最初のカテゴリーだけでなく、全てのカテゴリーから選択）
+  3. 同じテーマの繰り返しを避ける
+  4. 推奨リストにないテーマも積極的に選択可能
 
 【推奨テーマ例】
 ${targetLevel === 'high_school' ? `
@@ -3037,10 +3040,10 @@ ${targetLevel === 'high_school' ? `
                 model: 'gpt-4o',
                 messages: [
                   { role: 'system', content: systemPrompt },
-                  { role: 'user', content: 'レベルに応じた最適なテーマを選択し、読み物を作成してください。' }
+                  { role: 'user', content: `タイムスタンプ${timestamp}とシード${randomSeed}に基づき、全カテゴリーの中からランダムに1つのユニークなテーマを選び、読み物を作成してください。前回と違うカテゴリーから選んでください。` }
                 ],
                 max_tokens: 1500,
-                temperature: 0.9 // 高めの温度でランダム性を確保
+                temperature: 0.95 // さらに高い温度でランダム性を最大化
               })
             })
             
@@ -3428,6 +3431,11 @@ ${targetLevel === 'high_school' ? `
           }
           session.essaySession.vocabAnswers = vocabAnswers
         }
+        
+        // セッションを保存
+        learningSessions.set(sessionId, session)
+        await saveSessionToDB(db, sessionId, session)
+        console.log('✅ Vocab answers saved to session and DB')
         
         // すぐに語彙問題を表示
         response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
