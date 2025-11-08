@@ -2663,20 +2663,29 @@ ${themeContent}
       else if (message.includes('読んだ') || message.includes('読みました')) {
         console.log('✅ Matched: 読んだ')
         
+        // AIモードの場合、セッションからテーマを取得
+        let themeForQuestions = customInput
+        if (problemMode === 'ai' && session?.essaySession?.lastThemeTitle) {
+          themeForQuestions = session.essaySession.lastThemeTitle
+          console.log('✅ Using AI-generated theme from session:', themeForQuestions)
+        }
+        
         // デバッグ情報をログ出力
         console.log('🔍 Step 1 Questions Generation - Conditions:', {
           problemMode,
           customInput,
+          themeForQuestions,
           hasCustomInput: !!customInput,
-          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && !!customInput,
+          hasThemeForQuestions: !!themeForQuestions,
+          condition_theme_ai: (problemMode === 'theme' || problemMode === 'ai') && !!themeForQuestions,
           condition_problem: problemMode === 'problem' && !!customInput
         })
         
         // カスタムテーマに基づいた質問を生成
-        let questions = '1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。'
+        let questions = null
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          console.log('✅ Generating questions for theme:', customInput)
+        if ((problemMode === 'theme' || problemMode === 'ai') && themeForQuestions) {
+          console.log('✅ Generating questions for theme:', themeForQuestions)
           
           // セッションから読み物を取得
           const themeContent = session?.essaySession?.lastThemeContent || ''
@@ -2703,7 +2712,7 @@ ${themeContent}
             
             const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
 
-テーマ: ${customInput}
+テーマ: ${themeForQuestions}
 
 読み物の内容:
 ${themeContent}
@@ -2763,7 +2772,7 @@ ${themeContent}
               console.log('✅ Using AI-generated questions with learning style')
             } else {
               // AI応答が短すぎる場合もカスタムテーマを使ったフォールバック
-              questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+              questions = `1. ${themeForQuestions}の基本的な概念や定義について説明してください。\n2. ${themeForQuestions}に関する現代社会における問題点や課題は何ですか？\n3. ${themeForQuestions}について、あなた自身の考えや意見を述べてください。`
               console.warn('⚠️ AI questions too short (length: ' + (generatedQuestions?.length || 0) + '), using custom fallback')
             }
           } catch (error) {
@@ -2774,12 +2783,23 @@ ${themeContent}
               name: error.name
             })
             // エラー時もカスタムテーマを使ったフォールバック
-            questions = `1. ${customInput}の基本的な概念や定義について説明してください。\n2. ${customInput}に関する現代社会における問題点や課題は何ですか？\n3. ${customInput}について、あなた自身の考えや意見を述べてください。`
+            questions = `1. ${themeForQuestions}の基本的な概念や定義について説明してください。\n2. ${themeForQuestions}に関する現代社会における問題点や課題は何ですか？\n3. ${themeForQuestions}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
           }
         } else if (problemMode === 'problem' && customInput) {
           // 問題文が与えられている場合は、その問題について確認
           questions = `問題文を確認しました。\n\n問題: ${customInput.substring(0, 200)}${customInput.length > 200 ? '...' : ''}\n\nこの問題について考えを整理してから書き始めましょう。`
+        }
+        
+        // 質問生成失敗チェック
+        if (!questions) {
+          console.error('❌ Questions generation failed - no questions generated')
+          return c.json({
+            ok: false,
+            error: 'questions_generation_failed',
+            message: '❌ 理解度確認の質問生成に失敗しました。\n\nお手数ですが、もう一度「読んだ」と送信してください。\n\nそれでも問題が解決しない場合は、「新しいセッション」ボタンを押して最初からやり直してください。',
+            timestamp: new Date().toISOString()
+          }, 500)
         }
         
         response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
