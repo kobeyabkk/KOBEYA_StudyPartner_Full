@@ -1271,8 +1271,8 @@ ${themeContent}
         console.log('✅ Matched: OK/はい')
         
         // カスタムテーマに基づいた問題を生成
-        let themeTitle = '環境問題'
-        let themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
+        let themeTitle = null
+        let themeContent = null
         
         // デバッグ情報をログ出力
         console.log('🔍 Step 1 Theme Generation - Conditions:', {
@@ -1718,6 +1718,17 @@ ${targetLevel === 'high_school' ? `
           learningSessions.set(sessionId, session)
           await saveSessionToDB(db, sessionId, session)
           console.log('✅ Theme content saved to session')
+        }
+        
+        // テーマ生成成功チェック
+        if (!themeTitle || !themeContent) {
+          console.error('❌ Theme generation failed - missing title or content')
+          return c.json({
+            ok: false,
+            error: 'theme_generation_failed',
+            message: '❌ テーマと読み物の生成に失敗しました。\n\nお手数ですが、以下のいずれかをお試しください：\n\n1. 「💡 テーマを入力」を選択して、ご自身でテーマを入力する\n2. もう一度「🤖 AIにお任せ」を試す\n3. 「📝 問題文を入力」を選択して、具体的な問題文を入力する\n\nご不便をおかけして申し訳ございません。',
+            timestamp: new Date().toISOString()
+          }, 500)
         }
         
         response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
