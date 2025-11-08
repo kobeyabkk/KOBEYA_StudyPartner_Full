@@ -2789,8 +2789,8 @@ ${themeContent}
         console.log('✅ Matched: OK/はい')
         
         // カスタムテーマに基づいた問題を生成
-        let themeTitle = '環境問題'
-        let themeContent = '地球温暖化は現代社会が直面する最も深刻な問題の一つです。産業革命以降、人類は化石燃料を大量に消費し、大気中の二酸化炭素濃度を急激に増加させてきました。その結果、平均気温が上昇し、異常気象や海面上昇などの問題が顕在化しています。'
+        let themeTitle = null
+        let themeContent = null
         
         // デバッグ情報をログ出力
         console.log('🔍 Step 1 Theme Generation - Conditions:', {
@@ -2808,7 +2808,313 @@ ${themeContent}
           return c.json({ ok: true, response, stepCompleted: false })
         }
         
-        if (problemMode === 'theme' && customInput) {
+        if (problemMode === 'ai') {
+          // AIにお任せモード：レベルに応じた最適なテーマを自動選択
+          console.log('✅ AI auto-generation mode activated')
+          
+          // セッションに既にテーマがある場合はそれを使用（再生成しない）
+          if (session?.essaySession?.lastThemeTitle && session?.essaySession?.lastThemeContent) {
+            themeTitle = session.essaySession.lastThemeTitle
+            themeContent = session.essaySession.lastThemeContent
+            console.log('♻️ Reusing existing theme from session:', themeTitle)
+            console.log('📚 Theme content length:', themeContent.length)
+          } else {
+            // 新規生成
+            console.log('🆕 Generating new theme for AI mode')
+            
+            try {
+              const openaiApiKey = c.env?.OPENAI_API_KEY
+              
+              if (!openaiApiKey) {
+                console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+                throw new Error('OpenAI API key not configured')
+              }
+              
+              console.log('🔑 OpenAI API Key status:', openaiApiKey ? 'Present' : 'Missing')
+              
+              // タイムスタンプ + ランダム値でランダム性を強化
+              const timestamp = Date.now()
+              const randomSeed = Math.random().toString(36).substring(2, 15)
+              console.log('🎲 Timestamp for randomization:', timestamp)
+              console.log('🎲 Random seed:', randomSeed)
+            
+            // 学習スタイルに応じた指示を追加
+            let styleInstruction = ''
+            if (learningStyle === 'example') {
+              styleInstruction = '\n- 具体的な事例を多く含める（歴史的事例、現代の事例など）\n- 解説は簡潔に、事例を中心に構成'
+            } else if (learningStyle === 'explanation') {
+              styleInstruction = '\n- 理論的な説明を詳しく含める\n- 概念の定義や背景を丁寧に説明\n- 因果関係や論理展開を明確に'
+            } else {
+              styleInstruction = '\n- 事例と解説をバランスよく含める\n- 理解しやすさを重視'
+            }
+            
+              const systemPrompt = `あなたは小論文の先生です。対象レベルに応じた最適なテーマを選択し、そのテーマについての読み物を作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+学習スタイル: ${learningStyle === 'example' ? '例文・事例重視' : learningStyle === 'explanation' ? '解説重視' : 'バランス型'}
+タイムスタンプ: ${timestamp}
+ランダムシード: ${randomSeed}
+
+【テーマ選択の基準】
+- ${targetLevel === 'high_school' ? '高校生が理解しやすい身近な社会問題' : targetLevel === 'vocational' ? '専門学校生の興味関心に合った実践的テーマ' : '大学受験で頻出する本格的なテーマ'}
+- 小論文の題材として適切で、議論の余地があるテーマ
+- **重要**: 毎回異なるテーマを選ぶこと（タイムスタンプとランダムシードを参考に、推奨テーマ例からランダムに1つ選ぶ）
+- 推奨テーマ例はあくまで参考であり、それ以外のテーマも選択可能
+
+【推奨テーマ例】
+${targetLevel === 'high_school' ? `
+社会・テクノロジー:
+- SNSと人間関係
+- AI技術の発展と社会
+- 情報化社会とプライバシー
+- スマートフォン依存
+- ゲームと教育
+- ネットいじめと対策
+- デジタルデバイド
+
+環境・エネルギー:
+- 環境問題と私たちの生活
+- 地球温暖化と気候変動
+- プラスチック問題
+- 再生可能エネルギー
+- 食品ロスと持続可能性
+- 生物多様性の保護
+
+社会問題:
+- 少子高齢化と地域社会
+- ジェンダー平等
+- 働き方改革
+- 外国人労働者の受け入れ
+- 格差社会
+- いじめ問題
+- 若者の政治参加
+
+文化・教育:
+- グローバル化と文化
+- 読書の意義
+- 部活動の在り方
+- 英語教育の必要性
+- オンライン教育
+- 伝統文化の継承
+
+健康・ライフスタイル:
+- 健康寿命と医療
+- ストレス社会
+- 食の安全
+- スポーツと社会` 
+: targetLevel === 'vocational' ? `
+医療・福祉:
+- 医療技術の進歩と倫理
+- 高齢者介護の課題
+- 福祉社会の実現
+- メンタルヘルスケア
+- 地域医療の充実
+
+ビジネス・産業:
+- デジタル化と働き方改革
+- 観光業の発展と地域活性化
+- 中小企業の経営課題
+- キャッシュレス決済
+- リモートワークの普及
+
+食・サービス:
+- 食の安全と持続可能性
+- 地産地消の推進
+- フードテック
+- 外食産業の変化
+- 食文化のグローバル化
+
+技術・デザイン:
+- IoTと生活の変化
+- VR/AR技術の応用
+- ユニバーサルデザイン
+- 3Dプリンティング
+- eスポーツの発展
+
+社会・環境:
+- SDGsと企業責任
+- 循環型社会
+- ダイバーシティ推進
+- ワークライフバランス
+- 地方創生` 
+: `
+科学技術・倫理:
+- 科学技術と倫理の問題
+- 遺伝子工学と生命倫理
+- AI倫理と責任
+- 宇宙開発の意義
+- 原子力エネルギー
+
+社会・経済:
+- グローバリゼーションと格差
+- 経済成長と環境保護
+- 資本主義の未来
+- ベーシックインカム
+- 金融システムと格差
+
+政治・民主主義:
+- 民主主義と市民参加
+- 投票率の低下
+- 政治とメディア
+- 憲法改正論議
+- 地方自治の在り方
+
+国際問題:
+- 難民問題
+- 核兵器廃絶
+- 国際協力と援助
+- 領土問題
+- 多文化共生社会
+
+環境・持続可能性:
+- 持続可能な開発目標（SDGs）
+- エネルギー政策
+- 都市化と環境
+- 水資源の管理
+- 海洋プラスチック汚染
+
+情報・メディア:
+- 情報社会とプライバシー
+- フェイクニュース対策
+- メディアリテラシー
+- 表現の自由と規制
+- デジタル監視社会
+
+教育・文化:
+- 大学教育の在り方
+- 芸術と社会
+- 言語の多様性
+- 歴史認識問題
+- 知的財産権`}
+
+要求:
+- まず1つのテーマを選択（テーマ名は10文字以内で簡潔に）
+- そのテーマについて500〜800文字程度の読み物を作成
+- テーマの基本的な概念・定義を含める
+- 歴史的背景や現状を説明
+- 関連する問題点や課題を提示
+- 社会的な意義や影響を説明${styleInstruction}
+- 専門用語は必要に応じて使用し、わかりやすく説明
+- 問いかけは含めず、情報提供に徹する
+- この読み物を読めば、後の質問に答えられる知識が得られる内容にする
+
+出力形式（この形式を厳守）：
+【テーマ】テーマ名
+
+【読み物】
+（500〜800文字の読み物本文）`
+            
+            console.log('🤖 Calling OpenAI API for AI auto-generation...')
+            console.log('📋 System prompt length:', systemPrompt.length)
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: 'レベルに応じた最適なテーマを選択し、読み物を作成してください。' }
+                ],
+                max_tokens: 1500,
+                temperature: 0.9 // 高めの温度でランダム性を確保
+              })
+            })
+            
+            console.log('📡 OpenAI API response status:', response.status)
+            
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error('❌ OpenAI API error response:', errorText)
+              throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+            }
+            
+            const result = await response.json()
+            console.log('✅ OpenAI API call successful for AI mode')
+            console.log('📊 API result structure:', Object.keys(result))
+            
+            const generatedText = result.choices?.[0]?.message?.content || ''
+            console.log('📊 AI Generated text length:', generatedText?.length || 0)
+            console.log('📝 Generated text preview:', generatedText?.substring(0, 200) || 'EMPTY')
+            
+              // テーマと読み物を抽出（複数パターンに対応）
+              // パターン1: 【テーマ】テーマ名 【読み物】本文
+              let themeMatch = generatedText.match(/【テーマ】\s*(.+?)(?=\n|【)/)
+              let contentMatch = generatedText.match(/【読み物】\s*([\s\S]+)/)
+              
+              // パターン2: テーマ: テーマ名
+              if (!themeMatch) {
+                themeMatch = generatedText.match(/テーマ[：:]\s*(.+?)(?=\n|$)/)
+              }
+              
+              // パターン3: 最初の行がテーマの可能性
+              if (!themeMatch && generatedText.trim()) {
+                const firstLine = generatedText.trim().split('\n')[0]
+                if (firstLine.length < 30 && firstLine.length > 3) {
+                  themeMatch = [null, firstLine]
+                  console.log('🔍 Using first line as theme:', firstLine)
+                }
+              }
+              
+              // 読み物がマッチしない場合、全文を読み物として使用
+              if (!contentMatch && generatedText.length > 200) {
+                // テーマ行を除いた残りを読み物とする
+                const lines = generatedText.split('\n')
+                const contentText = lines.slice(themeMatch ? 1 : 0).join('\n').trim()
+                if (contentText.length > 200) {
+                  contentMatch = [null, contentText]
+                  console.log('🔍 Using remaining text as content')
+                }
+              }
+              
+              console.log('🔍 Parsing AI response:', {
+                hasThemeMatch: !!themeMatch,
+                hasContentMatch: !!contentMatch,
+                themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
+                contentLength: contentMatch ? contentMatch[1]?.length : 0,
+                fullTextLength: generatedText.length,
+                firstLine: generatedText.split('\n')[0]
+              })
+              
+              if (themeMatch && contentMatch && contentMatch[1].length > 50) {
+                themeTitle = themeMatch[1].trim()
+                themeContent = contentMatch[1].trim()
+                console.log('✅ ✨ AI-generated NEW theme:', themeTitle)
+                console.log('✅ AI-generated content length:', themeContent.length)
+                console.log('🎯 This is a UNIQUE theme for this session')
+              } else {
+                // AI生成失敗 - エラーメッセージを表示
+                console.error('❌ Failed to parse AI response for theme generation')
+                console.error('❌ Parse results:', {
+                  themeMatch: !!themeMatch,
+                  contentMatch: !!contentMatch,
+                  themeValue: themeMatch ? themeMatch[1] : null,
+                  contentLength: contentMatch ? contentMatch[1]?.length : 0
+                })
+                console.error('❌ Full AI response:', generatedText)
+                throw new Error('AI theme generation failed - could not parse response')
+              }
+            } catch (error) {
+              console.error('❌ AI auto-generation error:', error)
+              console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+              })
+              
+              // エラーメッセージを返す
+              return c.json({
+                ok: false,
+                error: 'ai_generation_failed',
+                message: '❌ AIによるテーマ生成に失敗しました。\n\nお手数ですが、以下のいずれかをお試しください：\n\n1. 「💡 テーマを入力」を選択して、ご自身でテーマを入力する\n2. もう一度「🤖 AIにお任せ」を試す\n3. 「📝 問題文を入力」を選択して、具体的な問題文を入力する\n\nご不便をおかけして申し訳ございません。',
+                timestamp: new Date().toISOString()
+              }, 500)
+            }
+          }
+        } else if (problemMode === 'theme' && customInput) {
           // ユーザーが入力したテーマを使用
           themeTitle = customInput
           console.log('✅ Generating theme content for:', customInput)
@@ -2930,6 +3236,17 @@ ${themeContent}
           learningSessions.set(sessionId, session)
           await saveSessionToDB(db, sessionId, session)
           console.log('✅ Theme content saved to session')
+        }
+        
+        // テーマ生成成功チェック
+        if (!themeTitle || !themeContent) {
+          console.error('❌ Theme generation failed - missing title or content')
+          return c.json({
+            ok: false,
+            error: 'theme_generation_failed',
+            message: '❌ テーマと読み物の生成に失敗しました。\n\nお手数ですが、以下のいずれかをお試しください：\n\n1. 「💡 テーマを入力」を選択して、ご自身でテーマを入力する\n2. もう一度「🤖 AIにお任せ」を試す\n3. 「📝 問題文を入力」を選択して、具体的な問題文を入力する\n\nご不便をおかけして申し訳ございません。',
+            timestamp: new Date().toISOString()
+          }, 500)
         }
         
         response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
