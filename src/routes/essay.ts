@@ -1158,7 +1158,7 @@ ${themeContent}
         })
         
         // カスタムテーマに基づいた質問を生成
-        let questions = '1. 地球温暖化の主な原因は何ですか？\n2. 温暖化によってどのような問題が起きていますか？\n3. あなた自身ができる環境保護の取り組みを1つ挙げてください。'
+        let questions = null
         
         if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) {
           console.log('✅ Generating questions for theme:', themeTitle)
@@ -1262,6 +1262,17 @@ ${themeContent}
         } else if (problemMode === 'problem' && customInput) {
           // 問題文が与えられている場合は、その問題について確認
           questions = `問題文を確認しました。\n\n問題: ${customInput.substring(0, 200)}${customInput.length > 200 ? '...' : ''}\n\nこの問題について考えを整理してから書き始めましょう。`
+        }
+        
+        // 質問生成失敗チェック
+        if (!questions) {
+          console.error('❌ Questions generation failed - no questions generated')
+          return c.json({
+            ok: false,
+            error: 'questions_generation_failed',
+            message: '❌ 理解度確認の質問生成に失敗しました。\n\nお手数ですが、もう一度「読んだ」と送信してください。\n\nそれでも問題が解決しない場合は、「新しいセッション」ボタンを押して最初からやり直してください。',
+            timestamp: new Date().toISOString()
+          }, 500)
         }
         
         response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
