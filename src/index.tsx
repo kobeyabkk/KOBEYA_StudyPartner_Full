@@ -2169,9 +2169,15 @@ app.post('/api/essay/feedback', async (c) => {
       }, 200)
     }
     
+    // テーマと問題文を取得
+    const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
+    const mainProblem = session.essaySession.mainProblem || 'SNSが社会に与える影響について、あなたの考えを述べなさい'
+    
     // 実際のOpenAI APIを使用
     console.log('🤖 Calling OpenAI API for feedback...')
     console.log('📝 Essay text length:', essayText.length, 'chars')
+    console.log('🎯 Theme:', themeTitle)
+    console.log('📋 Problem:', mainProblem)
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -2215,7 +2221,7 @@ app.post('/api/essay/feedback', async (c) => {
             role: 'user',
             content: `以下の小論文を添削してください。
 
-【課題】SNSが社会に与える影響について、あなたの考えを述べなさい（400〜600字）
+【課題】${mainProblem}（400〜600字）
 
 【小論文】
 ${essayText}
@@ -2277,6 +2283,56 @@ ${essayText}
       feedback.charCount = latestOCR.charCount || essayText.length
       
       console.log('✅ Feedback validated successfully')
+      
+      // 模範解答を生成
+      try {
+        console.log('🤖 Generating model answer for Step 4...')
+        
+        const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + openaiApiKey
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: `あなたは小論文の先生です。以下の課題に対する模範解答（400〜600字）を作成してください。
+
+要求:
+- 400〜600字（目標: 500字程度）
+- 構成: 序論（問題提起）→本論（具体例2つ以上）→結論（自分の意見）
+- 「である」調で記述
+- 小論文らしい格調高い表現を使用
+- 論理的で説得力のある内容
+- 具体例は現実的で分かりやすいものを使用
+
+出力形式:
+【模範解答】（500字程度）
+(模範となる小論文)`
+              },
+              {
+                role: 'user',
+                content: `課題: ${mainProblem}
+
+この課題に対する完璧な模範解答を作成してください。`
+              }
+            ],
+            max_tokens: 1000,
+            temperature: 0.7
+          })
+        })
+        
+        if (modelAnswerResponse.ok) {
+          const modelAnswerData = await modelAnswerResponse.json()
+          feedback.modelAnswer = modelAnswerData.choices[0].message.content
+          console.log('✅ Model answer generated for Step 4')
+        }
+      } catch (modelError) {
+        console.error('❌ Model answer generation error:', modelError)
+      }
       
     } catch (parseError) {
       console.error('❌ Failed to parse feedback:', parseError)
@@ -2650,7 +2706,63 @@ ${themeContent}
           
           console.log('✅ Step 1 text feedback generated')
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          // 模範解答を生成
+          let modelAnswer = ''
+          try {
+            console.log('🤖 Generating model answer for Step 1...')
+            
+            const themeContent = session?.essaySession?.lastThemeContent || ''
+            const questionText = `理解度確認の質問（テーマ: ${themeTitle}）`
+            
+            const modelAnswerPrompt = `あなたは小論文の先生です。生徒が答えた質問に対する模範解答を作成してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+要求:
+- 質問に対する完璧な模範解答を作成
+- 「です・ます」調で記述
+- 各質問に対して丁寧に回答
+- 読み物の内容を踏まえつつ、自分の考えも含める
+- 小論文らしい文体を使用
+
+出力形式:
+【模範解答】
+1. (質問1への完璧な回答)
+
+2. (質問2への完璧な回答)
+
+3. (質問3への完璧な回答)`
+            
+            const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: modelAnswerPrompt },
+                  { role: 'user', content: '質問に対する模範解答を作成してください。' }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+              })
+            })
+            
+            if (modelAnswerResponse.ok) {
+              const modelAnswerData = await modelAnswerResponse.json()
+              modelAnswer = modelAnswerData.choices[0].message.content
+              console.log('✅ Model answer generated')
+            }
+          } catch (error) {
+            console.error('❌ Model answer generation error:', error)
+          }
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -3509,8 +3621,57 @@ ${targetLevel === 'high_school' ? `
           
           console.log('✅ Short essay feedback generated')
           
+          // 模範解答を生成
+          let modelAnswer = ''
+          try {
+            console.log('🤖 Generating model answer for Step 3 short essay...')
+            
+            const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+            const shortProblem = session?.essaySession?.shortProblem || `${themeTitle}について`
+            
+            const modelAnswerPrompt = `あなたは小論文の先生です。以下の課題に対する200字程度の模範解答を作成してください。
+
+課題: ${shortProblem}
+
+要求:
+- 200字程度（180〜220字）
+- 構成: 主張→理由→具体例→結論
+- 「である」調で記述
+- 小論文らしい格調高い表現を使用
+- 論理的で説得力のある内容
+
+出力形式:
+【模範解答】（200字）
+(模範となる短文小論文)`
+            
+            const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: modelAnswerPrompt },
+                  { role: 'user', content: '課題に対する模範解答を作成してください。' }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+              })
+            })
+            
+            if (modelAnswerResponse.ok) {
+              const modelAnswerData = await modelAnswerResponse.json()
+              modelAnswer = modelAnswerData.choices[0].message.content
+              console.log('✅ Short essay model answer generated')
+            }
+          } catch (error) {
+            console.error('❌ Model answer generation error:', error)
+          }
+          
           // フィードバックを整形して表示
-          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -3528,17 +3689,32 @@ ${targetLevel === 'high_school' ? `
         })
         
         // カスタムテーマに基づいた短文問題を生成
+        // AIモードの場合、セッションからテーマを取得
+        let themeForShortEssay = customInput
+        if (problemMode === 'ai' && session?.essaySession?.lastThemeTitle) {
+          themeForShortEssay = session.essaySession.lastThemeTitle
+          console.log('✅ Using AI-generated theme from session for short essay:', themeForShortEssay)
+        }
+        
         let shortProblem = '環境問題について、200字程度で小論文を書いてください。'
         
-        if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          shortProblem = `${customInput}について、200字程度で小論文を書いてください。`
-          console.log('✅ Using custom theme for short essay:', customInput)
+        if ((problemMode === 'theme' || problemMode === 'ai') && themeForShortEssay) {
+          shortProblem = `${themeForShortEssay}について、200字程度で小論文を書いてください。`
+          console.log('✅ Using theme for short essay:', themeForShortEssay)
         } else if (problemMode === 'problem' && customInput) {
           // 問題文がある場合は、そのまま使用
           shortProblem = customInput
           console.log('✅ Using custom problem for short essay')
         } else {
           console.warn('⚠️ Using fallback short essay problem')
+        }
+        
+        // 短文問題をセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.shortProblem = shortProblem
+          learningSessions.set(sessionId, session)
+          await saveSessionToDB(db, sessionId, session)
+          console.log('✅ Short problem saved to session')
         }
         
         response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n書き終えたら、この入力エリアにそのまま入力して送信してください。AIが添削します。`
@@ -3614,6 +3790,13 @@ ${targetLevel === 'high_school' ? `
         })
         
         // カスタムテーマに基づいた本練習問題を生成
+        // AIモードの場合、セッションからテーマを取得
+        let themeForMainPractice = customInput
+        if (problemMode === 'ai' && session?.essaySession?.lastThemeTitle) {
+          themeForMainPractice = session.essaySession.lastThemeTitle
+          console.log('✅ Using AI-generated theme from session for main practice:', themeForMainPractice)
+        }
+        
         let mainProblem = 'SNSが社会に与える影響について、あなたの考えを述べなさい'
         let charCount = '400〜600字'
         
@@ -3626,8 +3809,8 @@ ${targetLevel === 'high_school' ? `
           if (charMatch) {
             charCount = charMatch[0]
           }
-        } else if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
-          console.log('✅ Generating detailed problem from theme:', customInput)
+        } else if ((problemMode === 'theme' || problemMode === 'ai') && themeForMainPractice) {
+          console.log('✅ Generating detailed problem from theme:', themeForMainPractice)
           // テーマから具体的な問題を生成
           try {
             const openaiApiKey = c.env?.OPENAI_API_KEY
@@ -3644,7 +3827,7 @@ ${targetLevel === 'high_school' ? `
             
             const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
 
-テーマ: ${customInput}
+テーマ: ${themeForMainPractice}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
 文字数: ${wordCount}
 
@@ -3710,6 +3893,14 @@ ${targetLevel === 'high_school' ? `
           }
         } else {
           console.warn('⚠️ Using fallback main problem (no custom input)')
+        }
+        
+        // 課題をセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.mainProblem = mainProblem
+          learningSessions.set(sessionId, session)
+          await saveSessionToDB(db, sessionId, session)
+          console.log('✅ Main problem saved to session:', mainProblem)
         }
         
         response = `【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「${mainProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります`
