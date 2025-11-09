@@ -16,6 +16,9 @@ import {
 // Study Partner Simple をインポート
 import { studyPartnerSimple } from './study-partner-simple'
 
+// Eiken Analysis Route をインポート
+import analyzeRoute from './eiken/routes/analyze'
+
 // Cloudflare Bindings の型定義
 type Bindings = {
   OPENAI_API_KEY: string
@@ -12589,6 +12592,13 @@ app.get('/dashboard', async (c) => {
 app.get('/favicon.ico', (c) => {
   return c.text('', 204)  // No Content
 })
+
+// ============================================================
+// Eiken (英検) API Routes
+// ============================================================
+
+// 問題分析エンドポイント
+app.route('/api/eiken/analyze', analyzeRoute)
 
 // 404ハンドラー
 app.notFound((c) => {

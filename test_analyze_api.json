@@ -1,0 +1,25 @@
+{
+  "grade": "pre1",
+  "year": 2025,
+  "session": "第1回",
+  "questions": [
+    {
+      "questionNumber": 1,
+      "section": "vocabulary",
+      "questionText": "Emergency services were having difficulty getting to the scene of the accident, so the police ( ) traffic to another road to make space for ambulances and fire trucks.",
+      "choices": ["infected", "recited", "galloped", "diverted"]
+    },
+    {
+      "questionNumber": 2,
+      "section": "vocabulary",
+      "questionText": "The teacher suddenly lost his temper and shouted at the class to be quiet. Following his ( ), all the students in the classroom went silent.",
+      "choices": ["intake", "outburst", "breakup", "layout"]
+    },
+    {
+      "questionNumber": 3,
+      "section": "vocabulary",
+      "questionText": "I've e-mailed Emily three times already to ask if she's coming to the party, but she hasn't responded. That's odd. She usually gives such ( ) replies.",
+      "choices": ["slender", "gloomy", "abnormal", "prompt"]
+    }
+  ]
+}
