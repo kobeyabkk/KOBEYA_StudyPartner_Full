@@ -18,6 +18,7 @@ import { studyPartnerSimple } from './study-partner-simple'
 
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
+import generateRoute from './eiken/routes/generate'
 
 // Cloudflare Bindings の型定義
 type Bindings = {
@@ -12599,6 +12600,9 @@ app.get('/favicon.ico', (c) => {
 
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
+
+// AI問題生成エンドポイント
+app.route('/api/eiken/generate', generateRoute)
 
 // 404ハンドラー
 app.notFound((c) => {
