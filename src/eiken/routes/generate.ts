@@ -216,7 +216,7 @@ generate.get('/stats', async (c) => {
     
     // 総生成数
     const totalResult = await db.prepare(`
-      SELECT COUNT(*) as total FROM generated_questions
+      SELECT COUNT(*) as total FROM eiken_generated_questions
     `).first();
     
     // 級別・セクション別統計
@@ -227,7 +227,7 @@ generate.get('/stats', async (c) => {
         COUNT(*) as count,
         AVG(difficulty_score) as avg_difficulty,
         AVG(copyright_similarity_score) as avg_copyright_score
-      FROM generated_questions
+      FROM eiken_generated_questions
       GROUP BY grade, section
       ORDER BY grade, section
     `).all();
@@ -263,7 +263,7 @@ async function saveGeneratedQuestions(
   for (const question of questions) {
     try {
       const result = await db.prepare(`
-        INSERT INTO generated_questions (
+        INSERT INTO eiken_generated_questions (
           grade,
           section,
           question_type,
