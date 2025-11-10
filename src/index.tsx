@@ -20,6 +20,9 @@ import { studyPartnerSimple } from './study-partner-simple'
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
 
+// Eiken Practice Page をインポート
+import EikenPracticePage from './pages/eiken/practice'
+
 // Cloudflare Bindings の型定義
 type Bindings = {
   OPENAI_API_KEY: string
@@ -12595,8 +12598,27 @@ app.get('/favicon.ico', (c) => {
 })
 
 // ============================================================
-// Eiken (英検) API Routes
+// Eiken (英検) Routes
 // ============================================================
+
+// 英検練習ページ
+app.get('/eiken/practice', (c) => {
+  return c.html(
+    <html lang="ja">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>英検AI練習システム | KOBEYA Study Partner</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="/styles.css" />
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="module" src="/src/pages/eiken/practice.tsx"></script>
+      </body>
+    </html>
+  )
+})
 
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
