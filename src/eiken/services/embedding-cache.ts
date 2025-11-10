@@ -39,37 +39,58 @@ export class EmbeddingCache {
     }
 
     // Level 2: KV（高速）
-    const kvKey = `eiken:embedding:${textHash}`;
-    const kvCached = await env.KV.get(kvKey, 'json');
-    if (kvCached && Array.isArray(kvCached)) {
-      console.log('✅ Embedding cache hit (KV)');
-      this.updateMemoryCache(textHash, kvCached as number[]);
-      return kvCached as number[];
+    if (env.KV) {
+      try {
+        const kvKey = `eiken:embedding:${textHash}`;
+        const kvCached = await env.KV.get(kvKey, 'json');
+        if (kvCached && Array.isArray(kvCached)) {
+          console.log('✅ Embedding cache hit (KV)');
+          this.updateMemoryCache(textHash, kvCached as number[]);
+          return kvCached as number[];
+        }
+      } catch (error) {
+        console.warn('KV cache unavailable, skipping');
+      }
     }
 
     // Level 3: D1（永続）
-    const d1Cached = await env.DB.prepare(`
-      SELECT embedding_json, last_used_at FROM eiken_embedding_cache 
-      WHERE text_hash = ?
-    `).bind(textHash).first<{ embedding_json: string; last_used_at: string }>();
-
-    if (d1Cached) {
-      console.log('✅ Embedding cache hit (D1)');
-      const embedding = JSON.parse(d1Cached.embedding_json);
-      
-      // KVとメモリに昇格
-      await env.KV.put(kvKey, JSON.stringify(embedding), { expirationTtl: 3600 });
-      this.updateMemoryCache(textHash, embedding);
-
-      // ✅ V3修正: アプリケーション層で明示的にupdated_atを更新
-      await env.DB.prepare(`
-        UPDATE eiken_embedding_cache 
-        SET last_used_at = CURRENT_TIMESTAMP, 
-            use_count = use_count + 1 
+    try {
+      const d1Cached = await env.DB.prepare(`
+        SELECT embedding_json, last_used_at FROM eiken_embedding_cache 
         WHERE text_hash = ?
-      `).bind(textHash).run();
+      `).bind(textHash).first<{ embedding_json: string; last_used_at: string }>();
 
-      return embedding;
+      if (d1Cached) {
+        console.log('✅ Embedding cache hit (D1)');
+        const embedding = JSON.parse(d1Cached.embedding_json);
+        
+        // KVとメモリに昇格
+        if (env.KV) {
+          try {
+            const kvKey = `eiken:embedding:${textHash}`;
+            await env.KV.put(kvKey, JSON.stringify(embedding), { expirationTtl: 3600 });
+          } catch (error) {
+            console.warn('KV write failed, skipping');
+          }
+        }
+        this.updateMemoryCache(textHash, embedding);
+
+        // ✅ V3修正: アプリケーション層で明示的にupdated_atを更新
+        try {
+          await env.DB.prepare(`
+            UPDATE eiken_embedding_cache 
+            SET last_used_at = CURRENT_TIMESTAMP, 
+                use_count = use_count + 1 
+            WHERE text_hash = ?
+          `).bind(textHash).run();
+        } catch (error) {
+          console.warn('Failed to update D1 cache stats, skipping');
+        }
+
+        return embedding;
+      }
+    } catch (error) {
+      console.warn('D1 embedding cache unavailable, skipping:', error);
     }
 
     // Level 4: OpenAI API呼び出し
@@ -115,8 +136,14 @@ export class EmbeddingCache {
     this.updateMemoryCache(textHash, embedding);
 
     // KV（1時間）
-    const kvKey = `eiken:embedding:${textHash}`;
-    await env.KV.put(kvKey, JSON.stringify(embedding), { expirationTtl: 3600 });
+    if (env.KV) {
+      try {
+        const kvKey = `eiken:embedding:${textHash}`;
+        await env.KV.put(kvKey, JSON.stringify(embedding), { expirationTtl: 3600 });
+      } catch (error) {
+        console.warn('KV cache write failed, skipping');
+      }
+    }
 
     // D1（永続）
     try {
@@ -128,7 +155,7 @@ export class EmbeddingCache {
           use_count = use_count + 1
       `).bind(textHash, JSON.stringify(embedding)).run();
     } catch (error) {
-      console.error('Failed to cache embedding in D1:', error);
+      console.warn('Failed to cache embedding in D1, skipping:', error);
       // D1エラーでもAPIレスポンスは返す
     }
   }
@@ -190,22 +217,31 @@ export class EmbeddingCache {
     d1_total: number;
     d1_most_used: Array<{ text_hash: string; use_count: number }>;
   }> {
-    const d1Stats = await env.DB.prepare(`
-      SELECT COUNT(*) as total FROM eiken_embedding_cache
-    `).first<{ total: number }>();
+    try {
+      const d1Stats = await env.DB.prepare(`
+        SELECT COUNT(*) as total FROM eiken_embedding_cache
+      `).first<{ total: number }>();
 
-    const mostUsed = await env.DB.prepare(`
-      SELECT text_hash, use_count 
-      FROM eiken_embedding_cache 
-      ORDER BY use_count DESC 
-      LIMIT 10
-    `).all<{ text_hash: string; use_count: number }>();
+      const mostUsed = await env.DB.prepare(`
+        SELECT text_hash, use_count 
+        FROM eiken_embedding_cache 
+        ORDER BY use_count DESC 
+        LIMIT 10
+      `).all<{ text_hash: string; use_count: number }>();
 
-    return {
-      memory_size: this.memoryCache.size,
-      d1_total: d1Stats?.total || 0,
-      d1_most_used: mostUsed.results
-    };
+      return {
+        memory_size: this.memoryCache.size,
+        d1_total: d1Stats?.total || 0,
+        d1_most_used: mostUsed.results
+      };
+    } catch (error) {
+      console.warn('Failed to get D1 cache stats:', error);
+      return {
+        memory_size: this.memoryCache.size,
+        d1_total: 0,
+        d1_most_used: []
+      };
+    }
   }
 }
 
