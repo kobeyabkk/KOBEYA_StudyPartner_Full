@@ -12752,7 +12752,15 @@ app.get('/eiken/practice', (c) => {
             \${state.loading ? 'disabled' : ''}
             class="w-full py-4 px-6 rounded-lg font-bold text-lg transition-all \${state.loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg'}"
           >
-            \${state.loading ? '生成中...' : '🚀 問題を生成する'}
+            \${state.loading ? \`
+              <span class="flex items-center justify-center gap-3">
+                <svg class="animate-spin h-6 w-6" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                問題を生成中...
+              </span>
+            \` : '🚀 問題を生成する'}
           </button>
 
           <div id="generatorMessage" class="mt-4"></div>
@@ -12766,14 +12774,41 @@ app.get('/eiken/practice', (c) => {
       
       return \`
         <div class="max-w-4xl mx-auto">
-          <!-- プログレスバー -->
+          <!-- プログレスバー & ナビゲーション -->
           <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex justify-between mb-2">
-              <span>問題 \${state.currentQuestionIndex + 1} / \${state.questions.length}</span>
+            <div class="flex justify-between items-center mb-4">
+              <button 
+                onclick="goToPreviousQuestion()"
+                \${state.currentQuestionIndex === 0 ? 'disabled' : ''}
+                class="px-4 py-2 rounded-lg font-medium transition-all \${state.currentQuestionIndex === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+              >← 前の問題</button>
+              <span class="font-bold text-lg">問題 \${state.currentQuestionIndex + 1} / \${state.questions.length}</span>
+              <button 
+                onclick="goToNextQuestion()"
+                \${state.currentQuestionIndex === state.questions.length - 1 ? 'disabled' : ''}
+                class="px-4 py-2 rounded-lg font-medium transition-all \${state.currentQuestionIndex === state.questions.length - 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+              >次の問題 →</button>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3">
               <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" 
                 style="width: \${((state.currentQuestionIndex + 1) / state.questions.length) * 100}%"></div>
+            </div>
+            <!-- 問題番号クイックナビゲーション -->
+            <div class="flex gap-2 mt-4 flex-wrap justify-center">
+              \${state.questions.map((q, idx) => \`
+                <button
+                  onclick="goToQuestion(\${idx})"
+                  class="w-10 h-10 rounded-full font-bold transition-all \${
+                    idx === state.currentQuestionIndex 
+                      ? 'bg-blue-600 text-white ring-2 ring-blue-400' 
+                      : state.answers[idx] !== undefined
+                        ? state.answers[idx] === q.correctAnswerIndex
+                          ? 'bg-green-100 text-green-700 border-2 border-green-500'
+                          : 'bg-red-100 text-red-700 border-2 border-red-500'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }"
+                >\${idx + 1}</button>
+              \`).join('')}
             </div>
           </div>
 
@@ -12953,6 +12988,26 @@ app.get('/eiken/practice', (c) => {
       render();
     }
 
+    // ナビゲーション関数
+    function goToQuestion(index) {
+      state.currentQuestionIndex = index;
+      render();
+    }
+
+    function goToPreviousQuestion() {
+      if (state.currentQuestionIndex > 0) {
+        state.currentQuestionIndex--;
+        render();
+      }
+    }
+
+    function goToNextQuestion() {
+      if (state.currentQuestionIndex < state.questions.length - 1) {
+        state.currentQuestionIndex++;
+        render();
+      }
+    }
+
     async function generateQuestions() {
       state.loading = true;
       render();
@@ -13012,7 +13067,17 @@ app.get('/eiken/practice', (c) => {
         state.currentQuestionIndex++;
         render();
       } else {
-        state.viewMode = 'results';
+        // 全問解答済みか確認
+        const allAnswered = state.answers.every(ans => ans !== undefined);
+        if (allAnswered) {
+          state.viewMode = 'results';
+        } else {
+          // 未解答の問題があれば、最初の未解答問題に移動
+          const firstUnanswered = state.answers.findIndex(ans => ans === undefined);
+          if (firstUnanswered !== -1) {
+            state.currentQuestionIndex = firstUnanswered;
+          }
+        }
         render();
       }
     }
