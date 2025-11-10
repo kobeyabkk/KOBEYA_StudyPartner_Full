@@ -10659,21 +10659,17 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // カメラボタン - Open camera modal (not file input)
+          // カメラボタン - Trigger camera input
           const cameraButton = document.getElementById('cameraButton');
           if (cameraButton) {
             cameraButton.addEventListener('click', function() {
-              console.log('📷 Camera button clicked - opening camera modal');
+              console.log('📷 Camera button clicked');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
-              const cameraModal = document.getElementById('cameraModal');
-              if (cameraModal) {
-                cameraModal.style.display = 'flex';
-                startCamera();
-              } else {
-                console.error('❌ Camera modal not found');
+              if (cameraInput) {
+                cameraInput.click();
               }
             });
           }
