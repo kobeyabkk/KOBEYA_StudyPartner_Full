@@ -281,7 +281,7 @@ async function fetchAnalysisContext(
       vocabulary_level,
       sentence_structure,
       difficulty_score
-    FROM question_analysis
+    FROM eiken_question_analysis
     WHERE id = ?
   `).bind(analysisId).first();
   

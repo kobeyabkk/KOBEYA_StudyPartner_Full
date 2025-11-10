@@ -131,7 +131,7 @@ async function fetchExistingQuestions(
   
   const result = await db.prepare(`
     SELECT grammar_patterns, vocabulary_level 
-    FROM question_analysis 
+    FROM eiken_question_analysis 
     WHERE grade = ? AND section = ?
     ORDER BY created_at DESC
     LIMIT ?
