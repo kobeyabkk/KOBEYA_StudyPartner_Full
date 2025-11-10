@@ -258,6 +258,23 @@ Reference Analysis:
 `;
   }
   
+  const sectionGuidance = request.section === 'grammar'
+    ? `
+GRAMMAR QUESTION GUIDELINES:
+- Focus on grammatical structure and form
+- Test verb tenses, conditionals, voice, clauses, or other grammar points
+- Ensure all choices are grammatically plausible but only one is correct
+- The context should make the grammar point testable
+- Avoid testing pure vocabulary knowledge`
+    : request.section === 'vocabulary'
+    ? `
+VOCABULARY QUESTION GUIDELINES:
+- Focus on word meaning and usage
+- Test appropriate-level vocabulary
+- Ensure context clearly indicates the needed word
+- All choices should fit grammatically but only one fits contextually`
+    : '';
+
   return `You are an expert Eiken (英検) test question creator.
 Generate ORIGINAL questions for ${gradeLevel} that are:
 1. Completely different from existing past exam questions
@@ -266,6 +283,7 @@ Generate ORIGINAL questions for ${gradeLevel} that are:
 4. Free from copyright issues
 
 ${contextInfo}
+${sectionGuidance}
 
 IMPORTANT: Create questions with ORIGINAL content. Do not copy or closely imitate existing test materials.
 
@@ -278,9 +296,71 @@ Return JSON format:
   "explanation_ja": "正解の理由を日本語で簡潔に説明",
   "translation_ja": "問題文の日本語訳",
   "difficulty": 0.0-1.0,
-  "topic": "category name"
+  "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
 }`;
 }
+
+/**
+ * 各級の文法トピック定義
+ */
+const grammarTopicsByGrade: Record<string, string[]> = {
+  '5': [
+    'present simple tense',
+    'past simple tense', 
+    'basic present continuous',
+    'simple questions (who, what, where)',
+    'basic prepositions (in, on, at)',
+    'plural nouns'
+  ],
+  '4': [
+    'present perfect tense',
+    'future with will/going to',
+    'comparatives and superlatives',
+    'can/could/may for ability and permission',
+    'there is/are',
+    'countable vs uncountable nouns'
+  ],
+  '3': [
+    'present perfect continuous',
+    'past continuous tense',
+    'conditional type 1 (if + present, will)',
+    'modal verbs (should, must, have to)',
+    'relative pronouns (who, which, that)',
+    'infinitives and basic gerunds'
+  ],
+  'pre2': [
+    'conditional type 2 (if + past, would)',
+    'passive voice (present and past)',
+    'relative clauses (defining and non-defining)',
+    'reported speech (statements)',
+    'gerunds vs infinitives',
+    'past perfect tense'
+  ],
+  '2': [
+    'conditional type 3 (if + past perfect, would have)',
+    'all passive voice forms',
+    'reported speech (questions and commands)',
+    'causative verbs (have/get something done)',
+    'wish and if only',
+    'participle clauses'
+  ],
+  'pre1': [
+    'mixed conditionals',
+    'subjunctive mood (suggest, demand, insist)',
+    'inversion for emphasis',
+    'cleft sentences (it is...that, what...is)',
+    'advanced passive forms (being done, having been done)',
+    'emphatic structures'
+  ],
+  '1': [
+    'advanced conditionals and hypotheticals',
+    'ellipsis and substitution',
+    'fronting and inversion',
+    'complex participle constructions',
+    'sophisticated reported structures',
+    'advanced discourse markers'
+  ]
+};
 
 /**
  * ユーザープロンプト構築
@@ -296,6 +376,38 @@ function buildUserPrompt(request: QuestionGenerationRequest): string {
       request.difficulty < 0.7 ? 'medium' : 'hard'
     : 'medium';
   
+  // 文法問題用の特別なプロンプト
+  if (request.section === 'grammar') {
+    const grammarTopics = grammarTopicsByGrade[request.grade] || [];
+    const topicList = grammarTopics.join(', ');
+    
+    return `Generate a GRAMMAR question for Eiken Grade ${request.grade}.
+
+GRAMMAR FOCUS for this level:
+${topicList}
+
+Requirements:
+- Create a fill-in-the-blank sentence with ( ) 
+- Test ONE specific grammar point from the list above
+- Provide 4 choices where only one is grammatically correct
+- Make wrong answers plausible but clearly incorrect
+- Use natural, real-world context
+- Difficulty: ${difficultyDesc}${hints}
+
+IMPORTANT: 
+- Focus on GRAMMAR structure, not just vocabulary
+- The sentence should test grammatical knowledge, not word meaning
+- Ensure the context makes the grammar point clear
+
+Example formats:
+- "She ( ) to Tokyo three times this year." (present perfect)
+- "If I ( ) more money, I would buy a new car." (conditional)
+- "The book ( ) by many students." (passive voice)
+
+Create an ORIGINAL question that tests grammar skills for this level.`;
+  }
+  
+  // 語彙問題用のプロンプト（既存）
   return `Generate a ${request.questionType} question for Eiken Grade ${request.grade}.
 Section: ${request.section}
 Difficulty: ${difficultyDesc}${hints}
