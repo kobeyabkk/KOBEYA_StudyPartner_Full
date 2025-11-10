@@ -12812,7 +12812,22 @@ app.get('/eiken/practice', (c) => {
             \${answered ? \`
               <div class="p-4 rounded-lg border-2 \${state.answers[state.currentQuestionIndex] === question.correctAnswerIndex ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} mb-6">
                 <h4 class="font-bold mb-2">\${state.answers[state.currentQuestionIndex] === question.correctAnswerIndex ? '🎉 正解です！' : '📚 不正解'}</h4>
-                <p class="text-gray-700">\${question.explanation}</p>
+                \${question.translationJa ? \`
+                  <div class="mb-3 p-2 bg-white bg-opacity-60 rounded">
+                    <div class="text-sm text-gray-600 font-medium mb-1">📖 問題文の意味：</div>
+                    <div class="text-gray-800">\${question.translationJa}</div>
+                  </div>
+                \` : ''}
+                \${question.explanationJa ? \`
+                  <div class="mb-3">
+                    <div class="text-sm text-gray-600 font-medium mb-1">💡 解説：</div>
+                    <div class="text-gray-800 font-medium">\${question.explanationJa}</div>
+                  </div>
+                \` : ''}
+                <div class="pt-2 border-t border-gray-300">
+                  <div class="text-xs text-gray-500 font-medium mb-1">詳細説明 (English):</div>
+                  <p class="text-sm text-gray-600">\${question.explanation}</p>
+                </div>
               </div>
             \` : ''}
 
