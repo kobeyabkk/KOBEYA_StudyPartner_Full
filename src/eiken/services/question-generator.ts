@@ -23,6 +23,8 @@ export interface GeneratedQuestion {
   choices: string[];
   correctAnswerIndex: number;
   explanation: string;
+  explanationJa?: string;      // 日本語解説
+  translationJa?: string;       // 問題文の日本語訳
   difficulty: number;
   topic: string;
   copyrightSafe: boolean;
@@ -184,13 +186,46 @@ async function generateSingleQuestion(
   const data = await response.json();
   const generated = JSON.parse(data.choices[0].message.content);
   
+  // 🎲 選択肢をシャッフルして正解位置をランダム化
+  const { shuffledChoices, newCorrectIndex } = shuffleChoices(
+    generated.choices,
+    generated.correct_answer_index
+  );
+  
   return {
     questionText: generated.question_text,
-    choices: generated.choices,
-    correctAnswerIndex: generated.correct_answer_index,
+    choices: shuffledChoices,
+    correctAnswerIndex: newCorrectIndex,
     explanation: generated.explanation,
+    explanationJa: generated.explanation_ja,
+    translationJa: generated.translation_ja,
     difficulty: generated.difficulty || request.difficulty || 0.5,
     topic: generated.topic || 'general'
+  };
+}
+
+/**
+ * 選択肢をシャッフルして正解位置をランダム化
+ */
+function shuffleChoices(
+  choices: string[],
+  correctIndex: number
+): { shuffledChoices: string[]; newCorrectIndex: number } {
+  const correctAnswer = choices[correctIndex];
+  
+  // Fisher-Yatesアルゴリズムでシャッフル
+  const shuffled = [...choices];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  // 正解の新しい位置を見つける
+  const newCorrectIndex = shuffled.indexOf(correctAnswer);
+  
+  return {
+    shuffledChoices: shuffled,
+    newCorrectIndex
   };
 }
 
@@ -239,7 +274,9 @@ Return JSON format:
   "question_text": "Complete sentence with ( ) blank",
   "choices": ["option1", "option2", "option3", "option4"],
   "correct_answer_index": 0-3,
-  "explanation": "Why this answer is correct",
+  "explanation": "Why this answer is correct (in English)",
+  "explanation_ja": "正解の理由を日本語で簡潔に説明",
+  "translation_ja": "問題文の日本語訳",
   "difficulty": 0.0-1.0,
   "topic": "category name"
 }`;
