@@ -10445,9 +10445,9 @@ app.get('/study-partner', (c) => {
 
                 <!-- 新機能プレースホルダーボタン -->
                 <div style="margin-bottom: 1rem;">
-                    <button id="eikenTaisaku" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="eikenTaisaku" onclick="window.location.href='/eiken/practice'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #3b82f6; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-graduation-cap" style="margin-right: 0.5rem;"></i>
-                        📚 英検対策（実装予定）
+                        📚 英検対策
                     </button>
                 </div>
 
@@ -10466,9 +10466,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="interSeiYou" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="interSeiYou" onclick="window.location.href='/study-partner-simple'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #10b981; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-globe" style="margin-right: 0.5rem;"></i>
-                        🌍 インター生用（実装予定）
+                        🌍 インター生用
                     </button>
                 </div>
 
