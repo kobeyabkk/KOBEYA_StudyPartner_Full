@@ -226,7 +226,7 @@ generate.get('/stats', async (c) => {
         section,
         COUNT(*) as count,
         AVG(difficulty_score) as avg_difficulty,
-        AVG(copyright_similarity_score) as avg_copyright_score
+        AVG(similarity_score) as avg_copyright_score
       FROM eiken_generated_questions
       GROUP BY grade, section
       ORDER BY grade, section
@@ -273,8 +273,8 @@ async function saveGeneratedQuestions(
           correct_answer_index,
           explanation,
           difficulty_score,
-          copyright_similarity_score,
-          is_approved,
+          similarity_score,
+          review_status,
           generated_at,
           created_at,
           updated_at
@@ -290,7 +290,7 @@ async function saveGeneratedQuestions(
         question.explanation,
         question.difficulty,
         1.0 - (question.copyrightScore / 100), // 類似度スコアに変換
-        question.copyrightSafe ? 1 : 0
+        question.copyrightSafe ? 'approved' : 'rejected' // review_status
       ).run();
       
       if (result.success) {
