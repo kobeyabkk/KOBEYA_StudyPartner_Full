@@ -12944,9 +12944,9 @@ app.get('/eiken/practice', (c) => {
 
         const data = await response.json();
         
-        if (data.success && data.generated && data.generated.length > 0) {
-          state.questions = data.generated;
-          state.answers = new Array(data.generated.length);
+        if (data.success && data.questions && data.questions.length > 0) {
+          state.questions = data.questions;
+          state.answers = new Array(data.questions.length);
           state.currentQuestionIndex = 0;
           state.viewMode = 'practice';
         } else {
