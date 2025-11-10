@@ -12869,6 +12869,11 @@ app.get('/eiken/practice', (c) => {
                       <span class="text-2xl">\${correct ? '✅' : '❌'}</span>
                       <div class="flex-1">
                         <div class="font-medium mb-2">Q\${idx + 1}: \${q.questionText}</div>
+                        \${q.translationJa ? \`
+                          <div class="text-sm text-gray-600 mb-2 italic">
+                            📖 \${q.translationJa}
+                          </div>
+                        \` : ''}
                         <div class="text-sm">
                           <span class="text-gray-600">あなたの解答: </span>
                           <span class="\${correct ? 'text-green-700' : 'text-red-700'} font-medium">\${q.choices[state.answers[idx]]}</span>
@@ -12878,10 +12883,18 @@ app.get('/eiken/practice', (c) => {
                             <span class="text-gray-600">正解: </span>
                             <span class="text-green-700 font-medium">\${q.choices[q.correctAnswerIndex]}</span>
                           </div>
-                          <div class="mt-2 p-3 bg-white rounded border">
-                            <span class="font-medium">解説: </span>\${q.explanation}
-                          </div>
                         \` : ''}
+                        <div class="mt-2 p-3 bg-white rounded border space-y-2">
+                          \${q.explanationJa ? \`
+                            <div>
+                              <span class="font-medium text-blue-700">💡 解説: </span>
+                              <span class="text-gray-800">\${q.explanationJa}</span>
+                            </div>
+                          \` : ''}
+                          <div class="text-sm text-gray-600 pt-2 border-t">
+                            <span class="font-medium">詳細: </span>\${q.explanation}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
