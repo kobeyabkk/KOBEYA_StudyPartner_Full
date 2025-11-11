@@ -6,6 +6,7 @@
 import type { EikenGrade, QuestionType } from '../types';
 import { validateGeneratedQuestion } from './copyright-validator';
 import type { EikenEnv } from '../types';
+import { analyzeVocabularyLevel } from './vocabulary-analyzer';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -99,9 +100,37 @@ export async function generateQuestions(
         env
       );
       
-      // 3. 検証結果に基づいて承認・却下判定
+      // 著作権チェックで却下された場合はスキップ
+      if (validation.recommendation === 'reject') {
+        rejected++;
+        console.log(`❌ Question rejected (${validation.violations.length} copyright violations)`);
+        continue;
+      }
+      
+      // 3. 語彙レベル検証（Phase 1 PoC）
+      console.log('📚 Validating vocabulary level...');
+      const combinedText = `${question.questionText} ${question.choices.join(' ')}`;
+      const vocabAnalysis = await analyzeVocabularyLevel(
+        combinedText,
+        request.grade,
+        env
+      );
+      
+      // 語彙レベルチェックで不合格の場合はスキップ
+      if (!vocabAnalysis.isValid) {
+        rejected++;
+        console.log(`❌ Question rejected (vocabulary out of range: ${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}%)`);
+        if (vocabAnalysis.suggestion) {
+          console.log(`   Suggestion: ${vocabAnalysis.suggestion}`);
+        }
+        continue;
+      }
+      
+      console.log(`✅ Vocabulary check passed (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
+      
+      // 4. 検証結果に基づいて承認・却下判定
       if (validation.recommendation === 'approve') {
-        console.log(`✅ Question approved (score: ${validation.overallScore})`);
+        console.log(`✅ Question approved (copyright score: ${validation.overallScore})`);
         generated.push({
           ...question,
           questionNumber: generated.length + 1,
@@ -109,7 +138,7 @@ export async function generateQuestions(
           copyrightScore: validation.overallScore
         });
       } else if (validation.recommendation === 'review') {
-        console.log(`⚠️ Question needs review (score: ${validation.overallScore})`);
+        console.log(`⚠️ Question needs review (copyright score: ${validation.overallScore})`);
         // スコアが比較的高ければ採用
         if (validation.overallScore >= 70) {
           generated.push({
@@ -120,11 +149,8 @@ export async function generateQuestions(
           });
         } else {
           rejected++;
-          console.log(`❌ Question rejected (low score)`);
+          console.log(`❌ Question rejected (low copyright score)`);
         }
-      } else {
-        rejected++;
-        console.log(`❌ Question rejected (${validation.violations.length} violations)`);
       }
       
       // レート制限対策
