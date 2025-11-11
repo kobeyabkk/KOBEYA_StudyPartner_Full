@@ -12,9 +12,11 @@ export interface VocabularyAnalysisResult {
   isValid: boolean;
   totalWords: number;
   uniqueWords: number;
+  validWords: number;
+  validPercentage: number;
   outOfRangeWords: string[];
   outOfRangeRatio: number;
-  suggestion: string | null;
+  suggestions: string | null;
   zipfViolations: string[];
   zipfViolationRatio: number;
 }
@@ -74,9 +76,11 @@ export async function analyzeVocabularyLevel(
       isValid: true,
       totalWords: 0,
       uniqueWords: 0,
+      validWords: 0,
+      validPercentage: 100,
       outOfRangeWords: [],
       outOfRangeRatio: 0,
-      suggestion: null,
+      suggestions: null,
       zipfViolations: [],
       zipfViolationRatio: 0
     };
@@ -130,14 +134,18 @@ export async function analyzeVocabularyLevel(
   
   // 4. 判定（3%ルール + 5% Zipfルール）
   const isValid = outOfRangeRatio < 0.03 && zipfViolationRatio < 0.05;
+  const validWords = uniqueLemmas.length - outOfRange.length;
+  const validPercentage = (validWords / uniqueLemmas.length) * 100;
   
   return {
     isValid,
     totalWords: lemmas.length,
     uniqueWords: uniqueLemmas.length,
+    validWords,
+    validPercentage,
     outOfRangeWords: outOfRange,
     outOfRangeRatio,
-    suggestion: !isValid && outOfRange.length > 0
+    suggestions: !isValid && outOfRange.length > 0
       ? `以下の単語を${targetCEFR}レベルに置き換えてください: ${outOfRange.slice(0, 5).join(', ')}`
       : null,
     zipfViolations,
