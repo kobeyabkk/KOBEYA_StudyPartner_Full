@@ -1,50 +1,56 @@
 /**
- * AI問題生成APIエンドポイント
+ * AI問題生成APIエンドポイント (Phase 1: Passage-based generation)
  * POST /api/eiken/generate
  */
 
 import { Hono } from 'hono';
-import type { EikenEnv, EikenGrade, QuestionType } from '../types';
-import { generateQuestions } from '../services/question-generator';
-import type { QuestionGenerationRequest } from '../services/question-generator';
+import type { EikenEnv, EikenGrade } from '../types';
+import { analyzeVocabularyLevel } from '../services/vocabulary-analyzer';
+import { analyzeTextProfile } from '../services/text-profiler';
 
 const generate = new Hono<{ Bindings: EikenEnv }>();
+
+interface PassageGenerationRequest {
+  grade: EikenGrade;
+  passage: string;
+  question_count: number;
+}
 
 /**
  * POST /api/eiken/generate
  * 
- * AI問題生成（著作権安全チェック付き）
+ * Passage-based問題生成（Phase 1実装）
  * 
  * リクエストボディ:
  * {
- *   "grade": "pre1",
- *   "section": "vocabulary",
- *   "questionType": "vocabulary",
- *   "count": 5,
- *   "difficulty": 0.6,
- *   "topicHints": ["business", "technology"],
- *   "basedOnAnalysisId": 123
+ *   "grade": "5",
+ *   "passage": "Tom is a student. He goes to school every day.",
+ *   "question_count": 1
  * }
  * 
  * レスポンス:
  * {
  *   "success": true,
- *   "generated": 5,
- *   "rejected": 2,
- *   "totalAttempts": 7,
  *   "questions": [
  *     {
- *       "questionNumber": 1,
- *       "questionText": "The company decided to...",
- *       "choices": ["expand", "contract", "merge", "dissolve"],
- *       "correctAnswerIndex": 0,
- *       "explanation": "...",
- *       "difficulty": 0.6,
- *       "topic": "business",
- *       "copyrightSafe": true,
- *       "copyrightScore": 95
+ *       "question": "What does Tom do every day?",
+ *       "options": {
+ *         "A": "He plays soccer.",
+ *         "B": "He goes to school.",
+ *         "C": "He reads books.",
+ *         "D": "He watches TV."
+ *       },
+ *       "correct_answer": "B"
  *     }
- *   ]
+ *   ],
+ *   "metadata": {
+ *     "generated_count": 1,
+ *     "rejected_count": 0,
+ *     "text_profile": {
+ *       "cefrj_level": "A1.1",
+ *       "numeric_score": 1.23
+ *     }
+ *   }
  * }
  */
 generate.post('/', async (c) => {
@@ -52,26 +58,22 @@ generate.post('/', async (c) => {
     const body = await c.req.json();
     const {
       grade,
-      section,
-      questionType,
-      count,
-      difficulty,
-      topicHints,
-      basedOnAnalysisId
-    } = body;
+      passage,
+      question_count
+    } = body as PassageGenerationRequest;
     
     // バリデーション
-    if (!grade || !section || !questionType || !count) {
+    if (!grade || !passage || !question_count) {
       return c.json({
         success: false,
-        error: 'Invalid request body. Required: grade, section, questionType, count'
+        error: 'Invalid request body. Required: grade, passage, question_count'
       }, 400);
     }
     
-    if (count < 1 || count > 20) {
+    if (question_count < 1 || question_count > 10) {
       return c.json({
         success: false,
-        error: 'Count must be between 1 and 20'
+        error: 'question_count must be between 1 and 10'
       }, 400);
     }
     
@@ -92,48 +94,71 @@ generate.post('/', async (c) => {
       }, 500);
     }
     
-    console.log(`🎯 Generating ${count} questions for Grade ${grade}, Section: ${section}`);
+    console.log(`🎯 Generating ${question_count} questions for Grade ${grade}`);
+    console.log(`📄 Passage length: ${passage.length} characters`);
     
-    // 問題生成リクエスト準備
-    const request: QuestionGenerationRequest = {
-      grade: grade as EikenGrade,
-      section,
-      questionType: questionType as QuestionType,
-      count,
-      difficulty,
-      topicHints,
-      basedOnAnalysisId
-    };
+    // Phase 1 Validation: Vocabulary Level Check
+    console.log('📚 Step 1: Checking vocabulary level...');
+    const vocabResult = await analyzeVocabularyLevel(passage, grade, c.env);
     
-    // AI問題生成実行（著作権チェック統合）
-    const result = await generateQuestions(request, c.env);
-    
-    if (!result.success) {
+    if (!vocabResult.isValid) {
       return c.json({
         success: false,
-        error: 'Question generation failed',
-        details: result.errors
-      }, 500);
+        error: 'Passage contains vocabulary that is too advanced for the target grade',
+        details: {
+          vocabulary_check: vocabResult,
+          suggestions: vocabResult.suggestions
+        }
+      }, 400);
     }
     
-    // 生成された問題をデータベースに保存
-    const savedCount = await saveGeneratedQuestions(
-      db,
+    console.log(`✅ Vocabulary check passed: ${vocabResult.validPercentage.toFixed(1)}% appropriate`);
+    
+    // Phase 1 Validation: Text Profile Check (CVLA3)
+    console.log('📊 Step 2: Analyzing text profile (simplified CVLA)...');
+    const textProfile = await analyzeTextProfile(passage, grade, c.env);
+    
+    if (!textProfile.isValid) {
+      return c.json({
+        success: false,
+        error: 'Text complexity is too high for the target grade',
+        details: {
+          text_profile: textProfile,
+          suggestions: textProfile.suggestions
+        }
+      }, 400);
+    }
+    
+    console.log(`✅ Text profile check passed: CEFR-J ${textProfile.cefrjLevel} (score: ${textProfile.numericScore.toFixed(2)})`);
+    
+    // Step 3: Generate questions using OpenAI
+    console.log('🤖 Step 3: Generating questions with OpenAI GPT-4...');
+    const questions = await generateQuestionsWithOpenAI(
+      passage,
       grade,
-      section,
-      questionType,
-      result.generated
+      question_count,
+      openaiApiKey
     );
     
-    console.log(`✅ Generated and saved ${savedCount} questions`);
+    console.log(`✅ Generated ${questions.length} questions successfully`);
     
     return c.json({
       success: true,
-      generated: result.generated.length,
-      rejected: result.rejected,
-      totalAttempts: result.totalAttempts,
-      saved: savedCount,
-      questions: result.generated
+      questions,
+      metadata: {
+        generated_count: questions.length,
+        rejected_count: 0,
+        vocabulary_check: {
+          valid_percentage: vocabResult.validPercentage,
+          total_words: vocabResult.totalWords,
+          valid_words: vocabResult.validWords
+        },
+        text_profile: {
+          cefrj_level: textProfile.cefrjLevel,
+          numeric_score: textProfile.numericScore,
+          metrics: textProfile.metrics
+        }
+      }
     });
     
   } catch (error) {
@@ -146,163 +171,120 @@ generate.post('/', async (c) => {
 });
 
 /**
- * POST /api/eiken/generate/validate
- * 
- * 生成済み問題の著作権検証（テスト用）
- * 
- * リクエストボディ:
- * {
- *   "grade": "pre1",
- *   "section": "vocabulary",
- *   "questionText": "The company decided to...",
- *   "choices": ["expand", "contract", "merge", "dissolve"]
- * }
- * 
- * レスポンス:
- * {
- *   "safe": true,
- *   "overallScore": 95,
- *   "embeddingSimilarity": 0.45,
- *   "ngramSimilarity": 0.08,
- *   "violations": [],
- *   "warnings": [],
- *   "recommendation": "approve"
- * }
+ * OpenAI GPT-4を使って問題を生成
  */
-generate.post('/validate', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { grade, section, questionText, choices } = body;
-    
-    if (!grade || !section || !questionText) {
-      return c.json({
-        success: false,
-        error: 'Invalid request body. Required: grade, section, questionText'
-      }, 400);
-    }
-    
-    // 著作権検証のみ実行
-    const { validateGeneratedQuestion } = await import('../services/copyright-validator');
-    
-    const validation = await validateGeneratedQuestion(
-      {
-        generatedQuestion: questionText,
-        generatedChoices: choices,
-        grade: grade as EikenGrade,
-        section
+async function generateQuestionsWithOpenAI(
+  passage: string,
+  grade: EikenGrade,
+  count: number,
+  apiKey: string
+): Promise<any[]> {
+  
+  const prompt = `You are an expert English test creator for Japanese students preparing for the EIKEN (英検) test.
+
+Generate ${count} multiple-choice reading comprehension question(s) based on the following passage.
+
+Target Grade: ${grade}
+Passage:
+"""
+${passage}
+"""
+
+Requirements:
+1. Questions should be appropriate for EIKEN Grade ${grade} level
+2. Each question must have 4 options (A, B, C, D)
+3. Questions should test comprehension, not just vocabulary
+4. Use simple, clear language appropriate for the grade level
+5. Provide the correct answer
+
+Output format (JSON):
+{
+  "questions": [
+    {
+      "question": "Question text here?",
+      "options": {
+        "A": "First option",
+        "B": "Second option",
+        "C": "Third option",
+        "D": "Fourth option"
       },
-      c.env
-    );
-    
-    return c.json(validation);
-    
-  } catch (error) {
-    console.error('❌ Validation error:', error);
-    return c.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
+      "correct_answer": "B"
+    }
+  ]
+}
+
+Generate exactly ${count} question(s). Return only valid JSON, no additional text.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert English test creator. Always respond with valid JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
   }
-});
+  
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  
+  // JSONをパース
+  const parsed = JSON.parse(content);
+  
+  return parsed.questions || [];
+}
 
 /**
- * GET /api/eiken/generate/stats
+ * GET /api/eiken/generate/health
  * 
- * 生成問題統計情報
+ * Health check endpoint
  */
-generate.get('/stats', async (c) => {
+generate.get('/health', async (c) => {
   try {
     const db = c.env.DB;
     
-    // 総生成数
-    const totalResult = await db.prepare(`
-      SELECT COUNT(*) as total FROM eiken_generated_questions
+    // Check if vocabulary table exists and has data
+    const vocabCount = await db.prepare(`
+      SELECT COUNT(*) as count FROM eiken_vocabulary_lexicon
     `).first();
-    
-    // 級別・セクション別統計
-    const gradeStats = await db.prepare(`
-      SELECT 
-        grade,
-        section,
-        COUNT(*) as count,
-        AVG(difficulty_score) as avg_difficulty,
-        AVG(similarity_score) as avg_copyright_score
-      FROM eiken_generated_questions
-      GROUP BY grade, section
-      ORDER BY grade, section
-    `).all();
     
     return c.json({
       success: true,
-      total: totalResult?.total || 0,
-      byGradeAndSection: gradeStats.results || []
+      status: 'healthy',
+      database: 'connected',
+      vocabulary_entries: vocabCount?.count || 0,
+      features: {
+        vocabulary_validation: true,
+        text_profiling: true,
+        cvla3_simplified: true
+      }
     });
     
   } catch (error) {
-    console.error('❌ Stats error:', error);
     return c.json({
       success: false,
+      status: 'unhealthy',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
-
-/**
- * 生成問題をデータベースに保存
- */
-async function saveGeneratedQuestions(
-  db: D1Database,
-  grade: EikenGrade,
-  section: string,
-  questionType: QuestionType,
-  questions: any[]
-): Promise<number> {
-  
-  let savedCount = 0;
-  
-  for (const question of questions) {
-    try {
-      const result = await db.prepare(`
-        INSERT INTO eiken_generated_questions (
-          grade,
-          section,
-          question_type,
-          answer_type,
-          question_text,
-          choices_json,
-          correct_answer_index,
-          explanation,
-          difficulty_score,
-          similarity_score,
-          review_status,
-          generated_at,
-          created_at,
-          updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
-      `).bind(
-        grade,
-        section,
-        questionType,
-        'mcq',
-        question.questionText,
-        JSON.stringify(question.choices),
-        question.correctAnswerIndex,
-        question.explanation,
-        question.difficulty,
-        1.0 - (question.copyrightScore / 100), // 類似度スコアに変換
-        question.copyrightSafe ? 'approved' : 'rejected' // review_status
-      ).run();
-      
-      if (result.success) {
-        savedCount++;
-      }
-      
-    } catch (error) {
-      console.error(`❌ Failed to save question ${question.questionNumber}:`, error);
-    }
-  }
-  
-  return savedCount;
-}
 
 export default generate;
