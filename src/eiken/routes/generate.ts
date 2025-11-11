@@ -182,12 +182,19 @@ async function generateSingleQuestion(
   
   const topicHint = topicHints.length > 0 ? topicHints[Math.floor(Math.random() * topicHints.length)] : '';
   
+  // ランダム性を追加するためのシード値
+  const randomSeed = Math.random().toString(36).substring(7);
+  const timestamp = Date.now();
+  
   const prompt = `You are an expert English test creator for Japanese students preparing for the EIKEN (英検) test.
 
-Generate ONE ${section} question for EIKEN Grade ${grade}.
+Generate ONE UNIQUE ${section} question for EIKEN Grade ${grade}.
 
 ${topicHint ? `Topic hint: ${topicHint}` : ''}
 Difficulty level: ${Math.round(difficulty * 100)}%
+Request ID: ${randomSeed}-${timestamp}
+
+IMPORTANT: Create a completely DIFFERENT question from any previous ones. Be creative and vary the vocabulary, grammar patterns, and contexts.
 
 Requirements:
 1. Question must be appropriate for EIKEN Grade ${grade} level
@@ -196,23 +203,24 @@ Requirements:
 4. Provide explanation in English
 5. Provide Japanese explanation (explanationJa)
 6. Provide Japanese translation of question text (translationJa)
+7. Each question must be UNIQUE - avoid repeating the same vocabulary or sentence structure
 
 Output format (JSON):
 {
   "questionNumber": 1,
-  "questionText": "The company decided to _____ its operations to Asia.",
-  "choices": ["expand", "contract", "merge", "dissolve"],
+  "questionText": "She was _____ to hear the good news about her promotion.",
+  "choices": ["delighted", "angry", "confused", "worried"],
   "correctAnswerIndex": 0,
-  "explanation": "The word 'expand' means to increase in size or scope...",
-  "explanationJa": "expand は「拡大する」という意味で...",
-  "translationJa": "その会社はアジアへの事業を___することに決めた。",
+  "explanation": "The word 'delighted' means very pleased...",
+  "explanationJa": "delighted は「大喜びする」という意味で...",
+  "translationJa": "彼女は昇進の良い知らせを聞いて___した。",
   "difficulty": ${difficulty},
   "topic": "${topicHint || section}",
   "copyrightSafe": true,
   "copyrightScore": 95
 }
 
-Generate only valid JSON, no additional text.`;
+Generate only valid JSON, no additional text. Make sure this question is DIFFERENT from the example above.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -225,14 +233,14 @@ Generate only valid JSON, no additional text.`;
       messages: [
         {
           role: 'system',
-          content: 'You are an expert English test creator. Always respond with valid JSON only.'
+          content: 'You are an expert English test creator. Create unique and diverse questions. Always respond with valid JSON only. Never repeat the same question patterns or vocabulary.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.7,
+      temperature: 0.9,
       max_tokens: 1500
     })
   });
