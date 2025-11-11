@@ -7,6 +7,7 @@ import type { EikenGrade, QuestionType } from '../types';
 import { validateGeneratedQuestion } from './copyright-validator';
 import type { EikenEnv } from '../types';
 import { analyzeVocabularyLevel } from './vocabulary-analyzer';
+import { analyzeTextProfile } from './text-profiler';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -127,6 +128,26 @@ export async function generateQuestions(
       }
       
       console.log(`✅ Vocabulary check passed (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
+      
+      // 4. テキストプロファイル検証（Phase 1 改善版: 簡易CVLA）
+      console.log('📊 Analyzing text profile (simplified CVLA)...');
+      const textProfile = await analyzeTextProfile(
+        combinedText,
+        request.grade,
+        env
+      );
+      
+      // テキスト全体のレベルが高すぎる場合は却下
+      if (!textProfile.isValid) {
+        rejected++;
+        console.log(`❌ Question rejected (text level too high: ${textProfile.cefrjLevel}, score: ${textProfile.numericScore.toFixed(2)})`);
+        if (textProfile.suggestions) {
+          console.log(`   Suggestion: ${textProfile.suggestions}`);
+        }
+        continue;
+      }
+      
+      console.log(`✅ Text profile check passed (CEFR-J: ${textProfile.cefrjLevel}, score: ${textProfile.numericScore.toFixed(2)})`);
       
       // 4. 検証結果に基づいて承認・却下判定
       if (validation.recommendation === 'approve') {
