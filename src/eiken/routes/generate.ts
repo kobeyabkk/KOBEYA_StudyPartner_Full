@@ -153,6 +153,7 @@ generate.post('/', async (c) => {
     return c.json({
       success: true,
       generated,
+      questions: generated, // ← 後方互換性のため追加
       rejected,
       totalAttempts: attempts,
       saved: savedCount
