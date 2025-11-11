@@ -1,0 +1,56 @@
+-- Sample vocabulary data (first 20 entries for PoC)
+INSERT INTO eiken_vocabulary_lexicon 
+(word_lemma, pos, cefr_level, zipf_score, grade_level, sources, confidence)
+VALUES 
+('be', 'verb', 'A1', 7.5, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('have', 'verb', 'A1', 7.2, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('do', 'verb', 'A1', 7.1, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('go', 'verb', 'A1', 6.8, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('make', 'verb', 'A1', 6.5, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('get', 'verb', 'A1', 6.7, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('see', 'verb', 'A1', 6.4, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('know', 'verb', 'A1', 6.3, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('think', 'verb', 'A1', 6.2, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('come', 'verb', 'A1', 6.1, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('want', 'verb', 'A1', 6.0, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('use', 'verb', 'A1', 5.9, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('find', 'verb', 'A1', 5.8, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('give', 'verb', 'A1', 5.7, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('tell', 'verb', 'A1', 5.6, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('work', 'verb', 'A1', 5.8, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('call', 'verb', 'A1', 5.5, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('try', 'verb', 'A1', 5.4, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('ask', 'verb', 'A1', 5.3, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('need', 'verb', 'A1', 5.7, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+-- A2 level
+('mean', 'verb', 'A2', 5.2, 4, '["CEFR-J","NGSL"]', 0.9),
+('keep', 'verb', 'A2', 5.1, 4, '["CEFR-J","NGSL"]', 0.9),
+('let', 'verb', 'A2', 5.0, 4, '["CEFR-J","NGSL"]', 0.9),
+('begin', 'verb', 'A2', 4.9, 4, '["CEFR-J","NGSL"]', 0.9),
+('seem', 'verb', 'A2', 4.8, 4, '["CEFR-J","NGSL"]', 0.9),
+-- B1 level
+('believe', 'verb', 'B1', 4.7, 21, '["CEFR-J","NGSL"]', 0.9),
+('bring', 'verb', 'B1', 4.8, 21, '["CEFR-J","NGSL"]', 0.9),
+('happen', 'verb', 'B1', 4.6, 21, '["CEFR-J","NGSL"]', 0.9),
+('write', 'verb', 'B1', 4.9, 21, '["CEFR-J","NGSL"]', 0.9),
+('provide', 'verb', 'B1', 4.5, 21, '["CEFR-J","NGSL"]', 0.9),
+-- B2 level
+('create', 'verb', 'B2', 4.3, 11, '["CEFR-J","NGSL"]', 0.9),
+('speak', 'verb', 'B2', 4.4, 11, '["CEFR-J","NGSL"]', 0.9),
+('read', 'verb', 'B2', 4.6, 11, '["CEFR-J","NGSL"]', 0.9),
+('allow', 'verb', 'B2', 4.2, 11, '["CEFR-J","NGSL"]', 0.9),
+('add', 'verb', 'B2', 4.3, 11, '["CEFR-J","NGSL"]', 0.9),
+-- C1 level
+('consider', 'verb', 'C1', 4.0, 1, '["CEFR-J","NGSL"]', 0.8),
+('appear', 'verb', 'C1', 3.8, 1, '["CEFR-J","NGSL"]', 0.8),
+('expect', 'verb', 'C1', 3.9, 1, '["CEFR-J","NGSL"]', 0.8),
+('build', 'verb', 'C1', 4.0, 1, '["CEFR-J","NGSL"]', 0.8),
+-- Adjectives
+('good', 'adj', 'A1', 6.5, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('new', 'adj', 'A1', 6.2, 5, '["CEFR-J","NGSL","SVL"]', 1.0),
+('big', 'adj', 'A2', 5.4, 4, '["CEFR-J","NGSL"]', 0.9),
+('different', 'adj', 'A2', 5.2, 4, '["CEFR-J","NGSL"]', 0.9),
+('important', 'adj', 'B1', 5.0, 21, '["CEFR-J","NGSL"]', 0.9),
+('significant', 'adj', 'B2', 4.0, 11, '["CEFR-J","NGSL"]', 0.9),
+('substantial', 'adj', 'C1', 3.5, 1, '["CEFR-J"]', 0.7),
+('considerable', 'adj', 'C1', 3.4, 1, '["CEFR-J"]', 0.7);
