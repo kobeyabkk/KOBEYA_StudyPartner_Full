@@ -4219,15 +4219,21 @@ ${targetLevel === 'high_school' ? `
         
         function addMessage(text, isTeacher = false) {
             const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) {
+                console.error('❌ messages div not found');
+                return;
+            }
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
             
             const icon = isTeacher ? '👨‍🏫' : '👤';
-            const formattedText = text.split('\\n').join('<br>');
+            // Fix: Replace both actual newlines and escaped newlines
+            const formattedText = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
             
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            console.log('✅ Message added:', isTeacher ? 'Teacher' : 'Student', text.substring(0, 50));
         }
         
         // 重複リクエスト防止フラグ
