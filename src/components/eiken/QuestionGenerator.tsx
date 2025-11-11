@@ -33,6 +33,9 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
   const { loading, error, result, generateQuestions } = useEikenGenerate();
 
   const handleGenerate = async () => {
+    console.log('🔴 handleGenerate CALLED!');
+    alert('ボタンがクリックされました！');
+    
     try {
       console.log('🎯 Generating questions with:', { grade, section, count, difficulty });
       const data = await generateQuestions({
@@ -56,6 +59,7 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
       }
     } catch (err) {
       console.error('❌ Failed to generate questions:', err);
+      alert('エラー: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
