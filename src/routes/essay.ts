@@ -5129,7 +5129,81 @@ ${targetLevel === 'high_school' ? `
                 }, 1000);
             }
         });
+
+        // ========== AIに質問機能 ==========
+        function openAIQuestionModal() {
+            document.getElementById('aiQuestionModal').style.display = 'flex';
+        }
+
+        function closeAIQuestionModal() {
+            document.getElementById('aiQuestionModal').style.display = 'none';
+            document.getElementById('aiQuestionText').value = '';
+            document.getElementById('aiAnswer').innerHTML = 'ここにAIの回答が表示されます';
+        }
+
+        async function submitAIQuestion() {
+            const questionText = document.getElementById('aiQuestionText').value.trim();
+            if (!questionText) {
+                alert('質問を入力してください');
+                return;
+            }
+
+            const answerDiv = document.getElementById('aiAnswer');
+            answerDiv.innerHTML = '<div style="text-align:center;padding:2rem;">🤖 AIが回答を生成中...</div>';
+
+            try {
+                const response = await fetch('/api/ai-question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-APP-KEY': 'kobeya-dev-secret-2024'
+                    },
+                    body: JSON.stringify({
+                        question: questionText,
+                        studentId: '${sessionId}'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('AIリクエストに失敗しました');
+                }
+
+                const data = await response.json();
+                answerDiv.innerHTML = '<div style="white-space:pre-wrap;line-height:1.6;">' + (data.answer || 'エラーが発生しました') + '</div>';
+            } catch (error) {
+                answerDiv.innerHTML = '<div style="color:#ef4444;">エラー: ' + error.message + '</div>';
+            }
+        }
         </script>
+
+        <!-- AIに質問フローティングボタン -->
+        <button onclick="openAIQuestionModal()" style="position:fixed;bottom:2rem;right:2rem;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            💬
+        </button>
+
+        <!-- AIに質問モーダル -->
+        <div id="aiQuestionModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:1rem;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:1.5rem;display:flex;justify-content:space-between;align-items:center;border-radius:1rem 1rem 0 0;">
+                    <h2 style="margin:0;font-size:1.5rem;">💬 AIに質問</h2>
+                    <button onclick="closeAIQuestionModal()" style="background:none;border:none;color:white;font-size:2rem;cursor:pointer;line-height:1;">&times;</button>
+                </div>
+                <div style="padding:1.5rem;">
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block;margin-bottom:0.5rem;font-weight:600;">質問内容</label>
+                        <textarea id="aiQuestionText" placeholder="わからない言葉や概念について質問してください..." style="width:100%;min-height:120px;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:1rem;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block;margin-bottom:0.5rem;font-weight:600;">🤖 AI回答</label>
+                        <div id="aiAnswer" style="min-height:100px;max-height:300px;overflow-y:auto;padding:1rem;background:#f9fafb;border-radius:0.5rem;border:1px solid #e5e7eb;">ここにAIの回答が表示されます</div>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;">
+                        <button onclick="submitAIQuestion()" style="flex:1;padding:0.75rem 1.5rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:0.5rem;font-size:1rem;font-weight:600;cursor:pointer;">✅ 質問を送信</button>
+                        <button onclick="closeAIQuestionModal()" style="padding:0.75rem 1.5rem;background:#e5e7eb;color:#333;border:none;border-radius:0.5rem;font-size:1rem;font-weight:600;cursor:pointer;">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </body>
     </html>
   `)
