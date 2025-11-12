@@ -194,7 +194,7 @@ type SimilarCheckResponse = EssayApiResponse<{
   feedback: string
   nextAction: string
   completedProblems: number
-  totalProblems: number
+  totalProblems
 }>
 type RegenerationResponse = EssayApiResponse<{
   analysis: string
@@ -11408,7 +11408,7 @@ app.get('/study-partner', (c) => {
             
             console.log('📡 Login response:', response.status, response.statusText);
             
-            const data = await response.json() as LoginApiResponse;
+            const data = await response.json();
             console.log('📋 Login data:', data);
             
             if (response.ok && data.success) {
@@ -11659,7 +11659,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json() as StepCheckResponse;
+            const result = await response.json();
             console.log('📋 Step check result:', result);
             
             if (result.ok) {
@@ -11697,7 +11697,7 @@ app.get('/study-partner', (c) => {
         }
         
         // ステップ結果表示
-        function displayStepResult(isCorrect: boolean, explanation: string, userAnswer: string) {
+        function displayStepResult(isCorrect, explanation, userAnswer) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -11827,7 +11827,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json() as ConfirmationCheckResponse;
+            const result = await response.json();
             console.log('📋 Confirmation check result:', result);
             
             if (result.ok) {
@@ -11844,7 +11844,7 @@ app.get('/study-partner', (c) => {
         }
         
         // 確認問題結果表示
-        function displayConfirmationResult(isCorrect: boolean, explanation: string, userAnswer: string, nextAction: string) {
+        function displayConfirmationResult(isCorrect, explanation, userAnswer, nextAction) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -12042,7 +12042,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json() as SimilarCheckResponse;
+            const result = await response.json();
             console.log('📋 Similar check result:', result);
             
             if (result.ok) {
@@ -12060,12 +12060,12 @@ app.get('/study-partner', (c) => {
         
         // 類似問題結果表示
         function displaySimilarResult(
-          isCorrect: boolean,
-          explanation: string,
-          userAnswer: string,
-          nextAction: string,
-          completedProblems: number,
-          totalProblems: number
+          isCorrect,
+          explanation,
+          userAnswer,
+          nextAction,
+          completedProblems,
+          totalProblems
         ) {
           const out = document.getElementById('out');
           if (!out) return;
@@ -12234,7 +12234,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json() as RegenerationResponse;
+            const result = await response.json();
             console.log('📋 Regeneration result:', result);
             
             if (result.ok) {
