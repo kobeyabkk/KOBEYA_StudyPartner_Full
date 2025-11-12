@@ -87,7 +87,7 @@ function determineSeverity(
 export async function validateVocabularyWithCache(
   text: string,
   db: D1Database,
-  kv: KVNamespace,
+  kv: KVNamespace | undefined,
   config: Partial<ValidationConfig> = {}
 ): Promise<ValidationResult> {
   const startTime = Date.now();
@@ -192,7 +192,7 @@ export async function validateVocabularyWithCache(
 export async function validateMultipleTexts(
   texts: string[],
   db: D1Database,
-  kv: KVNamespace,
+  kv: KVNamespace | undefined,
   config: Partial<ValidationConfig> = {}
 ): Promise<ValidationResult[]> {
   const promises = texts.map(text => 
@@ -208,7 +208,7 @@ export async function validateMultipleTexts(
 export async function validateBatch(
   texts: string[],
   db: D1Database,
-  kv: KVNamespace,
+  kv: KVNamespace | undefined,
   config: Partial<ValidationConfig> = {}
 ): Promise<{
   results: ValidationResult[];

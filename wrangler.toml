@@ -10,8 +10,7 @@ database_id = "b5ac684a-2536-496a-916f-c2c5816a13a0"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "preview_id"
-preview_id = "preview_id"
+id = "4ba8baa37cb94b9fac7e28792bb81a1a"
 
 [vars]
 WEBHOOK_SECRET = "kobeya-dev-secret-2024"

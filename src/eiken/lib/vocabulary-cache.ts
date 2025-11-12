@@ -60,7 +60,7 @@ function getCacheKey(word: string): string {
  */
 export async function getCachedWord(
   word: string,
-  kv: KVNamespace
+  kv: KVNamespace | undefined
 ): Promise<VocabularyEntry | null | undefined> {
   const normalized = word.toLowerCase();
   
@@ -75,7 +75,11 @@ export async function getCachedWord(
     memoryCache.delete(normalized);
   }
   
-  // 2. KVをチェック
+  // 2. KVをチェック（KVが利用可能な場合のみ）
+  if (!kv) {
+    return undefined; // KV未設定の場合はキャッシュなし
+  }
+  
   const cacheKey = getCacheKey(normalized);
   const cached = await kv.get<VocabularyEntry>(cacheKey, 'json');
   
@@ -100,16 +104,18 @@ export async function getCachedWord(
 export async function setCachedWord(
   word: string,
   entry: VocabularyEntry | null,
-  kv: KVNamespace,
+  kv: KVNamespace | undefined,
   ttl: number = DEFAULT_TTL
 ): Promise<void> {
   const normalized = word.toLowerCase();
   const cacheKey = getCacheKey(normalized);
   
-  // KVに保存
-  await kv.put(cacheKey, JSON.stringify(entry), {
-    expirationTtl: ttl,
-  });
+  // KVに保存（KVが利用可能な場合のみ）
+  if (kv) {
+    await kv.put(cacheKey, JSON.stringify(entry), {
+      expirationTtl: ttl,
+    });
+  }
   
   // メモリキャッシュにも保存
   memoryCache.set(normalized, {
@@ -130,7 +136,7 @@ export async function setCachedWord(
  */
 export async function getCachedWords(
   words: string[],
-  kv: KVNamespace
+  kv: KVNamespace | undefined
 ): Promise<Map<string, VocabularyEntry | null>> {
   const result = new Map<string, VocabularyEntry | null>();
   const uncached: string[] = [];
@@ -152,8 +158,8 @@ export async function getCachedWords(
     uncached.push(normalized);
   }
   
-  // KVから一括取得
-  if (uncached.length > 0) {
+  // KVから一括取得（KVが利用可能な場合のみ）
+  if (uncached.length > 0 && kv) {
     // KVは一括取得APIがないため、並列で取得
     const promises = uncached.map(async (word) => {
       const cacheKey = getCacheKey(word);
@@ -185,25 +191,29 @@ export async function getCachedWords(
  */
 export async function invalidateCache(
   word: string,
-  kv: KVNamespace
+  kv: KVNamespace | undefined
 ): Promise<void> {
   const normalized = word.toLowerCase();
   const cacheKey = getCacheKey(normalized);
   
-  await kv.delete(cacheKey);
+  if (kv) {
+    await kv.delete(cacheKey);
+  }
   memoryCache.delete(normalized);
 }
 
 /**
  * 全KVキャッシュをクリア（開発/テスト用）
  */
-export async function clearAllCache(kv: KVNamespace): Promise<void> {
-  // KVの全キーをリスト
-  const list = await kv.list({ prefix: CACHE_PREFIX });
-  
-  // 全て削除
-  const promises = list.keys.map(key => kv.delete(key.name));
-  await Promise.all(promises);
+export async function clearAllCache(kv: KVNamespace | undefined): Promise<void> {
+  if (kv) {
+    // KVの全キーをリスト
+    const list = await kv.list({ prefix: CACHE_PREFIX });
+    
+    // 全て削除
+    const promises = list.keys.map(key => kv.delete(key.name));
+    await Promise.all(promises);
+  }
   
   // メモリキャッシュもクリア
   memoryCache.clear();
@@ -232,7 +242,7 @@ export function getCacheStats(): {
 export async function lookupWordWithCache(
   word: string,
   db: D1Database,
-  kv: KVNamespace
+  kv: KVNamespace | undefined
 ): Promise<VocabularyEntry | null> {
   const normalized = word.toLowerCase();
   
@@ -244,7 +254,7 @@ export async function lookupWordWithCache(
   
   // 2. D1から検索
   const stmt = db.prepare(
-    'SELECT * FROM eiken_vocabulary_lexicon WHERE word = ? LIMIT 1'
+    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ? LIMIT 1'
   ).bind(normalized);
   
   const result = await stmt.first<VocabularyEntry>();
@@ -279,7 +289,7 @@ export async function lookupWordsWithCache(
   
   // 3. D1から検索
   const placeholders = uncached.map(() => '?').join(',');
-  const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word IN (${placeholders})`;
+  const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma IN (${placeholders})`;
   
   const stmt = db.prepare(query).bind(...uncached);
   const result = await stmt.all<VocabularyEntry>();
@@ -288,7 +298,7 @@ export async function lookupWordsWithCache(
   const dbResults = new Map<string, VocabularyEntry>();
   if (result.results) {
     for (const entry of result.results) {
-      dbResults.set(entry.word, entry);
+      dbResults.set(entry.word_lemma, entry);
     }
   }
   

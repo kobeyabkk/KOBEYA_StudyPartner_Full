@@ -234,7 +234,7 @@ export async function lemmatize(
   const normalized = word.toLowerCase();
   
   const stmt = db.prepare(
-    'SELECT base_form FROM eiken_vocabulary_lexicon WHERE word = ? LIMIT 1'
+    'SELECT word_lemma as base_form FROM eiken_vocabulary_lexicon WHERE word_lemma = ? LIMIT 1'
   ).bind(normalized);
   
   const result = await stmt.first<{ base_form: string }>();
@@ -252,7 +252,7 @@ export async function lookupWord(
   const normalized = word.toLowerCase();
   
   const stmt = db.prepare(
-    'SELECT * FROM eiken_vocabulary_lexicon WHERE word = ? LIMIT 1'
+    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ? LIMIT 1'
   ).bind(normalized);
   
   const result = await stmt.first<VocabularyEntry>();
@@ -275,7 +275,7 @@ export async function lookupWords(
   }
   
   const placeholders = unique.map(() => '?').join(',');
-  const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word IN (${placeholders})`;
+  const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma IN (${placeholders})`;
   
   const stmt = db.prepare(query).bind(...unique);
   const result = await stmt.all<VocabularyEntry>();
@@ -283,7 +283,7 @@ export async function lookupWords(
   const map = new Map<string, VocabularyEntry>();
   if (result.results) {
     for (const entry of result.results) {
-      map.set(entry.word, entry);
+      map.set(entry.word_lemma, entry);
     }
   }
   
