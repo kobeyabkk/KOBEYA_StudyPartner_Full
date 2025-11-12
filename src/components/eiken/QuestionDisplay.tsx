@@ -93,7 +93,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     return null;
   };
 
-  const correctCount = results.filter(r => r.correct).length;
+  const correctCount = results.filter((r: AnswerResult) => r.correct).length;
   const accuracy = results.length > 0 ? Math.round((correctCount / results.length) * 100) : 0;
 
   return (

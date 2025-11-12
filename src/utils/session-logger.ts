@@ -130,7 +130,7 @@ export async function sendSessionLog(logData: any, env: any): Promise<boolean> {
     })
 
     if (response.ok) {
-      const result = await response.json()
+      const result = (await response.json()) as { request_id?: string }
       console.log('✅ Session log sent successfully:', result.request_id)
       return true
     } else {

@@ -22,9 +22,10 @@ export const clamp0_100 = (n: number): number =>
 
 // ログデータ正規化関数
 export function normalize(body: any) {
-  const page = body.page == null || String(body.page).trim() === '' 
-    ? null 
-    : firstInt(toHalfDigits(body.page), null)
+  const page =
+    body.page == null || String(body.page).trim() === ''
+      ? null
+      : firstInt(toHalfDigits(body.page))
   
   const tasksDone = sumInts(toHalfDigits(body.tasks_done || ''), 0)
   const attempted = firstInt(toHalfDigits(body.problems_attempted || ''), 0)

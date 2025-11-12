@@ -145,7 +145,7 @@ export async function analyzeTextProfile(
   const tokens = doc.terms().out('array');
   
   const lemmas: string[] = [];
-  tokens.forEach(token => {
+  tokens.forEach((token: string) => {
     const verbForm = doc.match(token).verbs().toInfinitive().out('text');
     if (verbForm) {
       lemmas.push(verbForm.toLowerCase());
