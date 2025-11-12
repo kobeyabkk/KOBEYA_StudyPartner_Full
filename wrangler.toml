@@ -8,6 +8,11 @@ binding = "DB"
 database_name = "kobeya-logs-db"
 database_id = "b5ac684a-2536-496a-916f-c2c5816a13a0"
 
+[[kv_namespaces]]
+binding = "KV"
+id = "preview_id"
+preview_id = "preview_id"
+
 [vars]
 WEBHOOK_SECRET = "kobeya-dev-secret-2024"
 VERSION = "1.0.0"

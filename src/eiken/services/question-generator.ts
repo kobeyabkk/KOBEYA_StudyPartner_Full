@@ -8,6 +8,7 @@ import { validateGeneratedQuestion } from './copyright-validator';
 import type { EikenEnv } from '../types';
 import { analyzeVocabularyLevel } from './vocabulary-analyzer';
 import { analyzeTextProfile } from './text-profiler';
+import { buildEnhancedSystemPrompt, buildCompactFewShotPrompt } from '../prompts/few-shot-builder';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -277,7 +278,7 @@ function shuffleChoices(
 }
 
 /**
- * システムプロンプト構築
+ * システムプロンプト構築（Few-shot examples付き）
  */
 function buildSystemPrompt(
   request: QuestionGenerationRequest,
@@ -322,7 +323,7 @@ VOCABULARY QUESTION GUIDELINES:
 - All choices should fit grammatically but only one fits contextually`
     : '';
 
-  return `You are an expert Eiken (英検) test question creator.
+  const basePrompt = `You are an expert Eiken (英検) test question creator.
 Generate ORIGINAL questions for ${gradeLevel} that are:
 1. Completely different from existing past exam questions
 2. Appropriate for the target level
@@ -345,6 +346,20 @@ Return JSON format:
   "difficulty": 0.0-1.0,
   "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
 }`;
+
+  // 🎯 Few-shot examples付きプロンプトを生成（Grade 5のみ有効化）
+  if (request.grade === '5') {
+    console.log('📚 Using few-shot enhanced prompt for Grade 5');
+    const sectionType = request.section === 'grammar' ? 'grammar' : 'vocabulary';
+    // Use compact version to save tokens
+    const fewShotSection = buildCompactFewShotPrompt(request.grade, sectionType);
+    return `${basePrompt}
+
+${fewShotSection}`;
+  }
+  
+  return basePrompt;
+}
 }
 
 /**

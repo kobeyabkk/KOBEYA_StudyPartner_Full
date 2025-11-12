@@ -23,6 +23,7 @@ async function saveSessionToDB(db: any, sessionId: string, sessionData: any) {
   }
 }
 
+export const handleEssayInitSession = async (c: Context) => {
   console.log('📝 Essay session init API called')
   
   try {
@@ -103,8 +104,4 @@ async function saveSessionToDB(db: any, sessionId: string, sessionData: any) {
       timestamp: new Date().toISOString()
     }, 500)
   }
-})
-
 }
-
-export { handleEssayInitSession }
