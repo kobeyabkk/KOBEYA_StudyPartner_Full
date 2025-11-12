@@ -1,0 +1,100 @@
+{
+  "irregular_adjectives": [
+    {
+      "base": "good",
+      "forms": ["better", "best"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "完全不規則変化",
+      "meanings": {
+        "ja": "良い → より良い → 最も良い",
+        "en": "good → better → best"
+      }
+    },
+    {
+      "base": "bad",
+      "forms": ["worse", "worst"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "完全不規則変化",
+      "meanings": {
+        "ja": "悪い → より悪い → 最も悪い",
+        "en": "bad → worse → worst"
+      }
+    },
+    {
+      "base": "many",
+      "forms": ["more", "most"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "完全不規則変化（可算名詞用）",
+      "meanings": {
+        "ja": "多くの → より多くの → 最も多くの",
+        "en": "many → more → most"
+      }
+    },
+    {
+      "base": "much",
+      "forms": ["more", "most"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "完全不規則変化（不可算名詞用）、'many'と同じ比較級・最上級",
+      "meanings": {
+        "ja": "多くの → より多くの → 最も多くの",
+        "en": "much → more → most"
+      }
+    },
+    {
+      "base": "little",
+      "forms": ["less", "least"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "完全不規則変化（量）、'smaller'は大きさ",
+      "meanings": {
+        "ja": "少ない → より少ない → 最も少ない",
+        "en": "little → less → least"
+      }
+    },
+    {
+      "base": "far",
+      "forms": ["farther", "farthest", "further", "furthest"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "note": "2つの比較級・最上級あり。farther/farthestは距離、further/furthestは程度や追加",
+      "meanings": {
+        "ja": "遠い → より遠い → 最も遠い",
+        "en": "far → farther/further → farthest/furthest"
+      }
+    },
+    {
+      "base": "old",
+      "forms": ["older", "oldest", "elder", "eldest"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "規則変化と不規則変化の両方。elder/eldestは家族の年齢順のみ",
+      "meanings": {
+        "ja": "年老いた → より年上の → 最年長の",
+        "en": "old → older/elder → oldest/eldest"
+      }
+    },
+    {
+      "base": "late",
+      "forms": ["later", "latest", "latter", "last"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "複数の形。later/latest=時間、latter/last=順序",
+      "meanings": {
+        "ja": "遅い → より遅い → 最も遅い / 後者 / 最後",
+        "en": "late → later/latter → latest/last"
+      }
+    }
+  ]
+}

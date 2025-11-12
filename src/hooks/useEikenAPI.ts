@@ -73,6 +73,7 @@ export function useEikenGenerate() {
     setResult(null);
 
     try {
+      console.log('📡 Sending API request:', request);
       const response = await fetch('/api/eiken/generate', {
         method: 'POST',
         headers: {
@@ -81,20 +82,25 @@ export function useEikenGenerate() {
         body: JSON.stringify(request),
       });
 
+      console.log('📥 API response status:', response.status, response.ok);
       const data = await response.json();
+      console.log('📦 API response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
       setResult(data);
+      console.log('💾 Result stored in state:', data);
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('💥 API Error:', errorMessage, err);
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
+      console.log('🏁 Loading finished');
     }
   };
 

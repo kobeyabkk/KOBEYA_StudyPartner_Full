@@ -33,7 +33,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
   const { loading, error, result, generateQuestions } = useEikenGenerate();
 
   const handleGenerate = async () => {
+    console.log('🔴 handleGenerate CALLED!');
+    alert('ボタンがクリックされました！');
+    
     try {
+      console.log('🎯 Generating questions with:', { grade, section, count, difficulty });
       const data = await generateQuestions({
         grade,
         section,
@@ -43,11 +47,19 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
         topicHints: topicHints.length > 0 ? topicHints : undefined,
       });
 
+      console.log('✅ API Response:', data);
+      console.log('📊 Generated questions:', data.generated);
+      console.log('🔗 onQuestionsGenerated callback exists?', !!onQuestionsGenerated);
+
       if (data.success && onQuestionsGenerated) {
+        console.log('🚀 Calling onQuestionsGenerated with', data.generated.length, 'questions');
         onQuestionsGenerated(data.generated);
+      } else {
+        console.warn('⚠️ Conditions not met:', { success: data.success, hasCallback: !!onQuestionsGenerated });
       }
     } catch (err) {
-      console.error('Failed to generate questions:', err);
+      console.error('❌ Failed to generate questions:', err);
+      alert('エラー: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
