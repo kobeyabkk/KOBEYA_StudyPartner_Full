@@ -4,7 +4,7 @@
 # 
 # 実行前に: wrangler pages secret put OPENAI_API_KEY でAPIキーを設定
 
-BASE_URL="https://83c7664e.kobeyabkk-studypartner.pages.dev"
+BASE_URL="https://72aadd19.kobeyabkk-studypartner.pages.dev"
 API_PATH="/api/eiken"
 
 echo "🧪 本番環境統合テスト"

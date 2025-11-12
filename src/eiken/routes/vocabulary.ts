@@ -320,4 +320,111 @@ app.get('/health', async (c) => {
   }
 });
 
+// ====================
+// デバッグエンドポイント
+// ====================
+
+/**
+ * GET /api/eiken/vocabulary/debug/env
+ * 環境変数の確認（開発/デバッグ用）
+ */
+app.get('/debug/env', async (c) => {
+  try {
+    const hasOpenAI = !!c.env.OPENAI_API_KEY;
+    const keyLength = c.env.OPENAI_API_KEY?.length || 0;
+    const keyPrefix = c.env.OPENAI_API_KEY?.substring(0, 10) || 'missing';
+    
+    return c.json({
+      openai: {
+        configured: hasOpenAI,
+        key_length: keyLength,
+        key_prefix: keyPrefix,
+        key_suffix: hasOpenAI ? '...' + c.env.OPENAI_API_KEY?.substring(c.env.OPENAI_API_KEY.length - 4) : 'N/A'
+      },
+      database: {
+        configured: !!c.env.DB,
+        type: 'D1Database'
+      },
+      kv: {
+        configured: !!c.env.KV,
+        type: 'KVNamespace'
+      },
+      environment: 'production'
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    return c.json({
+      error: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/eiken/vocabulary/debug/openai-test
+ * OpenAI API接続テスト
+ */
+app.post('/debug/openai-test', async (c) => {
+  try {
+    const openaiApiKey = c.env.OPENAI_API_KEY;
+    
+    if (!openaiApiKey) {
+      return c.json({
+        success: false,
+        error: 'OpenAI API key not configured',
+        has_key: false
+      }, 400);
+    }
+    
+    // Simple test request to OpenAI
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'Say "test successful" if you can read this.' }
+        ],
+        max_tokens: 20,
+        temperature: 0
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      return c.json({
+        success: false,
+        error: `OpenAI API error: ${response.status}`,
+        details: errorText,
+        has_key: true,
+        status_code: response.status
+      }, 500);
+    }
+    
+    const data = await response.json() as {
+      choices: Array<{ message: { content: string } }>;
+      usage?: { total_tokens: number };
+    };
+    
+    return c.json({
+      success: true,
+      response: data.choices[0].message.content,
+      usage: data.usage,
+      has_key: true,
+      message: 'OpenAI API connection successful'
+    });
+    
+  } catch (error) {
+    console.error('OpenAI test error:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      has_key: !!c.env.OPENAI_API_KEY
+    }, 500);
+  }
+});
+
 export default app;

@@ -117,6 +117,22 @@ Replacements:
 
 ${request.grammarPoint ? `\n🎓 GRAMMAR POINT TO TEST: ${request.grammarPoint}\nMake sure the rewritten question still tests this grammar point!` : ''}
 
+📤 OUTPUT FORMAT (JSON):
+Return your response as a JSON object with this exact structure:
+{
+  "rewrittenQuestion": "The rewritten question text with ( ) blank",
+  "rewrittenChoices": ["choice1", "choice2", "choice3", "choice4"],
+  "correctAnswerIndex": 0,
+  "replacements": [
+    {
+      "original": "word that was replaced",
+      "replacement": "A1 replacement word",
+      "reason": "brief explanation"
+    }
+  ],
+  "confidence": 0.85
+}
+
 Now rewrite the question following all requirements above.`;
 }
 
@@ -209,7 +225,7 @@ export function validateRewriteResult(result: RewriteResult, originalChoicesCoun
   }
   
   // Check for blank in question (required for fill-in-blank questions)
-  if (!result.rewrittenQuestion.includes('(') || !result.rewrittenQuestion.includes(')')) {
+  if (result.rewrittenQuestion && (!result.rewrittenQuestion.includes('(') || !result.rewrittenQuestion.includes(')'))) {
     errors.push('Rewritten question must contain ( ) blank');
   }
   

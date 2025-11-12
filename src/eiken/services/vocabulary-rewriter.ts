@@ -45,6 +45,12 @@ export interface RewriteResponse {
     tokensUsed?: number;
   };
   error?: string;
+  errorDetails?: {
+    message: string;
+    stack: string;
+    hasApiKey: boolean;
+    apiKeyLength: number;
+  };
 }
 
 const DEFAULT_OPTIONS: Required<RewriteOptions> = {
@@ -132,7 +138,17 @@ export async function rewriteQuestion(
         usage?: { total_tokens: number };
       };
       
-      const result: RewriteResult = JSON.parse(data.choices[0].message.content);
+      console.log(`   📥 OpenAI response content:`, data.choices[0].message.content.substring(0, 200));
+      
+      let result: RewriteResult;
+      try {
+        result = JSON.parse(data.choices[0].message.content);
+        console.log(`   ✅ JSON parsed successfully`);
+        console.log(`   📋 Result keys:`, Object.keys(result).join(', '));
+      } catch (parseError) {
+        console.error(`   ❌ JSON parse error:`, parseError);
+        throw new Error(`Failed to parse OpenAI response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      }
       
       // Validate result structure
       const validation = validateRewriteResult(result, originalChoices.length);
@@ -171,7 +187,11 @@ export async function rewriteQuestion(
       };
       
     } catch (error) {
-      console.error(`   ❌ Rewrite attempt ${attempt} failed:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : '';
+      console.error(`   ❌ Rewrite attempt ${attempt} failed:`, errorMessage);
+      console.error(`   🔍 Error details:`, errorStack);
+      console.error(`   📋 API Key status: ${openaiApiKey ? 'Present (length: ' + openaiApiKey.length + ')' : 'MISSING'}`);
       
       if (attempt === opts.maxAttempts) {
         const rewriteTimeMs = Date.now() - startTime;
@@ -183,7 +203,13 @@ export async function rewriteQuestion(
           confidence: 0,
           attempts: attempt,
           metadata: { rewriteTimeMs },
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: errorMessage,
+          errorDetails: {
+            message: errorMessage,
+            stack: errorStack?.split('\n')[0] || '',
+            hasApiKey: !!openaiApiKey,
+            apiKeyLength: openaiApiKey?.length || 0
+          }
         };
       }
       
