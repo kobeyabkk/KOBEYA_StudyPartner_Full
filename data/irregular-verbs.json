@@ -1,0 +1,695 @@
+{
+  "irregular_verbs": [
+    {
+      "base": "be",
+      "forms": ["am", "is", "are", "was", "were", "been", "being"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "〜である、いる",
+        "en": "to exist, to be present"
+      }
+    },
+    {
+      "base": "have",
+      "forms": ["has", "had", "having"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "持つ、食べる",
+        "en": "to possess, to eat/drink"
+      }
+    },
+    {
+      "base": "do",
+      "forms": ["does", "did", "done", "doing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "する、行う",
+        "en": "to perform an action"
+      }
+    },
+    {
+      "base": "go",
+      "forms": ["goes", "went", "gone", "going"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "行く",
+        "en": "to move, to travel"
+      }
+    },
+    {
+      "base": "come",
+      "forms": ["comes", "came", "coming"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "来る",
+        "en": "to move towards"
+      }
+    },
+    {
+      "base": "see",
+      "forms": ["sees", "saw", "seen", "seeing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "見る、会う",
+        "en": "to perceive with eyes"
+      }
+    },
+    {
+      "base": "get",
+      "forms": ["gets", "got", "gotten", "getting"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "得る、〜になる",
+        "en": "to obtain, to become"
+      }
+    },
+    {
+      "base": "make",
+      "forms": ["makes", "made", "making"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "作る",
+        "en": "to create, to produce"
+      }
+    },
+    {
+      "base": "take",
+      "forms": ["takes", "took", "taken", "taking"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "取る、持っていく",
+        "en": "to grasp, to carry"
+      }
+    },
+    {
+      "base": "eat",
+      "forms": ["eats", "ate", "eaten", "eating"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "食べる",
+        "en": "to consume food"
+      }
+    },
+    {
+      "base": "drink",
+      "forms": ["drinks", "drank", "drunk", "drinking"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "飲む",
+        "en": "to consume liquid"
+      }
+    },
+    {
+      "base": "sleep",
+      "forms": ["sleeps", "slept", "sleeping"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "眠る",
+        "en": "to rest"
+      }
+    },
+    {
+      "base": "sit",
+      "forms": ["sits", "sat", "sitting"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "座る",
+        "en": "to be seated"
+      }
+    },
+    {
+      "base": "stand",
+      "forms": ["stands", "stood", "standing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "立つ",
+        "en": "to be upright"
+      }
+    },
+    {
+      "base": "run",
+      "forms": ["runs", "ran", "running"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "走る",
+        "en": "to move quickly"
+      }
+    },
+    {
+      "base": "swim",
+      "forms": ["swims", "swam", "swum", "swimming"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "泳ぐ",
+        "en": "to move through water"
+      }
+    },
+    {
+      "base": "read",
+      "forms": ["reads", "reading"],
+      "past": "read",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "過去形も'read'だが発音が異なる",
+      "meanings": {
+        "ja": "読む",
+        "en": "to look at and understand text"
+      }
+    },
+    {
+      "base": "write",
+      "forms": ["writes", "wrote", "written", "writing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "書く",
+        "en": "to form letters or words"
+      }
+    },
+    {
+      "base": "give",
+      "forms": ["gives", "gave", "given", "giving"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "与える、あげる",
+        "en": "to provide"
+      }
+    },
+    {
+      "base": "buy",
+      "forms": ["buys", "bought", "buying"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "買う",
+        "en": "to purchase"
+      }
+    },
+    {
+      "base": "know",
+      "forms": ["knows", "knew", "known", "knowing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "知っている",
+        "en": "to be aware of"
+      }
+    },
+    {
+      "base": "think",
+      "forms": ["thinks", "thought", "thinking"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "考える、思う",
+        "en": "to use one's mind"
+      }
+    },
+    {
+      "base": "say",
+      "forms": ["says", "said", "saying"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "言う",
+        "en": "to speak words"
+      }
+    },
+    {
+      "base": "tell",
+      "forms": ["tells", "told", "telling"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "伝える、話す",
+        "en": "to communicate information"
+      }
+    },
+    {
+      "base": "speak",
+      "forms": ["speaks", "spoke", "spoken", "speaking"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "話す",
+        "en": "to use spoken language"
+      }
+    },
+    {
+      "base": "hear",
+      "forms": ["hears", "heard", "hearing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "聞く、聞こえる",
+        "en": "to perceive sound"
+      }
+    },
+    {
+      "base": "feel",
+      "forms": ["feels", "felt", "feeling"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "感じる",
+        "en": "to experience emotion or sensation"
+      }
+    },
+    {
+      "base": "find",
+      "forms": ["finds", "found", "finding"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "見つける",
+        "en": "to discover"
+      }
+    },
+    {
+      "base": "put",
+      "forms": ["puts", "putting"],
+      "past": "put",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "過去形も同じ'put'",
+      "meanings": {
+        "ja": "置く",
+        "en": "to place"
+      }
+    },
+    {
+      "base": "let",
+      "forms": ["lets", "letting"],
+      "past": "let",
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "note": "過去形も同じ'let'",
+      "meanings": {
+        "ja": "〜させる",
+        "en": "to allow"
+      }
+    },
+    {
+      "base": "meet",
+      "forms": ["meets", "met", "meeting"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "会う",
+        "en": "to encounter"
+      }
+    },
+    {
+      "base": "leave",
+      "forms": ["leaves", "left", "leaving"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "去る、残す",
+        "en": "to depart, to remain"
+      }
+    },
+    {
+      "base": "begin",
+      "forms": ["begins", "began", "begun", "beginning"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "始まる、始める",
+        "en": "to start"
+      }
+    },
+    {
+      "base": "bring",
+      "forms": ["brings", "brought", "bringing"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "持ってくる",
+        "en": "to carry towards"
+      }
+    },
+    {
+      "base": "hold",
+      "forms": ["holds", "held", "holding"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "持つ、保つ",
+        "en": "to grasp"
+      }
+    },
+    {
+      "base": "keep",
+      "forms": ["keeps", "kept", "keeping"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "保つ、飼う",
+        "en": "to maintain"
+      }
+    },
+    {
+      "base": "send",
+      "forms": ["sends", "sent", "sending"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "送る",
+        "en": "to dispatch"
+      }
+    },
+    {
+      "base": "build",
+      "forms": ["builds", "built", "building"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "建てる、作る",
+        "en": "to construct"
+      }
+    },
+    {
+      "base": "understand",
+      "forms": ["understands", "understood", "understanding"],
+      "cefr_level": "A1",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "理解する",
+        "en": "to comprehend"
+      }
+    },
+    {
+      "base": "draw",
+      "forms": ["draws", "drew", "drawn", "drawing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "描く、引く",
+        "en": "to create a picture"
+      }
+    },
+    {
+      "base": "break",
+      "forms": ["breaks", "broke", "broken", "breaking"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "壊す、壊れる",
+        "en": "to separate into pieces"
+      }
+    },
+    {
+      "base": "spend",
+      "forms": ["spends", "spent", "spending"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "過ごす、使う（お金）",
+        "en": "to use time or money"
+      }
+    },
+    {
+      "base": "cut",
+      "forms": ["cuts", "cutting"],
+      "past": "cut",
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "note": "過去形も同じ'cut'",
+      "meanings": {
+        "ja": "切る",
+        "en": "to divide with a sharp tool"
+      }
+    },
+    {
+      "base": "rise",
+      "forms": ["rises", "rose", "risen", "rising"],
+      "cefr_level": "B1",
+      "eiken_grade": "pre-2",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "上がる、昇る",
+        "en": "to move upward"
+      }
+    },
+    {
+      "base": "drive",
+      "forms": ["drives", "drove", "driven", "driving"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "運転する",
+        "en": "to operate a vehicle"
+      }
+    },
+    {
+      "base": "wear",
+      "forms": ["wears", "wore", "worn", "wearing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "着る、身につける",
+        "en": "to have clothing on"
+      }
+    },
+    {
+      "base": "choose",
+      "forms": ["chooses", "chose", "chosen", "choosing"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "選ぶ",
+        "en": "to select"
+      }
+    },
+    {
+      "base": "throw",
+      "forms": ["throws", "threw", "thrown", "throwing"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "投げる",
+        "en": "to propel through the air"
+      }
+    },
+    {
+      "base": "catch",
+      "forms": ["catches", "caught", "catching"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "捕まえる",
+        "en": "to capture"
+      }
+    },
+    {
+      "base": "fall",
+      "forms": ["falls", "fell", "fallen", "falling"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "落ちる、倒れる",
+        "en": "to drop down"
+      }
+    },
+    {
+      "base": "win",
+      "forms": ["wins", "won", "winning"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "勝つ",
+        "en": "to be victorious"
+      }
+    },
+    {
+      "base": "lose",
+      "forms": ["loses", "lost", "losing"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "負ける、失う",
+        "en": "to be defeated, to misplace"
+      }
+    },
+    {
+      "base": "forget",
+      "forms": ["forgets", "forgot", "forgotten", "forgetting"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "忘れる",
+        "en": "to fail to remember"
+      }
+    },
+    {
+      "base": "sell",
+      "forms": ["sells", "sold", "selling"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "売る",
+        "en": "to exchange for money"
+      }
+    },
+    {
+      "base": "teach",
+      "forms": ["teaches", "taught", "teaching"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "教える",
+        "en": "to instruct"
+      }
+    },
+    {
+      "base": "learn",
+      "forms": ["learns", "learned", "learnt", "learning"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "過去形は learned/learnt の両方",
+      "meanings": {
+        "ja": "学ぶ",
+        "en": "to acquire knowledge"
+      }
+    },
+    {
+      "base": "fly",
+      "forms": ["flies", "flew", "flown", "flying"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "飛ぶ",
+        "en": "to move through air"
+      }
+    },
+    {
+      "base": "sing",
+      "forms": ["sings", "sang", "sung", "singing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "歌う",
+        "en": "to produce musical sounds"
+      }
+    },
+    {
+      "base": "become",
+      "forms": ["becomes", "became", "becoming"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "〜になる",
+        "en": "to change into"
+      }
+    },
+    {
+      "base": "grow",
+      "forms": ["grows", "grew", "grown", "growing"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "meanings": {
+        "ja": "育つ、成長する",
+        "en": "to increase in size"
+      }
+    },
+    {
+      "base": "show",
+      "forms": ["shows", "showed", "shown", "showing"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "見せる、示す",
+        "en": "to display"
+      }
+    },
+    {
+      "base": "mean",
+      "forms": ["means", "meant", "meaning"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "meanings": {
+        "ja": "意味する",
+        "en": "to signify"
+      }
+    }
+  ]
+}
