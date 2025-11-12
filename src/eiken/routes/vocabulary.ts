@@ -4,10 +4,11 @@
 
 import { Hono } from 'hono';
 import type { EikenEnv } from '../types';
-import type { ValidationConfig } from '../types/vocabulary';
+import type { ValidationConfig, VocabularyViolation } from '../types/vocabulary';
 import { validateVocabularyWithCache, validateBatch } from '../lib/vocabulary-validator-cached';
 import { lookupWordWithCache, getCacheStats, clearAllCache } from '../lib/vocabulary-cache';
 import { getVocabularyCount } from '../lib/vocabulary-validator';
+import { rewriteQuestion, rewriteQuestions, getRewriteStatistics, type RewriteOptions } from '../services/vocabulary-rewriter';
 
 const app = new Hono<{ Bindings: EikenEnv }>();
 
@@ -190,6 +191,100 @@ app.delete('/cache', async (c) => {
     console.error('Cache clear error:', error);
     return c.json({
       error: 'Failed to clear cache',
+      details: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// ====================
+// 自動リライトAPI
+// ====================
+
+/**
+ * POST /api/eiken/vocabulary/rewrite
+ * 語彙違反を自動修正
+ */
+app.post('/rewrite', async (c) => {
+  try {
+    const body = await c.req.json<{
+      question: string;
+      choices: string[];
+      violations: VocabularyViolation[];
+      target_level: string;
+      options?: RewriteOptions;
+    }>();
+    
+    if (!body.question || !body.choices || !body.violations || !body.target_level) {
+      return c.json({ 
+        error: 'Missing required fields: question, choices, violations, target_level' 
+      }, 400);
+    }
+    
+    const result = await rewriteQuestion(
+      body.question,
+      body.choices,
+      body.violations,
+      body.target_level,
+      c.env,
+      body.options || {}
+    );
+    
+    return c.json(result);
+    
+  } catch (error) {
+    console.error('Rewrite error:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to rewrite question',
+      details: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/eiken/vocabulary/rewrite/batch
+ * 複数の問題を一括リライト
+ */
+app.post('/rewrite/batch', async (c) => {
+  try {
+    const body = await c.req.json<{
+      questions: Array<{
+        question: string;
+        choices: string[];
+        violations: VocabularyViolation[];
+      }>;
+      target_level: string;
+      options?: RewriteOptions;
+    }>();
+    
+    if (!body.questions || !Array.isArray(body.questions) || !body.target_level) {
+      return c.json({ 
+        error: 'Missing required fields: questions array, target_level' 
+      }, 400);
+    }
+    
+    if (body.questions.length > 20) {
+      return c.json({ error: 'Maximum 20 questions per batch' }, 400);
+    }
+    
+    const results = await rewriteQuestions(
+      body.questions,
+      body.target_level,
+      c.env,
+      body.options || {}
+    );
+    
+    const statistics = getRewriteStatistics(results);
+    
+    return c.json({
+      results,
+      statistics,
+    });
+    
+  } catch (error) {
+    console.error('Batch rewrite error:', error);
+    return c.json({
+      error: 'Failed to rewrite batch',
       details: error instanceof Error ? error.message : String(error),
     }, 500);
   }
