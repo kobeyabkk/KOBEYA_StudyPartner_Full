@@ -4,7 +4,3 @@
  */
 
 export { handleEssayInitSession } from './init-session'
-export { handleEssayUploadImage } from './upload-image'
-export { handleEssayOCR } from './ocr'
-export { handleEssayFeedback } from './feedback'
-export { handleEssayChat } from './chat'

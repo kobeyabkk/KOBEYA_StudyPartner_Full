@@ -1,1 +1,1 @@
-export { default } from '../src/index.tsx'
+export { default } from '../src/index'

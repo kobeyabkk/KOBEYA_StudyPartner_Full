@@ -264,7 +264,7 @@ export const contactPage = () => (
                 <textarea 
                   id="message" 
                   name="message" 
-                  rows="4" 
+                  rows={4} 
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="プログラミング経験、お子様の興味のあること、送迎の希望など、ご自由にお書きください。"
                 ></textarea>

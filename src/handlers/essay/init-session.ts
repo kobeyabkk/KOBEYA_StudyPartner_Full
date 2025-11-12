@@ -23,6 +23,7 @@ async function saveSessionToDB(db: any, sessionId: string, sessionData: any) {
   }
 }
 
+export async function handleEssayInitSession(c: Context) {
   console.log('📝 Essay session init API called')
   
   try {
@@ -99,12 +100,8 @@ async function saveSessionToDB(db: any, sessionId: string, sessionData: any) {
     return c.json({
       ok: false,
       error: 'init_error',
-      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: 'セッション初期化でエラーが発生しました: ' + ((error as Error).message || '不明なエラー'),
       timestamp: new Date().toISOString()
     }, 500)
   }
-})
-
 }
-
-export { handleEssayInitSession }

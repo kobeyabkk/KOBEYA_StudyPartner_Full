@@ -1,5 +1,7 @@
 // Simple Study Partner SPA - Working Version
-export const studyPartnerSimple = (c) => {
+import type { Context } from 'hono'
+
+export const studyPartnerSimple = (c: Context) => {
   console.log('📱 Simple Study Partner requested')
   
   return c.html(`

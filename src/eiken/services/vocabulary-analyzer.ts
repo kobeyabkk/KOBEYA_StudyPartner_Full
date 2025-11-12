@@ -50,7 +50,7 @@ export async function analyzeVocabularyLevel(
   
   // 各単語を原型（Lemma）に変換
   const lemmas: string[] = [];
-  tokens.forEach(token => {
+  tokens.forEach((token: string) => {
     // 動詞は不定詞形に、名詞は単数形に
     const verbForm = doc.match(token).verbs().toInfinitive().out('text');
     if (verbForm) {

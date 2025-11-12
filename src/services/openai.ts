@@ -269,7 +269,18 @@ export async function analyzeImageWithOpenAI(
     throw new Error(`OpenAI API Error: ${response.status}`)
   }
   
-  const aiContent = (await response.json())?.choices?.[0]?.message?.content || ''
+  type OpenAIChatCompletionResponse = {
+    choices?: Array<{
+      message?: {
+        content?: string
+        [key: string]: unknown
+      }
+      [key: string]: unknown
+    }>
+    [key: string]: unknown
+  }
+  const completion = (await response.json()) as OpenAIChatCompletionResponse
+  const aiContent = completion.choices?.[0]?.message?.content ?? ''
   console.log('🤖 AI content length:', aiContent.length)
   console.log('🤖 AI content preview (first 500 chars):', aiContent.substring(0, 500))
   

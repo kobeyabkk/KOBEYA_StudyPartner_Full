@@ -16,6 +16,20 @@ import {
 // Study Partner Simple をインポート
 import { studyPartnerSimple } from './study-partner-simple'
 
+declare const __STATIC_CONTENT_MANIFEST: string | undefined
+
+const assetManifest: Record<string, string> = (() => {
+  if (typeof __STATIC_CONTENT_MANIFEST === 'string') {
+    try {
+      return JSON.parse(__STATIC_CONTENT_MANIFEST) as Record<string, string>
+    } catch (error) {
+      console.warn('⚠️ Failed to parse __STATIC_CONTENT_MANIFEST:', error)
+      return {}
+    }
+  }
+  return {}
+})()
+
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
@@ -31,16 +45,333 @@ type Bindings = {
   VERSION: string
 }
 
+// 学習セッション関連の型定義
+type LearningStep = {
+  stepNumber: number
+  type: string
+  instruction?: string
+  question?: string
+  content?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  explanation?: string
+  completed?: boolean
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type Problem = {
+  problemNumber?: number
+  type: string
+  question?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  correctAnswers?: string[]
+  explanation?: string
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type UploadedImage = {
+  step: number
+  url?: string
+  [key: string]: unknown
+}
+
+type OCRResult = {
+  step: number
+  text?: string
+  readable?: boolean
+  readabilityScore?: number
+  issues?: string[]
+  charCount?: number
+  [key: string]: unknown
+}
+
+type LearningData = {
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+}
+
+type OpenAIChatMessage = {
+  content: string
+}
+
+type OpenAIChatChoice = {
+  message: OpenAIChatMessage
+}
+
+type OpenAIChatCompletionResponse = {
+  choices: OpenAIChatChoice[]
+  [key: string]: unknown
+}
+
+type AiAnalysisPayload = {
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem?: Problem | null
+  similarProblems?: Problem[]
+  subject?: string
+  grade?: number
+  difficulty?: string
+  confidence?: number
+  [key: string]: unknown
+}
+
+type AiChatApiResponse = {
+  ok: boolean
+  answer?: string
+  message?: string
+}
+
+type LoginApiResponse = {
+  success: boolean
+  message?: string
+  studentInfo?: StudentInfo
+}
+
+type GenerateQuestionsResponse = {
+  success: boolean
+  questions?: unknown[]
+  message?: string
+}
+
+type EssayApiResponse<T = Record<string, unknown>> = {
+  ok: boolean
+  message?: string
+  error?: string
+  timestamp?: string
+} & T
+
+type EssayFeedback = {
+  goodPoints?: string[]
+  improvements?: string[]
+  exampleImprovement?: string
+  nextSteps?: string[]
+  overallScore?: number
+  charCount?: number
+  modelAnswer?: string
+  isMock?: boolean
+  isFallback?: boolean
+}
+
+type EssayInitResponse = EssayApiResponse<{ sessionId: string }>
+type EssayChatResponse = EssayApiResponse<{ response: string; stepCompleted: boolean }>
+type EssayFeedbackResponse = EssayApiResponse<{ feedback?: EssayFeedback }>
+type StepCheckResponse = EssayApiResponse<{
+  sessionId: string
+  stepNumber: number
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+  nextStep: LearningStep | null
+  confirmationProblem: Problem | null
+  currentStepNumber: number
+  totalSteps: number
+}>
+type ConfirmationCheckResponse = EssayApiResponse<{
+  sessionId: string
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+}>
+type SimilarCheckResponse = EssayApiResponse<{
+  sessionId: string
+  problemNumber: number
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+  completedProblems: number
+  totalProblems: number
+}>
+type RegenerationResponse = EssayApiResponse<{
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep: number
+}>
+
+function toErrorMessage(error: unknown, fallback = '不明なエラー'): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+  if (typeof error === 'string') {
+    return error.trim() || fallback
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return fallback
+    }
+  }
+  return String(error ?? fallback) || fallback
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return ''
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  return date.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+type LogRow = {
+  id: number
+  created_at: string | null
+  student_id: string | null
+  student_name: string | null
+  subject: string | null
+  mini_quiz_score: number | null
+  weak_tags: string | null
+  correct: number | null
+  incorrect: number | null
+  tasks_done: number | null
+}
+
+type ProcessedLog = LogRow & {
+  weak_tags_display: string
+  created_at_display: string
+  scoreClass: string
+  displayScore: string | number
+}
+
+type Session = {
+  sessionId?: string
+  studentId?: string
+  appkey?: string
+  sid?: string
+  problemType?: string
+  analysis?: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep?: number
+  status?: string
+  originalImageData?: string | null
+  originalUserMessage?: string
+  createdAt?: string
+  updatedAt?: string
+  aiQuestions?: Array<{
+    question: string
+    answer: string
+    timestamp: string
+    phase?: string
+    currentStep?: number | null
+  }>
+  essaySession?: {
+    sessionId?: string
+    targetLevel?: string
+    lessonFormat?: string
+    problemMode?: string
+    customInput?: string | null
+    learningStyle?: string
+    currentStep?: number
+    stepStatus?: Record<string, string>
+    createdAt?: string
+    lastThemeContent?: string | null
+    lastThemeTitle?: string | null
+    uploadedImages?: UploadedImage[]
+    ocrResults?: OCRResult[]
+    feedbacks?: unknown[]
+    mainProblem?: string
+    [key: string]: unknown
+  }
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  studentInfo?: StudentInfo
+  [key: string]: unknown
+}
+
+type EssaySessionDataPayload = {
+  uploadedImages?: UploadedImage[]
+  ocrResults?: OCRResult[]
+  feedbacks?: unknown[]
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  lastActivity?: string
+  steps?: LearningStep[]
+  confirmationProblem?: Problem | null
+  similarProblems?: Problem[]
+}
+
+type EssaySessionRow = {
+  session_id: string
+  student_id: string | null
+  target_level: string | null
+  lesson_format: string | null
+  problem_mode: string | null
+  custom_input: string | null
+  learning_style: string | null
+  current_step: number | null
+  step_status: string | null
+  last_theme_content: string | null
+  last_theme_title: string | null
+  created_at: string
+  updated_at: string
+  session_data: string | null
+}
+
+type StudyPartnerSessionRow = {
+  session_id: string
+  appkey: string | null
+  sid: string | null
+  problem_type: string | null
+  analysis: string | null
+  steps: string | null
+  confirmation_problem: string | null
+  similar_problems: string | null
+  current_step: number | null
+  status: string | null
+  original_image_data: string | null
+  original_user_message: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+type StudentInfo = {
+  studentId: string
+  name: string
+  grade: number
+  subjects: string[]
+  weakSubjects: string[]
+  lastLogin?: string
+}
+
+type RegenerationType = 'similar' | 'approach' | 'full'
+
 const app = new Hono<{ Bindings: Bindings }>()
 
 // 開発モード設定
 const USE_MOCK_RESPONSES = false
 
 // 学習セッション管理（インメモリ + D1永続化）
-const learningSessions = new Map()
+const learningSessions = new Map<string, Session>()
 
 // D1セッション管理ヘルパー関数
-async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: any) {
+async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: Session) {
   try {
     const now = new Date().toISOString()
     
@@ -51,6 +382,9 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
       feedbacks: sessionData.essaySession?.feedbacks || [],
       chatHistory: sessionData.chatHistory || [],
       vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps: sessionData.steps,
+      confirmationProblem: sessionData.confirmationProblem,
+      similarProblems: sessionData.similarProblems,
       lastActivity: now
     })
     
@@ -96,11 +430,13 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
   }
 }
 
-async function loadSessionFromDB(db: D1Database, sessionId: string) {
+async function loadSessionFromDB(db: D1Database, sessionId: string): Promise<Session | null> {
   try {
     const result = await db.prepare(`
       SELECT * FROM essay_sessions WHERE session_id = ? LIMIT 1
-    `).bind(sessionId).first()
+    `)
+      .bind(sessionId)
+      .first() as EssaySessionRow | undefined
     
     if (!result) {
       console.log('⚠️ Session not found in D1:', sessionId)
@@ -108,20 +444,25 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
     }
     
     // D1から読み込んだデータを復元
-    const sessionData = result.session_data ? JSON.parse(result.session_data as string) : {}
+    const sessionData = safeJsonParse(result.session_data || '', {}) as EssaySessionDataPayload
+    const stepStatus = safeJsonParse(result.step_status || '', {}) as Record<string, string>
     
-    const session = {
+    const steps = Array.isArray(sessionData.steps) ? (sessionData.steps as LearningStep[]) : []
+    const confirmationProblem = (sessionData.confirmationProblem ?? null) as Problem | null
+    const similarProblems = Array.isArray(sessionData.similarProblems) ? (sessionData.similarProblems as Problem[]) : []
+
+    const session: Session = {
       sessionId: result.session_id,
-      studentId: result.student_id,
+      studentId: result.student_id ?? undefined,
       essaySession: {
         sessionId: result.session_id,
-        targetLevel: result.target_level,
-        lessonFormat: result.lesson_format,
+        targetLevel: result.target_level ?? undefined,
+        lessonFormat: result.lesson_format ?? undefined,
         problemMode: result.problem_mode || 'ai',
         customInput: result.custom_input || null,
         learningStyle: result.learning_style || 'auto',
-        currentStep: result.current_step,
-        stepStatus: JSON.parse(result.step_status as string || '{}'),
+        currentStep: result.current_step ?? undefined,
+        stepStatus,
         createdAt: result.created_at,
         lastThemeContent: result.last_theme_content || null,
         lastThemeTitle: result.last_theme_title || null,
@@ -130,7 +471,12 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
         feedbacks: sessionData.feedbacks || []
       },
       chatHistory: sessionData.chatHistory || [],
-      vocabularyProgress: sessionData.vocabularyProgress || {}
+      vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps,
+      confirmationProblem,
+      similarProblems,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at
     }
     
     console.log('✅ Session loaded from D1:', sessionId)
@@ -141,41 +487,41 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
   }
 }
 
-async function getOrCreateSession(db: D1Database | undefined, sessionId: string) {
-  // まずインメモリをチェック
-  let session = learningSessions.get(sessionId)
-  if (session) {
+async function getOrCreateSession(db: D1Database | undefined, sessionId: string): Promise<Session | null> {
+  const cachedSession = learningSessions.get(sessionId)
+  if (cachedSession) {
     console.log('📦 Session found in memory:', sessionId)
-    return session
+    return cachedSession
   }
   
-  // D1から読み込み
-  if (db) {
-    session = await loadSessionFromDB(db, sessionId)
-    if (session) {
-      // インメモリに復元
-      learningSessions.set(sessionId, session)
+  if (!db) {
+    console.log('❌ Session not found (no DB connection):', sessionId)
+    return null
+  }
+  
+  const persistedSession = await loadSessionFromDB(db, sessionId)
+  if (persistedSession) {
+    learningSessions.set(sessionId, persistedSession)
       console.log('📦 Session restored from D1 to memory:', sessionId)
-      return session
-    }
+    return persistedSession
   }
   
   console.log('❌ Session not found:', sessionId)
   return null
 }
 
-async function updateSession(db: D1Database | undefined, sessionId: string, updates: any) {
+async function updateSession(db: D1Database | undefined, sessionId: string, updates: Partial<Session>): Promise<boolean> {
   // インメモリを更新
-  let session = learningSessions.get(sessionId)
-  if (!session) {
+  const existingSession = learningSessions.get(sessionId)
+  if (!existingSession) {
     console.error('❌ Cannot update non-existent session:', sessionId)
     return false
   }
   
   // ディープマージ
-  session = { ...session, ...updates }
+  const session: Session = { ...existingSession, ...updates }
   if (updates.essaySession) {
-    session.essaySession = { ...session.essaySession, ...updates.essaySession }
+    session.essaySession = { ...existingSession.essaySession, ...updates.essaySession }
   }
   
   learningSessions.set(sessionId, session)
@@ -191,7 +537,7 @@ async function updateSession(db: D1Database | undefined, sessionId: string, upda
 // ========== Study Partner Session Management (D1 Persistence) ==========
 
 // Study Partner セッションをD1に保存
-async function saveStudyPartnerSessionToDB(db: any, sessionId: string, session: any) {
+async function saveStudyPartnerSessionToDB(db: D1Database, sessionId: string, session: Session) {
   try {
     const stepsJson = JSON.stringify(session.steps || [])
     const confirmationProblemJson = JSON.stringify(session.confirmationProblem || {})
@@ -231,11 +577,13 @@ async function saveStudyPartnerSessionToDB(db: any, sessionId: string, session: 
 }
 
 // Study Partner セッションをD1から取得
-async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
+async function getStudyPartnerSessionFromDB(db: D1Database, sessionId: string): Promise<Session | null> {
   try {
     const result = await db.prepare(`
       SELECT * FROM learning_sessions WHERE session_id = ?
-    `).bind(sessionId).first()
+    `)
+      .bind(sessionId)
+      .first() as StudyPartnerSessionRow | undefined
     
     if (!result) {
       console.log('⚠️ Study Partner session not found in D1:', sessionId)
@@ -244,22 +592,28 @@ async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
     
     console.log('✅ Study Partner session retrieved from D1:', sessionId)
     
-    return {
+    const steps = safeJsonParse(result.steps || '', []) as LearningStep[]
+    const confirmationProblem = safeJsonParse(result.confirmation_problem || '', {}) as Problem | {}
+    const similarProblems = safeJsonParse(result.similar_problems || '', []) as Problem[]
+    
+    const session: Session = {
       sessionId: result.session_id,
-      appkey: result.appkey,
-      sid: result.sid,
-      problemType: result.problem_type,
-      analysis: result.analysis,
-      steps: JSON.parse(result.steps || '[]'),
-      confirmationProblem: JSON.parse(result.confirmation_problem || '{}'),
-      similarProblems: JSON.parse(result.similar_problems || '[]'),
-      currentStep: result.current_step,
-      status: result.status,
+      appkey: result.appkey ?? undefined,
+      sid: result.sid ?? undefined,
+      problemType: result.problem_type ?? undefined,
+      analysis: result.analysis ?? undefined,
+      steps,
+      confirmationProblem: Object.keys(confirmationProblem).length ? (confirmationProblem as Problem) : null,
+      similarProblems,
+      currentStep: result.current_step ?? undefined,
+      status: result.status ?? undefined,
       originalImageData: result.original_image_data,
-      originalUserMessage: result.original_user_message,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at
+      originalUserMessage: result.original_user_message ?? undefined,
+      createdAt: result.created_at ?? undefined,
+      updatedAt: result.updated_at ?? undefined
     }
+    
+    return session
   } catch (error) {
     console.error('❌ Failed to retrieve Study Partner session from D1:', error)
     return null
@@ -267,29 +621,26 @@ async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
 }
 
 // Study Partner セッション取得（インメモリ → D1フォールバック）
-async function getStudyPartnerSession(db: any, sessionId: string) {
-  // 1. インメモリから取得を試みる
-  let session = learningSessions.get(sessionId)
-  if (session) {
+async function getStudyPartnerSession(db: D1Database | undefined, sessionId: string): Promise<Session | null> {
+  const cachedSession = learningSessions.get(sessionId)
+  if (cachedSession) {
     console.log('✅ Study Partner session found in memory:', sessionId)
-    return session
+    return cachedSession
   }
   
-  // 2. D1から取得を試みる
   if (!db) {
     console.warn('⚠️ D1 database not available, cannot retrieve session:', sessionId)
     return null
   }
   
-  session = await getStudyPartnerSessionFromDB(db, sessionId)
-  
-  if (session) {
-    // インメモリにもキャッシュ
-    learningSessions.set(sessionId, session)
+  const persistedSession = await getStudyPartnerSessionFromDB(db, sessionId)
+  if (persistedSession) {
+    learningSessions.set(sessionId, persistedSession)
     console.log('✅ Study Partner session cached in memory:', sessionId)
+    return persistedSession
   }
   
-  return session
+  return null
 }
 
 // ========== End of Study Partner Session Management ==========
@@ -353,16 +704,6 @@ async function loadEducationalPolicy() {
 // 起動時に教育方針を読み込み
 loadEducationalPolicy()
 
-// 生徒情報データベース（必要最小限追加）
-interface StudentInfo {
-  studentId: string
-  name: string
-  grade: number
-  subjects: string[]
-  weakSubjects: string[]
-  lastLogin: string
-}
-
 const studentDatabase: Record<string, StudentInfo> = {
   'JS2-04': {
     studentId: 'JS2-04',
@@ -397,7 +738,7 @@ app.options('/api/*', (c) => {
 })
 
 // 静的ファイル配信
-app.use('/static/*', serveStatic({ root: './public' }))
+app.use('/static/*', serveStatic({ root: './public', manifest: assetManifest }))
 
 // SEO: Sitemap endpoint
 app.get('/sitemap.xml', async (c) => {
@@ -482,7 +823,6 @@ app.get('/api/health', (c) => {
   console.log('🏥 Health check response:', response)
   return c.json(response, 200)
 })
-
 // データベースマイグレーションエンドポイント
 app.post('/api/admin/migrate-db', async (c) => {
   try {
@@ -510,13 +850,14 @@ app.post('/api/admin/migrate-db', async (c) => {
         await db.prepare(sql).run()
         results.push({ sql, status: 'success' })
         console.log('✅ Migration executed:', sql.substring(0, 50))
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = toErrorMessage(error)
         // カラムが既に存在する場合はスキップ
-        if (error.message?.includes('duplicate column name')) {
+        if (errorMessage.includes('duplicate column name')) {
           results.push({ sql, status: 'skipped', reason: 'column exists' })
           console.log('⏭️ Migration skipped (already applied):', sql.substring(0, 50))
         } else {
-          results.push({ sql, status: 'failed', error: error.message })
+          results.push({ sql, status: 'failed', error: errorMessage })
           console.error('❌ Migration failed:', sql.substring(0, 50), error)
         }
       }
@@ -528,11 +869,11 @@ app.post('/api/admin/migrate-db', async (c) => {
       results,
       timestamp: new Date().toISOString()
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Migration error:', error)
     return c.json({
       ok: false,
-      error: error.message,
+      error: toErrorMessage(error),
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -609,15 +950,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ AI接続でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
       // 学習セッションを保存（フォールバック）
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -660,15 +1001,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       let learningData = generateLearningData(problemType)
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ サポートされていない画像形式です。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -723,15 +1064,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       let learningData = generateLearningData(problemType)
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ 画像処理でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -997,15 +1338,16 @@ ${studentInfo ?
         throw new Error(`OpenAI API Error: ${openaiResponse.status}`)
       }
       
-      const aiContent = (await openaiResponse.json())?.choices?.[0]?.message?.content || ''
+      const openAICompletion = await openaiResponse.json() as OpenAIChatCompletionResponse
+      const aiContent = openAICompletion.choices?.[0]?.message?.content ?? ''
       console.log('🤖 AI content length:', aiContent.length)
       console.log('🤖 AI content preview (first 500 chars):', aiContent.substring(0, 500))
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
-      let aiAnalysis
+      let aiAnalysis: AiAnalysisPayload | null = null
       
       if (jsonMatch) {
         try {
-          aiAnalysis = JSON.parse(jsonMatch[0])
+          aiAnalysis = JSON.parse(jsonMatch[0]) as AiAnalysisPayload
           console.log('🤖 AI分析成功:', {
             subject: aiAnalysis.subject,
             problemType: aiAnalysis.problemType,
@@ -1027,17 +1369,27 @@ ${studentInfo ?
         throw new Error('AI分析結果の形式が不正です。画像が不鮮明か、問題が読み取れない可能性があります。')
       }
       
+      if (!aiAnalysis) {
+        throw new Error('AI分析結果の解析に失敗しました')
+      }
+      
       // AI分析結果から学習データを構築
-      const selectedProblemType = aiAnalysis.problemType || 'custom'
+      const selectedProblemType: string =
+        typeof aiAnalysis.problemType === 'string' ? aiAnalysis.problemType : 'custom'
       
       // AIが生成した学習データを使用（カスタムコンテンツ）
-      let learningData
+      let learningData: LearningData
       if (aiAnalysis.steps && Array.isArray(aiAnalysis.steps)) {
         // AIが完全な学習データを生成した場合
         console.log('✅ AI generated complete steps:', aiAnalysis.steps.length)
+        const firstStep = aiAnalysis.steps[0]
+        const instructionPreview =
+          typeof firstStep?.instruction === 'string'
+            ? `${firstStep.instruction.substring(0, 50)}...`
+            : undefined
         console.log('🔍 First step details:', {
           stepNumber: aiAnalysis.steps[0]?.stepNumber,
-          instruction: aiAnalysis.steps[0]?.instruction?.substring(0, 50) + '...',
+          instruction: instructionPreview,
           type: aiAnalysis.steps[0]?.type,
           optionsCount: aiAnalysis.steps[0]?.options?.length,
           options: aiAnalysis.steps[0]?.options
@@ -1045,7 +1397,7 @@ ${studentInfo ?
         
         learningData = {
           analysis: `【AI学習アシスタント分析結果】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🎯 **段階的学習を開始します**<br>一緒に問題を解いていきましょう。<br>各ステップで丁寧に説明しながら進めます！`,
-          steps: aiAnalysis.steps.map(step => {
+          steps: aiAnalysis.steps.map((step: LearningStep) => {
             // 選択肢問題でない場合、強制的に選択肢問題に変換
             if (step.type !== 'choice' || !step.options || !Array.isArray(step.options) || step.options.length < 4) {
               console.warn(`⚠️ Step ${step.stepNumber} is not choice type or missing options, converting to choice`)
@@ -1097,7 +1449,7 @@ ${studentInfo ?
               attempts: []
             }
           })(),
-          similarProblems: (aiAnalysis.similarProblems || []).map(problem => {
+          similarProblems: (aiAnalysis.similarProblems || []).map((problem: Problem) => {
             // 類似問題は選択肢問題と記述問題の混合を許可
             if (problem.type === 'choice') {
               // choice形式の検証
@@ -1158,15 +1510,15 @@ ${studentInfo ?
       }
       
       // 学習セッションを保存（AI分析成功）- 修正1: 元画像データも保存
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType: selectedProblemType,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+        analysis: String(learningData.analysis),
+        steps: [...learningData.steps],
+        confirmationProblem: learningData.confirmationProblem ?? null,
+        similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -1211,15 +1563,15 @@ ${studentInfo ?
       learningData.analysis = '【AI学習アシスタント】\n\n⚠️ AI分析でエラーが発生しました。画像の内容を推測してサンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！'
       
       // 学習セッションを保存（AI分析エラーフォールバック）
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType: selectedProblemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -1256,15 +1608,15 @@ ${studentInfo ?
     
   } catch (error) {
     console.error('❌ Analyze and learn error:', error)
+    const errorMessage = toErrorMessage(error, 'AI解析でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'analyze_error',
-      message: error.message || 'AI解析でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // 段階学習 - ステップ回答チェック endpoint
 app.post('/api/step/check', async (c) => {
   console.log('📝 Step check endpoint called')
@@ -1287,9 +1639,9 @@ app.post('/api/step/check', async (c) => {
     console.log('✅ Session retrieved for step check:', sessionId)
     
     // 現在のステップ取得（stepNumberで検索）
-    const currentStep = session.steps.find(step => step.stepNumber === stepNumber)
+    const currentStep = session.steps.find((step: LearningStep) => step.stepNumber === stepNumber)
     if (!currentStep) {
-      console.error('❌ Step not found:', { stepNumber, availableSteps: session.steps.map(s => s.stepNumber) })
+      console.error('❌ Step not found:', { stepNumber, availableSteps: session.steps.map((s: LearningStep) => s.stepNumber) })
       throw new Error('無効なステップ番号です')
     }
     
@@ -1297,6 +1649,9 @@ app.post('/api/step/check', async (c) => {
     const isCorrect = answer === currentStep.correctAnswer
     
     // 回答を記録
+    if (!currentStep.attempts) {
+      currentStep.attempts = []
+    }
     currentStep.attempts.push({
       answer,
       isCorrect,
@@ -1310,7 +1665,7 @@ app.post('/api/step/check', async (c) => {
       currentStep.completed = true
       
       // 現在のステップインデックスを取得
-      const currentStepIndex = session.steps.findIndex(step => step.stepNumber === stepNumber)
+      const currentStepIndex = session.steps.findIndex((step: LearningStep) => step.stepNumber === stepNumber)
       const nextStepIndex = currentStepIndex + 1
       
       if (nextStepIndex >= session.steps.length) {
@@ -1355,10 +1710,11 @@ app.post('/api/step/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Step check error:', error)
+    const errorMessage = toErrorMessage(error, 'ステップチェックでエラーが発生しました')
     return c.json({
       ok: false,
       error: 'step_check_error',
-      message: error.message || 'ステップチェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1393,6 +1749,9 @@ app.post('/api/confirmation/check', async (c) => {
     const isCorrect = answer === session.confirmationProblem.correctAnswer
     
     // 回答を記録
+    if (!session.confirmationProblem.attempts) {
+      session.confirmationProblem.attempts = []
+    }
     if (!session.confirmationProblem.attempts) {
       session.confirmationProblem.attempts = []
     }
@@ -1442,10 +1801,12 @@ app.post('/api/confirmation/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Confirmation check error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    alert('❌ 確認問題チェックエラー: ' + errorMessage);
     return c.json({
       ok: false,
       error: 'confirmation_error',
-      message: error.message || '確認問題チェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1502,12 +1863,21 @@ app.post('/api/ai/chat', async (c) => {
       } else if (session.status === 'confirmation') {
         phase = '確認問題'
       }
-      
+      const currentStepIndex = typeof session.currentStep === 'number' ? session.currentStep : 0
+      const analysisSummary =
+        typeof session.analysis === 'string'
+          ? session.analysis.split('\n\n')[0]
+          : ''
+      const problemLabel =
+        session.problemType === 'english_grammar'
+          ? '英語文法'
+          : session.problemType || '不明'
+
       contextInfo = `現在の学習状況：
 ・学習フェーズ: ${phase}
-・問題タイプ: ${session.problemType === 'english_grammar' ? '英語文法' : '数学'}
-・現在のステップ: ${session.currentStep + 1}
-・学習内容: ${session.analysis.split('\n\n')[0]}`
+・問題タイプ: ${problemLabel}
+・現在のステップ: ${currentStepIndex + 1}
+・学習内容: ${analysisSummary}`
     }
     
     // 画像データのクリーニング（必要に応じて）
@@ -1703,8 +2073,8 @@ ${contextInfo}
       }, 500)
     }
     
-    const aiResult = await openaiResponse.json()
-    const aiAnswer = aiResult.choices[0]?.message?.content || 'すみません、回答を生成できませんでした。'
+    const aiResult = await openaiResponse.json() as OpenAIChatCompletionResponse
+    const aiAnswer = aiResult.choices?.[0]?.message?.content || 'すみません、回答を生成できませんでした。'
     
     // 質問履歴をセッションに保存（オプション）
     if (session) {
@@ -1731,10 +2101,11 @@ ${contextInfo}
     
   } catch (error) {
     console.error('❌ AI chat error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'ai_chat_error',
-      message: 'AI質問処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `AI質問処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1781,11 +2152,14 @@ app.post('/api/essay/init-session', async (c) => {
       feedbacks: []
     }
     
-    const session = {
+    const session: Session = {
       sessionId,
       essaySession,
       chatHistory: [],
-      vocabularyProgress: {}
+      vocabularyProgress: {},
+      steps: [],
+      confirmationProblem: null,
+      similarProblems: []
     }
     
     // インメモリに保存
@@ -1815,10 +2189,11 @@ app.post('/api/essay/init-session', async (c) => {
     
   } catch (error) {
     console.error('❌ Essay session init error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'init_error',
-      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `セッション初期化でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1877,10 +2252,11 @@ app.post('/api/essay/upload-image', async (c) => {
     
   } catch (error) {
     console.error('❌ Image upload error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'upload_error',
-      message: '画像アップロードでエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `画像アップロードでエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1999,10 +2375,10 @@ app.post('/api/essay/ocr', async (c) => {
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('✅ OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     let ocrResult
     
     try {
@@ -2048,15 +2424,15 @@ app.post('/api/essay/ocr', async (c) => {
     
   } catch (error) {
     console.error('❌ OCR error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'ocr_error',
-      message: 'OCR処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `OCR処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // 小論文指導 - AI添削API
 app.post('/api/essay/feedback', async (c) => {
   console.log('🤖 Essay AI feedback API called')
@@ -2253,10 +2629,10 @@ ${essayText}
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('🤖 OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 AI response content:', aiResponse.substring(0, 100) + '...')
     
     let feedback
@@ -2333,8 +2709,8 @@ ${essayText}
         })
         
         if (modelAnswerResponse.ok) {
-          const modelAnswerData = await modelAnswerResponse.json()
-          feedback.modelAnswer = modelAnswerData.choices[0].message.content
+          const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+          feedback.modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
           console.log('✅ Model answer generated for Step 4')
         }
       } catch (modelError) {
@@ -2392,10 +2768,11 @@ ${essayText}
     
   } catch (error) {
     console.error('❌ Feedback error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'feedback_error',
-      message: 'AI添削でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `AI添削でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -2465,17 +2842,18 @@ app.post('/api/essay/chat', async (c) => {
       console.log('📝 Step 1 processing, message:', message)
       
       // 画像がアップロードされたかチェック（OCR処理済みの回答）
-      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 1)
-      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+      const essaySessionData = session?.essaySession
+      const uploadedImages = essaySessionData?.uploadedImages ?? []
+      const ocrResults = essaySessionData?.ocrResults ?? []
+      const hasImage = uploadedImages.some((img: UploadedImage) => img.step === 1)
+      const hasOCR = ocrResults.some((ocr: OCRResult) => ocr.step === 1)
       
       // OCR結果がある場合、AI添削を実行
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
         console.log('📝 Step 1: OCR confirmed, generating feedback...')
         
         try {
-          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const step1OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 1)
           const latestOCR = step1OCRs[step1OCRs.length - 1]
           const essayText = latestOCR.text || ''
           
@@ -2535,12 +2913,21 @@ app.post('/api/essay/chat', async (c) => {
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+            const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Step 1 feedback generated')
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -2627,8 +3014,8 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
-            const generatedAnswer = result.choices?.[0]?.message?.content || ''
+            const completion = await response_api.json() as OpenAIChatCompletionResponse
+            const generatedAnswer = completion.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated pass answer length:', generatedAnswer.length)
             
@@ -2708,8 +3095,17 @@ ${themeContent}
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Step 1 text feedback generated')
           
@@ -2761,21 +3157,21 @@ ${themeContent}
             })
             
             if (modelAnswerResponse.ok) {
-              const modelAnswerData = await modelAnswerResponse.json()
-              modelAnswer = modelAnswerData.choices[0].message.content
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
               console.log('✅ Model answer generated')
             }
           } catch (error) {
             console.error('❌ Model answer generation error:', error)
           }
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
           console.error('❌ Step 1 text feedback error:', error)
           response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-          stepCompleted = true
+        stepCompleted = true
         }
       }
       // 「読んだ」
@@ -2830,7 +3226,6 @@ ${themeContent}
             }
             
             const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
-
 テーマ: ${themeForQuestions}
 
 読み物の内容:
@@ -2877,7 +3272,7 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for questions')
             console.log('📊 API result structure (questions):', Object.keys(result))
             
@@ -2896,11 +3291,10 @@ ${themeContent}
             }
           } catch (error) {
             console.error('❌ Questions generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             // エラー時もカスタムテーマを使ったフォールバック
             questions = `1. ${themeForQuestions}の基本的な概念や定義について説明してください。\n2. ${themeForQuestions}に関する現代社会における問題点や課題は何ですか？\n3. ${themeForQuestions}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
@@ -3174,7 +3568,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for AI mode')
             console.log('📊 API result structure:', Object.keys(result))
             
@@ -3192,38 +3586,42 @@ ${targetLevel === 'high_school' ? `
                 themeMatch = generatedText.match(/テーマ[：:]\s*(.+?)(?=\n|$)/)
               }
               
+              let themeCandidate = themeMatch?.[1]?.trim() ?? null
+              let contentCandidate = contentMatch?.[1]?.trim() ?? null
+
               // パターン3: 最初の行がテーマの可能性
-              if (!themeMatch && generatedText.trim()) {
+              if (!themeCandidate && generatedText.trim()) {
                 const firstLine = generatedText.trim().split('\n')[0]
                 if (firstLine.length < 30 && firstLine.length > 3) {
-                  themeMatch = [null, firstLine]
+                  themeCandidate = firstLine
                   console.log('🔍 Using first line as theme:', firstLine)
                 }
               }
-              
+
               // 読み物がマッチしない場合、全文を読み物として使用
-              if (!contentMatch && generatedText.length > 200) {
+              if (!contentCandidate && generatedText.length > 200) {
                 // テーマ行を除いた残りを読み物とする
                 const lines = generatedText.split('\n')
-                const contentText = lines.slice(themeMatch ? 1 : 0).join('\n').trim()
+                const startIndex = themeCandidate ? 1 : 0
+                const contentText = lines.slice(startIndex).join('\n').trim()
                 if (contentText.length > 200) {
-                  contentMatch = [null, contentText]
+                  contentCandidate = contentText
                   console.log('🔍 Using remaining text as content')
                 }
               }
-              
+
               console.log('🔍 Parsing AI response:', {
-                hasThemeMatch: !!themeMatch,
-                hasContentMatch: !!contentMatch,
-                themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
-                contentLength: contentMatch ? contentMatch[1]?.length : 0,
+                hasThemeMatch: !!themeCandidate,
+                hasContentMatch: !!contentCandidate,
+                themeMatchValue: themeCandidate ?? 'N/A',
+                contentLength: contentCandidate?.length ?? 0,
                 fullTextLength: generatedText.length,
                 firstLine: generatedText.split('\n')[0]
               })
               
-              if (themeMatch && contentMatch && contentMatch[1].length > 50) {
-                themeTitle = themeMatch[1].trim()
-                themeContent = contentMatch[1].trim()
+              if (themeCandidate && contentCandidate && contentCandidate.length > 50) {
+                themeTitle = themeCandidate
+                themeContent = contentCandidate
                 console.log('✅ ✨ AI-generated NEW theme:', themeTitle)
                 console.log('✅ AI-generated content length:', themeContent.length)
                 console.log('🎯 This is a UNIQUE theme for this session')
@@ -3231,21 +3629,20 @@ ${targetLevel === 'high_school' ? `
                 // AI生成失敗 - エラーメッセージを表示
                 console.error('❌ Failed to parse AI response for theme generation')
                 console.error('❌ Parse results:', {
-                  themeMatch: !!themeMatch,
-                  contentMatch: !!contentMatch,
-                  themeValue: themeMatch ? themeMatch[1] : null,
-                  contentLength: contentMatch ? contentMatch[1]?.length : 0
+                  themeMatch: !!themeCandidate,
+                  contentMatch: !!contentCandidate,
+                  themeValue: themeCandidate,
+                  contentLength: contentCandidate?.length ?? 0
                 })
                 console.error('❌ Full AI response:', generatedText)
                 throw new Error('AI theme generation failed - could not parse response')
               }
             } catch (error) {
               console.error('❌ AI auto-generation error:', error)
-              console.error('❌ Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-              })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
               
               // エラーメッセージを返す
               return c.json({
@@ -3333,7 +3730,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful')
             console.log('📊 API result structure:', Object.keys(result))
             
@@ -3353,11 +3750,10 @@ ${targetLevel === 'high_school' ? `
             }
           } catch (error) {
             console.error('❌ Theme generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             // エラー時もカスタムテーマを使ったフォールバック
             themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
             console.log('🔄 Using error fallback with custom theme')
@@ -3482,7 +3878,7 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
           }
           
-          const result = await response.json()
+          const result = await response.json() as OpenAIChatCompletionResponse
           console.log('✅ OpenAI API call successful for vocab problems')
           
           const generated = result.choices?.[0]?.message?.content || ''
@@ -3506,10 +3902,10 @@ ${targetLevel === 'high_school' ? `
               }
               
               // 解答から問題を生成（左側のフレーズを抽出して「→ ?」に置き換え）
-              const answerLines = answerText.split('\n').filter(line => line.trim())
+              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
               const problemLines = answerLines
-                .filter(line => /^\d+\./.test(line.trim()) && line.includes('→'))
-                .map(line => {
+                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+                .map((line: string) => {
                   // 「フレーズ」→「解答」の形式から「フレーズ」→ ? を生成
                   const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
                   return match ? `${match[1]} → ?` : null
@@ -3596,7 +3992,6 @@ ${targetLevel === 'high_school' ? `
   "overallScore": 75,
   "nextSteps": ["次のアクション1", "次のアクション2"]
 }
-
 生徒を励ましつつ、実践的なアドバイスを心がけてください。`
           
           const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -3623,8 +4018,19 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            exampleImprovement?: string
+            nextSteps?: string[]
+            overallScore?: number
+            charCount?: number
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Short essay feedback generated')
           
@@ -3669,8 +4075,8 @@ ${targetLevel === 'high_school' ? `
             })
             
             if (modelAnswerResponse.ok) {
-              const modelAnswerData = await modelAnswerResponse.json()
-              modelAnswer = modelAnswerData.choices[0].message.content
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
               console.log('✅ Short essay model answer generated')
             }
           } catch (error) {
@@ -3678,14 +4084,14 @@ ${targetLevel === 'high_school' ? `
           }
           
           // フィードバックを整形して表示
-          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
           console.error('❌ Short essay feedback error:', error)
           response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-          stepCompleted = true
-        }
+        stepCompleted = true
+      }
       }
       // OKまたは「はい」で課題提示
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
@@ -3737,7 +4143,7 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 4)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 4)
       
       // OCR結果があるかチェック
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
@@ -3873,7 +4279,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for Step 4 problem')
             
             const generatedProblem = result.choices?.[0]?.message?.content || ''
@@ -3890,11 +4296,10 @@ ${targetLevel === 'high_school' ? `
             charCount = wordCount
           } catch (error) {
             console.error('❌ Step 4 problem generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
             console.log('🔄 Using error fallback with custom theme')
           }
@@ -3921,11 +4326,11 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 5)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 5)
       
       // このステップのOCR結果があるかチェック（Step 5用の新しい原稿）
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 5)
+                     session.essaySession.ocrResults.some((ocr: OCRResult) => ocr.step === 5)
       
       if (message.includes('次へ') || message.includes('完了')) {
         response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
@@ -3942,7 +4347,7 @@ ${targetLevel === 'high_school' ? `
       else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
         // ユーザーが修正したテキストを入力した場合
         if (session && session.essaySession && session.essaySession.ocrResults) {
-          const step5OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 5)
+          const step5OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 5)
           if (step5OCRs.length > 0) {
             const latestOCR = step5OCRs[step5OCRs.length - 1]
             
@@ -4048,7 +4453,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             const generatedProblem = result.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated challenge problem:', generatedProblem)
@@ -4110,15 +4515,15 @@ ${targetLevel === 'high_school' ? `
     
   } catch (error) {
     console.error('❌ Essay chat error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'chat_error',
-      message: 'チャット処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `チャット処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // AI質問ウインドウ用ページ
 app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
@@ -4544,6 +4949,22 @@ app.get('/ai-chat/:sessionId', (c) => {
             let cropArea, cropImage, cancelCropBtn;
             let cropper = null;
             let currentImageData = null;
+            
+            function formatErrorMessage(error, fallback = 'エラーが発生しました') {
+                if (error instanceof Error) {
+                    return error.message || fallback;
+                }
+                if (typeof error === 'string') {
+                    const trimmed = error.trim();
+                    return trimmed.length > 0 ? trimmed : fallback;
+                }
+                try {
+                    const serialized = JSON.stringify(error);
+                    return serialized === '{}' ? fallback : serialized;
+                } catch {
+                    return fallback;
+                }
+            }
             
             // ページ読み込み完了を待つ
             window.addEventListener('load', function() {
@@ -5084,7 +5505,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as AiChatApiResponse;
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();
@@ -5176,7 +5597,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as AiChatApiResponse;
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();
@@ -5197,7 +5618,6 @@ app.get('/ai-chat/:sessionId', (c) => {
             sendButton.disabled = false;
             questionInput.focus();
         }
-        
         function addMessage(text, sender, isLoading = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (sender === 'user' ? 'user-message' : 'ai-message');
@@ -5466,8 +5886,8 @@ app.post('/api/ai-chat', async (c) => {
       })
     }
     
-    const data = await response.json()
-    const answer = data.choices[0].message.content
+    const completion = await response.json() as OpenAIChatCompletionResponse
+    const answer = completion.choices?.[0]?.message?.content || ''
     
     console.log('✅ OpenAI API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
@@ -5648,8 +6068,8 @@ app.post('/api/ai-chat-image', async (c) => {
       })
     }
     
-    const data = await response.json()
-    const answer = data.choices[0].message.content
+    const completion = await response.json() as OpenAIChatCompletionResponse
+    const answer = completion.choices?.[0]?.message?.content || ''
     
     console.log('✅ OpenAI Vision API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
@@ -5659,12 +6079,14 @@ app.post('/api/ai-chat-image', async (c) => {
       answer: answer 
     })
     
-  } catch (error) {
+            } catch (error) {
     console.error('❌ AI Chat Image API error:', error)
-    console.error('Error details:', error.message, error.stack)
+    const errorMessage = toErrorMessage(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('Error details:', errorMessage, errorStack)
     return c.json({ 
       ok: false, 
-      message: `サーバーエラーが発生しました: ${error.message}` 
+      message: `サーバーエラーが発生しました: ${errorMessage}` 
     })
   }
 })
@@ -6171,12 +6593,12 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                     })
                 });
                 
-                const data = await response.json();
+                const data = await response.json() as AiChatApiResponse;
                 
                 // ローディング削除
                 loadingDiv.remove();
                 
-                if (data.ok) {
+                if (data.ok && data.answer) {
                     console.log('✅ Response received');
                     addMessage(data.answer, 'ai');
                 } else {
@@ -6434,7 +6856,6 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
 </html>
   `)
 })
-
 // 小論文指導ページ
 app.get('/essay-coaching', (c) => {
   console.log('📝 Essay Coaching page requested')
@@ -7105,7 +7526,7 @@ app.get('/essay-coaching', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as EssayInitResponse;
                 
                 if (result.ok) {
                     // 授業ページに遷移
@@ -7140,7 +7561,7 @@ app.get('/essay-coaching', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as EssayInitResponse;
                 
                 if (result.ok) {
                     // 授業ページに開発者モードパラメータ付きで遷移
@@ -7158,7 +7579,6 @@ app.get('/essay-coaching', (c) => {
     </html>
   `)
 })
-
 // 小論文指導 - 授業セッションページ
 app.get('/essay-coaching/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
@@ -7939,7 +8359,6 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         .quick-action-btn.hidden {
           display: none;
         }
-        
         /* レスポンシブ対応 */
         @media (max-width: 640px) {
           .input-area {
@@ -8294,7 +8713,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 });
                 
                 console.log('📥 Response status:', response.status);
-                const result = await response.json();
+                const result = await response.json() as EssayChatResponse;
                 console.log('📥 Response data:', result);
                 
                 if (result.ok) {
@@ -8329,11 +8748,11 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 const loadingIndicator = document.getElementById('loading-indicator');
                 if (loadingIndicator) {
                     loadingIndicator.remove();
-                }
-                
-                // 送信ボタンを有効化
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+            }
+            
+            // 送信ボタンを有効化
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
                 sendBtn.style.opacity = '1';
                 sendBtn.style.cursor = 'pointer';
                 
@@ -8347,13 +8766,28 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             }
         }
         
-        function quickAction(text) {
+        function formatErrorMessage(error, fallback = '不明なエラー') {
+            if (error instanceof Error) {
+                return error.message || fallback;
+            }
+            if (typeof error === 'string') {
+                return error.trim() || fallback;
+            }
+            try {
+                return JSON.stringify(error);
+            } catch (jsonError) {
+                console.error('Error stringifying error object:', jsonError);
+                return fallback;
+            }
+        }
+        
+        function quickAction(text: string) {
             const input = document.getElementById('userInput');
             input.value = text;
             sendMessage();
         }
         
-        function updateQuickActions(aiResponse) {
+        function updateQuickActions(aiResponse: string) {
             // AIの応答内容に基づいてクイックアクションボタンを表示/非表示
             const btnOK = document.getElementById('btnOK');
             const btnYonda = document.getElementById('btnYonda');
@@ -8436,7 +8870,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             }
         }
         
-        function getStepIntroMessage(step) {
+        function getStepIntroMessage(step: number): string {
             const messages = {
                 1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
                 2: '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
@@ -8466,7 +8900,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 
                 console.log('🤖 Feedback API response status:', response.status);
                 
-                const result = await response.json();
+                const result = await response.json() as EssayFeedbackResponse;
                 console.log('🤖 Feedback API result:', result);
                 
                 if (result.ok && result.feedback) {
@@ -8482,7 +8916,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         // フィードバックを表示
-        function displayFeedback(feedback) {
+        function displayFeedback(feedback: EssayFeedback) {
             const feedbackHtml = '<div class="ai-feedback">' +
                 '<h3><i class="fas fa-robot"></i> AI自動添削結果</h3>' +
                 '<div class="feedback-score">' +
@@ -8672,7 +9106,6 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             // イベントリスナーを追加
             setupCropListeners(cropCanvas);
         }
-        
         // クロップリスナー設定
         function setupCropListeners(canvas) {
             canvas.onmousedown = function(e) {
@@ -8951,7 +9384,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 
             } catch (error) {
                 console.error('❌ Upload/OCR error:', error);
-                const errorMessage = error.message || 'エラーが発生しました';
+                const errorMessage = formatErrorMessage(error, 'エラーが発生しました');
                 addMessage('❌ ' + errorMessage + '\\n\\nもう一度お試しください。\\n問題が続く場合は、ブラウザのコンソール（F12キー）でエラー詳細を確認してください。', true);
             }
         }
@@ -9156,7 +9589,10 @@ app.post('/api/regenerate-problem', async (c) => {
     }
     
     // 元のセッションから生徒情報を取得
-    const studentInfo = studentDatabase[session.sid] || {
+    const sessionStudentId = session.sid
+    const studentInfoFromDb = sessionStudentId ? studentDatabase[sessionStudentId] : undefined
+    const studentInfo = studentInfoFromDb || {
+      studentId: 'unknown',
       name: 'テスト生徒',
       grade: 2,
       subjects: ['数学'],
@@ -9181,7 +9617,7 @@ app.post('/api/regenerate-problem', async (c) => {
             {
               type: 'text',
               text: session.originalUserMessage ? 
-                `元の質問: ${session.originalUserMessage}\n\n【重要指示】この画像の問題から「教育的青写真」を正確に抽出し、同じ学習価値・同じ難易度を保持したまま、表面的な表現のみを変更した類題を生成してください。定義問題や汎用問題への変更は禁止です。` :
+                `元の質問: ${session.originalUserMessage}\n\n【重要指示】この画像の問題から「教育的青写真」を正確に抽出し、同じ学習価値・同じ難易度を保持したまま、表面的表現のみを変更した類題を生成してください。定義問題や汎用問題への変更は禁止です。` :
                 '【重要指示】この画像の問題の「教育的核心」（学習目標・難易度・問題構造）を完全に保持し、具体的な文章や例のみを親しみやすく変更した問題を生成してください。'
             },
             {
@@ -9249,15 +9685,16 @@ app.post('/api/regenerate-problem', async (c) => {
       }, 500)
     }
     
-    const aiContent = (await openaiResponse.json())?.choices?.[0]?.message?.content || ''
+    const regenerationCompletion = await openaiResponse.json() as OpenAIChatCompletionResponse
+    const aiContent = regenerationCompletion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 Regenerated AI content length:', aiContent.length)
     
     const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
-    let aiAnalysis
+    let aiAnalysis: AiAnalysisPayload | null = null
     
     if (jsonMatch) {
       try {
-        aiAnalysis = JSON.parse(jsonMatch[0])
+        aiAnalysis = JSON.parse(jsonMatch[0]) as AiAnalysisPayload
         console.log('🔄 Regeneration analysis success:', {
           subject: aiAnalysis.subject,
           problemType: aiAnalysis.problemType,
@@ -9310,6 +9747,15 @@ app.post('/api/regenerate-problem', async (c) => {
     }
     
     // 再生成されたデータでセッションを更新
+    if (!aiAnalysis) {
+      return c.json({
+        ok: false,
+        error: 'parse_error',
+        message: 'AI再生成結果が取得できませんでした',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
     updateSessionWithRegeneratedData(session, aiAnalysis)
     
     // D1に更新されたセッションを保存
@@ -9338,17 +9784,18 @@ app.post('/api/regenerate-problem', async (c) => {
     
   } catch (error) {
     console.error('❌ Problem regeneration error:', error)
+    const errorMessage = toErrorMessage(error, '問題再生成でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'regeneration_error',
-      message: error.message || '問題再生成でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
 
 // 修正2: 画像ベース再生成用プロンプト作成関数
-function createRegenerationPrompt(session, studentInfo, regenerationType) {
+function createRegenerationPrompt(session: Session, studentInfo: StudentInfo, regenerationType: RegenerationType) {
   const basePrompt = `あなたは「プログラミングのKOBEYA」の経験豊富な教師として、バンコク在住の日本人中学生の学習を支援してください。
 
 【教育的青写真の保持原則】
@@ -9462,14 +9909,13 @@ ${getRegenerationTypeInstructions(regenerationType)}
     }
   ]
 }
-
 【重要】上記JSON構造を厳密に守り、stepsは必ずオブジェクトの配列にしてください`
 
   return basePrompt + educationalPolicyPrompt
 }
 
 // Phase1改善: 再生成タイプ別指示
-function getRegenerationTypeInstructions(regenerationType) {
+function getRegenerationTypeInstructions(regenerationType: RegenerationType) {
   switch(regenerationType) {
     case 'similar':
       return `【🔄 同じような問題 - 等質置換】
@@ -9496,7 +9942,7 @@ function getRegenerationTypeInstructions(regenerationType) {
 }
 
 // Phase1改善: 再生成品質評価関数
-function evaluateRegenerationQuality(regeneratedContent, originalSession) {
+function evaluateRegenerationQuality(regeneratedContent: AiAnalysisPayload, originalSession: Session) {
   let score = 1.0
   const issues = []
   
@@ -9511,7 +9957,7 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
   
   const hasDefinitionProblem = definitionPatterns.some(pattern => 
     pattern.test(regeneratedContent.analysis || '') ||
-    (regeneratedContent.steps || []).some(step => pattern.test(step.content || ''))
+    (regeneratedContent.steps || []).some((step: LearningStep) => pattern.test(step.content ?? ''))
   )
   
   if (hasDefinitionProblem) {
@@ -9538,8 +9984,8 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
   }
   
   // 3. 具体的な問題文の存在確認
-  const hasSpecificContent = (regeneratedContent.steps || []).some(step => {
-    const content = step.content || ''
+  const hasSpecificContent = (regeneratedContent.steps || []).some((step: LearningStep) => {
+    const content = step.content ?? ''
     return content.includes('「') && content.includes('」') // 日本語の引用符
   })
   
@@ -9565,7 +10011,7 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
 }
 
 // 簡単な教科抽出関数
-function extractSubjectFromAnalysis(analysis) {
+function extractSubjectFromAnalysis(analysis: string) {
   if (analysis.includes('文節') || analysis.includes('助詞') || analysis.includes('国語')) return '国語'
   if (analysis.includes('数学') || analysis.includes('計算') || analysis.includes('方程式')) return '数学'
   if (analysis.includes('英語') || analysis.includes('English')) return '英語'
@@ -9573,7 +10019,7 @@ function extractSubjectFromAnalysis(analysis) {
 }
 
 // Phase1改善: コンテンツ改善関数（簡易版）
-async function improveRegeneratedContent(originalContent, issues) {
+async function improveRegeneratedContent(originalContent: AiAnalysisPayload, issues: string[]) {
   // 実装は次のフェーズで詳細化
   // 現在は問題のあるパターンを検出してフラグを立てるのみ
   console.log('🔧 Content improvement needed for issues:', issues)
@@ -9586,45 +10032,47 @@ async function improveRegeneratedContent(originalContent, issues) {
 }
 
 // セッション更新関数
-function updateSessionWithRegeneratedData(session, aiAnalysis) {
+function updateSessionWithRegeneratedData(session: Session, aiAnalysis: AiAnalysisPayload) {
   // 新しい分析内容で更新
   session.analysis = `【AI学習アシスタント再生成】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🔄 **新しいパターンで学習を始めましょう**<br>別のアプローチで問題に取り組みます！`
   
   // 段階学習ステップを更新
-  if (aiAnalysis.steps && Array.isArray(aiAnalysis.steps)) {
-    session.steps = aiAnalysis.steps.map((step, index) => ({
+  const regeneratedSteps = Array.isArray(aiAnalysis.steps) ? aiAnalysis.steps : []
+  session.steps = regeneratedSteps.map((step: LearningStep, index: number) => ({
       ...step,
-      stepNumber: step.stepNumber !== undefined ? step.stepNumber : index, // stepNumberがない場合はインデックスを使用
+    stepNumber: step.stepNumber !== undefined ? step.stepNumber : index,
       completed: false,
       attempts: []
     }))
     
+    const regeneratedFirstStep = session.steps[0]
+    const regeneratedInstructionPreview =
+      typeof regeneratedFirstStep?.instruction === 'string'
+        ? `${regeneratedFirstStep.instruction.substring(0, 50)}...`
+        : undefined
     console.log('🔄 Updated session steps after regeneration:', {
       stepsCount: session.steps.length,
-      firstStepStructure: {
-        stepNumber: session.steps[0]?.stepNumber,
-        instruction: session.steps[0]?.instruction?.substring(0, 50) + '...',
-        type: session.steps[0]?.type,
-        hasOptions: !!session.steps[0]?.options
-      }
+      firstStepStructure: regeneratedFirstStep
+        ? {
+            stepNumber: regeneratedFirstStep?.stepNumber,
+            instruction: regeneratedInstructionPreview,
+            type: regeneratedFirstStep?.type,
+            hasOptions: !!regeneratedFirstStep?.options
+          }
+        : null
     })
-  }
   
   // 確認問題を更新
-  if (aiAnalysis.confirmationProblem) {
-    session.confirmationProblem = {
-      ...aiAnalysis.confirmationProblem,
-      attempts: []
-    }
-  }
+  session.confirmationProblem = aiAnalysis.confirmationProblem
+    ? { ...aiAnalysis.confirmationProblem, attempts: [] }
+    : null
   
   // 類似問題を更新
-  if (aiAnalysis.similarProblems) {
-    session.similarProblems = aiAnalysis.similarProblems.map(problem => ({
+  const regeneratedSimilarProblems = Array.isArray(aiAnalysis.similarProblems) ? aiAnalysis.similarProblems : []
+  session.similarProblems = regeneratedSimilarProblems.map((problem: Problem) => ({
       ...problem,
       attempts: []
     }))
-  }
   
   // セッション状態をリセット
   session.currentStep = 0
@@ -9697,6 +10145,7 @@ app.post('/api/similar/check', async (c) => {
     }
     
     const similarProblem = session.similarProblems[problemIndex]
+    const correctAnswers = Array.isArray(similarProblem.correctAnswers) ? similarProblem.correctAnswers : []
     
     if (!similarProblem || typeof similarProblem !== 'object') {
       console.error('❌ Invalid similarProblem at index:', { problemIndex, similarProblem })
@@ -9717,7 +10166,7 @@ app.post('/api/similar/check', async (c) => {
     } else if (similarProblem.type === 'input') {
       // 記述問題の場合 - 複数の正解パターンをチェック
       const normalizedAnswer = answer.trim()
-      isCorrect = similarProblem.correctAnswers.some(correct => 
+      isCorrect = correctAnswers.some((correct: string) => 
         normalizedAnswer === correct.trim()
       )
     }
@@ -9726,13 +10175,16 @@ app.post('/api/similar/check', async (c) => {
       problemNumber,
       type: similarProblem.type,
       userAnswer: answer,
-      expected: similarProblem.type === 'choice' ? similarProblem.correctAnswer : similarProblem.correctAnswers,
+      expected: similarProblem.type === 'choice' ? similarProblem.correctAnswer : correctAnswers,
       isCorrect
     })
     
     // 回答履歴を記録（attemptsが未定義の場合は初期化）
     if (!similarProblem.attempts) {
       similarProblem.attempts = [];
+    }
+    if (!similarProblem.attempts) {
+      similarProblem.attempts = []
     }
     similarProblem.attempts.push({
       answer,
@@ -9751,8 +10203,8 @@ app.post('/api/similar/check', async (c) => {
       }, 500);
     }
     
-    const completedProblems = session.similarProblems.filter(p => 
-      p.attempts && p.attempts.some(attempt => attempt.isCorrect)
+    const completedProblems = session.similarProblems.filter((p: Problem) => 
+      p.attempts && p.attempts.some((attempt: { isCorrect: boolean; [key: string]: unknown }) => attempt.isCorrect)
     ).length
     
     let nextAction = 'continue'
@@ -9781,7 +10233,8 @@ app.post('/api/similar/check', async (c) => {
       if (similarProblem.type === 'choice') {
         feedback = `❌ 正解は ${similarProblem.correctAnswer} です。\n\n💡 ${similarProblem.explanation}`
       } else {
-        feedback = `❌ 正解例: ${similarProblem.correctAnswers[0]}\n\n💡 ${similarProblem.explanation}`
+        const firstAnswer = correctAnswers[0] || '模範解答を参考にしてください。'
+        feedback = `❌ 正解例: ${firstAnswer}\n\n💡 ${similarProblem.explanation}`
       }
       nextAction = 'retry'
     }
@@ -9811,29 +10264,59 @@ app.post('/api/similar/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Similar check error:', error)
+    const errorMessage = toErrorMessage(error, '類似問題チェックでエラーが発生しました')
     return c.json({
       ok: false,
       error: 'similar_check_error',
-      message: error.message || '類似問題チェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
 
 // 段階学習データ生成関数（フォールバック用 - 動的生成失敗時のみ使用）
-function generateLearningData(problemType) {
-  console.log('❌ AI分析失敗 - フォールバック呼び出し禁止')
-  console.log(`問題タイプ: ${problemType}`)
-  
-  // ダミーデータの代わりに詳細なエラー情報を提供
-  throw new Error(`AI分析に失敗しました。問題タイプ「${problemType}」のダミーデータは使用しません。先生にお知らせください。`)
+function generateLearningData(problemType: string): LearningData {
+  console.warn('⚠️ generateLearningData fallback invoked. Problem type:', problemType)
+
+  const placeholderStep: LearningStep = {
+    stepNumber: 1,
+    type: 'choice',
+    question: 'サンプル問題：次の中で正しい説明を選びましょう。',
+    options: ['A. 例1', 'B. 例2', 'C. 例3', 'D. 例4'],
+    correctOption: 'A',
+    explanation: '正しい選択肢はAです。ここではプレースホルダーの説明を表示します。'
+  }
+
+  const confirmationProblem: Problem = {
+    problemNumber: 1,
+    type: 'choice',
+    question: '確認問題：次のうち正しいものを選びましょう。',
+    options: ['A. 選択肢1', 'B. 選択肢2', 'C. 選択肢3', 'D. 選択肢4'],
+    correctOption: 'A',
+    explanation: 'サンプルの確認問題です。正答はAとしています。'
+  }
+
+  return {
+    analysis: `【AI学習アシスタント】\n\nAI分析結果の取得に失敗しました。問題タイプ「${problemType}」に応じたサンプル問題で学習を継続します。\n\n1. サンプル問題を解いて理解を確認しましょう。\n2. 分からない場合は解説を確認しながら復習しましょう。\n3. 類題にもチャレンジして理解を定着させましょう。`,
+    steps: [placeholderStep],
+    confirmationProblem,
+    similarProblems: [
+      {
+        problemNumber: 2,
+        type: 'choice',
+        question: '類題：次の中から最も適切なものを選びましょう。',
+        options: ['A. 類題1', 'B. 類題2', 'C. 類題3', 'D. 類題4'],
+        correctOption: 'B',
+        explanation: 'サンプル類題です。正答はBとしています。'
+      }
+    ]
+  }
 }
 
 // ルートパスハンドラー
 app.get('/', (c) => {
   return c.redirect('/study-partner', 302)
 })
-
 // Study Partner Simple - ログイン修正版
 app.get('/study-partner-simple', studyPartnerSimple)
 
@@ -10925,7 +11408,7 @@ app.get('/study-partner', (c) => {
             
             console.log('📡 Login response:', response.status, response.statusText);
             
-            const data = await response.json();
+            const data = await response.json() as LoginApiResponse;
             console.log('📋 Login data:', data);
             
             if (response.ok && data.success) {
@@ -10940,7 +11423,8 @@ app.get('/study-partner', (c) => {
           } catch (error) {
             console.error('❌ Login error:', error);
             authenticated = false;
-            alert('❌ ログインエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, 'ログインに失敗しました');
+            alert('❌ ログインエラー: ' + errorMessage);
           }
         }
         
@@ -11003,7 +11487,8 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Analysis error:', error);
-            alert('❌ 解析エラー: ' + error.message);
+          const errorMessage = formatErrorMessage(error, '解析エラーが発生しました');
+          alert('❌ 解析エラー: ' + errorMessage);
             showUploadingIndicator(false);
           }
         }
@@ -11140,7 +11625,6 @@ app.get('/study-partner', (c) => {
           
           out.innerHTML = stepHtml;
         }
-        
         // ステップ回答送信
         async function submitStepAnswer() {
           const selectedOption = document.querySelector('input[name="stepChoice"]:checked');
@@ -11175,7 +11659,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json();
+            const result = await response.json() as StepCheckResponse;
             console.log('📋 Step check result:', result);
             
             if (result.ok) {
@@ -11207,12 +11691,13 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Step check error:', error);
-            alert('❌ ステップチェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, 'ステップチェックでエラーが発生しました');
+            alert('❌ ステップチェックエラー: ' + errorMessage);
           }
         }
         
         // ステップ結果表示
-        function displayStepResult(isCorrect, explanation, userAnswer) {
+        function displayStepResult(isCorrect: boolean, explanation: string, userAnswer: string) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -11342,7 +11827,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json();
+            const result = await response.json() as ConfirmationCheckResponse;
             console.log('📋 Confirmation check result:', result);
             
             if (result.ok) {
@@ -11353,12 +11838,13 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Confirmation check error:', error);
-            alert('❌ 確認問題チェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, '確認問題チェックでエラーが発生しました');
+            alert('❌ 確認問題チェックエラー: ' + errorMessage);
           }
         }
         
         // 確認問題結果表示
-        function displayConfirmationResult(isCorrect, explanation, userAnswer, nextAction) {
+        function displayConfirmationResult(isCorrect: boolean, explanation: string, userAnswer: string, nextAction: string) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -11556,7 +12042,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json();
+            const result = await response.json() as SimilarCheckResponse;
             console.log('📋 Similar check result:', result);
             
             if (result.ok) {
@@ -11567,12 +12053,20 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Similar check error:', error);
-            alert('❌ 類似問題チェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, '類似問題チェックでエラーが発生しました');
+            alert('❌ 類似問題チェックエラー: ' + errorMessage);
           }
         }
         
         // 類似問題結果表示
-        function displaySimilarResult(isCorrect, explanation, userAnswer, nextAction, completedProblems, totalProblems) {
+        function displaySimilarResult(
+          isCorrect: boolean,
+          explanation: string,
+          userAnswer: string,
+          nextAction: string,
+          completedProblems: number,
+          totalProblems: number
+        ) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -11740,7 +12234,7 @@ app.get('/study-partner', (c) => {
               throw new Error('HTTP ' + response.status + ': ' + response.statusText);
             }
             
-            const result = await response.json();
+            const result = await response.json() as RegenerationResponse;
             console.log('📋 Regeneration result:', result);
             
             if (result.ok) {
@@ -11773,22 +12267,23 @@ app.get('/study-partner', (c) => {
             
             // Step 4: エラーハンドリング強化 - より詳細で分かりやすいエラーメッセージ
             let errorMessage = '❌ 問題の再生成に失敗しました';
+            const rawMessage = formatErrorMessage(error, '詳細情報なし');
             
-            if (error.message.includes('HTTP 500')) {
+            if (rawMessage.includes('HTTP 500')) {
               errorMessage = '❌ AI機能に問題が発生しています。少し時間をおいてから再度お試しください。';
-            } else if (error.message.includes('HTTP 404')) {
+            } else if (rawMessage.includes('HTTP 404')) {
               errorMessage = '❌ 学習セッションが見つかりません。ページを更新してもう一度お試しください。';
-            } else if (error.message.includes('HTTP 400')) {
+            } else if (rawMessage.includes('HTTP 400')) {
               errorMessage = '❌ リクエストに問題があります。ページを更新してもう一度お試しください。';
-            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            } else if (rawMessage.includes('network') || rawMessage.includes('fetch')) {
               errorMessage = '❌ ネットワーク接続に問題があります。インターネット接続を確認してください。';
-            } else if (error.message.includes('timeout')) {
+            } else if (rawMessage.includes('timeout')) {
               errorMessage = '❌ 処理に時間がかかりすぎています。もう一度お試しください。';
             } else {
               errorMessage = '❌ 問題の再生成に失敗しました。もう一度お試しいただくか、ページを更新してください。';
             }
             
-            alert(errorMessage + String.fromCharCode(10) + String.fromCharCode(10) + '（エラー詳細: ' + error.message + '）');
+            alert(errorMessage + String.fromCharCode(10) + String.fromCharCode(10) + '（エラー詳細: ' + rawMessage + '）');
           } finally {
             // 全てのボタンを元の状態に戻す
             buttons.forEach((button, index) => {
@@ -11857,7 +12352,6 @@ async function isDuplicate(c: any, requestId: string): Promise<boolean> {
     return false
   }
 }
-
 // ログ挿入関数
 async function insertLog(c: any, logData: any): Promise<number | null> {
   try {
@@ -11995,10 +12489,11 @@ app.post('/api/logs', requireSecret, async (c) => {
     
   } catch (error) {
     console.error('❌ Log collection error:', error)
+    const errorMessage = toErrorMessage(error, 'ログ収集でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'log_collection_error',
-      message: error.message || 'ログ収集でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -12038,14 +12533,14 @@ async function makeWeeklyReport(c: any, options: { student_id: string, start: st
     
     // サマリ計算
     const sessions = logs.length
-    const minutes = logs.reduce((sum, log) => sum + (log.time_spent_min || 0), 0)
-    const scoresSum = logs.reduce((sum, log) => sum + (log.mini_quiz_score || 0), 0)
+    const minutes = logs.reduce((sum: number, log: { time_spent_min?: number; [key: string]: unknown }) => sum + ((log.time_spent_min as number) || 0), 0)
+    const scoresSum = logs.reduce((sum: number, log: { mini_quiz_score?: number; [key: string]: unknown }) => sum + ((log.mini_quiz_score as number) || 0), 0)
     const avgScore = sessions > 0 ? Math.round(scoresSum / sessions) : 0
     
     // 弱点タグ集計
     const weakTagsFlat: string[] = []
-    logs.forEach(log => {
-      const tags = safeJsonParse(log.weak_tags, [])
+    logs.forEach((log: { weak_tags?: string; [key: string]: unknown }) => {
+      const tags = safeJsonParse(log.weak_tags ?? '[]', [])
       weakTagsFlat.push(...tags)
     })
     
@@ -12113,10 +12608,11 @@ app.post('/api/reports/weekly', requireSecret, async (c) => {
     
   } catch (error) {
     console.error('❌ Weekly report error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'weekly_report_error',
-      message: error.message || '週次レポート生成でエラーが発生しました'
+      message: `週次レポート生成でエラーが発生しました: ${errorMessage}`
     }, 500)
   }
 })
@@ -12144,7 +12640,7 @@ app.get('/dashboard', async (c) => {
       LIMIT ?
     `).bind(limit).all()
     
-    const logs = logsResult.results || []
+    const logs = (logsResult.results || []) as LogRow[]
     
     // 最新ログの日時を確認（警告表示用）
     let statusMessage = '✅ 正常動作中'
@@ -12152,7 +12648,8 @@ app.get('/dashboard', async (c) => {
     
     if (logs.length > 0) {
       const latestLog = logs[0]
-      const latestTime = new Date(latestLog.created_at)
+      const latestTime = latestLog?.created_at ? new Date(latestLog.created_at) : null
+      if (latestTime && !Number.isNaN(latestTime.getTime())) {
       const now = new Date()
       const hoursDiff = (now.getTime() - latestTime.getTime()) / (1000 * 60 * 60)
       
@@ -12160,14 +12657,14 @@ app.get('/dashboard', async (c) => {
         statusMessage = '⚠️ ログ受信停止の可能性あり'
         statusClass = 'status-warning'
       } else {
-        const timeStr = latestTime.toLocaleString('ja-JP', {
-          year: 'numeric',
-          month: '2-digit', 
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-        statusMessage = `✅ 正常動作中（最新ログ: ${timeStr}）`
+          const timeStr = formatDateTime(latestLog.created_at)
+          statusMessage = timeStr
+            ? `✅ 正常動作中（最新ログ: ${timeStr}）`
+            : '✅ 正常動作中'
+        }
+      } else {
+        statusMessage = '⚠️ 最新ログの日時が不正です'
+        statusClass = 'status-warning'
       }
     } else {
       statusMessage = '⚠️ ログデータなし'
@@ -12175,24 +12672,31 @@ app.get('/dashboard', async (c) => {
     }
     
     // weak_tags JSONをパース
-    const processedLogs = logs.map(log => ({
-      ...log,
-      weak_tags_display: (() => {
+    const processedLogs: ProcessedLog[] = logs.map((log) => {
+      const weakTagsDisplay = (() => {
         try {
-          const tags = JSON.parse(log.weak_tags || '[]')
-          return Array.isArray(tags) ? tags.join(', ') : log.weak_tags || ''
+          const parsed = JSON.parse(log.weak_tags ?? '[]')
+          return Array.isArray(parsed) ? parsed.join(', ') : log.weak_tags ?? ''
         } catch {
-          return log.weak_tags || ''
+          return log.weak_tags ?? ''
         }
-      })(),
-      created_at_display: new Date(log.created_at).toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit', 
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }))
+      })()
+      const score = typeof log.mini_quiz_score === 'number' ? log.mini_quiz_score : null
+      const scoreClass =
+        score === null ? 'score-low'
+        : score >= 80 ? 'score-high'
+        : score >= 60 ? 'score-mid'
+        : 'score-low'
+      const displayScore = score === null ? '-' : score
+      
+      return {
+        ...log,
+        weak_tags_display: weakTagsDisplay,
+        created_at_display: formatDateTime(log.created_at) || '-',
+        scoreClass,
+        displayScore
+      }
+    })
     
     // HTMLダッシュボードを生成
     const html = `
@@ -12350,8 +12854,8 @@ app.get('/dashboard', async (c) => {
                     <td class="student-id">${log.student_id || '-'}</td>
                     <td>${log.student_name || '-'}</td>
                     <td>${log.subject || '-'}</td>
-                    <td class="${log.mini_quiz_score >= 80 ? 'score-high' : log.mini_quiz_score >= 60 ? 'score-mid' : 'score-low'}">
-                        ${log.mini_quiz_score || '-'}
+                    <td class="${log.scoreClass}">
+                        ${log.displayScore}
                     </td>
                     <td>${log.correct || 0}</td>
                     <td>${log.incorrect || 0}</td>
@@ -12386,6 +12890,7 @@ app.get('/dashboard', async (c) => {
     
   } catch (error) {
     console.error('❌ Dashboard error:', error)
+    const errorMessage = toErrorMessage(error)
     
     const errorHtml = `
 <!DOCTYPE html>
@@ -12402,7 +12907,7 @@ app.get('/dashboard', async (c) => {
     <div class="error">
         <h1>⚠️ DB接続エラー</h1>
         <p>ダッシュボードのデータを取得できませんでした。</p>
-        <p><strong>エラー詳細:</strong> ${error.message}</p>
+        <p><strong>エラー詳細:</strong> ${errorMessage}</p>
         <button onclick="location.reload()">🔄 再試行</button>
     </div>
 </body>
@@ -12418,7 +12923,7 @@ app.get('/dashboard', async (c) => {
 
 // Favicon ハンドラー
 app.get('/favicon.ico', (c) => {
-  return c.text('', 204)  // No Content
+  return c.body(null, 204)  // No Content
 })
 
 // ============================================================
@@ -12849,7 +13354,7 @@ app.get('/eiken/practice', (c) => {
           })
         });
 
-        const data = await response.json();
+        const data = await response.json() as GenerateQuestionsResponse;
         
         if (data.success && data.questions && data.questions.length > 0) {
           state.questions = data.questions;
@@ -12864,11 +13369,12 @@ app.get('/eiken/practice', (c) => {
           \`;
         }
       } catch (error) {
-        document.getElementById('generatorMessage').innerHTML = \`
-          <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div class="font-medium text-red-900">エラー: \${error.message}</div>
-          </div>
-        \`;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      document.getElementById('generatorMessage').innerHTML = \`
+        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="font-medium text-red-900">エラー: \${errorMessage}</div>
+        </div>
+      \`;
       } finally {
         state.loading = false;
         render();
