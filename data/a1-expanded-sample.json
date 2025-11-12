@@ -1,0 +1,272 @@
+{
+  "metadata": {
+    "generated_at": "2025-11-11T13:08:02.005Z",
+    "total_base_forms": 20,
+    "total_expanded_forms": 68,
+    "expansion_rate": 3.4
+  },
+  "verbs": [
+    {
+      "base": "go",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "go",
+        "goes",
+        "went",
+        "gone",
+        "going"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular verb"
+    },
+    {
+      "base": "eat",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "eat",
+        "eats",
+        "ate",
+        "eaten",
+        "eating"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular verb"
+    },
+    {
+      "base": "have",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "have",
+        "has",
+        "had",
+        "having"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular verb"
+    },
+    {
+      "base": "come",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "come",
+        "comes",
+        "came",
+        "coming"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular verb"
+    },
+    {
+      "base": "see",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "see",
+        "sees",
+        "saw",
+        "seen",
+        "seeing"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular verb"
+    },
+    {
+      "base": "play",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "play",
+        "plays",
+        "playing",
+        "played"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "study",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "study",
+        "studies",
+        "studying",
+        "studied"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "watch",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "watch",
+        "watches",
+        "watching",
+        "watched"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "stop",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "stop",
+        "stops",
+        "stopping",
+        "stopped"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "like",
+      "pos": "verb",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "like",
+        "likes",
+        "liking",
+        "liked"
+      ],
+      "expansion_type": "regular"
+    }
+  ],
+  "nouns": [
+    {
+      "base": "child",
+      "pos": "noun",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "child",
+        "children"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular noun"
+    },
+    {
+      "base": "person",
+      "pos": "noun",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "person",
+        "people"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular noun"
+    },
+    {
+      "base": "book",
+      "pos": "noun",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "book",
+        "books"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "box",
+      "pos": "noun",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "box",
+        "boxes"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "city",
+      "pos": "noun",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "city",
+        "cities"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular noun"
+    }
+  ],
+  "adjectives": [
+    {
+      "base": "good",
+      "pos": "adjective",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "good",
+        "better",
+        "best"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular adjective"
+    },
+    {
+      "base": "bad",
+      "pos": "adjective",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "bad",
+        "worse",
+        "worst"
+      ],
+      "expansion_type": "irregular",
+      "note": "Irregular adjective"
+    },
+    {
+      "base": "big",
+      "pos": "adjective",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "big",
+        "bigger",
+        "biggest"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "happy",
+      "pos": "adjective",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "happy",
+        "happier",
+        "happiest"
+      ],
+      "expansion_type": "regular"
+    },
+    {
+      "base": "beautiful",
+      "pos": "adjective",
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "forms": [
+        "beautiful",
+        "more beautiful",
+        "most beautiful"
+      ],
+      "expansion_type": "regular"
+    }
+  ]
+}

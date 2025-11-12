@@ -2553,33 +2553,7 @@ ${targetLevel === 'high_school' ? `
           display: block;
         }
         
-        .dev-start-button {
-          width: 100%;
-          padding: 1rem 2rem;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
-          border: 2px dashed rgba(255, 255, 255, 0.3);
-          border-radius: 0.75rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          margin-top: 1rem;
-          display: block;
-          opacity: 0.9;
-        }
-        
-        .dev-start-button:hover {
-          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-          opacity: 1;
-        }
-        
-        .dev-start-button i {
-          margin-right: 0.5rem;
-        }
-        
+
         .back-button {
           display: inline-flex;
           align-items: center;
@@ -2874,11 +2848,7 @@ ${targetLevel === 'high_school' ? `
                 <button class="start-button" id="startButton" onclick="startLesson()">
                     <i class="fas fa-play-circle"></i> 授業を開始
                 </button>
-                
-                <!-- 開発者モードボタン -->
-                <button class="dev-start-button" id="devStartButton" onclick="startDevLesson()">
-                    <i class="fas fa-code"></i> 🛠️ 開発モードで開始（Step 4へ直接ジャンプ）
-                </button>
+
             </div>
         </div>
         
@@ -3068,41 +3038,7 @@ ${targetLevel === 'high_school' ? `
                 alert('エラーが発生しました。もう一度お試しください。');
             }
         }
-        
-        async function startDevLesson() {
-            // 開発者モード：レベル・形式選択なしで開始
-            const defaultLevel = 'high_school';
-            const defaultFormat = 'individual';
-            
-            console.log('🛠️ Starting in DEVELOPER MODE:', { sessionId, defaultLevel, defaultFormat });
-            
-            // セッション初期化API呼び出し
-            try {
-                const response = await fetch('/api/essay/init-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sessionId,
-                        targetLevel: defaultLevel,
-                        lessonFormat: defaultFormat
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.ok) {
-                    // 授業ページに開発者モードパラメータ付きで遷移
-                    window.location.href = '/essay-coaching/session/' + sessionId + '?dev=true&debug=true';
-                } else {
-                    alert('セッションの初期化に失敗しました: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Session init error:', error);
-                alert('エラーが発生しました。もう一度お試しください。');
-            }
-        }
+
         </script>
     </body>
     </html>
@@ -3955,73 +3891,6 @@ ${targetLevel === 'high_school' ? `
           }
         }
         
-        /* 開発者用クイックジャンプボタン */
-        .dev-quick-jump {
-          position: fixed;
-          bottom: 80px;
-          right: 20px;
-          z-index: 9998;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 60px;
-          height: 60px;
-          font-size: 1.5rem;
-          cursor: pointer;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .dev-quick-jump:hover {
-          transform: scale(1.1);
-          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
-        }
-        
-        .dev-quick-jump:active {
-          transform: scale(0.95);
-        }
-        
-        .dev-quick-jump-label {
-          position: fixed;
-          bottom: 85px;
-          right: 90px;
-          z-index: 9998;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 0.5rem 1rem;
-          border-radius: 0.5rem;
-          font-size: 0.75rem;
-          white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-        
-        .dev-quick-jump:hover + .dev-quick-jump-label {
-          opacity: 1;
-        }
-        
-        @media (max-width: 768px) {
-          .dev-quick-jump {
-            width: 50px;
-            height: 50px;
-            font-size: 1.2rem;
-            bottom: 70px;
-            right: 15px;
-          }
-          
-          .dev-quick-jump-label {
-            bottom: 75px;
-            right: 75px;
-            font-size: 0.7rem;
-            padding: 0.4rem 0.8rem;
-          }
-        }
-        
         /* スピナーアニメーション */
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -4219,15 +4088,21 @@ ${targetLevel === 'high_school' ? `
         
         function addMessage(text, isTeacher = false) {
             const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) {
+                console.error('❌ messages div not found');
+                return;
+            }
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
             
             const icon = isTeacher ? '👨‍🏫' : '👤';
-            const formattedText = text.split('\\n').join('<br>');
+            // Fix: Replace both actual newlines and escaped newlines
+            const formattedText = text.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
             
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            console.log('✅ Message added:', isTeacher ? 'Teacher' : 'Student', text.substring(0, 50));
         }
         
         // 重複リクエスト防止フラグ
@@ -5060,76 +4935,81 @@ ${targetLevel === 'high_school' ? `
         
         // Enterキーで改行可能（送信は送信ボタンのみ）
         // キーイベントリスナーは不要
-        
-        // 開発者用：Step 4へクイックジャンプ
-        function quickJumpToStep4() {
-            if (confirm('開発者モード：Step 4（本練習）へジャンプしますか？')) {
-                console.log('🚀 Quick jump to Step 4 (Camera step)');
-                currentStep = 4;
-                
-                // 進捗バーを更新
-                for (let i = 1; i <= 6; i++) {
-                    const stepDiv = document.getElementById('step-' + i);
-                    if (stepDiv) {
-                        if (i < 4) {
-                            stepDiv.classList.add('completed');
-                            stepDiv.classList.remove('current');
-                        } else if (i === 4) {
-                            stepDiv.classList.add('current');
-                            stepDiv.classList.remove('completed');
-                        } else {
-                            stepDiv.classList.remove('completed', 'current');
-                        }
-                    }
+
+        // ========== AIに質問機能 ==========
+        function openAIQuestionModal() {
+            document.getElementById('aiQuestionModal').style.display = 'flex';
+        }
+
+        function closeAIQuestionModal() {
+            document.getElementById('aiQuestionModal').style.display = 'none';
+            document.getElementById('aiQuestionText').value = '';
+            document.getElementById('aiAnswer').innerHTML = 'ここにAIの回答が表示されます';
+        }
+
+        async function submitAIQuestion() {
+            const questionText = document.getElementById('aiQuestionText').value.trim();
+            if (!questionText) {
+                alert('質問を入力してください');
+                return;
+            }
+
+            const answerDiv = document.getElementById('aiAnswer');
+            answerDiv.innerHTML = '<div style="text-align:center;padding:2rem;">🤖 AIが回答を生成中...</div>';
+
+            try {
+                const response = await fetch('/api/ai-question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-APP-KEY': 'kobeya-dev-secret-2024'
+                    },
+                    body: JSON.stringify({
+                        question: questionText,
+                        studentId: '${sessionId}'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('AIリクエストに失敗しました');
                 }
-                
-                // Step 4のメッセージを表示
-                addMessage('【開発者モード】Step 4（本練習）へジャンプしました！\\n\\nこれから800字程度の小論文を書いていただきます。\\n原稿用紙に手書きで書いて、カメラボタン📷で撮影してください。', true);
-                addMessage('準備ができたら、下のオレンジ色のカメラボタン📷をタップして原稿を撮影してください。', true);
-                
-                // カメラボタンを有効化
-                document.getElementById('cameraBtn').style.display = 'flex';
-                document.getElementById('cameraInputBtn').style.display = 'flex';
+
+                const data = await response.json();
+                answerDiv.innerHTML = '<div style="white-space:pre-wrap;line-height:1.6;">' + (data.answer || 'エラーが発生しました') + '</div>';
+            } catch (error) {
+                answerDiv.innerHTML = '<div style="color:#ef4444;">エラー: ' + error.message + '</div>';
             }
         }
-        
-        // URLパラメータで ?dev=true の場合のみクイックジャンプボタンを表示
-        window.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const isDevMode = urlParams.get('dev') === 'true';
-            const isDebugMode = urlParams.get('debug') === 'true';
-            
-            if (isDevMode) {
-                // クイックジャンプボタンを追加
-                const jumpBtn = document.createElement('button');
-                jumpBtn.className = 'dev-quick-jump';
-                jumpBtn.innerHTML = '⚡';
-                jumpBtn.onclick = quickJumpToStep4;
-                jumpBtn.title = 'Step 4へジャンプ（開発者用）';
-                
-                const jumpLabel = document.createElement('div');
-                jumpLabel.className = 'dev-quick-jump-label';
-                jumpLabel.textContent = 'Step 4へジャンプ';
-                
-                document.body.appendChild(jumpBtn);
-                document.body.appendChild(jumpLabel);
-                
-                console.log('🛠️ Developer mode enabled. Quick jump button added.');
-                console.log('💡 Click the ⚡ button to jump to Step 4 (Camera step)');
-                
-                // 開発者モードの案内メッセージを追加
-                addMessage('🛠️ 【開発者モード有効】\\n右下の⚡ボタンでStep 4（カメラ機能）へ直接ジャンプできます。', true);
-            }
-            
-            // デバッグモードまたはモバイルの場合の案内
-            if (isDebugMode || window.innerWidth < 1024) {
-                setTimeout(function() {
-                    console.log('📱 Eruda console is active. Tap the 🐛 button in the bottom-right corner to open the console.');
-                    addMessage('📱 デバッグモード：画面右下の🐛ボタンをタップすると、コンソールログが確認できます。', true);
-                }, 1000);
-            }
-        });
         </script>
+
+        <!-- AIに質問フローティングボタン -->
+        <button onclick="openAIQuestionModal()" style="position:fixed;bottom:2rem;right:2rem;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            💬
+        </button>
+
+        <!-- AIに質問モーダル -->
+        <div id="aiQuestionModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+            <div style="background:white;border-radius:1rem;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:1.5rem;display:flex;justify-content:space-between;align-items:center;border-radius:1rem 1rem 0 0;">
+                    <h2 style="margin:0;font-size:1.5rem;">💬 AIに質問</h2>
+                    <button onclick="closeAIQuestionModal()" style="background:none;border:none;color:white;font-size:2rem;cursor:pointer;line-height:1;">&times;</button>
+                </div>
+                <div style="padding:1.5rem;">
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block;margin-bottom:0.5rem;font-weight:600;">質問内容</label>
+                        <textarea id="aiQuestionText" placeholder="わからない言葉や概念について質問してください..." style="width:100%;min-height:120px;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:1rem;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block;margin-bottom:0.5rem;font-weight:600;">🤖 AI回答</label>
+                        <div id="aiAnswer" style="min-height:100px;max-height:300px;overflow-y:auto;padding:1rem;background:#f9fafb;border-radius:0.5rem;border:1px solid #e5e7eb;">ここにAIの回答が表示されます</div>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;">
+                        <button onclick="submitAIQuestion()" style="flex:1;padding:0.75rem 1.5rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:0.5rem;font-size:1rem;font-weight:600;cursor:pointer;">✅ 質問を送信</button>
+                        <button onclick="closeAIQuestionModal()" style="padding:0.75rem 1.5rem;background:#e5e7eb;color:#333;border:none;border-radius:0.5rem;font-size:1rem;font-weight:600;cursor:pointer;">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </body>
     </html>
   `)

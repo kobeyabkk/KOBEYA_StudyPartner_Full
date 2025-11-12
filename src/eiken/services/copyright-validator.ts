@@ -129,20 +129,26 @@ async function fetchExistingQuestions(
   // プレースホルダー実装
   // 実運用では、過去問のハッシュや特徴ベクトルのみを保存・比較
   
-  const result = await db.prepare(`
-    SELECT grammar_patterns, vocabulary_level 
-    FROM question_analysis 
-    WHERE grade = ? AND section = ?
-    ORDER BY created_at DESC
-    LIMIT ?
-  `).bind(grade, section, limit).all();
-  
-  // 実際は問題文ではなく、特徴データから構築した比較用テキスト
-  return result.results.map((row: any) => {
-    // 文法パターンと語彙レベルから仮想比較テキストを生成
-    const patterns = JSON.parse(row.grammar_patterns || '[]');
-    return `${patterns.join(' ')} ${row.vocabulary_level}`;
-  });
+  try {
+    const result = await db.prepare(`
+      SELECT grammar_patterns, vocabulary_level 
+      FROM eiken_question_analysis 
+      WHERE grade = ? AND section = ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).bind(grade, section, limit).all();
+    
+    // 実際は問題文ではなく、特徴データから構築した比較用テキスト
+    return result.results.map((row: any) => {
+      // 文法パターンと語彙レベルから仮想比較テキストを生成
+      const patterns = JSON.parse(row.grammar_patterns || '[]');
+      return `${patterns.join(' ')} ${row.vocabulary_level}`;
+    });
+  } catch (error) {
+    // テーブルが存在しない場合は空配列を返す
+    console.warn('eiken_question_analysis table not found, skipping database check');
+    return [];
+  }
 }
 
 /**

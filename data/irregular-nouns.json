@@ -1,0 +1,273 @@
+{
+  "irregular_nouns": [
+    {
+      "base": "child",
+      "forms": ["children"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "子ども",
+        "en": "a young person"
+      }
+    },
+    {
+      "base": "person",
+      "forms": ["people"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "'persons'も存在するが通常は'people'",
+      "meanings": {
+        "ja": "人",
+        "en": "an individual human"
+      }
+    },
+    {
+      "base": "man",
+      "forms": ["men"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "男性",
+        "en": "an adult male"
+      }
+    },
+    {
+      "base": "woman",
+      "forms": ["women"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "meanings": {
+        "ja": "女性",
+        "en": "an adult female"
+      }
+    },
+    {
+      "base": "tooth",
+      "forms": ["teeth"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "歯",
+        "en": "a hard structure in the mouth"
+      }
+    },
+    {
+      "base": "foot",
+      "forms": ["feet"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "meanings": {
+        "ja": "足",
+        "en": "the lower extremity of the leg"
+      }
+    },
+    {
+      "base": "mouse",
+      "forms": ["mice"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "note": "コンピューターのマウスは'mouses'も使われる",
+      "meanings": {
+        "ja": "ねずみ",
+        "en": "a small rodent"
+      }
+    },
+    {
+      "base": "goose",
+      "forms": ["geese"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "low",
+      "meanings": {
+        "ja": "ガチョウ",
+        "en": "a large water bird"
+      }
+    },
+    {
+      "base": "sheep",
+      "forms": ["sheep"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "note": "単数形と複数形が同じ",
+      "meanings": {
+        "ja": "羊",
+        "en": "a woolly farm animal"
+      }
+    },
+    {
+      "base": "deer",
+      "forms": ["deer"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "note": "単数形と複数形が同じ",
+      "meanings": {
+        "ja": "鹿",
+        "en": "a hoofed grazing animal"
+      }
+    },
+    {
+      "base": "fish",
+      "forms": ["fish", "fishes"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "通常は'fish'、種類を指す場合は'fishes'",
+      "meanings": {
+        "ja": "魚",
+        "en": "an aquatic animal"
+      }
+    },
+    {
+      "base": "ox",
+      "forms": ["oxen"],
+      "cefr_level": "B1",
+      "eiken_grade": "pre-2",
+      "frequency": "low",
+      "meanings": {
+        "ja": "雄牛",
+        "en": "a castrated bull"
+      }
+    },
+    {
+      "base": "life",
+      "forms": ["lives"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "発音が変わる: /laɪf/ → /laɪvz/",
+      "meanings": {
+        "ja": "人生、命",
+        "en": "existence, living"
+      }
+    },
+    {
+      "base": "wife",
+      "forms": ["wives"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "発音が変わる: /waɪf/ → /waɪvz/",
+      "meanings": {
+        "ja": "妻",
+        "en": "a married woman"
+      }
+    },
+    {
+      "base": "knife",
+      "forms": ["knives"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "note": "発音が変わる: /naɪf/ → /naɪvz/",
+      "meanings": {
+        "ja": "ナイフ",
+        "en": "a cutting instrument"
+      }
+    },
+    {
+      "base": "leaf",
+      "forms": ["leaves"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "medium",
+      "note": "発音が変わる: /liːf/ → /liːvz/",
+      "meanings": {
+        "ja": "葉",
+        "en": "a flat green part of a plant"
+      }
+    },
+    {
+      "base": "half",
+      "forms": ["halves"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "high",
+      "note": "発音が変わる: /hæf/ → /hævz/",
+      "meanings": {
+        "ja": "半分",
+        "en": "one of two equal parts"
+      }
+    },
+    {
+      "base": "shelf",
+      "forms": ["shelves"],
+      "cefr_level": "A2",
+      "eiken_grade": "4",
+      "frequency": "medium",
+      "note": "発音が変わる: /ʃɛlf/ → /ʃɛlvz/",
+      "meanings": {
+        "ja": "棚",
+        "en": "a flat board for storage"
+      }
+    },
+    {
+      "base": "city",
+      "forms": ["cities"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "y → ies のパターン",
+      "meanings": {
+        "ja": "都市",
+        "en": "a large town"
+      }
+    },
+    {
+      "base": "baby",
+      "forms": ["babies"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "high",
+      "note": "y → ies のパターン",
+      "meanings": {
+        "ja": "赤ちゃん",
+        "en": "a very young child"
+      }
+    },
+    {
+      "base": "country",
+      "forms": ["countries"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "y → ies のパターン",
+      "meanings": {
+        "ja": "国",
+        "en": "a nation"
+      }
+    },
+    {
+      "base": "family",
+      "forms": ["families"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "y → ies のパターン",
+      "meanings": {
+        "ja": "家族",
+        "en": "parents and their children"
+      }
+    },
+    {
+      "base": "story",
+      "forms": ["stories"],
+      "cefr_level": "A1",
+      "eiken_grade": "5",
+      "frequency": "highest",
+      "note": "y → ies のパターン",
+      "meanings": {
+        "ja": "物語",
+        "en": "a narrative"
+      }
+    }
+  ]
+}

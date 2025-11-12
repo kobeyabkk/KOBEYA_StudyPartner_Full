@@ -34,4 +34,4 @@ yarn-error.log*
 
 # PM2
 .pm2/
-pids/
+pids/core

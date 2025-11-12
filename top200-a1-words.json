@@ -1,0 +1,1610 @@
+[
+  {
+    "results": [
+      {
+        "word": "activity",
+        "base_form": "activity",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "actor",
+        "base_form": "actor",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "address",
+        "base_form": "address",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "age",
+        "base_form": "age",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "airplane/aeroplane",
+        "base_form": "airplane/aeroplane",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "airport",
+        "base_form": "airport",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "album",
+        "base_form": "album",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "apple",
+        "base_form": "apple",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "apron",
+        "base_form": "apron",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "arm",
+        "base_form": "arm",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "art",
+        "base_form": "art",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "article",
+        "base_form": "article",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "aunt",
+        "base_form": "aunt",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "baby",
+        "base_form": "baby",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "irregular"
+      },
+      {
+        "word": "bag",
+        "base_form": "bag",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "ball",
+        "base_form": "ball",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "banana",
+        "base_form": "banana",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "band",
+        "base_form": "band",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bank",
+        "base_form": "bank",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bar",
+        "base_form": "bar",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "baseball",
+        "base_form": "baseball",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "basketball",
+        "base_form": "basketball",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bath",
+        "base_form": "bath",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bathroom",
+        "base_form": "bathroom",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "beach",
+        "base_form": "beach",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bean",
+        "base_form": "bean",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bed",
+        "base_form": "bed",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bedroom",
+        "base_form": "bedroom",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bee",
+        "base_form": "bee",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "beef",
+        "base_form": "beef",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bell",
+        "base_form": "bell",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bicycle",
+        "base_form": "bicycle",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bike",
+        "base_form": "bike",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "birth",
+        "base_form": "birth",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "birthday",
+        "base_form": "birthday",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "biscuit",
+        "base_form": "biscuit",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "black",
+        "base_form": "black",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "block",
+        "base_form": "block",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "blue",
+        "base_form": "blue",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "board",
+        "base_form": "board",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "boat",
+        "base_form": "boat",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "book",
+        "base_form": "book",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bookstore",
+        "base_form": "bookstore",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bottle",
+        "base_form": "bottle",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bowl",
+        "base_form": "bowl",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "box",
+        "base_form": "box",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "boy",
+        "base_form": "boy",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "boyfriend",
+        "base_form": "boyfriend",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bread",
+        "base_form": "bread",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "breakfast",
+        "base_form": "breakfast",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bridge",
+        "base_form": "bridge",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "brother",
+        "base_form": "brother",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "brush",
+        "base_form": "brush",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bucket",
+        "base_form": "bucket",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "building",
+        "base_form": "building",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "burger",
+        "base_form": "burger",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "bus",
+        "base_form": "bus",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "business",
+        "base_form": "business",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "butter",
+        "base_form": "butter",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "button",
+        "base_form": "button",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cafe/café",
+        "base_form": "cafe/café",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cake",
+        "base_form": "cake",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "camera",
+        "base_form": "camera",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "camp",
+        "base_form": "camp",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "candy",
+        "base_form": "candy",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cap",
+        "base_form": "cap",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "car",
+        "base_form": "car",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "card",
+        "base_form": "card",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cartoon",
+        "base_form": "cartoon",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "case",
+        "base_form": "case",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "CD",
+        "base_form": "CD",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "CD player",
+        "base_form": "CD player",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "chair",
+        "base_form": "chair",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cheese",
+        "base_form": "cheese",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "chicken",
+        "base_form": "chicken",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "child",
+        "base_form": "child",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "irregular"
+      },
+      {
+        "word": "chocolate",
+        "base_form": "chocolate",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "church",
+        "base_form": "church",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cinema",
+        "base_form": "cinema",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "class",
+        "base_form": "class",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "classmate",
+        "base_form": "classmate",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "classroom",
+        "base_form": "classroom",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "climb",
+        "base_form": "climb",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "clock",
+        "base_form": "clock",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cloth",
+        "base_form": "cloth",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "club",
+        "base_form": "club",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "coach",
+        "base_form": "coach",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "coat",
+        "base_form": "coat",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "coffee",
+        "base_form": "coffee",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "coke",
+        "base_form": "coke",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cold",
+        "base_form": "cold",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "collection",
+        "base_form": "collection",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "college",
+        "base_form": "college",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "color/colour",
+        "base_form": "color/colour",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "color/colour",
+        "base_form": "color/colour",
+        "pos": "verb",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "computer",
+        "base_form": "computer",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "concert",
+        "base_form": "concert",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cook",
+        "base_form": "cook",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cookie",
+        "base_form": "cookie",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cop",
+        "base_form": "cop",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "copy",
+        "base_form": "copy",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "corn",
+        "base_form": "corn",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "corner",
+        "base_form": "corner",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "couch",
+        "base_form": "couch",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "course",
+        "base_form": "course",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cousin",
+        "base_form": "cousin",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cover",
+        "base_form": "cover",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cream",
+        "base_form": "cream",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "credit card",
+        "base_form": "credit card",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "culture",
+        "base_form": "culture",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "cup",
+        "base_form": "cup",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dad",
+        "base_form": "dad",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dance",
+        "base_form": "dance",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dancing",
+        "base_form": "dancing",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "daughter",
+        "base_form": "daughter",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "design",
+        "base_form": "design",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "desk",
+        "base_form": "desk",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dictionary",
+        "base_form": "dictionary",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dining room",
+        "base_form": "dining room",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dinner",
+        "base_form": "dinner",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dish",
+        "base_form": "dish",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "doctor/Dr./Dr",
+        "base_form": "doctor/Dr./Dr",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "doll",
+        "base_form": "doll",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dollar",
+        "base_form": "dollar",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "door",
+        "base_form": "door",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "drama",
+        "base_form": "drama",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "dress",
+        "base_form": "dress",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "drink",
+        "base_form": "drink",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "drive",
+        "base_form": "drive",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "driver",
+        "base_form": "driver",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "drum",
+        "base_form": "drum",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "DVD",
+        "base_form": "DVD",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "egg",
+        "base_form": "egg",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "email/e-mail/E-mail",
+        "base_form": "email/e-mail/E-mail",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "engineer",
+        "base_form": "engineer",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "event",
+        "base_form": "event",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "factory",
+        "base_form": "factory",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fairy",
+        "base_form": "fairy",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "family",
+        "base_form": "family",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "irregular"
+      },
+      {
+        "word": "fan",
+        "base_form": "fan",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "farm",
+        "base_form": "farm",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "farmer",
+        "base_form": "farmer",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "father",
+        "base_form": "father",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "feed",
+        "base_form": "feed",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "festival",
+        "base_form": "festival",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fever",
+        "base_form": "fever",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "field",
+        "base_form": "field",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fight",
+        "base_form": "fight",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "file",
+        "base_form": "file",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fish",
+        "base_form": "fish",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "irregular"
+      },
+      {
+        "word": "fish",
+        "base_form": "fish",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "irregular"
+      },
+      {
+        "word": "fishing",
+        "base_form": "fishing",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "flag",
+        "base_form": "flag",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "flat",
+        "base_form": "flat",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "floor",
+        "base_form": "floor",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fly",
+        "base_form": "fly",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "food",
+        "base_form": "food",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "football",
+        "base_form": "football",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "friend",
+        "base_form": "friend",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fruit",
+        "base_form": "fruit",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "fun",
+        "base_form": "fun",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "game",
+        "base_form": "game",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "garbage",
+        "base_form": "garbage",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "garden",
+        "base_form": "garden",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "gift",
+        "base_form": "gift",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "girlfriend",
+        "base_form": "girlfriend",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "glass",
+        "base_form": "glass",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "glasses",
+        "base_form": "glasses",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grammar",
+        "base_form": "grammar",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grandfather",
+        "base_form": "grandfather",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grandma",
+        "base_form": "grandma",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grandmother",
+        "base_form": "grandmother",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grandpa",
+        "base_form": "grandpa",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grandparent",
+        "base_form": "grandparent",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grape",
+        "base_form": "grape",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "grass",
+        "base_form": "grass",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "gray/grey",
+        "base_form": "gray/grey",
+        "pos": "adjective",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "gray/grey",
+        "base_form": "gray/grey",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "green",
+        "base_form": "green",
+        "pos": "adjective",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "ground",
+        "base_form": "ground",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "guitar",
+        "base_form": "guitar",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "habit",
+        "base_form": "habit",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hair",
+        "base_form": "hair",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hall",
+        "base_form": "hall",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hamburger",
+        "base_form": "hamburger",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hat",
+        "base_form": "hat",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "headache",
+        "base_form": "headache",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "health",
+        "base_form": "health",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hill",
+        "base_form": "hill",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "history",
+        "base_form": "history",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hobby",
+        "base_form": "hobby",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hole",
+        "base_form": "hole",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "holiday",
+        "base_form": "holiday",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "home",
+        "base_form": "home",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hometown",
+        "base_form": "hometown",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "homework",
+        "base_form": "homework",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hospital",
+        "base_form": "hospital",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "hotel",
+        "base_form": "hotel",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "house",
+        "base_form": "house",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      },
+      {
+        "word": "husband",
+        "base_form": "husband",
+        "pos": "noun",
+        "zipf_score": 6,
+        "is_base_form": 1,
+        "expansion_type": "regular"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 2
+    }
+  }
+]

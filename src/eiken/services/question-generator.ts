@@ -6,6 +6,11 @@
 import type { EikenGrade, QuestionType } from '../types';
 import { validateGeneratedQuestion } from './copyright-validator';
 import type { EikenEnv } from '../types';
+import { analyzeVocabularyLevel } from './vocabulary-analyzer';
+import { analyzeTextProfile } from './text-profiler';
+import { buildEnhancedSystemPrompt, buildCompactFewShotPrompt } from '../prompts/few-shot-builder';
+import { rewriteQuestion } from './vocabulary-rewriter';
+import type { VocabularyViolation } from '../types/vocabulary';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -23,6 +28,8 @@ export interface GeneratedQuestion {
   choices: string[];
   correctAnswerIndex: number;
   explanation: string;
+  explanationJa?: string;      // 日本語解説
+  translationJa?: string;       // 問題文の日本語訳
   difficulty: number;
   topic: string;
   copyrightSafe: boolean;
@@ -35,6 +42,11 @@ export interface QuestionGenerationResult {
   rejected: number;
   totalAttempts: number;
   errors: string[];
+  rewriteStats?: {
+    attempts: number;
+    successes: number;
+    successRate: number;
+  };
 }
 
 /**
@@ -49,6 +61,8 @@ export async function generateQuestions(
   const errors: string[] = [];
   let rejected = 0;
   let totalAttempts = 0;
+  let rewriteAttempts = 0;
+  let rewriteSuccesses = 0;
   
   const openaiApiKey = env.OPENAI_API_KEY;
   if (!openaiApiKey) {
@@ -97,9 +111,111 @@ export async function generateQuestions(
         env
       );
       
-      // 3. 検証結果に基づいて承認・却下判定
+      // 著作権チェックで却下された場合はスキップ
+      if (validation.recommendation === 'reject') {
+        rejected++;
+        console.log(`❌ Question rejected (${validation.violations.length} copyright violations)`);
+        continue;
+      }
+      
+      // 3. 語彙レベル検証（Phase 1 PoC）
+      console.log('📚 Validating vocabulary level...');
+      const combinedText = `${question.questionText} ${question.choices.join(' ')}`;
+      const vocabAnalysis = await analyzeVocabularyLevel(
+        combinedText,
+        request.grade,
+        env
+      );
+      
+      // 語彙レベルチェックで不合格の場合、自動リライトを試行
+      if (!vocabAnalysis.isValid) {
+        console.log(`⚠️ Vocabulary violations detected (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
+        
+        // 🆕 自動リライト機能（Week 2 Day 3-4）
+        console.log(`🔄 Attempting auto-rewrite...`);
+        
+        // 違反単語をVocabularyViolation形式に変換
+        const violations: VocabularyViolation[] = (vocabAnalysis.outOfRangeWords || []).map(word => ({
+          word,
+          expected_level: request.grade === '5' ? 'A1' : 'A2',
+          actual_level: 'B1', // 簡易的にB1と仮定
+          severity: 'error' as const
+        }));
+        
+        if (violations.length > 0) {
+          rewriteAttempts++;
+          
+          const rewriteResult = await rewriteQuestion(
+            question.questionText,
+            question.choices,
+            violations,
+            request.grade,
+            env,
+            { maxAttempts: 2, minConfidence: 0.7 }
+          );
+          
+          if (rewriteResult.success) {
+            rewriteSuccesses++;
+            console.log(`✅ Auto-rewrite successful! (confidence: ${rewriteResult.confidence.toFixed(2)})`);
+            console.log(`   Replacements: ${rewriteResult.replacements.map(r => `${r.original}→${r.replacement}`).join(', ')}`);
+            
+            // リライト後の問題を採用
+            question.questionText = rewriteResult.rewritten.question;
+            question.choices = rewriteResult.rewritten.choices;
+            question.correctAnswerIndex = rewriteResult.rewritten.correctAnswerIndex;
+            
+            // 再検証
+            const revalidation = await analyzeVocabularyLevel(
+              `${question.questionText} ${question.choices.join(' ')}`,
+              request.grade,
+              env
+            );
+            
+            if (!revalidation.isValid) {
+              rejected++;
+              console.log(`❌ Rewritten question still has violations, rejecting`);
+              continue;
+            }
+            
+            console.log(`✅ Rewritten question passed re-validation`);
+            // 続行してテキストプロファイル検証へ
+          } else {
+            rejected++;
+            console.log(`❌ Auto-rewrite failed: ${rewriteResult.error || 'Unknown error'}`);
+            continue;
+          }
+        } else {
+          rejected++;
+          console.log(`❌ Question rejected (no specific violations detected)`);
+          continue;
+        }
+      }
+      
+      console.log(`✅ Vocabulary check passed (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
+      
+      // 4. テキストプロファイル検証（Phase 1 改善版: 簡易CVLA）
+      console.log('📊 Analyzing text profile (simplified CVLA)...');
+      const textProfile = await analyzeTextProfile(
+        combinedText,
+        request.grade,
+        env
+      );
+      
+      // テキスト全体のレベルが高すぎる場合は却下
+      if (!textProfile.isValid) {
+        rejected++;
+        console.log(`❌ Question rejected (text level too high: ${textProfile.cefrjLevel}, score: ${textProfile.numericScore.toFixed(2)})`);
+        if (textProfile.suggestions) {
+          console.log(`   Suggestion: ${textProfile.suggestions}`);
+        }
+        continue;
+      }
+      
+      console.log(`✅ Text profile check passed (CEFR-J: ${textProfile.cefrjLevel}, score: ${textProfile.numericScore.toFixed(2)})`);
+      
+      // 4. 検証結果に基づいて承認・却下判定
       if (validation.recommendation === 'approve') {
-        console.log(`✅ Question approved (score: ${validation.overallScore})`);
+        console.log(`✅ Question approved (copyright score: ${validation.overallScore})`);
         generated.push({
           ...question,
           questionNumber: generated.length + 1,
@@ -107,7 +223,7 @@ export async function generateQuestions(
           copyrightScore: validation.overallScore
         });
       } else if (validation.recommendation === 'review') {
-        console.log(`⚠️ Question needs review (score: ${validation.overallScore})`);
+        console.log(`⚠️ Question needs review (copyright score: ${validation.overallScore})`);
         // スコアが比較的高ければ採用
         if (validation.overallScore >= 70) {
           generated.push({
@@ -118,11 +234,8 @@ export async function generateQuestions(
           });
         } else {
           rejected++;
-          console.log(`❌ Question rejected (low score)`);
+          console.log(`❌ Question rejected (low copyright score)`);
         }
-      } else {
-        rejected++;
-        console.log(`❌ Question rejected (${validation.violations.length} violations)`);
       }
       
       // レート制限対策
@@ -136,13 +249,22 @@ export async function generateQuestions(
   
   console.log(`✅ Generation complete: ${generated.length}/${request.count} questions`);
   console.log(`📊 Stats: ${rejected} rejected, ${totalAttempts} total attempts`);
+  if (rewriteAttempts > 0) {
+    console.log(`🔄 Rewrites: ${rewriteSuccesses}/${rewriteAttempts} successful (${(rewriteSuccesses / rewriteAttempts * 100).toFixed(1)}%)`);
+  }
   
   return {
     success: generated.length > 0,
     generated,
     rejected,
     totalAttempts,
-    errors
+    errors,
+    // 🆕 Rewrite statistics
+    rewriteStats: rewriteAttempts > 0 ? {
+      attempts: rewriteAttempts,
+      successes: rewriteSuccesses,
+      successRate: rewriteSuccesses / rewriteAttempts
+    } : undefined
   };
 }
 
@@ -184,18 +306,51 @@ async function generateSingleQuestion(
   const data = await response.json();
   const generated = JSON.parse(data.choices[0].message.content);
   
+  // 🎲 選択肢をシャッフルして正解位置をランダム化
+  const { shuffledChoices, newCorrectIndex } = shuffleChoices(
+    generated.choices,
+    generated.correct_answer_index
+  );
+  
   return {
     questionText: generated.question_text,
-    choices: generated.choices,
-    correctAnswerIndex: generated.correct_answer_index,
+    choices: shuffledChoices,
+    correctAnswerIndex: newCorrectIndex,
     explanation: generated.explanation,
+    explanationJa: generated.explanation_ja,
+    translationJa: generated.translation_ja,
     difficulty: generated.difficulty || request.difficulty || 0.5,
     topic: generated.topic || 'general'
   };
 }
 
 /**
- * システムプロンプト構築
+ * 選択肢をシャッフルして正解位置をランダム化
+ */
+function shuffleChoices(
+  choices: string[],
+  correctIndex: number
+): { shuffledChoices: string[]; newCorrectIndex: number } {
+  const correctAnswer = choices[correctIndex];
+  
+  // Fisher-Yatesアルゴリズムでシャッフル
+  const shuffled = [...choices];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  // 正解の新しい位置を見つける
+  const newCorrectIndex = shuffled.indexOf(correctAnswer);
+  
+  return {
+    shuffledChoices: shuffled,
+    newCorrectIndex
+  };
+}
+
+/**
+ * システムプロンプト構築（Few-shot examples付き）
  */
 function buildSystemPrompt(
   request: QuestionGenerationRequest,
@@ -223,7 +378,24 @@ Reference Analysis:
 `;
   }
   
-  return `You are an expert Eiken (英検) test question creator.
+  const sectionGuidance = request.section === 'grammar'
+    ? `
+GRAMMAR QUESTION GUIDELINES:
+- Focus on grammatical structure and form
+- Test verb tenses, conditionals, voice, clauses, or other grammar points
+- Ensure all choices are grammatically plausible but only one is correct
+- The context should make the grammar point testable
+- Avoid testing pure vocabulary knowledge`
+    : request.section === 'vocabulary'
+    ? `
+VOCABULARY QUESTION GUIDELINES:
+- Focus on word meaning and usage
+- Test appropriate-level vocabulary
+- Ensure context clearly indicates the needed word
+- All choices should fit grammatically but only one fits contextually`
+    : '';
+
+  const basePrompt = `You are an expert Eiken (英検) test question creator.
 Generate ORIGINAL questions for ${gradeLevel} that are:
 1. Completely different from existing past exam questions
 2. Appropriate for the target level
@@ -231,6 +403,7 @@ Generate ORIGINAL questions for ${gradeLevel} that are:
 4. Free from copyright issues
 
 ${contextInfo}
+${sectionGuidance}
 
 IMPORTANT: Create questions with ORIGINAL content. Do not copy or closely imitate existing test materials.
 
@@ -239,11 +412,89 @@ Return JSON format:
   "question_text": "Complete sentence with ( ) blank",
   "choices": ["option1", "option2", "option3", "option4"],
   "correct_answer_index": 0-3,
-  "explanation": "Why this answer is correct",
+  "explanation": "Why this answer is correct (in English)",
+  "explanation_ja": "正解の理由を日本語で簡潔に説明",
+  "translation_ja": "問題文の日本語訳",
   "difficulty": 0.0-1.0,
-  "topic": "category name"
+  "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
 }`;
+
+  // 🎯 Few-shot examples付きプロンプトを生成（Grade 5のみ有効化）
+  if (request.grade === '5') {
+    console.log('📚 Using few-shot enhanced prompt for Grade 5');
+    const sectionType = request.section === 'grammar' ? 'grammar' : 'vocabulary';
+    // Use compact version to save tokens
+    const fewShotSection = buildCompactFewShotPrompt(request.grade, sectionType);
+    return `${basePrompt}
+
+${fewShotSection}`;
+  }
+  
+  return basePrompt;
 }
+}
+
+/**
+ * 各級の文法トピック定義
+ */
+const grammarTopicsByGrade: Record<string, string[]> = {
+  '5': [
+    'present simple tense',
+    'past simple tense', 
+    'basic present continuous',
+    'simple questions (who, what, where)',
+    'basic prepositions (in, on, at)',
+    'plural nouns'
+  ],
+  '4': [
+    'present perfect tense',
+    'future with will/going to',
+    'comparatives and superlatives',
+    'can/could/may for ability and permission',
+    'there is/are',
+    'countable vs uncountable nouns'
+  ],
+  '3': [
+    'present perfect continuous',
+    'past continuous tense',
+    'conditional type 1 (if + present, will)',
+    'modal verbs (should, must, have to)',
+    'relative pronouns (who, which, that)',
+    'infinitives and basic gerunds'
+  ],
+  'pre2': [
+    'conditional type 2 (if + past, would)',
+    'passive voice (present and past)',
+    'relative clauses (defining and non-defining)',
+    'reported speech (statements)',
+    'gerunds vs infinitives',
+    'past perfect tense'
+  ],
+  '2': [
+    'conditional type 3 (if + past perfect, would have)',
+    'all passive voice forms',
+    'reported speech (questions and commands)',
+    'causative verbs (have/get something done)',
+    'wish and if only',
+    'participle clauses'
+  ],
+  'pre1': [
+    'mixed conditionals',
+    'subjunctive mood (suggest, demand, insist)',
+    'inversion for emphasis',
+    'cleft sentences (it is...that, what...is)',
+    'advanced passive forms (being done, having been done)',
+    'emphatic structures'
+  ],
+  '1': [
+    'advanced conditionals and hypotheticals',
+    'ellipsis and substitution',
+    'fronting and inversion',
+    'complex participle constructions',
+    'sophisticated reported structures',
+    'advanced discourse markers'
+  ]
+};
 
 /**
  * ユーザープロンプト構築
@@ -259,6 +510,38 @@ function buildUserPrompt(request: QuestionGenerationRequest): string {
       request.difficulty < 0.7 ? 'medium' : 'hard'
     : 'medium';
   
+  // 文法問題用の特別なプロンプト
+  if (request.section === 'grammar') {
+    const grammarTopics = grammarTopicsByGrade[request.grade] || [];
+    const topicList = grammarTopics.join(', ');
+    
+    return `Generate a GRAMMAR question for Eiken Grade ${request.grade}.
+
+GRAMMAR FOCUS for this level:
+${topicList}
+
+Requirements:
+- Create a fill-in-the-blank sentence with ( ) 
+- Test ONE specific grammar point from the list above
+- Provide 4 choices where only one is grammatically correct
+- Make wrong answers plausible but clearly incorrect
+- Use natural, real-world context
+- Difficulty: ${difficultyDesc}${hints}
+
+IMPORTANT: 
+- Focus on GRAMMAR structure, not just vocabulary
+- The sentence should test grammatical knowledge, not word meaning
+- Ensure the context makes the grammar point clear
+
+Example formats:
+- "She ( ) to Tokyo three times this year." (present perfect)
+- "If I ( ) more money, I would buy a new car." (conditional)
+- "The book ( ) by many students." (passive voice)
+
+Create an ORIGINAL question that tests grammar skills for this level.`;
+  }
+  
+  // 語彙問題用のプロンプト（既存）
   return `Generate a ${request.questionType} question for Eiken Grade ${request.grade}.
 Section: ${request.section}
 Difficulty: ${difficultyDesc}${hints}
@@ -281,7 +564,7 @@ async function fetchAnalysisContext(
       vocabulary_level,
       sentence_structure,
       difficulty_score
-    FROM question_analysis
+    FROM eiken_question_analysis
     WHERE id = ?
   `).bind(analysisId).first();
   

@@ -142,9 +142,9 @@ async function saveAnalysisResults(
     const analysis = analysisResults[i];
     
     try {
-      // question_analysis テーブルに挿入
+      // eiken_question_analysis テーブルに挿入
       const result = await db.prepare(`
-        INSERT INTO question_analysis (
+        INSERT INTO eiken_question_analysis (
           grade,
           section,
           question_number,
@@ -197,7 +197,7 @@ analyze.get('/stats', async (c) => {
     
     // 総分析数
     const totalResult = await db.prepare(`
-      SELECT COUNT(*) as total FROM question_analysis
+      SELECT COUNT(*) as total FROM eiken_question_analysis
     `).first();
     
     // 級別の統計
@@ -206,7 +206,7 @@ analyze.get('/stats', async (c) => {
         grade,
         COUNT(*) as count,
         AVG(difficulty_score) as avg_difficulty
-      FROM question_analysis
+      FROM eiken_question_analysis
       GROUP BY grade
       ORDER BY grade
     `).all();

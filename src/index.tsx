@@ -19,11 +19,16 @@ import { studyPartnerSimple } from './study-partner-simple'
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
+import vocabularyRoute from './eiken/routes/vocabulary'
+
+// Eiken Practice Page をインポート
+import EikenPracticePage from './pages/eiken/practice'
 
 // Cloudflare Bindings の型定義
 type Bindings = {
   OPENAI_API_KEY: string
   DB: D1Database
+  KV: KVNamespace
   WEBHOOK_SECRET: string
   VERSION: string
 }
@@ -10442,9 +10447,9 @@ app.get('/study-partner', (c) => {
 
                 <!-- 新機能プレースホルダーボタン -->
                 <div style="margin-bottom: 1rem;">
-                    <button id="eikenTaisaku" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="eikenTaisaku" onclick="window.location.href='/eiken/practice'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #3b82f6; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-graduation-cap" style="margin-right: 0.5rem;"></i>
-                        📚 英検対策（実装予定）
+                        📚 英検対策
                     </button>
                 </div>
 
@@ -10463,9 +10468,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="interSeiYou" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="interSeiYou" onclick="window.location.href='/study-partner-simple'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #10b981; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-globe" style="margin-right: 0.5rem;"></i>
-                        🌍 インター生用（実装予定）
+                        🌍 インター生用
                     </button>
                 </div>
 
@@ -10592,67 +10597,6 @@ app.get('/study-partner', (c) => {
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
                 🤔 AIに質問する
             </button>
-            
-            <!-- カメラモーダル -->
-            <div class="modal" id="cameraModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2><i class="fas fa-camera"></i> 問題を撮影</h2>
-                        <button class="close-btn" onclick="closeCameraSP()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- ワークフロー説明 -->
-                    <div class="workflow-instructions">
-                        <div class="workflow-step">1️⃣ 問題を撮影</div>
-                        <div class="workflow-arrow">→</div>
-                        <div class="workflow-step">2️⃣ 範囲を調整</div>
-                        <div class="workflow-arrow">→</div>
-                        <div class="workflow-step">3️⃣ OCR処理</div>
-                    </div>
-                    
-                    <div class="camera-container">
-                        <video id="cameraPreviewSP" autoplay playsinline></video>
-                        <canvas id="cropCanvasSP" class="hidden"></canvas>
-                        <img id="capturedImageSP" class="hidden" alt="撮影した画像">
-                    </div>
-                    
-                    <!-- ステータス表示 -->
-                    <div id="cameraStatusSP" class="camera-status"></div>
-                    
-                    <div class="camera-controls">
-                        <button class="btn btn-capture" id="captureBtnSP" onclick="capturePhotoSP()">
-                            <i class="fas fa-camera"></i> 撮影する
-                        </button>
-                        <button class="btn btn-retake hidden" id="retakeBtnSP" onclick="retakePhotoSP()">
-                            <i class="fas fa-redo"></i> 再撮影
-                        </button>
-                        <button class="btn btn-crop hidden" id="cropBtnSP" onclick="showCropInterfaceSP()">
-                            <i class="fas fa-crop"></i> 範囲を調整
-                        </button>
-                        <button class="btn btn-crop-confirm hidden" id="cropConfirmBtnSP" onclick="applyCropSP()">
-                            <i class="fas fa-check"></i> この範囲でOK
-                        </button>
-                        <button class="btn btn-upload hidden" id="uploadBtnSP" onclick="uploadAndProcessImageSP()">
-                            <i class="fas fa-check-circle"></i> OCR処理を開始
-                        </button>
-                        <button class="btn btn-cancel" onclick="closeCameraSP()">
-                            <i class="fas fa-times"></i> キャンセル
-                        </button>
-                    </div>
-                    
-                    <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
-                        <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
-                        <ul style="margin-left: 1.5rem; line-height: 1.8;">
-                            <li>問題全体が画面に入るように撮影してください</li>
-                            <li>明るい場所で撮影し、影ができないようにしてください</li>
-                            <li>文字がはっきり見えるように、ピントを合わせてください</li>
-                            <li>問題用紙を平らに置いて撮影してください</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </main>
 
         <!-- Scripts -->
@@ -10717,21 +10661,17 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // カメラボタン - Open camera modal (not file input)
+          // カメラボタン - Trigger camera input
           const cameraButton = document.getElementById('cameraButton');
           if (cameraButton) {
             cameraButton.addEventListener('click', function() {
-              console.log('📷 Camera button clicked - opening camera modal');
+              console.log('📷 Camera button clicked');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
-              const cameraModal = document.getElementById('cameraModal');
-              if (cameraModal) {
-                cameraModal.style.display = 'flex';
-                startCamera();
-              } else {
-                console.error('❌ Camera modal not found');
+              if (cameraInput) {
+                cameraInput.click();
               }
             });
           }
@@ -11863,117 +11803,6 @@ app.get('/study-partner', (c) => {
           }
         }
 
-        // === Study Partner Camera Functions ===
-        let streamSP = null;
-        let capturedImageDataSP = '';
-        let cropperSP = null;
-        
-        async function startCamera() {
-          try {
-            console.log('📷 Starting Study Partner camera...');
-            const preview = document.getElementById('cameraPreviewSP');
-            if (!preview) {
-              console.error('❌ Camera preview element not found');
-              return;
-            }
-            
-            streamSP = await navigator.mediaDevices.getUserMedia({ 
-              video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } 
-            });
-            preview.srcObject = streamSP;
-            preview.play();
-            
-            document.getElementById('captureBtnSP').classList.remove('hidden');
-            console.log('✅ Camera started successfully');
-          } catch (error) {
-            console.error('❌ Camera error:', error);
-            alert('カメラの起動に失敗しました。\\nブラウザの設定でカメラへのアクセスを許可してください。');
-            closeCameraSP();
-          }
-        }
-        
-        function capturePhotoSP() {
-          const preview = document.getElementById('cameraPreviewSP');
-          if (preview.videoWidth === 0) {
-            alert('カメラの準備ができていません。');
-            return;
-          }
-          
-          const canvas = document.createElement('canvas');
-          canvas.width = preview.videoWidth;
-          canvas.height = preview.videoHeight;
-          canvas.getContext('2d').drawImage(preview, 0, 0);
-          capturedImageDataSP = canvas.toDataURL('image/jpeg', 0.9);
-          
-          if (streamSP) {
-            streamSP.getTracks().forEach(track => track.stop());
-            streamSP = null;
-          }
-          
-          document.getElementById('cameraPreviewSP').classList.add('hidden');
-          const img = document.getElementById('capturedImageSP');
-          img.src = capturedImageDataSP;
-          img.classList.remove('hidden');
-          
-          document.getElementById('captureBtnSP').classList.add('hidden');
-          document.getElementById('retakeBtnSP').classList.remove('hidden');
-          document.getElementById('cropBtnSP').classList.remove('hidden');
-          document.getElementById('uploadBtnSP').classList.remove('hidden');
-        }
-        
-        function retakePhotoSP() {
-          document.getElementById('capturedImageSP').classList.add('hidden');
-          document.getElementById('retakeBtnSP').classList.add('hidden');
-          document.getElementById('cropBtnSP').classList.add('hidden');
-          document.getElementById('uploadBtnSP').classList.add('hidden');
-          startCamera();
-        }
-        
-        function showCropInterfaceSP() {
-          alert('クロップ機能は開発中です。現在の画像をそのまま使用します。');
-        }
-        
-        function applyCropSP() {
-          // クロップ適用（今は何もしない）
-        }
-        
-        async function uploadAndProcessImageSP() {
-          if (!capturedImageDataSP) {
-            alert('画像がありません');
-            return;
-          }
-          
-          closeCameraSP();
-          
-          // 画像をプレビューエリアに表示
-          if (previewImage) {
-            previewImage.src = capturedImageDataSP;
-            showImagePreview();
-          }
-          
-          alert('画像を選択しました。「送信」ボタンを押してOCR処理を開始してください。');
-        }
-        
-        function closeCameraSP() {
-          if (streamSP) {
-            streamSP.getTracks().forEach(track => track.stop());
-            streamSP = null;
-          }
-          
-          const modal = document.getElementById('cameraModal');
-          if (modal) {
-            modal.style.display = 'none';
-          }
-          
-          // Reset UI
-          document.getElementById('cameraPreviewSP').classList.remove('hidden');
-          document.getElementById('capturedImageSP').classList.add('hidden');
-          document.getElementById('captureBtnSP').classList.remove('hidden');
-          document.getElementById('retakeBtnSP').classList.add('hidden');
-          document.getElementById('cropBtnSP').classList.add('hidden');
-          document.getElementById('uploadBtnSP').classList.add('hidden');
-        }
-
         console.log('✅ Study Partner JavaScript loaded successfully');
         </script>
     </body>
@@ -12595,14 +12424,514 @@ app.get('/favicon.ico', (c) => {
 })
 
 // ============================================================
-// Eiken (英検) API Routes
+// Eiken (英検) Routes
 // ============================================================
+
+// 英検練習ページ
+app.get('/eiken/practice', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英検AI練習システム | KOBEYA Study Partner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card {
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+  <div id="app" class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-5xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
+        <span class="text-6xl">🎓</span>
+        英検AI練習システム
+      </h1>
+      <p class="text-xl text-gray-600">AIが生成するオリジナル問題で英検対策</p>
+    </header>
+
+    <!-- Main Content -->
+    <main id="mainContent"></main>
+  </div>
+
+  <script>
+    // ==================== 状態管理 ====================
+    const state = {
+      viewMode: 'generator', // 'generator', 'practice', 'results'
+      questions: [],
+      currentQuestionIndex: 0,
+      answers: [],
+      grade: 'pre1',
+      section: 'vocabulary',
+      count: 5,
+      difficulty: 0.6,
+      topicHints: [],
+      loading: false
+    };
+
+    // ==================== グレード情報 ====================
+    const GRADE_INFO = {
+      '5': { label: '5級', level: '中学初級程度' },
+      '4': { label: '4級', level: '中学中級程度' },
+      '3': { label: '3級', level: '中学卒業程度' },
+      'pre2': { label: '準2級', level: '高校中級程度' },
+      '2': { label: '2級', level: '高校卒業程度' },
+      'pre1': { label: '準1級', level: '大学中級程度' },
+      '1': { label: '1級', level: '大学上級程度' }
+    };
+
+    // ==================== UI レンダリング ====================
+    function render() {
+      const content = document.getElementById('mainContent');
+      
+      if (state.viewMode === 'generator') {
+        content.innerHTML = renderGenerator();
+        attachGeneratorListeners();
+      } else if (state.viewMode === 'practice') {
+        content.innerHTML = renderPractice();
+        attachPracticeListeners();
+      } else if (state.viewMode === 'results') {
+        content.innerHTML = renderResults();
+        attachResultsListeners();
+      }
+    }
+
+    function renderGenerator() {
+      return \`
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-6">問題を生成</h2>
+          
+          <!-- グレード選択 -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-3">目標級を選択</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              \${Object.entries(GRADE_INFO).map(([grade, info]) => \`
+                <button 
+                  onclick="updateGrade('\${grade}')"
+                  class="p-4 rounded-lg border-2 transition-all \${state.grade === grade ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"
+                >
+                  <div class="text-2xl font-bold \${state.grade === grade ? 'text-blue-600' : 'text-gray-900'}">\${info.label}</div>
+                  <div class="text-xs text-gray-600">\${info.level}</div>
+                </button>
+              \`).join('')}
+            </div>
+          </div>
+
+          <!-- セクション選択 -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-3">問題タイプ</label>
+            <div class="grid grid-cols-3 gap-3">
+              <button onclick="updateSection('vocabulary')" class="p-4 rounded-lg border-2 \${state.section === 'vocabulary' ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
+                <div class="text-3xl mb-2">📚</div>
+                <div class="font-medium">語彙問題</div>
+              </button>
+              <button onclick="updateSection('grammar')" class="p-4 rounded-lg border-2 \${state.section === 'grammar' ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
+                <div class="text-3xl mb-2">✍️</div>
+                <div class="font-medium">文法問題</div>
+              </button>
+              <button onclick="updateSection('reading')" class="p-4 rounded-lg border-2 \${state.section === 'reading' ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
+                <div class="text-3xl mb-2">📖</div>
+                <div class="font-medium">読解問題</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 問題数 -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              生成する問題数: <span class="text-blue-600 font-bold">\${state.count}問</span>
+            </label>
+            <input type="range" min="1" max="20" value="\${state.count}" 
+              oninput="updateCount(this.value)"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <!-- 難易度 -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              難易度: <span class="text-purple-600 font-bold">\${Math.round(state.difficulty * 100)}%</span>
+            </label>
+            <input type="range" min="0.3" max="0.9" step="0.1" value="\${state.difficulty}"
+              oninput="updateDifficulty(this.value)"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <!-- 生成ボタン -->
+          <button 
+            onclick="generateQuestions()" 
+            \${state.loading ? 'disabled' : ''}
+            class="w-full py-4 px-6 rounded-lg font-bold text-lg transition-all \${state.loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg'}"
+          >
+            \${state.loading ? \`
+              <span class="flex items-center justify-center gap-3">
+                <svg class="animate-spin h-6 w-6" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                問題を生成中...
+              </span>
+            \` : '🚀 問題を生成する'}
+          </button>
+
+          <div id="generatorMessage" class="mt-4"></div>
+        </div>
+      \`;
+    }
+
+    function renderPractice() {
+      const question = state.questions[state.currentQuestionIndex];
+      const answered = state.answers[state.currentQuestionIndex] !== undefined;
+      
+      return \`
+        <div class="max-w-4xl mx-auto">
+          <!-- プログレスバー & ナビゲーション -->
+          <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+              <button 
+                onclick="goToPreviousQuestion()"
+                \${state.currentQuestionIndex === 0 ? 'disabled' : ''}
+                class="px-4 py-2 rounded-lg font-medium transition-all \${state.currentQuestionIndex === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+              >← 前の問題</button>
+              <span class="font-bold text-lg">問題 \${state.currentQuestionIndex + 1} / \${state.questions.length}</span>
+              <button 
+                onclick="goToNextQuestion()"
+                \${state.currentQuestionIndex === state.questions.length - 1 ? 'disabled' : ''}
+                class="px-4 py-2 rounded-lg font-medium transition-all \${state.currentQuestionIndex === state.questions.length - 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+              >次の問題 →</button>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" 
+                style="width: \${((state.currentQuestionIndex + 1) / state.questions.length) * 100}%"></div>
+            </div>
+            <!-- 問題番号クイックナビゲーション -->
+            <div class="flex gap-2 mt-4 flex-wrap justify-center">
+              \${state.questions.map((q, idx) => \`
+                <button
+                  onclick="goToQuestion(\${idx})"
+                  class="w-10 h-10 rounded-full font-bold transition-all \${
+                    idx === state.currentQuestionIndex 
+                      ? 'bg-blue-600 text-white ring-2 ring-blue-400' 
+                      : state.answers[idx] !== undefined
+                        ? state.answers[idx] === q.correctAnswerIndex
+                          ? 'bg-green-100 text-green-700 border-2 border-green-500'
+                          : 'bg-red-100 text-red-700 border-2 border-red-500'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }"
+                >\${idx + 1}</button>
+              \`).join('')}
+            </div>
+          </div>
+
+          <!-- 問題カード -->
+          <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="mb-6">
+              <h3 class="text-xl font-medium text-gray-900 mb-4">\${question.questionText}</h3>
+            </div>
+
+            <!-- 選択肢 -->
+            <div class="space-y-3 mb-6">
+              \${question.choices.map((choice, idx) => \`
+                <button 
+                  onclick="selectAnswer(\${idx})"
+                  \${answered ? 'disabled' : ''}
+                  class="w-full p-4 rounded-lg border-2 text-left transition-all flex items-center justify-between
+                    \${answered && idx === question.correctAnswerIndex ? 'border-green-500 bg-green-50' : ''}
+                    \${answered && idx === state.answers[state.currentQuestionIndex] && idx !== question.correctAnswerIndex ? 'border-red-500 bg-red-50' : ''}
+                    \${!answered && state.answers[state.currentQuestionIndex] === idx ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-300'}"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold
+                      \${answered && idx === question.correctAnswerIndex ? 'bg-green-500 text-white' : ''}
+                      \${answered && idx === state.answers[state.currentQuestionIndex] && idx !== question.correctAnswerIndex ? 'bg-red-500 text-white' : ''}
+                      \${!answered && state.answers[state.currentQuestionIndex] === idx ? 'bg-blue-500 text-white' : 'bg-gray-200'}"
+                    >\${idx + 1}</span>
+                    <span>\${choice}</span>
+                  </div>
+                  \${answered && idx === question.correctAnswerIndex ? '<span class="text-green-600">✓</span>' : ''}
+                  \${answered && idx === state.answers[state.currentQuestionIndex] && idx !== question.correctAnswerIndex ? '<span class="text-red-600">✗</span>' : ''}
+                </button>
+              \`).join('')}
+            </div>
+
+            <!-- 解説 -->
+            \${answered ? \`
+              <div class="p-4 rounded-lg border-2 \${state.answers[state.currentQuestionIndex] === question.correctAnswerIndex ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} mb-6">
+                <h4 class="font-bold mb-2">\${state.answers[state.currentQuestionIndex] === question.correctAnswerIndex ? '🎉 正解です！' : '📚 不正解'}</h4>
+                \${question.translationJa ? \`
+                  <div class="mb-3 p-2 bg-white bg-opacity-60 rounded">
+                    <div class="text-sm text-gray-600 font-medium mb-1">📖 問題文の意味：</div>
+                    <div class="text-gray-800">\${question.translationJa}</div>
+                  </div>
+                \` : ''}
+                \${question.explanationJa ? \`
+                  <div class="mb-3">
+                    <div class="text-sm text-gray-600 font-medium mb-1">💡 解説：</div>
+                    <div class="text-gray-800 font-medium">\${question.explanationJa}</div>
+                  </div>
+                \` : ''}
+                <div class="pt-2 border-t border-gray-300">
+                  <div class="text-xs text-gray-500 font-medium mb-1">詳細説明 (English):</div>
+                  <p class="text-sm text-gray-600">\${question.explanation}</p>
+                </div>
+              </div>
+            \` : ''}
+
+            <!-- ボタン -->
+            \${!answered ? \`
+              <button 
+                onclick="submitAnswer()"
+                \${state.answers[state.currentQuestionIndex] === undefined ? 'disabled' : ''}
+                class="w-full py-3 px-6 rounded-lg font-bold transition-all
+                  \${state.answers[state.currentQuestionIndex] !== undefined ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+              >解答する</button>
+            \` : \`
+              <button 
+                onclick="nextQuestion()"
+                class="w-full py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700"
+              >\${state.currentQuestionIndex === state.questions.length - 1 ? '結果を見る' : '次の問題へ'}</button>
+            \`}
+          </div>
+        </div>
+      \`;
+    }
+
+    function renderResults() {
+      const correctCount = state.answers.filter((ans, idx) => ans === state.questions[idx].correctAnswerIndex).length;
+      const accuracy = Math.round((correctCount / state.questions.length) * 100);
+      
+      let gradeInfo = { grade: 'D', emoji: '📚', color: 'gray' };
+      if (accuracy >= 90) gradeInfo = { grade: 'S', emoji: '🏆', color: 'yellow' };
+      else if (accuracy >= 80) gradeInfo = { grade: 'A', emoji: '🎉', color: 'green' };
+      else if (accuracy >= 70) gradeInfo = { grade: 'B', emoji: '👍', color: 'blue' };
+      else if (accuracy >= 60) gradeInfo = { grade: 'C', emoji: '💪', color: 'purple' };
+
+      return \`
+        <div class="max-w-4xl mx-auto space-y-6">
+          <h1 class="text-4xl font-bold text-center mb-8">練習結果</h1>
+
+          <!-- スコアカード -->
+          <div class="bg-\${gradeInfo.color}-50 rounded-xl shadow-lg p-8 text-center">
+            <div class="text-6xl mb-4">\${gradeInfo.emoji}</div>
+            <div class="text-6xl font-bold text-\${gradeInfo.color}-600 mb-2">\${gradeInfo.grade}</div>
+            <div class="text-3xl font-bold text-gray-900 mb-2">\${accuracy}%</div>
+            <div class="text-gray-600">\${correctCount} / \${state.questions.length} 問正解</div>
+          </div>
+
+          <!-- 詳細レビュー -->
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold mb-4">問題レビュー</h3>
+            <div class="space-y-4">
+              \${state.questions.map((q, idx) => {
+                const correct = state.answers[idx] === q.correctAnswerIndex;
+                return \`
+                  <div class="p-4 rounded-lg border-2 \${correct ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+                    <div class="flex items-start gap-3">
+                      <span class="text-2xl">\${correct ? '✅' : '❌'}</span>
+                      <div class="flex-1">
+                        <div class="font-medium mb-2">Q\${idx + 1}: \${q.questionText}</div>
+                        \${q.translationJa ? \`
+                          <div class="text-sm text-gray-600 mb-2 italic">
+                            📖 \${q.translationJa}
+                          </div>
+                        \` : ''}
+                        <div class="text-sm">
+                          <span class="text-gray-600">あなたの解答: </span>
+                          <span class="\${correct ? 'text-green-700' : 'text-red-700'} font-medium">\${q.choices[state.answers[idx]]}</span>
+                        </div>
+                        \${!correct ? \`
+                          <div class="text-sm mt-1">
+                            <span class="text-gray-600">正解: </span>
+                            <span class="text-green-700 font-medium">\${q.choices[q.correctAnswerIndex]}</span>
+                          </div>
+                        \` : ''}
+                        <div class="mt-2 p-3 bg-white rounded border space-y-2">
+                          \${q.explanationJa ? \`
+                            <div>
+                              <span class="font-medium text-blue-700">💡 解説: </span>
+                              <span class="text-gray-800">\${q.explanationJa}</span>
+                            </div>
+                          \` : ''}
+                          <div class="text-sm text-gray-600 pt-2 border-t">
+                            <span class="font-medium">詳細: </span>\${q.explanation}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                \`;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- リセットボタン -->
+          <button 
+            onclick="resetPractice()"
+            class="w-full py-4 px-6 rounded-lg font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+          >新しい問題に挑戦</button>
+        </div>
+      \`;
+    }
+
+    // ==================== イベントリスナー ====================
+    function attachGeneratorListeners() {}
+    function attachPracticeListeners() {}
+    function attachResultsListeners() {}
+
+    // ==================== 状態更新関数 ====================
+    function updateGrade(grade) {
+      state.grade = grade;
+      render();
+    }
+
+    function updateSection(section) {
+      state.section = section;
+      render();
+    }
+
+    function updateCount(count) {
+      state.count = parseInt(count);
+      render();
+    }
+
+    function updateDifficulty(difficulty) {
+      state.difficulty = parseFloat(difficulty);
+      render();
+    }
+
+    // ナビゲーション関数
+    function goToQuestion(index) {
+      state.currentQuestionIndex = index;
+      render();
+    }
+
+    function goToPreviousQuestion() {
+      if (state.currentQuestionIndex > 0) {
+        state.currentQuestionIndex--;
+        render();
+      }
+    }
+
+    function goToNextQuestion() {
+      if (state.currentQuestionIndex < state.questions.length - 1) {
+        state.currentQuestionIndex++;
+        render();
+      }
+    }
+
+    async function generateQuestions() {
+      state.loading = true;
+      render();
+
+      try {
+        const response = await fetch('/api/eiken/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            grade: state.grade,
+            section: state.section,
+            questionType: state.section,
+            count: state.count,
+            difficulty: state.difficulty
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.questions && data.questions.length > 0) {
+          state.questions = data.questions;
+          state.answers = new Array(data.questions.length);
+          state.currentQuestionIndex = 0;
+          state.viewMode = 'practice';
+        } else {
+          document.getElementById('generatorMessage').innerHTML = \`
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div class="font-medium text-red-900">エラー: \${data.error || '問題生成に失敗しました'}</div>
+            </div>
+          \`;
+        }
+      } catch (error) {
+        document.getElementById('generatorMessage').innerHTML = \`
+          <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="font-medium text-red-900">エラー: \${error.message}</div>
+          </div>
+        \`;
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    function selectAnswer(index) {
+      if (state.answers[state.currentQuestionIndex] === undefined) {
+        state.answers[state.currentQuestionIndex] = index;
+        render();
+      }
+    }
+
+    function submitAnswer() {
+      render(); // 解説を表示
+    }
+
+    function nextQuestion() {
+      if (state.currentQuestionIndex < state.questions.length - 1) {
+        state.currentQuestionIndex++;
+        render();
+      } else {
+        // 全問解答済みか確認
+        const allAnswered = state.answers.every(ans => ans !== undefined);
+        if (allAnswered) {
+          state.viewMode = 'results';
+        } else {
+          // 未解答の問題があれば、最初の未解答問題に移動
+          const firstUnanswered = state.answers.findIndex(ans => ans === undefined);
+          if (firstUnanswered !== -1) {
+            state.currentQuestionIndex = firstUnanswered;
+          }
+        }
+        render();
+      }
+    }
+
+    function resetPractice() {
+      state.viewMode = 'generator';
+      state.questions = [];
+      state.answers = [];
+      state.currentQuestionIndex = 0;
+      render();
+    }
+
+    // ==================== 初期化 ====================
+    render();
+  </script>
+</body>
+</html>
+  `)
+})
 
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
 
 // AI問題生成エンドポイント
 app.route('/api/eiken/generate', generateRoute)
+
+// 語彙バリデーションエンドポイント
+app.route('/api/eiken/vocabulary', vocabularyRoute)
 
 // 404ハンドラー
 app.notFound((c) => {

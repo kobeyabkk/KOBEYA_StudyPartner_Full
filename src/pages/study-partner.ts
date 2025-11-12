@@ -838,9 +838,9 @@ export function renderStudyPartnerPage(c: Context) {
             </section>
             
             <!-- フローティングAI質問ボタン -->
-            <button id="aiQuestionButton" class="ai-question" onclick="openAIChat()" style="display: none;">
+            <button id="aiQuestionButton" class="ai-question" onclick="openAIChat()">
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
-                🤔 AIに質問する
+                AIに質問する
             </button>
         </main>
 
