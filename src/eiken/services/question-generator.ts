@@ -9,6 +9,8 @@ import type { EikenEnv } from '../types';
 import { analyzeVocabularyLevel } from './vocabulary-analyzer';
 import { analyzeTextProfile } from './text-profiler';
 import { buildEnhancedSystemPrompt, buildCompactFewShotPrompt } from '../prompts/few-shot-builder';
+import { rewriteQuestion } from './vocabulary-rewriter';
+import type { VocabularyViolation } from '../types/vocabulary';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -40,6 +42,11 @@ export interface QuestionGenerationResult {
   rejected: number;
   totalAttempts: number;
   errors: string[];
+  rewriteStats?: {
+    attempts: number;
+    successes: number;
+    successRate: number;
+  };
 }
 
 /**
@@ -54,6 +61,8 @@ export async function generateQuestions(
   const errors: string[] = [];
   let rejected = 0;
   let totalAttempts = 0;
+  let rewriteAttempts = 0;
+  let rewriteSuccesses = 0;
   
   const openaiApiKey = env.OPENAI_API_KEY;
   if (!openaiApiKey) {
@@ -118,14 +127,68 @@ export async function generateQuestions(
         env
       );
       
-      // 語彙レベルチェックで不合格の場合はスキップ
+      // 語彙レベルチェックで不合格の場合、自動リライトを試行
       if (!vocabAnalysis.isValid) {
-        rejected++;
-        console.log(`❌ Question rejected (vocabulary out of range: ${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}%)`);
-        if (vocabAnalysis.suggestion) {
-          console.log(`   Suggestion: ${vocabAnalysis.suggestion}`);
+        console.log(`⚠️ Vocabulary violations detected (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
+        
+        // 🆕 自動リライト機能（Week 2 Day 3-4）
+        console.log(`🔄 Attempting auto-rewrite...`);
+        
+        // 違反単語をVocabularyViolation形式に変換
+        const violations: VocabularyViolation[] = (vocabAnalysis.outOfRangeWords || []).map(word => ({
+          word,
+          expected_level: request.grade === '5' ? 'A1' : 'A2',
+          actual_level: 'B1', // 簡易的にB1と仮定
+          severity: 'error' as const
+        }));
+        
+        if (violations.length > 0) {
+          rewriteAttempts++;
+          
+          const rewriteResult = await rewriteQuestion(
+            question.questionText,
+            question.choices,
+            violations,
+            request.grade,
+            env,
+            { maxAttempts: 2, minConfidence: 0.7 }
+          );
+          
+          if (rewriteResult.success) {
+            rewriteSuccesses++;
+            console.log(`✅ Auto-rewrite successful! (confidence: ${rewriteResult.confidence.toFixed(2)})`);
+            console.log(`   Replacements: ${rewriteResult.replacements.map(r => `${r.original}→${r.replacement}`).join(', ')}`);
+            
+            // リライト後の問題を採用
+            question.questionText = rewriteResult.rewritten.question;
+            question.choices = rewriteResult.rewritten.choices;
+            question.correctAnswerIndex = rewriteResult.rewritten.correctAnswerIndex;
+            
+            // 再検証
+            const revalidation = await analyzeVocabularyLevel(
+              `${question.questionText} ${question.choices.join(' ')}`,
+              request.grade,
+              env
+            );
+            
+            if (!revalidation.isValid) {
+              rejected++;
+              console.log(`❌ Rewritten question still has violations, rejecting`);
+              continue;
+            }
+            
+            console.log(`✅ Rewritten question passed re-validation`);
+            // 続行してテキストプロファイル検証へ
+          } else {
+            rejected++;
+            console.log(`❌ Auto-rewrite failed: ${rewriteResult.error || 'Unknown error'}`);
+            continue;
+          }
+        } else {
+          rejected++;
+          console.log(`❌ Question rejected (no specific violations detected)`);
+          continue;
         }
-        continue;
       }
       
       console.log(`✅ Vocabulary check passed (${(vocabAnalysis.outOfRangeRatio * 100).toFixed(1)}% out of range)`);
@@ -186,13 +249,22 @@ export async function generateQuestions(
   
   console.log(`✅ Generation complete: ${generated.length}/${request.count} questions`);
   console.log(`📊 Stats: ${rejected} rejected, ${totalAttempts} total attempts`);
+  if (rewriteAttempts > 0) {
+    console.log(`🔄 Rewrites: ${rewriteSuccesses}/${rewriteAttempts} successful (${(rewriteSuccesses / rewriteAttempts * 100).toFixed(1)}%)`);
+  }
   
   return {
     success: generated.length > 0,
     generated,
     rejected,
     totalAttempts,
-    errors
+    errors,
+    // 🆕 Rewrite statistics
+    rewriteStats: rewriteAttempts > 0 ? {
+      attempts: rewriteAttempts,
+      successes: rewriteSuccesses,
+      successRate: rewriteSuccesses / rewriteAttempts
+    } : undefined
   };
 }
 
