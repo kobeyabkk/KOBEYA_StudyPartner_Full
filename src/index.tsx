@@ -19,7 +19,6 @@ import { studyPartnerSimple } from './study-partner-simple'
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
-import vocabularyRoute from './eiken/routes/vocabulary'
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
@@ -28,7 +27,6 @@ import EikenPracticePage from './pages/eiken/practice'
 type Bindings = {
   OPENAI_API_KEY: string
   DB: D1Database
-  KV: KVNamespace
   WEBHOOK_SECRET: string
   VERSION: string
 }
@@ -12929,9 +12927,6 @@ app.route('/api/eiken/analyze', analyzeRoute)
 
 // AI問題生成エンドポイント
 app.route('/api/eiken/generate', generateRoute)
-
-// 語彙バリデーションエンドポイント
-app.route('/api/eiken/vocabulary', vocabularyRoute)
 
 // 404ハンドラー
 app.notFound((c) => {
