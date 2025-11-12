@@ -44,16 +44,13 @@ const CEFR_LEVEL_ORDER: Record<CEFRLevel, number> = {
  * テキストから単語を抽出する
  */
 export function extractWords(text: string): ExtractedWord[] {
-  // 小文字化して単語を抽出
-  const normalized = text.toLowerCase();
-  
-  // 単語境界で分割（アポストロフィは保持）
-  const wordPattern = /\b[a-z]+(?:'[a-z]+)?\b/g;
-  const matches = Array.from(normalized.matchAll(wordPattern));
+  // 単語境界で分割（アポストロフィは保持）- 元のテキストから抽出
+  const wordPattern = /\b[a-zA-Z]+(?:'[a-zA-Z]+)?\b/g;
+  const matches = Array.from(text.matchAll(wordPattern));
   
   return matches.map(match => ({
-    word: match[0],
-    original: text.substring(match.index!, match.index! + match[0].length),
+    word: match[0].toLowerCase(), // normalized for lookup
+    original: match[0], // preserve original case
     position: match.index!,
   }));
 }
@@ -126,10 +123,23 @@ export async function validateVocabulary(
   const extractedWords = extractWords(text);
   const uniqueWords = Array.from(new Set(extractedWords.map(w => w.word)));
   
+  // 固有名詞を除外（元のテキストで大文字判定）
+  const wordsWithOriginal = extractedWords.filter(item => {
+    // Check if the original word starts with a capital letter
+    const firstChar = item.original[0];
+    if (firstChar && firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase()) {
+      // Skip if it's a proper noun (capitalized in original text)
+      return false;
+    }
+    return true;
+  });
+  
+  const wordsAfterProperNounFilter = Array.from(new Set(wordsWithOriginal.map(w => w.word)));
+  
   // 無視する単語を除外
-  const wordsToCheck = uniqueWords.filter(
-    word => !shouldIgnoreWord(word, finalConfig.ignore_words || [])
-  );
+  const wordsToCheck = wordsAfterProperNounFilter.filter(word => {
+    return !shouldIgnoreWord(word, finalConfig.ignore_words || []);
+  });
   
   if (wordsToCheck.length === 0) {
     return {
@@ -251,13 +261,29 @@ export async function lookupWord(
 ): Promise<VocabularyEntry | null> {
   const normalized = word.toLowerCase();
   
+  // Get all entries for this word
   const stmt = db.prepare(
-    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ? LIMIT 1'
+    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ?'
   ).bind(normalized);
   
-  const result = await stmt.first<VocabularyEntry>();
+  const results = await stmt.all<VocabularyEntry>();
   
-  return result || null;
+  if (!results.results || results.results.length === 0) {
+    return null;
+  }
+  
+  // Select the entry with the lowest CEFR level
+  const levelOrder: Record<string, number> = {
+    'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6
+  };
+  
+  const sorted = results.results.sort((a, b) => {
+    const orderA = levelOrder[a.cefr_level] || 999;
+    const orderB = levelOrder[b.cefr_level] || 999;
+    return orderA - orderB;
+  });
+  
+  return sorted[0];
 }
 
 /**

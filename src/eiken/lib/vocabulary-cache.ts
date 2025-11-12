@@ -252,13 +252,29 @@ export async function lookupWordWithCache(
     return cached; // null も含む（語彙に存在しない）
   }
   
-  // 2. D1から検索
+  // 2. D1から検索（すべてのエントリを取得）
   const stmt = db.prepare(
-    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ? LIMIT 1'
+    'SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma = ?'
   ).bind(normalized);
   
-  const result = await stmt.first<VocabularyEntry>();
-  const entry = result || null;
+  const results = await stmt.all<VocabularyEntry>();
+  
+  let entry: VocabularyEntry | null = null;
+  
+  if (results.results && results.results.length > 0) {
+    // Select the entry with the lowest CEFR level
+    const levelOrder: Record<string, number> = {
+      'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6
+    };
+    
+    const sorted = results.results.sort((a, b) => {
+      const orderA = levelOrder[a.cefr_level] || 999;
+      const orderB = levelOrder[b.cefr_level] || 999;
+      return orderA - orderB;
+    });
+    
+    entry = sorted[0];
+  }
   
   // 3. キャッシュに保存
   await setCachedWord(normalized, entry, kv);
