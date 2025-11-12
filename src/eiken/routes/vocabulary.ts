@@ -197,6 +197,53 @@ app.delete('/cache', async (c) => {
 });
 
 // ====================
+// デバッグAPI (Day 1)
+// ====================
+
+/**
+ * GET /api/eiken/vocabulary/debug/sql/:word
+ * SQLクエリを直接テスト
+ */
+app.get('/debug/sql/:word', async (c) => {
+  const word = c.req.param('word');
+  
+  try {
+    const query = `
+      SELECT 
+        word_lemma,
+        MIN(
+          CASE cefr_level
+            WHEN 'A1' THEN '1_A1'
+            WHEN 'A2' THEN '2_A2'
+            WHEN 'B1' THEN '3_B1'
+            WHEN 'B2' THEN '4_B2'
+            WHEN 'C1' THEN '5_C1'
+            WHEN 'C2' THEN '6_C2'
+            ELSE '9_ZZ'
+          END
+        ) as min_level_prefixed
+      FROM eiken_vocabulary_lexicon 
+      WHERE word_lemma = ?
+      GROUP BY word_lemma
+    `;
+    
+    const stmt = c.env.DB.prepare(query).bind(word.toLowerCase());
+    const result = await stmt.first();
+    
+    return c.json({
+      query_word: word,
+      sql_result: result,
+      parsed_level: result ? (result.min_level_prefixed as string).split('_')[1] : null,
+    });
+  } catch (error) {
+    return c.json({
+      error: 'SQL test failed',
+      details: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
+});
+
+// ====================
 // 自動リライトAPI
 // ====================
 
