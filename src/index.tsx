@@ -13124,20 +13124,26 @@ app.get('/eiken/practice', (c) => {
             </div>
             <!-- 問題番号クイックナビゲーション -->
             <div class="flex gap-2 mt-4 flex-wrap justify-center">
-              \${state.questions.map((q, idx) => \`
+              \${state.questions.map((q, idx) => {
+                let btnClass = 'w-10 h-10 rounded-full font-bold transition-all ';
+                if (idx === state.currentQuestionIndex) {
+                  btnClass += 'bg-blue-600 text-white ring-2 ring-blue-400';
+                } else if (state.answers[idx] !== undefined) {
+                  if (state.answers[idx] === q.correctAnswerIndex) {
+                    btnClass += 'bg-green-100 text-green-700 border-2 border-green-500';
+                  } else {
+                    btnClass += 'bg-red-100 text-red-700 border-2 border-red-500';
+                  }
+                } else {
+                  btnClass += 'bg-gray-200 text-gray-600 hover:bg-gray-300';
+                }
+                return \`
                 <button
                   onclick="goToQuestion(\${idx})"
-                  class="w-10 h-10 rounded-full font-bold transition-all \${
-                    idx === state.currentQuestionIndex 
-                      ? 'bg-blue-600 text-white ring-2 ring-blue-400' 
-                      : state.answers[idx] !== undefined
-                        ? state.answers[idx] === q.correctAnswerIndex
-                          ? 'bg-green-100 text-green-700 border-2 border-green-500'
-                          : 'bg-red-100 text-red-700 border-2 border-red-500'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }"
+                  class="\${btnClass}"
                 >\${idx + 1}</button>
-              \`).join('')}
+              \`;
+              }).join('')}
             </div>
           </div>
 
