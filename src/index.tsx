@@ -10317,6 +10317,808 @@ function generateLearningData(problemType: string): LearningData {
 app.get('/', (c) => {
   return c.redirect('/study-partner', 302)
 })
+
+// ==================== Flashcard UI Routes ====================
+
+// フラッシュカード作成ページ
+app.get('/flashcard/create', (c) => {
+  console.log('📇 Flashcard create page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>フラッシュカード作成 | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+          min-height: 100vh;
+          color: #37352f;
+          padding-bottom: 100px;
+        }
+        
+        .container { 
+          max-width: 800px; 
+          margin: 0 auto; 
+          padding: 2rem 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+          .container { 
+            padding: 1rem; 
+          }
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+          font-size: 1.75rem;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+        }
+
+        .header p {
+          color: #6b7280;
+          font-size: 0.95rem;
+        }
+
+        .input-method-selector {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 2rem;
+          padding: 0.5rem;
+          background: white;
+          border-radius: 0.75rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .method-btn {
+          flex: 1;
+          padding: 1rem;
+          border: 2px solid #e0e0e0;
+          background: white;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          font-size: 0.95rem;
+        }
+
+        .method-btn:hover {
+          border-color: #7c3aed;
+          transform: translateY(-2px);
+        }
+
+        .method-btn.active {
+          border-color: #7c3aed;
+          background: #f3e8ff;
+          color: #7c3aed;
+          font-weight: 600;
+        }
+
+        .method-btn i {
+          display: block;
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .input-section {
+          display: none;
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          margin-bottom: 1.5rem;
+        }
+
+        .input-section.active {
+          display: block;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: #37352f;
+          font-size: 0.95rem;
+        }
+
+        .form-group textarea {
+          width: 100%;
+          padding: 1rem;
+          border: 2px solid #e0e0e0;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 1rem;
+          resize: vertical;
+          min-height: 120px;
+          transition: border-color 0.2s;
+        }
+
+        .form-group textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .form-group textarea::placeholder {
+          color: #9ca3af;
+        }
+
+        .btn {
+          width: 100%;
+          padding: 1rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-secondary {
+          background: #059669;
+          color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+          background: #047857;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .photo-upload-area {
+          border: 3px dashed #d1d5db;
+          border-radius: 0.75rem;
+          padding: 3rem 2rem;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #fafafa;
+        }
+
+        .photo-upload-area:hover {
+          border-color: #7c3aed;
+          background: #f9fafb;
+        }
+
+        .photo-upload-area.drag-over {
+          border-color: #7c3aed;
+          background: #f3e8ff;
+        }
+
+        .photo-upload-area i {
+          font-size: 3rem;
+          color: #9ca3af;
+          margin-bottom: 1rem;
+        }
+
+        .photo-upload-area p {
+          color: #6b7280;
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .photo-upload-area .hint {
+          font-size: 0.875rem;
+          color: #9ca3af;
+        }
+
+        .preview-image {
+          max-width: 100%;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .generated-cards {
+          margin-top: 2rem;
+        }
+
+        .card-item {
+          background: white;
+          border: 2px solid #e0e0e0;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          transition: all 0.2s;
+        }
+
+        .card-item:hover {
+          border-color: #7c3aed;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+
+        .card-item .card-side {
+          margin-bottom: 1rem;
+        }
+
+        .card-item .card-side:last-child {
+          margin-bottom: 0;
+        }
+
+        .card-item .card-label {
+          font-weight: 600;
+          color: #7c3aed;
+          font-size: 0.875rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .card-item .card-content {
+          color: #37352f;
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .save-status {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: white;
+          padding: 0.75rem 1.25rem;
+          border-radius: 2rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 0.875rem;
+          color: #6b7280;
+          z-index: 1000;
+          display: none;
+        }
+
+        .save-status.show {
+          display: block;
+          animation: slideIn 0.3s ease;
+        }
+
+        .save-status.saving {
+          color: #f59e0b;
+        }
+
+        .save-status.saved {
+          color: #059669;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .loading-overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 9999;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .loading-overlay.show {
+          display: flex;
+        }
+
+        .loading-content {
+          background: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 300px;
+        }
+
+        .loading-spinner {
+          border: 4px solid #f3f4f6;
+          border-top: 4px solid #7c3aed;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .tab-navigation {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          background: #f3f4f6;
+          padding: 0.25rem;
+          border-radius: 0.5rem;
+        }
+
+        .tab-btn {
+          flex: 1;
+          padding: 0.75rem;
+          border: none;
+          background: transparent;
+          border-radius: 0.375rem;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+          color: #6b7280;
+        }
+
+        .tab-btn.active {
+          background: white;
+          color: #7c3aed;
+          font-weight: 600;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* PCキーボード最適化 */
+        @media (min-width: 1024px) {
+          .keyboard-hint {
+            display: block;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+          }
+        }
+
+        .keyboard-hint {
+          display: none;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📇 フラッシュカード作成</h1>
+                <p>写真から自動作成 or 手動入力で単語カードを作成</p>
+            </div>
+
+            <!-- 入力方法選択 -->
+            <div class="input-method-selector">
+                <button class="method-btn active" data-method="photo">
+                    <i class="fas fa-camera"></i>
+                    <div>写真から作成</div>
+                </button>
+                <button class="method-btn" data-method="manual">
+                    <i class="fas fa-keyboard"></i>
+                    <div>手動入力</div>
+                </button>
+            </div>
+
+            <!-- 写真アップロードセクション -->
+            <div class="input-section active" id="photoSection">
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                
+                <div class="photo-upload-area" id="uploadArea">
+                    <i class="fas fa-camera"></i>
+                    <p>📷 写真を撮影 or 画像を選択</p>
+                    <p class="hint">ノート・教科書・単語帳などを撮影してください</p>
+                </div>
+
+                <div id="photoPreviewArea" style="display: none;">
+                    <img id="photoPreview" class="preview-image" alt="Preview">
+                    <button class="btn btn-secondary" id="analyzePhotoBtn">
+                        <i class="fas fa-magic"></i> AIで自動分析してカード作成
+                    </button>
+                </div>
+
+                <div class="generated-cards" id="generatedCards"></div>
+            </div>
+
+            <!-- 手動入力セクション -->
+            <div class="input-section" id="manualSection">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-side="front">表面（問題）</button>
+                    <button class="tab-btn" data-side="back">裏面（解答）</button>
+                </div>
+
+                <form id="manualForm">
+                    <div class="form-group">
+                        <label for="frontInput">
+                            表面（問題・単語・質問）
+                            <span class="keyboard-hint">Tab キーで次の項目へ</span>
+                        </label>
+                        <textarea 
+                            id="frontInput" 
+                            placeholder="例：apple" 
+                            required
+                            autocomplete="off"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backInput">
+                            裏面（解答・意味・説明）
+                            <span class="keyboard-hint">Ctrl/Cmd + Enter で保存</span>
+                        </label>
+                        <textarea 
+                            id="backInput" 
+                            placeholder="例：りんご" 
+                            required
+                            autocomplete="off"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="saveCardBtn">
+                        <i class="fas fa-save"></i> カードを保存
+                    </button>
+                </form>
+            </div>
+
+            <!-- 保存ステータス表示 -->
+            <div class="save-status" id="saveStatus">
+                <i class="fas fa-check-circle"></i> 保存しました
+            </div>
+
+            <!-- ローディングオーバーレイ -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p>AI分析中...</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // グローバル変数
+        let currentMethod = 'photo';
+        let selectedImage = null;
+        let autoSaveTimeout = null;
+        const AUTOSAVE_DELAY = 3000; // 3秒
+
+        // ログイン情報取得（localStorageから）
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        // 要素取得
+        const methodBtns = document.querySelectorAll('.method-btn');
+        const photoSection = document.getElementById('photoSection');
+        const manualSection = document.getElementById('manualSection');
+        const photoInput = document.getElementById('photoInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const photoPreviewArea = document.getElementById('photoPreviewArea');
+        const photoPreview = document.getElementById('photoPreview');
+        const analyzePhotoBtn = document.getElementById('analyzePhotoBtn');
+        const generatedCards = document.getElementById('generatedCards');
+        const manualForm = document.getElementById('manualForm');
+        const frontInput = document.getElementById('frontInput');
+        const backInput = document.getElementById('backInput');
+        const saveStatus = document.getElementById('saveStatus');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+
+        // 入力方法切り替え
+        methodBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                methodBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentMethod = this.dataset.method;
+                
+                if (currentMethod === 'photo') {
+                    photoSection.classList.add('active');
+                    manualSection.classList.remove('active');
+                } else {
+                    photoSection.classList.remove('active');
+                    manualSection.classList.add('active');
+                    frontInput.focus();
+                }
+            });
+        });
+
+        // タブ切り替え（モバイル用）
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const side = this.dataset.side;
+                if (side === 'front') {
+                    frontInput.focus();
+                } else {
+                    backInput.focus();
+                }
+            });
+        });
+
+        // 写真アップロード
+        uploadArea.addEventListener('click', function() {
+            photoInput.click();
+        });
+
+        // ドラッグ&ドロップ
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file);
+            }
+        });
+
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageFile(file);
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoPreview.src = e.target.result;
+                selectedImage = file;
+                uploadArea.style.display = 'none';
+                photoPreviewArea.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 写真分析
+        analyzePhotoBtn.addEventListener('click', async function() {
+            if (!selectedImage) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            loadingOverlay.classList.add('show');
+
+            try {
+                const formData = new FormData();
+                formData.append('appkey', loginInfo.appkey);
+                formData.append('sid', loginInfo.sid);
+                formData.append('image', selectedImage);
+
+                const response = await fetch('/api/flashcard/create-from-photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards && data.cards.length > 0) {
+                    displayGeneratedCards(data.cards);
+                    showSaveStatus('saved', data.cards.length + '枚のカードを作成しました');
+                } else {
+                    alert('カードの作成に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Photo analysis error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            } finally {
+                loadingOverlay.classList.remove('show');
+            }
+        });
+
+        function displayGeneratedCards(cards) {
+            generatedCards.innerHTML = '<h3 style="margin-bottom: 1rem; color: #7c3aed;">✅ 作成されたカード (' + cards.length + '枚)</h3>';
+            
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card-item';
+                cardEl.innerHTML = \`
+                    <div class="card-side">
+                        <div class="card-label">📝 表面</div>
+                        <div class="card-content">\${card.front}</div>
+                    </div>
+                    <div class="card-side">
+                        <div class="card-label">💡 裏面</div>
+                        <div class="card-content">\${card.back}</div>
+                    </div>
+                    \${card.tags && card.tags.length > 0 ? \`
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                            🏷️ \${card.tags.join(', ')}
+                        </div>
+                    \` : ''}
+                \`;
+                generatedCards.appendChild(cardEl);
+            });
+        }
+
+        // 手動入力フォーム送信
+        manualForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            const front = frontInput.value.trim();
+            const back = backInput.value.trim();
+
+            if (!front || !back) {
+                alert('表面と裏面の両方を入力してください');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/flashcard/create-manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        front: front,
+                        back: back,
+                        tags: []
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSaveStatus('saved', 'カードを保存しました');
+                    
+                    // フォームをクリア
+                    frontInput.value = '';
+                    backInput.value = '';
+                    frontInput.focus();
+                } else {
+                    alert('保存に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Manual save error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        });
+
+        // キーボードショートカット
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter で保存
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (currentMethod === 'manual') {
+                    e.preventDefault();
+                    manualForm.dispatchEvent(new Event('submit'));
+                }
+            }
+            
+            // Tabキーで表面→裏面への移動を最適化
+            if (e.key === 'Tab' && document.activeElement === frontInput) {
+                e.preventDefault();
+                backInput.focus();
+            }
+        });
+
+        // 自動保存（ドラフト保存）
+        function setupAutoSave() {
+            [frontInput, backInput].forEach(input => {
+                input.addEventListener('input', function() {
+                    clearTimeout(autoSaveTimeout);
+                    showSaveStatus('saving', '保存中...');
+                    
+                    autoSaveTimeout = setTimeout(function() {
+                        saveDraft();
+                    }, AUTOSAVE_DELAY);
+                });
+            });
+        }
+
+        function saveDraft() {
+            const front = frontInput.value.trim();
+            const back = backInput.value.trim();
+            
+            if (front || back) {
+                localStorage.setItem('flashcard_draft', JSON.stringify({
+                    front: front,
+                    back: back,
+                    timestamp: Date.now()
+                }));
+                showSaveStatus('saved', '下書きを保存しました');
+            }
+        }
+
+        function loadDraft() {
+            const draft = localStorage.getItem('flashcard_draft');
+            if (draft) {
+                try {
+                    const data = JSON.parse(draft);
+                    // 24時間以内のドラフトのみ復元
+                    if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+                        frontInput.value = data.front || '';
+                        backInput.value = data.back || '';
+                    }
+                } catch (e) {
+                    console.error('Draft load error:', e);
+                }
+            }
+        }
+
+        function showSaveStatus(type, message) {
+            saveStatus.textContent = message;
+            saveStatus.className = 'save-status show ' + type;
+            
+            setTimeout(function() {
+                saveStatus.classList.remove('show');
+            }, 3000);
+        }
+
+        // 初期化
+        setupAutoSave();
+        loadDraft();
+        getLoginInfo(); // ログインチェック
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 // Study Partner Simple - ログイン修正版
 app.get('/study-partner-simple', studyPartnerSimple)
 
@@ -10942,9 +11744,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="flashcard" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="flashcard" onclick="window.location.href='/flashcard/create'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
-                        🃏 フラッシュカード（実装予定）
+                        📇 フラッシュカード作成
                     </button>
                 </div>
 
@@ -13433,6 +14235,366 @@ app.get('/eiken/practice', (c) => {
 </html>
   `)
 })
+
+// ==================== Flashcard API Routes ====================
+
+// フラッシュカード作成（写真から）
+app.post('/api/flashcard/create-from-photo', async (c) => {
+  console.log('📸 Flashcard from photo API called')
+  
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const formData = await c.req.formData()
+    const appkey = formData.get('appkey') as string
+    const sid = formData.get('sid') as string
+    const imageField = formData.get('image')
+    const deckId = formData.get('deckId') as string || null
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    if (!imageField || !(imageField instanceof File)) {
+      return c.json({ success: false, error: 'No image provided' }, 400)
+    }
+
+    // 画像をBase64に変換
+    const arrayBuffer = await imageField.arrayBuffer()
+    const base64Image = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+    const dataUrl = `data:${imageField.type};base64,${base64Image}`
+
+    // OpenAI Vision APIで画像解析
+    const openaiApiKey = c.env?.OPENAI_API_KEY
+    if (!openaiApiKey) {
+      return c.json({ success: false, error: 'OpenAI API key not configured' }, 500)
+    }
+
+    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `あなたはフラッシュカード作成のエキスパートです。画像から学習用のフラッシュカードを抽出します。
+
+以下のJSON形式で複数のカードを返してください：
+{
+  "cards": [
+    {
+      "front": "質問・単語・問題文",
+      "back": "回答・意味・解説",
+      "tags": ["カテゴリ", "科目"],
+      "confidence": 0.95
+    }
+  ]
+}
+
+例：
+- 英単語リスト → 各単語を1枚のカードに
+- 数学の公式 → 公式名と公式を分けて
+- 歴史年表 → 年号と出来事をペアに
+- ノート → 重要用語とその説明をペアに
+
+できるだけ多くのカードを抽出してください。`
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'この画像から学習用のフラッシュカードを作成してください。'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: dataUrl
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      })
+    })
+
+    if (!visionResponse.ok) {
+      console.error('❌ OpenAI Vision API error:', await visionResponse.text())
+      return c.json({ success: false, error: 'Failed to analyze image' }, 500)
+    }
+
+    const visionData = await visionResponse.json()
+    const aiResponse = visionData.choices[0].message.content
+
+    // JSONを抽出
+    let cardsData
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        cardsData = JSON.parse(jsonMatch[0])
+      } else {
+        cardsData = JSON.parse(aiResponse)
+      }
+    } catch (e) {
+      console.error('❌ Failed to parse AI response:', aiResponse)
+      return c.json({ success: false, error: 'Failed to parse AI response', aiResponse }, 500)
+    }
+
+    if (!cardsData.cards || !Array.isArray(cardsData.cards)) {
+      return c.json({ success: false, error: 'Invalid response format from AI' }, 500)
+    }
+
+    // カードをDBに保存
+    const createdCards = []
+    for (const card of cardsData.cards) {
+      const cardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      await db.prepare(`
+        INSERT INTO flashcards (
+          card_id, deck_id, appkey, sid, front_text, back_text, 
+          source_image_data, created_from, ai_confidence, tags
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        cardId,
+        deckId,
+        appkey,
+        sid,
+        card.front,
+        card.back,
+        dataUrl,
+        'photo',
+        card.confidence || 0.8,
+        JSON.stringify(card.tags || [])
+      ).run()
+
+      createdCards.push({
+        cardId,
+        front: card.front,
+        back: card.back,
+        tags: card.tags,
+        confidence: card.confidence
+      })
+    }
+
+    // デッキのカード数を更新
+    if (deckId) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count + ?, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(createdCards.length, deckId).run()
+    }
+
+    console.log(`✅ Created ${createdCards.length} flashcards from photo`)
+
+    return c.json({
+      success: true,
+      cards: createdCards,
+      count: createdCards.length
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard from photo error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード作成（手動入力）
+app.post('/api/flashcard/create-manual', async (c) => {
+  console.log('✍️ Manual flashcard create API called')
+  
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckId, front, back, tags, frontImage, backImage } = await c.req.json()
+
+    if (!appkey || !sid || !front || !back) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const cardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcards (
+        card_id, deck_id, appkey, sid, front_text, back_text,
+        front_image_data, back_image_data, created_from, tags
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      cardId,
+      deckId || null,
+      appkey,
+      sid,
+      front,
+      back,
+      frontImage || null,
+      backImage || null,
+      'manual',
+      JSON.stringify(tags || [])
+    ).run()
+
+    // デッキのカード数を更新
+    if (deckId) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(deckId).run()
+    }
+
+    console.log(`✅ Created manual flashcard: ${cardId}`)
+
+    return c.json({
+      success: true,
+      cardId,
+      front,
+      back
+    })
+
+  } catch (error) {
+    console.error('❌ Manual flashcard create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード一覧取得
+app.post('/api/flashcard/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckId, limit = 50, offset = 0 } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    let query = `
+      SELECT * FROM flashcards 
+      WHERE appkey = ? AND sid = ?
+    `
+    const params = [appkey, sid]
+
+    if (deckId) {
+      query += ` AND deck_id = ?`
+      params.push(deckId)
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    params.push(limit, offset)
+
+    const result = await db.prepare(query).bind(...params).all()
+
+    return c.json({
+      success: true,
+      cards: result.results || [],
+      count: result.results?.length || 0
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// デッキ作成
+app.post('/api/flashcard/deck/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckName, description } = await c.req.json()
+
+    if (!appkey || !sid || !deckName) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const deckId = `deck_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_decks (deck_id, appkey, sid, deck_name, description)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(deckId, appkey, sid, deckName, description || '').run()
+
+    console.log(`✅ Created flashcard deck: ${deckId}`)
+
+    return c.json({
+      success: true,
+      deckId,
+      deckName
+    })
+
+  } catch (error) {
+    console.error('❌ Deck create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// デッキ一覧取得
+app.post('/api/flashcard/deck/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    const result = await db.prepare(`
+      SELECT * FROM flashcard_decks 
+      WHERE appkey = ? AND sid = ?
+      ORDER BY created_at DESC
+    `).bind(appkey, sid).all()
+
+    return c.json({
+      success: true,
+      decks: result.results || [],
+      count: result.results?.length || 0
+    })
+
+  } catch (error) {
+    console.error('❌ Deck list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// ==================== Eiken API Routes ====================
 
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
