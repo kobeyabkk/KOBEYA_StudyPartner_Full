@@ -11744,7 +11744,7 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="flashcard" onclick="window.location.href='/flashcard/create'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
+                    <button id="flashcard" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
                         <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
                         📇 フラッシュカード作成
                     </button>
@@ -11941,6 +11941,19 @@ app.get('/study-partner', (c) => {
             shoronbunButton.addEventListener('click', function() {
               console.log('📝 Essay coaching button clicked');
               window.location.href = '/essay-coaching';
+            });
+          }
+          
+          // フラッシュカードボタン
+          const flashcardButton = document.getElementById('flashcard');
+          if (flashcardButton) {
+            flashcardButton.addEventListener('click', function() {
+              console.log('📇 Flashcard button clicked');
+              if (!authenticated) {
+                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+                return;
+              }
+              window.location.href = '/flashcard/create';
             });
           }
           
@@ -12215,6 +12228,11 @@ app.get('/study-partner', (c) => {
             
             if (response.ok && data.success) {
               authenticated = true;
+              
+              // localStorageに保存（フラッシュカードページで使用）
+              localStorage.setItem('appkey', appkey);
+              localStorage.setItem('sid', sid);
+              
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
                     'APP_KEY: ' + appkey + String.fromCharCode(10) + 
                     'Student ID: ' + sid);
