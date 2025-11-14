@@ -10320,6 +10320,515 @@ app.get('/', (c) => {
 
 // ==================== Flashcard UI Routes ====================
 
+// フラッシュカード一覧ページ
+app.get('/flashcard/list', (c) => {
+  console.log('📇 Flashcard list page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>フラッシュカード一覧 | KOBEYA Study Partner</title>
+        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+          min-height: 100vh;
+          color: #37352f;
+          padding-bottom: 100px;
+        }
+        
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem 1.5rem;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .header h1 {
+          font-size: 1.75rem;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stats {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 1rem;
+          flex-wrap: wrap;
+        }
+        
+        .stat-item {
+          padding: 0.75rem 1.5rem;
+          background: #f3e8ff;
+          border-radius: 0.5rem;
+          font-size: 0.95rem;
+        }
+        
+        .stat-number {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #7c3aed;
+        }
+        
+        .action-bar {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .btn {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn-secondary {
+          background: white;
+          color: #7c3aed;
+          border: 2px solid #7c3aed;
+        }
+        
+        .btn-secondary:hover {
+          background: #f3e8ff;
+        }
+        
+        .btn-danger {
+          background: #dc2626;
+          color: white;
+        }
+        
+        .btn-danger:hover {
+          background: #b91c1c;
+        }
+        
+        .card-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+        
+        .flashcard {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          transition: all 0.3s;
+          cursor: pointer;
+          position: relative;
+        }
+        
+        .flashcard:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+        }
+        
+        .flashcard.flipped .card-front {
+          display: none;
+        }
+        
+        .flashcard.flipped .card-back {
+          display: block;
+        }
+        
+        .card-front, .card-back {
+          min-height: 120px;
+        }
+        
+        .card-back {
+          display: none;
+        }
+        
+        .card-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+        }
+        
+        .card-content {
+          font-size: 1.1rem;
+          line-height: 1.6;
+          color: #37352f;
+        }
+        
+        .card-meta {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+          font-size: 0.875rem;
+          color: #6b7280;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .card-actions {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          display: flex;
+          gap: 0.5rem;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        
+        .flashcard:hover .card-actions {
+          opacity: 1;
+        }
+        
+        .icon-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: none;
+          background: white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .icon-btn.edit:hover {
+          background: #3b82f6;
+          color: white;
+        }
+        
+        .icon-btn.delete:hover {
+          background: #dc2626;
+          color: white;
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .empty-state i {
+          font-size: 4rem;
+          color: #d1d5db;
+          margin-bottom: 1rem;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+        
+        .spinner {
+          border: 4px solid #f3f4f6;
+          border-top: 4px solid #7c3aed;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .mastery-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 1rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+        
+        .mastery-0 { background: #f3f4f6; color: #6b7280; }
+        .mastery-1 { background: #fee2e2; color: #dc2626; }
+        .mastery-2 { background: #fef3c7; color: #f59e0b; }
+        .mastery-3 { background: #dbeafe; color: #3b82f6; }
+        .mastery-4 { background: #d1fae5; color: #10b981; }
+        .mastery-5 { background: #dcfce7; color: #16a34a; }
+        
+        @media (max-width: 768px) {
+          .card-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .action-bar {
+            flex-direction: column;
+          }
+          
+          .btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📇 フラッシュカード一覧</h1>
+                <p>あなたの学習カードコレクション</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalCards">0</div>
+                        <div>総カード数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="studyToday">0</div>
+                        <div>今日の復習</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="masteryAvg">0%</div>
+                        <div>平均習熟度</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="window.location.href='/flashcard/create'">
+                    <i class="fas fa-plus"></i> 新しいカードを作成
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='/flashcard/study'">
+                    <i class="fas fa-brain"></i> 学習を開始
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/study-partner'">
+                    <i class="fas fa-home"></i> ホームに戻る
+                </button>
+            </div>
+
+            <div id="cardContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>カードを読み込み中...</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let cards = [];
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCards() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        limit: 100,
+                        offset: 0
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards) {
+                    cards = data.cards;
+                    displayCards();
+                    updateStats();
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Failed to load cards:', error);
+                document.getElementById('cardContainer').innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>エラーが発生しました</h3>
+                        <p>\${error.message}</p>
+                    </div>
+                \`;
+            }
+        }
+
+        function displayCards() {
+            const container = document.getElementById('cardContainer');
+            
+            if (cards.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            container.innerHTML = '<div class="card-grid">' + cards.map((card, index) => \`
+                <div class="flashcard" onclick="flipCard(\${index})" id="card-\${index}">
+                    <div class="card-actions">
+                        <button class="icon-btn edit" onclick="event.stopPropagation(); editCard('\${card.card_id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn delete" onclick="event.stopPropagation(); deleteCard('\${card.card_id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="card-front">
+                        <div class="card-label">📝 表面</div>
+                        <div class="card-content">\${escapeHtml(card.front_text)}</div>
+                    </div>
+                    
+                    <div class="card-back">
+                        <div class="card-label">💡 裏面</div>
+                        <div class="card-content">\${escapeHtml(card.back_text)}</div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <span class="mastery-badge mastery-\${card.mastery_level || 0}">
+                            習熟度: \${card.mastery_level || 0}/5
+                        </span>
+                        <span>\${formatDate(card.created_at)}</span>
+                    </div>
+                </div>
+            \`).join('') + '</div>';
+        }
+
+        function showEmptyState() {
+            document.getElementById('cardContainer').innerHTML = \`
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>カードがまだありません</h3>
+                    <p>「新しいカードを作成」ボタンから最初のカードを作成しましょう！</p>
+                </div>
+            \`;
+        }
+
+        function updateStats() {
+            document.getElementById('totalCards').textContent = cards.length;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const studyToday = cards.filter(c => 
+                c.last_reviewed_at && c.last_reviewed_at.startsWith(today)
+            ).length;
+            document.getElementById('studyToday').textContent = studyToday;
+            
+            const avgMastery = cards.length > 0
+                ? Math.round((cards.reduce((sum, c) => sum + (c.mastery_level || 0), 0) / cards.length / 5) * 100)
+                : 0;
+            document.getElementById('masteryAvg').textContent = avgMastery + '%';
+        }
+
+        function flipCard(index) {
+            const card = document.getElementById(\`card-\${index}\`);
+            card.classList.toggle('flipped');
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm('このカードを削除してもよろしいですか？')) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardId: cardId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('カードを削除しました');
+                    loadCards();
+                } else {
+                    alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+
+        function editCard(cardId) {
+            alert('編集機能は準備中です。カードID: ' + cardId);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // 初期化
+        loadCards();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 // フラッシュカード作成ページ
 app.get('/flashcard/create', (c) => {
   console.log('📇 Flashcard create page requested')
@@ -11024,12 +11533,16 @@ app.get('/flashcard/create', (c) => {
                 const data = await response.json();
 
                 if (data.success) {
-                    showSaveStatus('saved', 'カードを保存しました');
-                    
-                    // フォームをクリア
-                    frontInput.value = '';
-                    backInput.value = '';
-                    frontInput.focus();
+                    // 成功メッセージを表示
+                    if (confirm('✅ カードを保存しました！\\n\\n続けて新しいカードを作成しますか？\\n\\n「キャンセル」を押すとカード一覧に移動します。')) {
+                        // フォームをクリア
+                        frontInput.value = '';
+                        backInput.value = '';
+                        frontInput.focus();
+                    } else {
+                        // 一覧ページに移動
+                        window.location.href = '/flashcard/list';
+                    }
                 } else {
                     alert('保存に失敗しました: ' + (data.error || '不明なエラー'));
                 }
@@ -11745,8 +12258,15 @@ app.get('/study-partner', (c) => {
 
                 <div style="margin-bottom: 1rem;">
                     <button id="flashcard" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
-                        <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
+                        <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>
                         📇 フラッシュカード作成
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <button id="flashcardList" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #8b5cf6; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
+                        <i class="fas fa-list" style="margin-right: 0.5rem;"></i>
+                        📚 フラッシュカード一覧
                     </button>
                 </div>
 
@@ -11944,16 +12464,29 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // フラッシュカードボタン
+          // フラッシュカード作成ボタン
           const flashcardButton = document.getElementById('flashcard');
           if (flashcardButton) {
             flashcardButton.addEventListener('click', function() {
-              console.log('📇 Flashcard button clicked');
+              console.log('📇 Flashcard create button clicked');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
               window.location.href = '/flashcard/create';
+            });
+          }
+          
+          // フラッシュカード一覧ボタン
+          const flashcardListButton = document.getElementById('flashcardList');
+          if (flashcardListButton) {
+            flashcardListButton.addEventListener('click', function() {
+              console.log('📚 Flashcard list button clicked');
+              if (!authenticated) {
+                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+                return;
+              }
+              window.location.href = '/flashcard/list';
             });
           }
           
@@ -14605,6 +15138,145 @@ app.post('/api/flashcard/deck/list', async (c) => {
 
   } catch (error) {
     console.error('❌ Deck list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード削除
+app.post('/api/flashcard/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId } = await c.req.json()
+
+    if (!appkey || !sid || !cardId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    // カードの存在確認
+    const card = await db.prepare(`
+      SELECT * FROM flashcards 
+      WHERE card_id = ? AND appkey = ? AND sid = ?
+    `).bind(cardId, appkey, sid).first()
+
+    if (!card) {
+      return c.json({ success: false, error: 'Card not found' }, 404)
+    }
+
+    // カードを削除
+    await db.prepare(`
+      DELETE FROM flashcards 
+      WHERE card_id = ? AND appkey = ? AND sid = ?
+    `).bind(cardId, appkey, sid).run()
+
+    // デッキのカード数を更新
+    if (card.deck_id) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count - 1, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(card.deck_id).run()
+    }
+
+    console.log(`✅ Deleted flashcard: ${cardId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Flashcard delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// 学習履歴の記録
+app.post('/api/flashcard/record-study', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, isCorrect, responseTimeMs, difficultyRating } = await c.req.json()
+
+    if (!appkey || !sid || !cardId || isCorrect === undefined) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const historyId = `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // 学習履歴を記録
+    await db.prepare(`
+      INSERT INTO flashcard_study_history (
+        history_id, card_id, appkey, sid, is_correct, response_time_ms, difficulty_rating
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      historyId,
+      cardId,
+      appkey,
+      sid,
+      isCorrect ? 1 : 0,
+      responseTimeMs || null,
+      difficultyRating || null
+    ).run()
+
+    // カードの統計を更新
+    const card = await db.prepare(`
+      SELECT review_count, correct_count, mastery_level FROM flashcards
+      WHERE card_id = ?
+    `).bind(cardId).first()
+
+    if (card) {
+      const newReviewCount = (card.review_count || 0) + 1
+      const newCorrectCount = (card.correct_count || 0) + (isCorrect ? 1 : 0)
+      const correctRate = newCorrectCount / newReviewCount
+      
+      // 習熟度を計算 (0-5)
+      let newMasteryLevel = 0
+      if (correctRate >= 0.95 && newReviewCount >= 10) newMasteryLevel = 5
+      else if (correctRate >= 0.90 && newReviewCount >= 8) newMasteryLevel = 4
+      else if (correctRate >= 0.80 && newReviewCount >= 5) newMasteryLevel = 3
+      else if (correctRate >= 0.70 && newReviewCount >= 3) newMasteryLevel = 2
+      else if (correctRate >= 0.50) newMasteryLevel = 1
+
+      // 次回復習日を計算 (間隔反復学習)
+      const intervals = [1, 3, 7, 14, 30, 90] // 日数
+      const nextReviewDays = intervals[Math.min(newMasteryLevel, intervals.length - 1)]
+      const nextReviewDate = new Date()
+      nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays)
+
+      await db.prepare(`
+        UPDATE flashcards
+        SET review_count = ?, 
+            correct_count = ?,
+            mastery_level = ?,
+            last_reviewed_at = CURRENT_TIMESTAMP,
+            next_review_at = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE card_id = ?
+      `).bind(
+        newReviewCount,
+        newCorrectCount,
+        newMasteryLevel,
+        nextReviewDate.toISOString(),
+        cardId
+      ).run()
+    }
+
+    console.log(`✅ Recorded study for card: ${cardId}, correct: ${isCorrect}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Record study error:', error)
     return c.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
