@@ -11320,11 +11320,15 @@ app.get('/flashcard/study', (c) => {
         
         .study-header {
           padding: 1rem 1.5rem;
-          display: flex;
+          display: none;
           justify-content: space-between;
           align-items: center;
           background: rgba(255,255,255,0.1);
           backdrop-filter: blur(10px);
+        }
+        
+        .study-header.show {
+          display: flex;
         }
         
         .exit-btn {
@@ -11491,6 +11495,133 @@ app.get('/flashcard/study', (c) => {
           box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
         }
         
+        .selection-container {
+          display: none;
+          padding: 2rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        
+        .selection-container.show {
+          display: block;
+        }
+        
+        .selection-header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+        
+        .selection-header h2 {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .selection-header p {
+          opacity: 0.9;
+          font-size: 1rem;
+        }
+        
+        .selection-controls {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        
+        .selection-info {
+          flex: 1;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+        
+        .selection-buttons {
+          display: flex;
+          gap: 0.75rem;
+        }
+        
+        .card-list {
+          background: rgba(255,255,255,0.1);
+          backdrop-filter: blur(10px);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          max-height: 60vh;
+          overflow-y: auto;
+          margin-bottom: 1.5rem;
+        }
+        
+        .card-item-selectable {
+          background: rgba(255,255,255,0.15);
+          border: 2px solid rgba(255,255,255,0.2);
+          border-radius: 0.75rem;
+          padding: 1rem;
+          margin-bottom: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .card-item-selectable:hover {
+          background: rgba(255,255,255,0.25);
+          border-color: rgba(255,255,255,0.4);
+        }
+        
+        .card-item-selectable.selected {
+          background: rgba(16, 185, 129, 0.2);
+          border-color: #10b981;
+        }
+        
+        .card-checkbox {
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+        }
+        
+        .card-info {
+          flex: 1;
+        }
+        
+        .card-front-text {
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+        }
+        
+        .card-meta-info {
+          font-size: 0.875rem;
+          opacity: 0.8;
+        }
+        
+        .start-study-btn {
+          width: 100%;
+          padding: 1.25rem;
+          font-size: 1.2rem;
+          font-weight: 700;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+        
+        .start-study-btn:hover:not(:disabled) {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+        
+        .start-study-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
         .results-container {
           display: none;
           text-align: center;
@@ -11600,8 +11731,36 @@ app.get('/flashcard/study', (c) => {
             <div class="progress-text" id="progressText">0 / 0</div>
         </div>
 
+        <!-- カード選択画面 -->
+        <div class="selection-container" id="selectionContainer">
+            <div class="selection-header">
+                <h2>📚 学習するカードを選択</h2>
+                <p>チェックボックスで学習したいカードを選んでください</p>
+            </div>
+            
+            <div class="selection-controls">
+                <div class="selection-info">
+                    <span id="selectedCardCount">0</span> / <span id="totalCardCount">0</span> 枚選択中
+                </div>
+                <div class="selection-buttons">
+                    <button class="btn-action btn-correct btn-sm" onclick="selectAllCards()" style="background: #3b82f6; min-width: auto; padding: 0.5rem 1rem;">
+                        <i class="fas fa-check-double"></i> 全選択
+                    </button>
+                    <button class="btn-action btn-wrong btn-sm" onclick="deselectAllCards()" style="min-width: auto; padding: 0.5rem 1rem;">
+                        <i class="fas fa-times"></i> 選択解除
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-list" id="cardListSelection"></div>
+            
+            <button class="start-study-btn" id="startStudyBtn" onclick="startStudyWithSelected()" disabled>
+                <i class="fas fa-play-circle"></i> 学習を開始 (<span id="selectedCountBtn">0</span>枚)
+            </button>
+        </div>
+
         <!-- 学習コンテナ -->
-        <div class="study-container" id="studyContainer">
+        <div class="study-container" id="studyContainer" style="display: none;">
             <div class="loading">
                 <div class="spinner"></div>
                 <p>カードを読み込み中...</p>
@@ -11633,19 +11792,25 @@ app.get('/flashcard/study', (c) => {
                 <button class="btn-action btn-correct" onclick="window.location.href='/flashcard/list'">
                     <i class="fas fa-list"></i> カード一覧へ
                 </button>
-                <button class="btn-action btn-wrong" onclick="restartStudy()">
-                    <i class="fas fa-redo"></i> もう一度学習
+                <button class="btn-action btn-correct" onclick="restartStudy(false)" style="background: #3b82f6;">
+                    <i class="fas fa-redo"></i> 全てもう一度
+                </button>
+                <button class="btn-action btn-wrong" onclick="restartStudy(true)" id="retryWrongBtn">
+                    <i class="fas fa-times-circle"></i> 間違えた問題のみ
                 </button>
             </div>
         </div>
 
         <script>
         let cards = [];
+        let allCards = []; // 元のカードリストを保持
+        let selectedCardIds = new Set(); // 選択されたカードID
         let currentIndex = 0;
         let isFlipped = false;
         let correctAnswers = 0;
         let wrongAnswers = 0;
         let studyStartTime = Date.now();
+        let wrongCardIds = []; // 間違えた問題のIDを記録
 
         function getLoginInfo() {
             const appkey = localStorage.getItem('appkey');
@@ -11679,13 +11844,14 @@ app.get('/flashcard/study', (c) => {
 
                 if (data.success && data.cards && data.cards.length > 0) {
                     // 復習が必要なカードを優先
-                    cards = data.cards.sort((a, b) => {
+                    allCards = data.cards.sort((a, b) => {
                         const aReview = a.next_review_at || '9999-12-31';
                         const bReview = b.next_review_at || '9999-12-31';
                         return aReview.localeCompare(bReview);
                     });
                     
-                    startStudy();
+                    // 選択画面を表示
+                    showCardSelection();
                 } else {
                     alert('学習するカードがありません。まずカードを作成してください。');
                     window.location.href = '/flashcard/create';
@@ -11700,6 +11866,7 @@ app.get('/flashcard/study', (c) => {
             currentIndex = 0;
             correctAnswers = 0;
             wrongAnswers = 0;
+            wrongCardIds = [];
             studyStartTime = Date.now();
             showCard();
         }
@@ -11761,6 +11928,8 @@ app.get('/flashcard/study', (c) => {
                 correctAnswers++;
             } else {
                 wrongAnswers++;
+                // 間違えた問題のIDを記録
+                wrongCardIds.push(card.card_id);
             }
 
             // 学習記録をAPIに送信
@@ -11810,11 +11979,145 @@ app.get('/flashcard/study', (c) => {
             document.getElementById('correctCount').textContent = correctAnswers;
             document.getElementById('wrongCount').textContent = wrongAnswers;
             document.getElementById('accuracyRate').textContent = accuracy + '%';
+            
+            // 間違えた問題のみボタンの表示/非表示
+            const retryWrongBtn = document.getElementById('retryWrongBtn');
+            if (wrongCardIds.length === 0) {
+                retryWrongBtn.style.display = 'none';
+            } else {
+                retryWrongBtn.style.display = 'flex';
+            }
         }
 
-        function restartStudy() {
+        function restartStudy(wrongOnly = false) {
             document.getElementById('resultsContainer').classList.remove('show');
             document.getElementById('studyContainer').style.display = 'flex';
+            
+            if (wrongOnly && wrongCardIds.length > 0) {
+                // 間違えた問題のみを抽出
+                cards = allCards.filter(card => wrongCardIds.includes(card.card_id));
+                
+                if (cards.length === 0) {
+                    alert('間違えた問題がありません！');
+                    cards = [...allCards]; // 元に戻す
+                }
+            } else {
+                // 全てもう一度の場合は元のリストをコピー
+                cards = [...allCards];
+            }
+            
+            startStudy();
+        }
+
+        // カード選択画面の表示
+        function showCardSelection() {
+            document.getElementById('studyContainer').style.display = 'none';
+            document.getElementById('selectionContainer').classList.add('show');
+            
+            // デフォルトで全てのカードを選択
+            selectedCardIds.clear();
+            allCards.forEach(card => selectedCardIds.add(card.card_id));
+            
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function renderCardList() {
+            const container = document.getElementById('cardListSelection');
+            container.innerHTML = allCards.map(card => \`
+                <div class="card-item-selectable \${selectedCardIds.has(card.card_id) ? 'selected' : ''}" 
+                     onclick="toggleCardSelect('\${card.card_id}', event)" 
+                     data-card-id="\${card.card_id}">
+                    <input type="checkbox" 
+                           class="card-checkbox" 
+                           \${selectedCardIds.has(card.card_id) ? 'checked' : ''}
+                           onclick="event.stopPropagation();"
+                           onchange="toggleCardSelect('\${card.card_id}', event)">
+                    <div class="card-info">
+                        <div class="card-front-text">\${escapeHtml(card.front_text)}</div>
+                        <div class="card-meta-info">
+                            習熟度: \${card.mastery_level || 0}/5 | 
+                            復習回数: \${card.review_count || 0}回
+                        </div>
+                    </div>
+                </div>
+            \`).join('');
+        }
+        
+        function toggleCardSelect(cardId, event) {
+            // イベントが存在し、チェックボックス自身からのイベントでない場合のみ処理
+            if (event && event.target.classList.contains('card-checkbox')) {
+                // チェックボックス自身のクリックは自動的に状態が変わるため、
+                // その状態を反映する
+                const checkbox = event.target;
+                if (checkbox.checked) {
+                    selectedCardIds.add(cardId);
+                } else {
+                    selectedCardIds.delete(cardId);
+                }
+            } else {
+                // カード領域のクリックによるトグル
+                if (selectedCardIds.has(cardId)) {
+                    selectedCardIds.delete(cardId);
+                } else {
+                    selectedCardIds.add(cardId);
+                }
+            }
+            
+            // UIを更新
+            const cardElement = document.querySelector(\`[data-card-id="\${cardId}"]\`);
+            const checkbox = cardElement.querySelector('.card-checkbox');
+            
+            if (selectedCardIds.has(cardId)) {
+                cardElement.classList.add('selected');
+                checkbox.checked = true;
+            } else {
+                cardElement.classList.remove('selected');
+                checkbox.checked = false;
+            }
+            
+            updateSelectionCount();
+        }
+        
+        function selectAllCards() {
+            selectedCardIds.clear();
+            allCards.forEach(card => selectedCardIds.add(card.card_id));
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function deselectAllCards() {
+            selectedCardIds.clear();
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function updateSelectionCount() {
+            const count = selectedCardIds.size;
+            const total = allCards.length;
+            
+            document.getElementById('selectedCardCount').textContent = count;
+            document.getElementById('totalCardCount').textContent = total;
+            document.getElementById('selectedCountBtn').textContent = count;
+            
+            const startBtn = document.getElementById('startStudyBtn');
+            startBtn.disabled = count === 0;
+        }
+        
+        function startStudyWithSelected() {
+            if (selectedCardIds.size === 0) {
+                alert('学習するカードを選択してください');
+                return;
+            }
+            
+            // 選択されたカードのみを抽出
+            cards = allCards.filter(card => selectedCardIds.has(card.card_id));
+            
+            // 選択画面を非表示、学習画面とヘッダーを表示
+            document.getElementById('selectionContainer').classList.remove('show');
+            document.getElementById('studyContainer').style.display = 'flex';
+            document.querySelector('.study-header').classList.add('show');
+            
             startStudy();
         }
 
