@@ -11211,6 +11211,14 @@ app.get('/flashcard', (c) => {
                         保存したカードを見る・学習する・管理する
                     </div>
                 </a>
+
+                <a href="/flashcard/categories" class="menu-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                    <i class="fas fa-folder menu-card-icon"></i>
+                    <div class="menu-card-title">📁 カテゴリ管理</div>
+                    <div class="menu-card-description">
+                        カードを整理するカテゴリを作成・管理する
+                    </div>
+                </a>
             </div>
 
             <div class="stats-card">
@@ -11754,6 +11762,13 @@ app.get('/flashcard/study', (c) => {
             
             <div class="card-list" id="cardListSelection"></div>
             
+            <div class="shuffle-option" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 0.5rem;">
+                <input type="checkbox" id="shuffleCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="shuffleCheckbox" style="cursor: pointer; font-size: 1rem;">
+                    🎲 順番をシャッフルする
+                </label>
+            </div>
+            
             <button class="start-study-btn" id="startStudyBtn" onclick="startStudyWithSelected()" disabled>
                 <i class="fas fa-play-circle"></i> 学習を開始 (<span id="selectedCountBtn">0</span>枚)
             </button>
@@ -12104,6 +12119,16 @@ app.get('/flashcard/study', (c) => {
             startBtn.disabled = count === 0;
         }
         
+        // Fisher-Yates シャッフルアルゴリズム
+        function shuffleArray(array) {
+            const shuffled = [...array]; // 元の配列を変更しないようコピー
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
         function startStudyWithSelected() {
             if (selectedCardIds.size === 0) {
                 alert('学習するカードを選択してください');
@@ -12112,6 +12137,13 @@ app.get('/flashcard/study', (c) => {
             
             // 選択されたカードのみを抽出
             cards = allCards.filter(card => selectedCardIds.has(card.card_id));
+            
+            // シャッフルオプションがONの場合、カードをランダム化
+            const shuffleCheckbox = document.getElementById('shuffleCheckbox');
+            if (shuffleCheckbox && shuffleCheckbox.checked) {
+                cards = shuffleArray(cards);
+                console.log('📢 カードをシャッフルしました');
+            }
             
             // 選択画面を非表示、学習画面とヘッダーを表示
             document.getElementById('selectionContainer').classList.remove('show');
@@ -12138,6 +12170,568 @@ app.get('/flashcard/study', (c) => {
 
         // 初期化
         loadCards();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// カテゴリ管理ページ
+app.get('/flashcard/categories', (c) => {
+  console.log('📁 Category management page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>カテゴリ管理 | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          color: white;
+          padding: 2rem 1rem;
+        }
+        
+        .container { 
+          max-width: 800px; 
+          width: 100%;
+          margin: 0 auto;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+
+        .header h1 {
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .header p {
+          font-size: 1.1rem;
+          opacity: 0.9;
+        }
+
+        .back-button {
+          position: fixed;
+          top: 1rem;
+          left: 1rem;
+          background: rgba(255,255,255,0.2);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.3);
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 2rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-decoration: none;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          z-index: 100;
+        }
+
+        .back-button:hover {
+          background: rgba(255,255,255,0.3);
+          transform: translateX(-5px);
+        }
+
+        .action-section {
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .action-section h2 {
+          font-size: 1.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .input-group {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .input-field {
+          flex: 1;
+          min-width: 200px;
+          padding: 0.75rem 1rem;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 0.5rem;
+          background: rgba(255,255,255,0.1);
+          color: white;
+          font-size: 1rem;
+        }
+
+        .input-field::placeholder {
+          color: rgba(255,255,255,0.6);
+        }
+
+        .color-picker-group {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+
+        .color-picker {
+          width: 60px;
+          height: 45px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 0.5rem;
+          cursor: pointer;
+          background: white;
+        }
+
+        .icon-picker {
+          padding: 0.75rem 1rem;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 0.5rem;
+          background: rgba(255,255,255,0.1);
+          color: white;
+          font-size: 1rem;
+          cursor: pointer;
+          min-width: 100px;
+        }
+
+        .btn-primary {
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 0.75rem 2rem;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .categories-list {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .category-item {
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: all 0.2s;
+        }
+
+        .category-item:hover {
+          background: rgba(255,255,255,0.2);
+          transform: translateY(-2px);
+        }
+
+        .category-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex: 1;
+        }
+
+        .category-icon {
+          font-size: 2rem;
+          width: 60px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.75rem;
+        }
+
+        .category-details h3 {
+          font-size: 1.25rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .category-details p {
+          font-size: 0.875rem;
+          opacity: 0.8;
+        }
+
+        .category-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .btn-icon {
+          background: rgba(255,255,255,0.2);
+          border: 1px solid rgba(255,255,255,0.3);
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.875rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-icon:hover {
+          background: rgba(255,255,255,0.3);
+        }
+
+        .btn-icon.delete {
+          background: rgba(239, 68, 68, 0.3);
+          border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-icon.delete:hover {
+          background: rgba(239, 68, 68, 0.5);
+        }
+
+        .loading {
+          text-align: center;
+          padding: 3rem;
+          font-size: 1.2rem;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem;
+          opacity: 0.8;
+        }
+
+        .empty-state i {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        @media (max-width: 768px) {
+          .input-group {
+            flex-direction: column;
+          }
+
+          .category-item {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+          }
+
+          .category-info {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .category-actions {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <a href="/flashcard" class="back-button">
+            <i class="fas fa-arrow-left"></i> 戻る
+        </a>
+
+        <div class="container">
+            <div class="header">
+                <h1>📁 カテゴリ管理</h1>
+                <p>フラッシュカードを整理するカテゴリを作成・管理できます</p>
+            </div>
+
+            <div class="action-section">
+                <h2>新しいカテゴリを作成</h2>
+                <div class="input-group">
+                    <input type="text" id="categoryName" class="input-field" placeholder="カテゴリ名（例：英単語、数学、歴史）" maxlength="30">
+                </div>
+                <div class="input-group">
+                    <div class="color-picker-group">
+                        <label style="opacity: 0.9;">カラー:</label>
+                        <input type="color" id="categoryColor" class="color-picker" value="#8b5cf6">
+                    </div>
+                    <select id="categoryIcon" class="icon-picker">
+                        <option value="📚">📚 本</option>
+                        <option value="✏️">✏️ 鉛筆</option>
+                        <option value="🎓">🎓 学位帽</option>
+                        <option value="🌍">🌍 地球</option>
+                        <option value="🔬">🔬 顕微鏡</option>
+                        <option value="💻">💻 パソコン</option>
+                        <option value="🎨">🎨 パレット</option>
+                        <option value="🎵">🎵 音楽</option>
+                        <option value="⚽">⚽ サッカー</option>
+                        <option value="🍎">🍎 リンゴ</option>
+                        <option value="🌟">🌟 星</option>
+                        <option value="💡">💡 電球</option>
+                        <option value="🚀">🚀 ロケット</option>
+                        <option value="🏆">🏆 トロフィー</option>
+                        <option value="📖">📖 開いた本</option>
+                    </select>
+                    <button class="btn-primary" onclick="createCategory()">
+                        <i class="fas fa-plus"></i> 作成
+                    </button>
+                </div>
+            </div>
+
+            <div id="categoriesContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i><br>
+                    読み込み中...
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let categories = [];
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCategories() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    categories = data.categories || [];
+                    renderCategories();
+                } else {
+                    throw new Error(data.error || 'カテゴリ取得失敗');
+                }
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+                document.getElementById('categoriesContainer').innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>カテゴリの読み込みに失敗しました</p>
+                    </div>
+                \`;
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+
+            if (categories.length === 0) {
+                container.innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>まだカテゴリがありません</p>
+                        <p>上のフォームから新しいカテゴリを作成してください</p>
+                    </div>
+                \`;
+                return;
+            }
+
+            container.innerHTML = \`
+                <div class="categories-list">
+                    \${categories.map(cat => \`
+                        <div class="category-item">
+                            <div class="category-info">
+                                <div class="category-icon" style="background-color: \${cat.color};">
+                                    \${cat.icon}
+                                </div>
+                                <div class="category-details">
+                                    <h3>\${escapeHtml(cat.name)}</h3>
+                                    <p>作成日: \${new Date(cat.created_at).toLocaleDateString('ja-JP')}</p>
+                                </div>
+                            </div>
+                            <div class="category-actions">
+                                <button class="btn-icon" onclick="editCategory('\${cat.category_id}')">
+                                    <i class="fas fa-edit"></i> 編集
+                                </button>
+                                <button class="btn-icon delete" onclick="deleteCategory('\${cat.category_id}', '\${escapeHtml(cat.name)}')">
+                                    <i class="fas fa-trash"></i> 削除
+                                </button>
+                            </div>
+                        </div>
+                    \`).join('')}
+                </div>
+            \`;
+        }
+
+        async function createCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const color = document.getElementById('categoryColor').value;
+            const icon = document.getElementById('categoryIcon').value;
+
+            if (!name) {
+                alert('カテゴリ名を入力してください');
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        name,
+                        color,
+                        icon
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 入力をクリア
+                    document.getElementById('categoryName').value = '';
+                    document.getElementById('categoryColor').value = '#8b5cf6';
+                    document.getElementById('categoryIcon').value = '📚';
+                    
+                    // リロード
+                    await loadCategories();
+                    
+                    alert('✅ カテゴリを作成しました！');
+                } else {
+                    throw new Error(data.error || 'カテゴリ作成失敗');
+                }
+            } catch (error) {
+                console.error('Failed to create category:', error);
+                alert('❌ カテゴリの作成に失敗しました: ' + error.message);
+            }
+        }
+
+        async function editCategory(categoryId) {
+            const category = categories.find(c => c.category_id === categoryId);
+            if (!category) return;
+
+            const newName = prompt('新しいカテゴリ名:', category.name);
+            if (!newName || newName === category.name) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        categoryId,
+                        name: newName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadCategories();
+                    alert('✅ カテゴリを更新しました！');
+                } else {
+                    throw new Error(data.error || 'カテゴリ更新失敗');
+                }
+            } catch (error) {
+                console.error('Failed to update category:', error);
+                alert('❌ カテゴリの更新に失敗しました: ' + error.message);
+            }
+        }
+
+        async function deleteCategory(categoryId, categoryName) {
+            if (!confirm(\`「\${categoryName}」を削除してもよろしいですか？\\n\\nこのカテゴリに属するカードは「未分類」になります。\`)) {
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        categoryId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadCategories();
+                    alert('✅ カテゴリを削除しました');
+                } else {
+                    throw new Error(data.error || 'カテゴリ削除失敗');
+                }
+            } catch (error) {
+                console.error('Failed to delete category:', error);
+                alert('❌ カテゴリの削除に失敗しました: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初期化
+        loadCategories();
         </script>
     </body>
     </html>
@@ -16339,32 +16933,68 @@ app.post('/api/flashcard/list', async (c) => {
       return c.json({ success: false, error: 'Database not available' }, 500)
     }
 
-    const { appkey, sid, deckId, limit = 50, offset = 0 } = await c.req.json()
+    const { appkey, sid, deckId, categoryId, tagIds, limit = 50, offset = 0 } = await c.req.json()
 
     if (!appkey || !sid) {
       return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
     }
 
     let query = `
-      SELECT * FROM flashcards 
-      WHERE appkey = ? AND sid = ?
+      SELECT f.*,
+             c.name as category_name,
+             c.color as category_color,
+             c.icon as category_icon
+      FROM flashcards f
+      LEFT JOIN flashcard_categories c ON f.category_id = c.category_id
+      WHERE f.appkey = ? AND f.sid = ?
     `
     const params = [appkey, sid]
 
     if (deckId) {
-      query += ` AND deck_id = ?`
+      query += ` AND f.deck_id = ?`
       params.push(deckId)
     }
 
-    query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    if (categoryId) {
+      query += ` AND f.category_id = ?`
+      params.push(categoryId)
+    }
+
+    // タグフィルタリング（タグIDの配列が指定された場合）
+    if (tagIds && Array.isArray(tagIds) && tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(',')
+      query += ` AND f.card_id IN (
+        SELECT card_id FROM flashcard_card_tags 
+        WHERE tag_id IN (${placeholders})
+        GROUP BY card_id
+        HAVING COUNT(DISTINCT tag_id) = ?
+      )`
+      params.push(...tagIds, tagIds.length)
+    }
+
+    query += ` ORDER BY f.created_at DESC LIMIT ? OFFSET ?`
     params.push(limit, offset)
 
     const result = await db.prepare(query).bind(...params).all()
+    const cards = result.results || []
+
+    // 各カードのタグを取得
+    const userId = `${appkey}_${sid}`
+    for (const card of cards) {
+      const cardTags = await db.prepare(`
+        SELECT t.tag_id, t.name
+        FROM flashcard_tags t
+        JOIN flashcard_card_tags ct ON t.tag_id = ct.tag_id
+        WHERE ct.card_id = ? AND t.user_id = ?
+      `).bind(card.card_id, userId).all()
+      
+      card.tags = cardTags.results || []
+    }
 
     return c.json({
       success: true,
-      cards: result.results || [],
-      count: result.results?.length || 0
+      cards,
+      count: cards.length
     })
 
   } catch (error) {
@@ -16700,6 +17330,352 @@ app.post('/api/flashcard/record-study', async (c) => {
 
   } catch (error) {
     console.error('❌ Record study error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// ==================== Category & Tag API Routes ====================
+
+// カテゴリ一覧取得
+app.post('/api/flashcard/category/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing credentials' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    const categories = await db.prepare(`
+      SELECT category_id, name, color, icon, created_at, updated_at
+      FROM flashcard_categories
+      WHERE user_id = ?
+      ORDER BY name ASC
+    `).bind(userId).all()
+
+    return c.json({ 
+      success: true, 
+      categories: categories.results || [] 
+    })
+
+  } catch (error) {
+    console.error('❌ Category list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ作成
+app.post('/api/flashcard/category/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, name, color, icon } = await c.req.json()
+    if (!appkey || !sid || !name) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+    const categoryId = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_categories (category_id, user_id, name, color, icon)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      categoryId,
+      userId,
+      name,
+      color || '#8b5cf6',
+      icon || '📚'
+    ).run()
+
+    console.log(`✅ Created category: ${name} (${categoryId})`)
+
+    return c.json({ 
+      success: true, 
+      categoryId,
+      category: { category_id: categoryId, name, color: color || '#8b5cf6', icon: icon || '📚' }
+    })
+
+  } catch (error) {
+    console.error('❌ Category create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ更新
+app.post('/api/flashcard/category/update', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, categoryId, name, color, icon } = await c.req.json()
+    if (!appkey || !sid || !categoryId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    await db.prepare(`
+      UPDATE flashcard_categories
+      SET name = COALESCE(?, name),
+          color = COALESCE(?, color),
+          icon = COALESCE(?, icon),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE category_id = ? AND user_id = ?
+    `).bind(name, color, icon, categoryId, userId).run()
+
+    console.log(`✅ Updated category: ${categoryId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Category update error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ削除
+app.post('/api/flashcard/category/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, categoryId } = await c.req.json()
+    if (!appkey || !sid || !categoryId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    // カテゴリに属するカードのcategory_idをNULLに設定
+    await db.prepare(`
+      UPDATE flashcards
+      SET category_id = NULL
+      WHERE category_id = ?
+    `).bind(categoryId).run()
+
+    // カテゴリを削除
+    await db.prepare(`
+      DELETE FROM flashcard_categories
+      WHERE category_id = ? AND user_id = ?
+    `).bind(categoryId, userId).run()
+
+    console.log(`✅ Deleted category: ${categoryId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Category delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ一覧取得
+app.post('/api/flashcard/tag/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing credentials' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    const tags = await db.prepare(`
+      SELECT tag_id, name, created_at
+      FROM flashcard_tags
+      WHERE user_id = ?
+      ORDER BY name ASC
+    `).bind(userId).all()
+
+    return c.json({ 
+      success: true, 
+      tags: tags.results || [] 
+    })
+
+  } catch (error) {
+    console.error('❌ Tag list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ作成
+app.post('/api/flashcard/tag/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, name } = await c.req.json()
+    if (!appkey || !sid || !name) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+    const tagId = `tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_tags (tag_id, user_id, name)
+      VALUES (?, ?, ?)
+    `).bind(tagId, userId, name).run()
+
+    console.log(`✅ Created tag: ${name} (${tagId})`)
+
+    return c.json({ 
+      success: true, 
+      tagId,
+      tag: { tag_id: tagId, name }
+    })
+
+  } catch (error) {
+    console.error('❌ Tag create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ削除
+app.post('/api/flashcard/tag/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, tagId } = await c.req.json()
+    if (!appkey || !sid || !tagId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    // カードとタグの関連を削除（外部キー制約でCASCADE）
+    await db.prepare(`
+      DELETE FROM flashcard_card_tags
+      WHERE tag_id = ?
+    `).bind(tagId).run()
+
+    // タグを削除
+    await db.prepare(`
+      DELETE FROM flashcard_tags
+      WHERE tag_id = ? AND user_id = ?
+    `).bind(tagId, userId).run()
+
+    console.log(`✅ Deleted tag: ${tagId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Tag delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カードへのタグ付与
+app.post('/api/flashcard/card/add-tags', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, tagIds } = await c.req.json()
+    if (!appkey || !sid || !cardId || !Array.isArray(tagIds)) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    // 既存のタグをすべて削除
+    await db.prepare(`
+      DELETE FROM flashcard_card_tags WHERE card_id = ?
+    `).bind(cardId).run()
+
+    // 新しいタグを追加
+    for (const tagId of tagIds) {
+      await db.prepare(`
+        INSERT OR IGNORE INTO flashcard_card_tags (card_id, tag_id)
+        VALUES (?, ?)
+      `).bind(cardId, tagId).run()
+    }
+
+    console.log(`✅ Added tags to card: ${cardId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Add tags error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カードのカテゴリ設定
+app.post('/api/flashcard/card/set-category', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, categoryId } = await c.req.json()
+    if (!appkey || !sid || !cardId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    await db.prepare(`
+      UPDATE flashcards
+      SET category_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = ?
+    `).bind(categoryId || null, cardId).run()
+
+    console.log(`✅ Set category for card: ${cardId} -> ${categoryId || 'NULL'}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Set category error:', error)
     return c.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
