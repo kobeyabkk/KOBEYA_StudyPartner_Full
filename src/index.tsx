@@ -10829,6 +10829,302 @@ app.get('/flashcard/list', (c) => {
   `)
 })
 
+// フラッシュカード メニューページ（統合）
+app.get('/flashcard', (c) => {
+  console.log('📇 Flashcard menu page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>フラッシュカード | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          color: #37352f;
+          padding: 2rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .container { 
+          max-width: 600px; 
+          width: 100%;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          color: white;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+          font-size: 1rem;
+          opacity: 0.9;
+        }
+
+        .menu-grid {
+          display: grid;
+          gap: 1.5rem;
+        }
+
+        .menu-card {
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          text-decoration: none;
+          color: inherit;
+          display: block;
+        }
+
+        .menu-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        }
+
+        .menu-card.create {
+          background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+          color: white;
+        }
+
+        .menu-card.list {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+        }
+
+        .menu-card-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        .menu-card-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+        }
+
+        .menu-card-description {
+          font-size: 0.95rem;
+          opacity: 0.9;
+          line-height: 1.5;
+        }
+
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: white;
+          text-decoration: none;
+          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+          opacity: 0.9;
+          transition: opacity 0.2s;
+        }
+
+        .back-button:hover {
+          opacity: 1;
+        }
+
+        .stats-card {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stats-title {
+          font-size: 0.875rem;
+          color: #6b7280;
+          margin-bottom: 0.75rem;
+          font-weight: 500;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        .stat-item {
+          text-align: center;
+        }
+
+        .stat-value {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #7c3aed;
+          margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+          body {
+            padding: 1rem;
+          }
+
+          .header h1 {
+            font-size: 1.5rem;
+          }
+
+          .menu-card {
+            padding: 1.5rem;
+          }
+
+          .menu-card-icon {
+            font-size: 2.5rem;
+          }
+
+          .menu-card-title {
+            font-size: 1.25rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="/study-partner" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Study Partnerに戻る
+            </a>
+
+            <div class="header">
+                <h1>📇 フラッシュカード</h1>
+                <p>暗記学習をスマートに</p>
+            </div>
+
+            <div class="menu-grid">
+                <a href="/flashcard/create" class="menu-card create">
+                    <i class="fas fa-plus-circle menu-card-icon"></i>
+                    <div class="menu-card-title">➕ 新しいカードを作成</div>
+                    <div class="menu-card-description">
+                        写真から自動作成 or 手動で単語カードを作成できます
+                    </div>
+                </a>
+
+                <a href="/flashcard/list" class="menu-card list">
+                    <i class="fas fa-layer-group menu-card-icon"></i>
+                    <div class="menu-card-title">📚 カード一覧・学習</div>
+                    <div class="menu-card-description">
+                        保存したカードを見る・学習する・管理する
+                    </div>
+                </a>
+            </div>
+
+            <div class="stats-card">
+                <div class="stats-title">📊 あなたの学習状況</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalCards">-</div>
+                        <div class="stat-label">総カード数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="reviewDue">-</div>
+                        <div class="stat-label">復習待ち</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="masteredCards">-</div>
+                        <div class="stat-label">習得済み</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // ログイン情報取得
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        // 統計情報の取得
+        async function loadStats() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('totalCards').textContent = data.stats.total || 0;
+                    document.getElementById('reviewDue').textContent = data.stats.reviewDue || 0;
+                    document.getElementById('masteredCards').textContent = data.stats.mastered || 0;
+                }
+            } catch (error) {
+                console.error('Stats load error:', error);
+                // エラーでも表示は続ける（統計は補助的な機能）
+                document.getElementById('totalCards').textContent = '0';
+                document.getElementById('reviewDue').textContent = '0';
+                document.getElementById('masteredCards').textContent = '0';
+            }
+        }
+
+        // 初期化
+        loadStats();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 // フラッシュカード作成ページ
 app.get('/flashcard/create', (c) => {
   console.log('📇 Flashcard create page requested')
@@ -12257,16 +12553,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="flashcard" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
-                        <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>
-                        📇 フラッシュカード作成
-                    </button>
-                </div>
-
-                <div style="margin-bottom: 1rem;">
-                    <button id="flashcardList" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #8b5cf6; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
-                        <i class="fas fa-list" style="margin-right: 0.5rem;"></i>
-                        📚 フラッシュカード一覧
+                    <button id="flashcard" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
+                        <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i>
+                        📇 フラッシュカード
                     </button>
                 </div>
 
@@ -12464,29 +12753,16 @@ app.get('/study-partner', (c) => {
             });
           }
           
-          // フラッシュカード作成ボタン
+          // フラッシュカードボタン（統合メニューへ）
           const flashcardButton = document.getElementById('flashcard');
           if (flashcardButton) {
             flashcardButton.addEventListener('click', function() {
-              console.log('📇 Flashcard create button clicked');
+              console.log('📇 Flashcard button clicked');
               if (!authenticated) {
                 alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
                 return;
               }
-              window.location.href = '/flashcard/create';
-            });
-          }
-          
-          // フラッシュカード一覧ボタン
-          const flashcardListButton = document.getElementById('flashcardList');
-          if (flashcardListButton) {
-            flashcardListButton.addEventListener('click', function() {
-              console.log('📚 Flashcard list button clicked');
-              if (!authenticated) {
-                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
-                return;
-              }
-              window.location.href = '/flashcard/list';
+              window.location.href = '/flashcard';
             });
           }
           
@@ -15065,6 +15341,59 @@ app.post('/api/flashcard/list', async (c) => {
 
   } catch (error) {
     console.error('❌ Flashcard list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード統計情報API
+app.post('/api/flashcard/stats', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    // 総カード数
+    const totalResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ?
+    `).bind(appkey, sid).first()
+
+    // 復習待ちのカード数（next_review_at が現在時刻より前のもの）
+    const reviewDueResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ? 
+      AND next_review_at IS NOT NULL 
+      AND next_review_at <= datetime('now')
+    `).bind(appkey, sid).first()
+
+    // 習得済みカード数（mastery_level >= 5）
+    const masteredResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ? 
+      AND mastery_level >= 5
+    `).bind(appkey, sid).first()
+
+    return c.json({
+      success: true,
+      stats: {
+        total: totalResult?.count || 0,
+        reviewDue: reviewDueResult?.count || 0,
+        mastered: masteredResult?.count || 0
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard stats error:', error)
     return c.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
