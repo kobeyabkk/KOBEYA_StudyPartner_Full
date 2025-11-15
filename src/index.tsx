@@ -11127,6 +11127,559 @@ app.get('/flashcard', (c) => {
   `)
 })
 
+// フラッシュカード学習モードページ
+app.get('/flashcard/study', (c) => {
+  console.log('📚 Flashcard study mode requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>学習モード | KOBEYA Study Partner</title>
+        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          color: white;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .study-header {
+          padding: 1rem 1.5rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: rgba(255,255,255,0.1);
+          backdrop-filter: blur(10px);
+        }
+        
+        .exit-btn {
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+        }
+        
+        .exit-btn:hover {
+          background: rgba(255,255,255,0.3);
+        }
+        
+        .progress-bar-container {
+          flex: 1;
+          margin: 0 2rem;
+          height: 8px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        
+        .progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+          transition: width 0.3s ease;
+          border-radius: 4px;
+        }
+        
+        .progress-text {
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+        
+        .study-container {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+        
+        .card-wrapper {
+          perspective: 1000px;
+          width: 100%;
+          max-width: 600px;
+        }
+        
+        .flashcard-study {
+          width: 100%;
+          min-height: 400px;
+          position: relative;
+          transform-style: preserve-3d;
+          transition: transform 0.6s;
+          cursor: pointer;
+        }
+        
+        .flashcard-study.flipped {
+          transform: rotateY(180deg);
+        }
+        
+        .card-face {
+          position: absolute;
+          width: 100%;
+          min-height: 400px;
+          backface-visibility: hidden;
+          background: white;
+          border-radius: 1.5rem;
+          padding: 3rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .card-face-front {
+          color: #37352f;
+        }
+        
+        .card-face-back {
+          transform: rotateY(180deg);
+          background: #f3e8ff;
+          color: #37352f;
+        }
+        
+        .card-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #7c3aed;
+          margin-bottom: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .card-content {
+          font-size: 2rem;
+          line-height: 1.6;
+          text-align: center;
+          color: #37352f;
+          word-wrap: break-word;
+        }
+        
+        .tap-hint {
+          margin-top: 2rem;
+          font-size: 0.875rem;
+          color: #9ca3af;
+          text-align: center;
+        }
+        
+        .action-buttons {
+          display: flex;
+          gap: 1rem;
+          margin-top: 2rem;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.3s;
+          pointer-events: none;
+        }
+        
+        .action-buttons.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        
+        .btn-action {
+          padding: 1rem 2rem;
+          border: none;
+          border-radius: 1rem;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          min-width: 140px;
+          justify-content: center;
+        }
+        
+        .btn-wrong {
+          background: #ef4444;
+          color: white;
+        }
+        
+        .btn-wrong:hover {
+          background: #dc2626;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-correct {
+          background: #10b981;
+          color: white;
+        }
+        
+        .btn-correct:hover {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+        
+        .results-container {
+          display: none;
+          text-align: center;
+          padding: 2rem;
+        }
+        
+        .results-container.show {
+          display: block;
+        }
+        
+        .results-title {
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .results-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+          margin: 2rem 0;
+          max-width: 800px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        
+        .stat-card {
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(10px);
+          padding: 1.5rem;
+          border-radius: 1rem;
+          border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-number {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+          font-size: 1rem;
+          opacity: 0.9;
+        }
+        
+        .results-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+        
+        .spinner {
+          border: 4px solid rgba(255,255,255,0.3);
+          border-top: 4px solid white;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+          .progress-bar-container {
+            margin: 0 1rem;
+          }
+          
+          .card-face {
+            min-height: 300px;
+            padding: 2rem;
+          }
+          
+          .card-content {
+            font-size: 1.5rem;
+          }
+          
+          .action-buttons {
+            flex-direction: column;
+            width: 100%;
+          }
+          
+          .btn-action {
+            width: 100%;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <!-- ヘッダー -->
+        <div class="study-header">
+            <button class="exit-btn" onclick="exitStudy()">
+                <i class="fas fa-times"></i> 終了
+            </button>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+        </div>
+
+        <!-- 学習コンテナ -->
+        <div class="study-container" id="studyContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>カードを読み込み中...</p>
+            </div>
+        </div>
+
+        <!-- 結果画面 -->
+        <div class="results-container" id="resultsContainer">
+            <div class="results-title">🎉 学習完了！</div>
+            <div class="results-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCardsResult">0</div>
+                    <div class="stat-label">学習したカード</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #10b981;" id="correctCount">0</div>
+                    <div class="stat-label">✅ わかった</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #ef4444;" id="wrongCount">0</div>
+                    <div class="stat-label">❌ わからなかった</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="accuracyRate">0%</div>
+                    <div class="stat-label">正答率</div>
+                </div>
+            </div>
+            <div class="results-actions">
+                <button class="btn-action btn-correct" onclick="window.location.href='/flashcard/list'">
+                    <i class="fas fa-list"></i> カード一覧へ
+                </button>
+                <button class="btn-action btn-wrong" onclick="restartStudy()">
+                    <i class="fas fa-redo"></i> もう一度学習
+                </button>
+            </div>
+        </div>
+
+        <script>
+        let cards = [];
+        let currentIndex = 0;
+        let isFlipped = false;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let studyStartTime = Date.now();
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCards() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        limit: 100
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards && data.cards.length > 0) {
+                    // 復習が必要なカードを優先
+                    cards = data.cards.sort((a, b) => {
+                        const aReview = a.next_review_at || '9999-12-31';
+                        const bReview = b.next_review_at || '9999-12-31';
+                        return aReview.localeCompare(bReview);
+                    });
+                    
+                    startStudy();
+                } else {
+                    alert('学習するカードがありません。まずカードを作成してください。');
+                    window.location.href = '/flashcard/create';
+                }
+            } catch (error) {
+                console.error('Failed to load cards:', error);
+                alert('カードの読み込みに失敗しました: ' + error.message);
+            }
+        }
+
+        function startStudy() {
+            currentIndex = 0;
+            correctAnswers = 0;
+            wrongAnswers = 0;
+            studyStartTime = Date.now();
+            showCard();
+        }
+
+        function showCard() {
+            if (currentIndex >= cards.length) {
+                showResults();
+                return;
+            }
+
+            const card = cards[currentIndex];
+            isFlipped = false;
+
+            const container = document.getElementById('studyContainer');
+            container.innerHTML = \`
+                <div class="card-wrapper">
+                    <div class="flashcard-study" id="flashcard" onclick="flipCard()">
+                        <div class="card-face card-face-front">
+                            <div class="card-label">📝 表面</div>
+                            <div class="card-content">\${escapeHtml(card.front_text)}</div>
+                            <div class="tap-hint">
+                                <i class="fas fa-hand-pointer"></i> タップして裏面を表示
+                            </div>
+                        </div>
+                        <div class="card-face card-face-back">
+                            <div class="card-label">💡 裏面</div>
+                            <div class="card-content">\${escapeHtml(card.back_text)}</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons" id="actionButtons">
+                        <button class="btn-action btn-wrong" onclick="answerCard(false)">
+                            <i class="fas fa-times"></i> わからなかった
+                        </button>
+                        <button class="btn-action btn-correct" onclick="answerCard(true)">
+                            <i class="fas fa-check"></i> わかった
+                        </button>
+                    </div>
+                </div>
+            \`;
+
+            updateProgress();
+        }
+
+        function flipCard() {
+            if (isFlipped) return;
+            
+            const flashcard = document.getElementById('flashcard');
+            const actionButtons = document.getElementById('actionButtons');
+            
+            flashcard.classList.add('flipped');
+            actionButtons.classList.add('show');
+            isFlipped = true;
+        }
+
+        async function answerCard(isCorrect) {
+            const card = cards[currentIndex];
+            
+            if (isCorrect) {
+                correctAnswers++;
+            } else {
+                wrongAnswers++;
+            }
+
+            // 学習記録をAPIに送信
+            await recordStudy(card.card_id, isCorrect);
+
+            // 次のカードへ
+            currentIndex++;
+            showCard();
+        }
+
+        async function recordStudy(cardId, isCorrect) {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                await fetch('/api/flashcard/record-study', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardId: cardId,
+                        isCorrect: isCorrect,
+                        responseTimeMs: Date.now() - studyStartTime
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to record study:', error);
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentIndex) / cards.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = \`\${currentIndex} / \${cards.length}\`;
+        }
+
+        function showResults() {
+            document.getElementById('studyContainer').style.display = 'none';
+            document.getElementById('resultsContainer').classList.add('show');
+
+            const accuracy = cards.length > 0 
+                ? Math.round((correctAnswers / cards.length) * 100) 
+                : 0;
+
+            document.getElementById('totalCardsResult').textContent = cards.length;
+            document.getElementById('correctCount').textContent = correctAnswers;
+            document.getElementById('wrongCount').textContent = wrongAnswers;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+        }
+
+        function restartStudy() {
+            document.getElementById('resultsContainer').classList.remove('show');
+            document.getElementById('studyContainer').style.display = 'flex';
+            startStudy();
+        }
+
+        function exitStudy() {
+            if (currentIndex > 0 && currentIndex < cards.length) {
+                if (!confirm('学習を中断してもよろしいですか？\\n\\n進捗は保存されます。')) {
+                    return;
+                }
+            }
+            window.location.href = '/flashcard/list';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初期化
+        loadCards();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 // フラッシュカード作成ページ
 app.get('/flashcard/create', (c) => {
   console.log('📇 Flashcard create page requested')
