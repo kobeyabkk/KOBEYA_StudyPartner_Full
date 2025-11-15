@@ -12026,12 +12026,13 @@ app.get('/flashcard/study', (c) => {
             const container = document.getElementById('cardListSelection');
             container.innerHTML = allCards.map(card => \`
                 <div class="card-item-selectable \${selectedCardIds.has(card.card_id) ? 'selected' : ''}" 
-                     onclick="toggleCardSelect('\${card.card_id}')" 
+                     onclick="toggleCardSelect('\${card.card_id}', event)" 
                      data-card-id="\${card.card_id}">
                     <input type="checkbox" 
                            class="card-checkbox" 
                            \${selectedCardIds.has(card.card_id) ? 'checked' : ''}
-                           onclick="event.stopPropagation();">
+                           onclick="event.stopPropagation();"
+                           onchange="toggleCardSelect('\${card.card_id}', event)">
                     <div class="card-info">
                         <div class="card-front-text">\${escapeHtml(card.front_text)}</div>
                         <div class="card-meta-info">
@@ -12043,11 +12044,24 @@ app.get('/flashcard/study', (c) => {
             \`).join('');
         }
         
-        function toggleCardSelect(cardId) {
-            if (selectedCardIds.has(cardId)) {
-                selectedCardIds.delete(cardId);
+        function toggleCardSelect(cardId, event) {
+            // イベントが存在し、チェックボックス自身からのイベントでない場合のみ処理
+            if (event && event.target.classList.contains('card-checkbox')) {
+                // チェックボックス自身のクリックは自動的に状態が変わるため、
+                // その状態を反映する
+                const checkbox = event.target;
+                if (checkbox.checked) {
+                    selectedCardIds.add(cardId);
+                } else {
+                    selectedCardIds.delete(cardId);
+                }
             } else {
-                selectedCardIds.add(cardId);
+                // カード領域のクリックによるトグル
+                if (selectedCardIds.has(cardId)) {
+                    selectedCardIds.delete(cardId);
+                } else {
+                    selectedCardIds.add(cardId);
+                }
             }
             
             // UIを更新
