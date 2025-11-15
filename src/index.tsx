@@ -10595,6 +10595,57 @@ app.get('/flashcard/list', (c) => {
         .mastery-4 { background: #d1fae5; color: #10b981; }
         .mastery-5 { background: #dcfce7; color: #16a34a; }
         
+        .card-checkbox {
+          position: absolute;
+          top: 1rem;
+          left: 1rem;
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+          z-index: 10;
+        }
+        
+        .flashcard.selected {
+          border: 3px solid #7c3aed;
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
+        }
+        
+        .selection-bar {
+          display: none;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: white;
+          padding: 1rem 1.5rem;
+          border-radius: 1rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          margin-bottom: 1.5rem;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        
+        .selection-bar.active {
+          display: flex;
+        }
+        
+        .selection-info {
+          flex: 1;
+          font-weight: 600;
+          color: #7c3aed;
+        }
+        
+        .selection-actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+        
+        .btn-sm {
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+        }
+        
         @media (max-width: 768px) {
           .card-grid {
             grid-template-columns: 1fr;
@@ -10644,6 +10695,24 @@ app.get('/flashcard/list', (c) => {
                 </button>
             </div>
 
+            <!-- 選択バー -->
+            <div class="selection-bar" id="selectionBar">
+                <div class="selection-info">
+                    <span id="selectedCount">0</span>枚のカードを選択中
+                </div>
+                <div class="selection-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="selectAll()">
+                        <i class="fas fa-check-double"></i> 全選択
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="deselectAll()">
+                        <i class="fas fa-times"></i> 選択解除
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSelected()">
+                        <i class="fas fa-trash"></i> 選択したカードを削除
+                    </button>
+                </div>
+            </div>
+
             <div id="cardContainer">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -10654,6 +10723,7 @@ app.get('/flashcard/list', (c) => {
 
         <script>
         let cards = [];
+        let selectedCards = new Set();
 
         function getLoginInfo() {
             const appkey = localStorage.getItem('appkey');
@@ -10714,7 +10784,11 @@ app.get('/flashcard/list', (c) => {
             }
 
             container.innerHTML = '<div class="card-grid">' + cards.map((card, index) => \`
-                <div class="flashcard" onclick="flipCard(\${index})" id="card-\${index}">
+                <div class="flashcard \${selectedCards.has(card.card_id) ? 'selected' : ''}" onclick="flipCard(\${index})" id="card-\${index}" data-card-id="\${card.card_id}">
+                    <input type="checkbox" class="card-checkbox" 
+                           onclick="event.stopPropagation(); toggleCardSelection('\${card.card_id}')"
+                           \${selectedCards.has(card.card_id) ? 'checked' : ''}>
+                    
                     <div class="card-actions">
                         <button class="icon-btn edit" onclick="event.stopPropagation(); editCard('\${card.card_id}')">
                             <i class="fas fa-edit"></i>
@@ -10819,6 +10893,93 @@ app.get('/flashcard/list', (c) => {
             if (!dateString) return '';
             const date = new Date(dateString);
             return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // 複数選択機能
+        function toggleCardSelection(cardId) {
+            if (selectedCards.has(cardId)) {
+                selectedCards.delete(cardId);
+            } else {
+                selectedCards.add(cardId);
+            }
+            updateSelectionUI();
+        }
+
+        function selectAll() {
+            selectedCards.clear();
+            cards.forEach(card => selectedCards.add(card.card_id));
+            displayCards();
+            updateSelectionUI();
+        }
+
+        function deselectAll() {
+            selectedCards.clear();
+            displayCards();
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const selectionBar = document.getElementById('selectionBar');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedCards.size > 0) {
+                selectionBar.classList.add('active');
+                selectedCount.textContent = selectedCards.size;
+                
+                // 選択されたカードに視覚的フィードバック
+                cards.forEach(card => {
+                    const cardElement = document.querySelector(\`[data-card-id="\${card.card_id}"]\`);
+                    if (cardElement) {
+                        if (selectedCards.has(card.card_id)) {
+                            cardElement.classList.add('selected');
+                        } else {
+                            cardElement.classList.remove('selected');
+                        }
+                    }
+                });
+            } else {
+                selectionBar.classList.remove('active');
+            }
+        }
+
+        async function deleteSelected() {
+            const count = selectedCards.size;
+            if (count === 0) {
+                alert('削除するカードを選択してください');
+                return;
+            }
+
+            if (!confirm(\`選択した\${count}枚のカードを削除してもよろしいですか？\\n\\nこの操作は取り消せません。\`)) {
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/delete-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardIds: Array.from(selectedCards)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(\`✅ \${count}枚のカードを削除しました\`);
+                    selectedCards.clear();
+                    loadCards();
+                } else {
+                    alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Batch delete error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
         }
 
         // 初期化
@@ -15352,6 +15513,72 @@ app.post('/api/flashcard/list', async (c) => {
 
   } catch (error) {
     console.error('❌ Flashcard list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード一括削除API
+app.post('/api/flashcard/delete-batch', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardIds } = await c.req.json()
+
+    if (!appkey || !sid || !cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+      return c.json({ success: false, error: 'Missing required fields or invalid cardIds' }, 400)
+    }
+
+    let deletedCount = 0
+    const deckUpdates = new Map()
+
+    // 各カードを削除
+    for (const cardId of cardIds) {
+      // カードの存在確認とdeck_id取得
+      const card = await db.prepare(`
+        SELECT deck_id FROM flashcards 
+        WHERE card_id = ? AND appkey = ? AND sid = ?
+      `).bind(cardId, appkey, sid).first()
+
+      if (card) {
+        // カードを削除
+        await db.prepare(`
+          DELETE FROM flashcards 
+          WHERE card_id = ? AND appkey = ? AND sid = ?
+        `).bind(cardId, appkey, sid).run()
+
+        deletedCount++
+
+        // デッキカウントを追跡
+        if (card.deck_id) {
+          deckUpdates.set(card.deck_id, (deckUpdates.get(card.deck_id) || 0) + 1)
+        }
+      }
+    }
+
+    // デッキのカード数を一括更新
+    for (const [deckId, count] of deckUpdates) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count - ?, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(count, deckId).run()
+    }
+
+    console.log(`✅ Deleted ${deletedCount} flashcards in batch`)
+
+    return c.json({ 
+      success: true, 
+      deletedCount: deletedCount 
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard batch delete error:', error)
     return c.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
