@@ -10858,7 +10858,7 @@ app.get('/flashcard', (c) => {
 
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           color: #37352f;
           padding: 2rem 1rem;
@@ -10875,18 +10875,21 @@ app.get('/flashcard', (c) => {
         .header {
           text-align: center;
           margin-bottom: 2rem;
-          color: white;
+          background: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .header h1 {
           font-size: 2rem;
           margin-bottom: 0.5rem;
-          text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          color: #7c3aed;
         }
 
         .header p {
           font-size: 1rem;
-          opacity: 0.9;
+          color: #6b7280;
         }
 
         .menu-grid {
@@ -10943,16 +10946,15 @@ app.get('/flashcard', (c) => {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          color: white;
+          color: #6b7280;
           text-decoration: none;
           font-size: 0.95rem;
           margin-bottom: 1.5rem;
-          opacity: 0.9;
-          transition: opacity 0.2s;
+          transition: color 0.2s;
         }
 
         .back-button:hover {
-          opacity: 1;
+          color: #374151;
         }
 
         .stats-card {
@@ -11529,6 +11531,15 @@ app.get('/flashcard/create', (c) => {
     </head>
     <body>
         <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <a href="/flashcard" style="color: #6b7280; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-arrow-left"></i> メニューに戻る
+                </a>
+                <a href="/flashcard/list" style="color: #7c3aed; text-decoration: none; font-size: 0.95rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-list"></i> カード一覧へ
+                </a>
+            </div>
+            
             <div class="header">
                 <h1>📇 フラッシュカード作成</h1>
                 <p>写真から自動作成 or 手動入力で単語カードを作成</p>
