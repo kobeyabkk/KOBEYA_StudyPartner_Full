@@ -4572,7 +4572,7 @@ app.get('/ai-chat/:sessionId', (c) => {
           font-family: 'Noto Sans JP', sans-serif;
           margin: 0;
           padding: 1rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           color: #333;
         }
@@ -6124,7 +6124,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -6888,7 +6888,7 @@ app.get('/essay-coaching', (c) => {
         
         body {
           font-family: 'Noto Sans JP', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           padding: 1rem;
           color: #333;
@@ -7632,7 +7632,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         body {
           font-family: 'Noto Sans JP', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           padding: 1rem;
           color: #333;
@@ -7691,7 +7691,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           left: 0;
           right: 0;
           height: 2px;
-          background: rgba(255,255,255,0.3);
+          background: #d1d5db;
           z-index: 0;
         }
         
@@ -7707,8 +7707,9 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.3);
-          border: 2px solid rgba(255,255,255,0.5);
+          background: #e5e7eb;
+          border: 2px solid #9ca3af;
+          color: #374151;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -8072,18 +8073,19 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           gap: 0.5rem;
           margin-bottom: 1.5rem;
           padding: 1rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #e5e7eb;
           border-radius: 0.75rem;
-          color: white;
+          color: #374151;
+          border: 2px solid #d1d5db;
         }
         
         .workflow-step {
           font-size: 0.875rem;
           font-weight: 600;
           padding: 0.5rem 1rem;
-          background: rgba(255, 255, 255, 0.2);
+          background: #e5e7eb;
           border-radius: 0.5rem;
-          backdrop-filter: blur(10px);
+          color: #374151;
         }
         
         .workflow-arrow {
@@ -8234,11 +8236,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         /* AI添削結果表示 */
         .ai-feedback {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f9fafb;
           border-radius: 1rem;
           padding: 2rem;
           margin: 1.5rem 0;
-          color: white;
+          color: #374151;
+          border: 2px solid #e5e7eb;
         }
         
         .ai-feedback h3 {
@@ -8277,11 +8280,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .feedback-section {
-          background: rgba(255,255,255,0.15);
+          background: white;
           border-radius: 0.75rem;
           padding: 1.5rem;
           margin-bottom: 1rem;
-          backdrop-filter: blur(10px);
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         
         .feedback-section h4 {
@@ -8318,11 +8322,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .example-text {
-          background: rgba(255,255,255,0.2);
+          background: #f9fafb;
           padding: 1rem;
           border-radius: 0.5rem;
           line-height: 1.8;
           white-space: pre-wrap;
+          color: #374151;
         }
         
         /* クイックアクションボタン */
@@ -11318,9 +11323,9 @@ app.get('/flashcard/study', (c) => {
         
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
-          color: white;
+          color: #374151;
           overflow: hidden;
           display: flex;
           flex-direction: column;
@@ -11331,8 +11336,9 @@ app.get('/flashcard/study', (c) => {
           display: none;
           justify-content: space-between;
           align-items: center;
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(10px);
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .study-header.show {
@@ -11340,9 +11346,9 @@ app.get('/flashcard/study', (c) => {
         }
         
         .exit-btn {
-          background: rgba(255,255,255,0.2);
-          border: none;
-          color: white;
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          color: #374151;
           padding: 0.5rem 1rem;
           border-radius: 0.5rem;
           cursor: pointer;
@@ -11351,14 +11357,14 @@ app.get('/flashcard/study', (c) => {
         }
         
         .exit-btn:hover {
-          background: rgba(255,255,255,0.3);
+          background: #e5e7eb;
         }
         
         .progress-bar-container {
           flex: 1;
           margin: 0 2rem;
           height: 8px;
-          background: rgba(255,255,255,0.2);
+          background: #e5e7eb;
           border-radius: 4px;
           overflow: hidden;
         }
@@ -11549,18 +11555,19 @@ app.get('/flashcard/study', (c) => {
         }
         
         .card-list {
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(10px);
+          background: white;
+          border: 1px solid #e5e7eb;
           border-radius: 1rem;
           padding: 1.5rem;
           max-height: 60vh;
           overflow-y: auto;
           margin-bottom: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         
         .card-item-selectable {
-          background: rgba(255,255,255,0.15);
-          border: 2px solid rgba(255,255,255,0.2);
+          background: #f9fafb;
+          border: 2px solid #e5e7eb;
           border-radius: 0.75rem;
           padding: 1rem;
           margin-bottom: 0.75rem;
@@ -11572,13 +11579,15 @@ app.get('/flashcard/study', (c) => {
         }
         
         .card-item-selectable:hover {
-          background: rgba(255,255,255,0.25);
-          border-color: rgba(255,255,255,0.4);
+          background: white;
+          border-color: #d1d5db;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
         
         .card-item-selectable.selected {
-          background: rgba(16, 185, 129, 0.2);
+          background: #d1fae5;
           border-color: #10b981;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
         }
         
         .card-checkbox {
@@ -11656,11 +11665,11 @@ app.get('/flashcard/study', (c) => {
         }
         
         .stat-card {
-          background: rgba(255,255,255,0.15);
-          backdrop-filter: blur(10px);
+          background: white;
           padding: 1.5rem;
           border-radius: 1rem;
-          border: 1px solid rgba(255,255,255,0.2);
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         
         .stat-number {
@@ -11762,7 +11771,7 @@ app.get('/flashcard/study', (c) => {
             
             <div class="card-list" id="cardListSelection"></div>
             
-            <div class="shuffle-option" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 0.5rem;">
+            <div class="shuffle-option" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1rem 0; padding: 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
                 <input type="checkbox" id="shuffleCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
                 <label for="shuffleCheckbox" style="cursor: pointer; font-size: 1rem;">
                     🎲 順番をシャッフルする
@@ -12205,9 +12214,9 @@ app.get('/flashcard/categories', (c) => {
 
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
-          color: white;
+          color: #37352f;
           padding: 2rem 1rem;
         }
         
@@ -12236,10 +12245,9 @@ app.get('/flashcard/categories', (c) => {
           position: fixed;
           top: 1rem;
           left: 1rem;
-          background: rgba(255,255,255,0.2);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,0.3);
-          color: white;
+          background: white;
+          border: 1px solid #e5e7eb;
+          color: #374151;
           padding: 0.75rem 1.5rem;
           border-radius: 2rem;
           cursor: pointer;
@@ -12250,20 +12258,22 @@ app.get('/flashcard/categories', (c) => {
           align-items: center;
           gap: 0.5rem;
           z-index: 100;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .back-button:hover {
-          background: rgba(255,255,255,0.3);
+          background: #f9fafb;
           transform: translateX(-5px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .action-section {
-          background: rgba(255,255,255,0.15);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,0.2);
+          background: white;
+          border: 1px solid #e5e7eb;
           border-radius: 1rem;
           padding: 1.5rem;
           margin-bottom: 2rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .action-section h2 {
@@ -12282,15 +12292,15 @@ app.get('/flashcard/categories', (c) => {
           flex: 1;
           min-width: 200px;
           padding: 0.75rem 1rem;
-          border: 2px solid rgba(255,255,255,0.3);
+          border: 2px solid #d1d5db;
           border-radius: 0.5rem;
-          background: rgba(255,255,255,0.1);
-          color: white;
+          background: white;
+          color: #374151;
           font-size: 1rem;
         }
 
         .input-field::placeholder {
-          color: rgba(255,255,255,0.6);
+          color: #9ca3af;
         }
 
         .color-picker-group {
@@ -12302,7 +12312,7 @@ app.get('/flashcard/categories', (c) => {
         .color-picker {
           width: 60px;
           height: 45px;
-          border: 2px solid rgba(255,255,255,0.3);
+          border: 2px solid #d1d5db;
           border-radius: 0.5rem;
           cursor: pointer;
           background: white;
@@ -12310,18 +12320,18 @@ app.get('/flashcard/categories', (c) => {
 
         .icon-picker {
           padding: 0.75rem 1rem;
-          border: 2px solid rgba(255,255,255,0.3);
+          border: 2px solid #d1d5db;
           border-radius: 0.5rem;
-          background: rgba(255,255,255,0.1);
-          color: white;
+          background: white;
+          color: #374151;
           font-size: 1rem;
           cursor: pointer;
           min-width: 100px;
         }
 
         .btn-primary {
-          background: white;
-          color: #667eea;
+          background: #3b82f6;
+          color: white;
           border: none;
           padding: 0.75rem 2rem;
           border-radius: 0.5rem;
@@ -12350,19 +12360,19 @@ app.get('/flashcard/categories', (c) => {
         }
 
         .category-item {
-          background: rgba(255,255,255,0.15);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,0.2);
+          background: white;
+          border: 1px solid #e5e7eb;
           border-radius: 1rem;
           padding: 1.5rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
           transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .category-item:hover {
-          background: rgba(255,255,255,0.2);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
           transform: translateY(-2px);
         }
 
@@ -12399,9 +12409,9 @@ app.get('/flashcard/categories', (c) => {
         }
 
         .btn-icon {
-          background: rgba(255,255,255,0.2);
-          border: 1px solid rgba(255,255,255,0.3);
-          color: white;
+          background: white;
+          border: 1px solid #d1d5db;
+          color: #374151;
           padding: 0.5rem 1rem;
           border-radius: 0.5rem;
           cursor: pointer;
@@ -12413,16 +12423,19 @@ app.get('/flashcard/categories', (c) => {
         }
 
         .btn-icon:hover {
-          background: rgba(255,255,255,0.3);
+          background: #f9fafb;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .btn-icon.delete {
-          background: rgba(239, 68, 68, 0.3);
-          border-color: rgba(239, 68, 68, 0.5);
+          background: #fee2e2;
+          border-color: #fca5a5;
+          color: #dc2626;
         }
 
         .btn-icon.delete:hover {
-          background: rgba(239, 68, 68, 0.5);
+          background: #fecaca;
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
         }
 
         .loading {
@@ -12488,21 +12501,26 @@ app.get('/flashcard/categories', (c) => {
                         <input type="color" id="categoryColor" class="color-picker" value="#8b5cf6">
                     </div>
                     <select id="categoryIcon" class="icon-picker">
-                        <option value="📚">📚 本</option>
-                        <option value="✏️">✏️ 鉛筆</option>
-                        <option value="🎓">🎓 学位帽</option>
-                        <option value="🌍">🌍 地球</option>
-                        <option value="🔬">🔬 顕微鏡</option>
-                        <option value="💻">💻 パソコン</option>
-                        <option value="🎨">🎨 パレット</option>
+                        <option value="📚">📚 本（一般）</option>
+                        <option value="🔤">🔤 英語・言語</option>
+                        <option value="🔢">🔢 数学</option>
+                        <option value="🧪">🧪 理科・化学</option>
+                        <option value="🌍">🌍 地理・社会</option>
+                        <option value="📜">📜 歴史</option>
+                        <option value="💻">💻 プログラミング</option>
+                        <option value="🎨">🎨 美術・芸術</option>
                         <option value="🎵">🎵 音楽</option>
-                        <option value="⚽">⚽ サッカー</option>
-                        <option value="🍎">🍎 リンゴ</option>
-                        <option value="🌟">🌟 星</option>
-                        <option value="💡">💡 電球</option>
-                        <option value="🚀">🚀 ロケット</option>
-                        <option value="🏆">🏆 トロフィー</option>
-                        <option value="📖">📖 開いた本</option>
+                        <option value="⚖️">⚖️ 法律・政治</option>
+                        <option value="💰">💰 経済・ビジネス</option>
+                        <option value="🏥">🏥 医学・健康</option>
+                        <option value="📖">📖 国語・文学</option>
+                        <option value="🔬">🔬 物理</option>
+                        <option value="🌱">🌱 生物</option>
+                        <option value="🗣️">🗣️ 会話・スピーチ</option>
+                        <option value="📝">📝 試験対策</option>
+                        <option value="🎓">🎓 大学受験</option>
+                        <option value="🌟">🌟 資格試験</option>
+                        <option value="💡">💡 その他</option>
                     </select>
                     <button class="btn-primary" onclick="createCategory()">
                         <i class="fas fa-plus"></i> 作成
@@ -14114,15 +14132,15 @@ app.get('/study-partner', (c) => {
     </head>
     <body>
         <main class="container">
-            <section style="text-align: center; margin-bottom: 1rem; padding: 2rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 1rem; color: white;">
-                <h1 style="margin-bottom: 1rem; color: white;">
-                    <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
+            <section style="text-align: center; margin-bottom: 1rem; padding: 2rem 1.5rem; background: white; border: 1px solid #e5e7eb; border-radius: 1rem; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h1 style="margin-bottom: 1rem; color: #374151;">
+                    <i class="fas fa-robot" style="margin-right: 0.5rem; color: #7c3aed;"></i>
                     KOBEYA Study Partner
                 </h1>
-                <p style="font-size: 1rem; margin-bottom: 1.5rem; opacity: 0.9;">
+                <p style="font-size: 1rem; margin-bottom: 1.5rem; color: #6b7280;">
                     AI学習パートナーで効果的な個別学習を体験してください
                 </p>
-                <div style="background-color: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <div style="background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; color: #374151;">
                     <p style="margin: 0; font-size: 0.875rem;">
                         <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
                         APP_KEY と 生徒IDを入力してログインしてください
@@ -14758,7 +14776,7 @@ app.get('/study-partner', (c) => {
                 '段階的に一緒に解いていきましょう！' +
               '</div>' +
               // Phase1改善: 再生成タイプ選択UI
-              '<div style="margin-top: 1rem; padding: 1rem; background: rgba(245,158,11,0.1); border-radius: 0.75rem; border: 1px solid #f59e0b;">' +
+              '<div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 0.75rem; border: 1px solid #f59e0b;">' +
                 '<div style="text-align: center; margin-bottom: 0.75rem;">' +
                   '<h4 style="margin: 0; color: #f59e0b; font-size: 0.9rem;">🎯 どのような問題に挑戦したいですか？</h4>' +
                   '<p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #666;">バンコクで頑張っているあなたを応援します ✨</p>' +
@@ -14970,7 +14988,7 @@ app.get('/study-partner', (c) => {
             resultHtml += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.currentStep.correctAnswer + '</p>';
           }
           
-          resultHtml += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          resultHtml += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           resultHtml += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           resultHtml += '</div>';
           
@@ -15117,7 +15135,7 @@ app.get('/study-partner', (c) => {
             html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.confirmationProblem.correctAnswer + '</p>';
           }
           
-          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           html += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           html += '</div>';
           
@@ -15338,12 +15356,12 @@ app.get('/study-partner', (c) => {
             html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">あなたの答え: ' + userAnswer + '</p>';
           }
           
-          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           html += '</div>';
           
           // 進捗表示
-          html += '<div style="background: rgba(124,58,237,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: #f3e8ff; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #c084fc;">';
           html += '<p style="margin: 0; font-weight: 500; color: #7c3aed;">📊 進捗: ' + completedProblems + '/' + totalProblems + '問正解</p>';
           html += '</div>';
           
@@ -16198,7 +16216,7 @@ app.get('/eiken/practice', (c) => {
       padding: 0;
     }
     .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f5f5f5;
     }
     .card {
       transition: all 0.3s ease;
@@ -16209,7 +16227,7 @@ app.get('/eiken/practice', (c) => {
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+<body class="min-h-screen" style="background: #f5f5f5;">
   <div id="app" class="container mx-auto px-4 py-8">
     <!-- Header -->
     <header class="text-center mb-8">
@@ -16713,6 +16731,19 @@ app.post('/api/flashcard/create-from-photo', async (c) => {
 
     // 画像をBase64に変換
     const arrayBuffer = await imageField.arrayBuffer()
+    const imageSizeKB = Math.round(arrayBuffer.byteLength / 1024)
+    console.log(`📊 Image size: ${imageSizeKB} KB`)
+    
+    // 画像サイズ制限チェック（20MB）
+    if (arrayBuffer.byteLength > 20 * 1024 * 1024) {
+      return c.json({ 
+        success: false, 
+        error: 'Image too large',
+        hint: '画像サイズは20MB以下にしてください',
+        size: `${imageSizeKB} KB`
+      }, 400)
+    }
+    
     const base64Image = btoa(
       new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
     )
@@ -16721,9 +16752,15 @@ app.post('/api/flashcard/create-from-photo', async (c) => {
     // OpenAI Vision APIで画像解析
     const openaiApiKey = c.env?.OPENAI_API_KEY
     if (!openaiApiKey) {
-      return c.json({ success: false, error: 'OpenAI API key not configured' }, 500)
+      console.error('❌ OpenAI API key not found in environment')
+      return c.json({ 
+        success: false, 
+        error: 'OpenAI API key not configured',
+        hint: 'OPENAI_API_KEYを環境変数に設定してください' 
+      }, 500)
     }
 
+    console.log('🔍 Analyzing image with OpenAI Vision API...')
     const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -16779,12 +16816,30 @@ app.post('/api/flashcard/create-from-photo', async (c) => {
     })
 
     if (!visionResponse.ok) {
-      console.error('❌ OpenAI Vision API error:', await visionResponse.text())
-      return c.json({ success: false, error: 'Failed to analyze image' }, 500)
+      const errorText = await visionResponse.text()
+      console.error('❌ OpenAI Vision API error:', errorText)
+      return c.json({ 
+        success: false, 
+        error: 'Failed to analyze image', 
+        details: errorText,
+        status: visionResponse.status
+      }, 500)
     }
 
     const visionData = await visionResponse.json()
+    console.log('✅ OpenAI Vision API response received')
+    
+    if (!visionData.choices || !visionData.choices[0]) {
+      console.error('❌ Invalid OpenAI response structure:', visionData)
+      return c.json({ 
+        success: false, 
+        error: 'Invalid response from OpenAI',
+        details: visionData
+      }, 500)
+    }
+    
     const aiResponse = visionData.choices[0].message.content
+    console.log('📝 AI Response preview:', aiResponse.substring(0, 200))
 
     // JSONを抽出
     let cardsData
@@ -16797,13 +16852,26 @@ app.post('/api/flashcard/create-from-photo', async (c) => {
       }
     } catch (e) {
       console.error('❌ Failed to parse AI response:', aiResponse)
-      return c.json({ success: false, error: 'Failed to parse AI response', aiResponse }, 500)
+      return c.json({ 
+        success: false, 
+        error: 'Failed to parse AI response',
+        hint: 'AIの応答が正しいJSON形式ではありませんでした',
+        aiResponse: aiResponse.substring(0, 500)
+      }, 500)
     }
 
     if (!cardsData.cards || !Array.isArray(cardsData.cards)) {
-      return c.json({ success: false, error: 'Invalid response format from AI' }, 500)
+      console.error('❌ Invalid cards array:', cardsData)
+      return c.json({ 
+        success: false, 
+        error: 'Invalid response format from AI',
+        hint: 'AIが正しいカード形式を返しませんでした',
+        received: cardsData
+      }, 500)
     }
 
+    console.log(`📇 Creating ${cardsData.cards.length} flashcards...`)
+    
     // カードをDBに保存
     const createdCards = []
     for (const card of cardsData.cards) {
