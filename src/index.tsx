@@ -16581,7 +16581,7 @@ app.get('/eiken/practice', (c) => {
           })
         });
 
-        const data = await response.json() as GenerateQuestionsResponse;
+        const data = await response.json();
         
         if (data.success && data.questions && data.questions.length > 0) {
           state.questions = data.questions;
