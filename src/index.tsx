@@ -16206,21 +16206,37 @@ app.get('/eiken/practice', (c) => {
 
     // ==================== UI レンダリング ====================
     function render() {
+      console.log('🎨 render() called, viewMode:', state.viewMode);
       const content = document.getElementById('mainContent');
       
-      if (state.viewMode === 'generator') {
-        content.innerHTML = renderGenerator();
-        attachGeneratorListeners();
-      } else if (state.viewMode === 'practice') {
-        content.innerHTML = renderPractice();
-        attachPracticeListeners();
-      } else if (state.viewMode === 'results') {
-        content.innerHTML = renderResults();
-        attachResultsListeners();
+      if (!content) {
+        console.error('❌ mainContent要素が見つかりません！');
+        return;
+      }
+      
+      try {
+        if (state.viewMode === 'generator') {
+          console.log('📝 Rendering generator...');
+          content.innerHTML = renderGenerator();
+          attachGeneratorListeners();
+        } else if (state.viewMode === 'practice') {
+          console.log('💪 Rendering practice...');
+          content.innerHTML = renderPractice();
+          attachPracticeListeners();
+        } else if (state.viewMode === 'results') {
+          console.log('🏆 Rendering results...');
+          content.innerHTML = renderResults();
+          attachResultsListeners();
+        }
+        console.log('✅ Render完了');
+      } catch (error) {
+        console.error('❌ Renderエラー:', error);
+        content.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"><strong>エラー:</strong> ' + error.message + '</div>';
       }
     }
 
     function renderGenerator() {
+      console.log('🔧 renderGenerator() called');
       return \`
         <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
           <h2 class="text-3xl font-bold text-gray-900 mb-6">問題を生成</h2>
@@ -16632,7 +16648,20 @@ app.get('/eiken/practice', (c) => {
     }
 
     // ==================== 初期化 ====================
-    render();
+    console.log('🎓 英検AI練習システム初期化開始');
+    console.log('State:', state);
+    console.log('GRADE_INFO:', GRADE_INFO);
+    
+    // DOMが完全に読み込まれた後にrender()を実行
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('📚 DOM読み込み完了、render()を実行');
+        render();
+      });
+    } else {
+      console.log('📚 DOMは既に読み込まれています、render()を実行');
+      render();
+    }
   </script>
 </body>
 </html>
