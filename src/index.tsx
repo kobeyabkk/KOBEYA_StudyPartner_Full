@@ -6452,13 +6452,22 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     </div>
     
     <script>
+        console.log('🚀 AI Chat V2 script starting...');
+        
         // セッションID（サーバーから注入）
         const SESSION_ID = ${JSON.stringify(sessionId)};
+        console.log('📍 Session ID:', SESSION_ID);
         
         // DOM要素
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        
+        console.log('📝 Basic elements:', {
+            chatMessages: !!chatMessages,
+            messageInput: !!messageInput,
+            sendButton: !!sendButton
+        });
         
         // Camera elements
         const cameraButton = document.getElementById('cameraButton');
@@ -6471,6 +6480,13 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         const btnStartCrop = document.getElementById('btnStartCrop');
         const btnSendDirect = document.getElementById('btnSendDirect');
         const cropArea = document.getElementById('cropArea');
+        
+        console.log('📷 Camera elements:', {
+            cameraButton: !!cameraButton,
+            fileButton: !!fileButton,
+            cameraInput: !!cameraInput,
+            fileInput: !!fileInput
+        });
         const cropImage = document.getElementById('cropImage');
         const btnCancelCrop = document.getElementById('btnCancelCrop');
         const btnConfirmCrop = document.getElementById('btnConfirmCrop');
@@ -6593,7 +6609,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                     })
                 });
                 
-                const data = await response.json() as AiChatApiResponse;
+                const data = await response.json();
                 
                 // ローディング削除
                 loadingDiv.remove();
@@ -6616,14 +6632,30 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         }
         
         // イベントリスナー
-        sendButton.addEventListener('click', sendMessage);
+        console.log('🔗 Setting up event listeners...');
         
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+        if (sendButton) {
+            sendButton.addEventListener('click', () => {
+                console.log('🖱️ Send button clicked');
                 sendMessage();
-            }
-        });
+            });
+            console.log('✅ Send button listener attached');
+        } else {
+            console.error('❌ Send button not found!');
+        }
+        
+        if (messageInput) {
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    console.log('⌨️ Enter key pressed');
+                    sendMessage();
+                }
+            });
+            console.log('✅ Message input listener attached');
+        } else {
+            console.error('❌ Message input not found!');
+        }
         
         // テキストエリア自動リサイズ
         messageInput.addEventListener('input', function() {
