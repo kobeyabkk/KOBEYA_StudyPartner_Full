@@ -1076,9 +1076,9 @@ app.delete('/api/admin/users/:id', async (c) => {
     // Check if user has learning history
     const stats = await db.prepare(`
       SELECT 
-        (SELECT COUNT(*) FROM learning_sessions WHERE user_id = ?) +
         (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) +
-        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as total_records
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as total_records
     `).bind(userId, userId, userId).first()
     
     if (stats && stats.total_records > 0) {
@@ -1132,6 +1132,85 @@ app.post('/api/login', async (c) => {
   } catch (error) {
     console.error('❌ Login error:', error)
     return c.json({ success: false, message: 'ログイン処理でエラーが発生しました' }, 500)
+  }
+})
+
+// ==================== Student Authentication API (Step 3) ====================
+
+// Student login with users table authentication
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { appkey, sid } = await c.req.json()
+    console.log('🔑 Student login attempt:', { appkey, sid })
+    
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ 
+        success: false, 
+        error: 'Database not available' 
+      }, 500)
+    }
+    
+    // Validate input
+    if (!appkey || !sid) {
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYと学生IDを入力してください' 
+      }, 400)
+    }
+    
+    // Check user in database
+    const user = await db.prepare(`
+      SELECT id, app_key, student_id, student_name, grade, email, is_active, last_login_at
+      FROM users 
+      WHERE app_key = ? AND student_id = ?
+    `).bind(appkey, sid).first()
+    
+    if (!user) {
+      console.log('❌ User not found:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYまたは学生IDが正しくありません' 
+      }, 401)
+    }
+    
+    // Check if user is active
+    if (!user.is_active) {
+      console.log('❌ User is inactive:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'このアカウントは無効化されています。管理者にお問い合わせください。' 
+      }, 403)
+    }
+    
+    // Update last login timestamp
+    await db.prepare(`
+      UPDATE users 
+      SET last_login_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(user.id).run()
+    
+    console.log('✅ Login successful:', { userId: user.id, studentId: user.student_id })
+    
+    return c.json({ 
+      success: true, 
+      message: 'ログインに成功しました',
+      user: {
+        id: user.id,
+        appkey: user.app_key,
+        studentId: user.student_id,
+        studentName: user.student_name || user.student_id,
+        grade: user.grade,
+        email: user.email
+      }
+    })
+  } catch (error) {
+    console.error('❌ Student login error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'ログイン処理でエラーが発生しました' 
+    }, 500)
   }
 })
 
@@ -16466,7 +16545,7 @@ app.get('/study-partner', (c) => {
         
         // ログイン処理
         async function handleLogin() {
-          console.log('🔑 Login attempt started');
+          console.log('🔑 Login attempt started (Step 3: Users table authentication)');
           
           try {
             const appkey = document.getElementById('appkey')?.value || '180418';
@@ -16479,8 +16558,8 @@ app.get('/study-partner', (c) => {
               throw new Error('APP_KEY と Student ID を両方入力してください');
             }
             
-            // Call the actual login API
-            const response = await fetch('/api/login', {
+            // Call the new authentication API (Step 3)
+            const response = await fetch('/api/auth/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -16499,21 +16578,26 @@ app.get('/study-partner', (c) => {
             if (response.ok && data.success) {
               authenticated = true;
               
-              // localStorageに保存（フラッシュカードページで使用）
+              // Store user information in localStorage
               localStorage.setItem('appkey', appkey);
               localStorage.setItem('sid', sid);
+              localStorage.setItem('user_id', data.user.id);
+              localStorage.setItem('student_name', data.user.studentName);
+              
+              console.log('✅ Login successful, user_id:', data.user.id);
               
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
-                    'APP_KEY: ' + appkey + String.fromCharCode(10) + 
+                    '氏名: ' + data.user.studentName + String.fromCharCode(10) +
+                    '学年: ' + (data.user.grade || '未設定') + String.fromCharCode(10) +
                     'Student ID: ' + sid);
             } else {
               authenticated = false;
-              throw new Error(data.message || 'ログインに失敗しました');
+              throw new Error(data.error || data.message || 'ログインに失敗しました');
             }
           } catch (error) {
             console.error('❌ Login error:', error);
             authenticated = false;
-            const errorMessage = formatErrorMessage(error, 'ログインに失敗しました');
+            const errorMessage = error.message || 'ログインに失敗しました';
             alert('❌ ログインエラー: ' + errorMessage);
           }
         }
