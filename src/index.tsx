@@ -9155,7 +9155,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         console.log('🔍 Essay Session Configuration:', {
           sessionId: sessionId,
           problemMode: '${essaySession.problemMode}',
-          customInput: '${essaySession.customInput || '(empty)'}',
+          customInput: '${essaySession.customInput || "(empty)"}',
           learningStyle: '${essaySession.learningStyle}',
           targetLevel: '${essaySession.targetLevel}',
           timestamp: new Date().toISOString()
@@ -9231,7 +9231,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 });
                 
                 console.log('📥 Response status:', response.status);
-                const result = await response.json() as EssayChatResponse;
+                const result = await response.json();
                 console.log('📥 Response data:', result);
                 
                 if (result.ok) {
@@ -9299,13 +9299,13 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             }
         }
         
-        function quickAction(text: string) {
+        function quickAction(text) {
             const input = document.getElementById('userInput');
             input.value = text;
             sendMessage();
         }
         
-        function updateQuickActions(aiResponse: string) {
+        function updateQuickActions(aiResponse) {
             // AIの応答内容に基づいてクイックアクションボタンを表示/非表示
             const btnOK = document.getElementById('btnOK');
             const btnYonda = document.getElementById('btnYonda');
@@ -9388,7 +9388,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             }
         }
         
-        function getStepIntroMessage(step: number): string {
+        function getStepIntroMessage(step) {
             const messages = {
                 1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
                 2: '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
@@ -9418,7 +9418,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 
                 console.log('🤖 Feedback API response status:', response.status);
                 
-                const result = await response.json() as EssayFeedbackResponse;
+                const result = await response.json();
                 console.log('🤖 Feedback API result:', result);
                 
                 if (result.ok && result.feedback) {
@@ -9434,7 +9434,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         // フィードバックを表示
-        function displayFeedback(feedback: EssayFeedback) {
+        function displayFeedback(feedback) {
             const feedbackHtml = '<div class="ai-feedback">' +
                 '<h3><i class="fas fa-robot"></i> AI自動添削結果</h3>' +
                 '<div class="feedback-score">' +
@@ -10203,7 +10203,7 @@ app.post('/api/regenerate-problem', async (c) => {
       }, 500)
     }
     
-    const regenerationCompletion = await openaiResponse.json() as OpenAIChatCompletionResponse
+    const regenerationCompletion = await openaiResponse.json()
     const aiContent = regenerationCompletion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 Regenerated AI content length:', aiContent.length)
     
@@ -10212,7 +10212,7 @@ app.post('/api/regenerate-problem', async (c) => {
     
     if (jsonMatch) {
       try {
-        aiAnalysis = JSON.parse(jsonMatch[0]) as AiAnalysisPayload
+        aiAnalysis = JSON.parse(jsonMatch[0])
         console.log('🔄 Regeneration analysis success:', {
           subject: aiAnalysis.subject,
           problemType: aiAnalysis.problemType,
