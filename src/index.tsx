@@ -16019,6 +16019,14 @@ app.get('/study-partner', (c) => {
                     </button>
                 </div>
 
+                <!-- 管理画面ボタン -->
+                <div style="margin-bottom: 1rem;">
+                    <button onclick="window.location.href='/admin/login'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #6b7280; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease; border: 2px solid #4b5563;">
+                        <i class="fas fa-user-shield" style="margin-right: 0.5rem;"></i>
+                        🔐 管理画面
+                    </button>
+                </div>
+
                 <!-- 写真アップロード -->
                 <div style="margin-bottom: 2.5rem;">
                     <!-- カメラ撮影ボタン -->
