@@ -1000,6 +1000,118 @@ app.get('/api/admin/users/:id', async (c) => {
   }
 })
 
+// Get user's detailed learning history
+app.get('/api/admin/users/:id/history', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const type = c.req.query('type') // essay, flashcard, international
+    const limit = parseInt(c.req.query('limit') || '20')
+    const offset = parseInt(c.req.query('offset') || '0')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    let data = []
+    let total = 0
+    
+    if (type === 'essay') {
+      // Get essay sessions
+      const sessions = await db.prepare(`
+        SELECT 
+          id,
+          session_id,
+          student_id,
+          theme,
+          target_level,
+          lesson_format,
+          current_step,
+          is_completed,
+          created_at,
+          updated_at
+        FROM essay_sessions 
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM essay_sessions WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = sessions.results || []
+      total = countResult?.total || 0
+      
+    } else if (type === 'flashcard') {
+      // Get flashcard decks with card counts
+      const decks = await db.prepare(`
+        SELECT 
+          fd.id,
+          fd.deck_id,
+          fd.deck_name,
+          fd.description,
+          fd.card_count,
+          fd.study_count,
+          fd.last_studied_at,
+          fd.created_at,
+          fd.updated_at
+        FROM flashcard_decks fd
+        WHERE fd.user_id = ?
+        ORDER BY fd.created_at DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM flashcard_decks WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = decks.results || []
+      total = countResult?.total || 0
+      
+    } else if (type === 'international') {
+      // Get international conversations with session info
+      const conversations = await db.prepare(`
+        SELECT 
+          ic.id,
+          ic.session_id,
+          ic.role,
+          ic.content,
+          ic.has_image,
+          ic.timestamp,
+          ise.student_name,
+          ise.current_topic,
+          ise.scenario
+        FROM international_conversations ic
+        LEFT JOIN international_sessions ise ON ic.session_id = ise.session_id
+        WHERE ic.user_id = ?
+        ORDER BY ic.timestamp DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM international_conversations WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = conversations.results || []
+      total = countResult?.total || 0
+    }
+    
+    return c.json({
+      success: true,
+      type,
+      data,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    })
+  } catch (error) {
+    console.error('Get history error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
 // Create new user
 app.post('/api/admin/users', async (c) => {
   try {
@@ -1076,9 +1188,9 @@ app.delete('/api/admin/users/:id', async (c) => {
     // Check if user has learning history
     const stats = await db.prepare(`
       SELECT 
-        (SELECT COUNT(*) FROM learning_sessions WHERE user_id = ?) +
         (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) +
-        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as total_records
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as total_records
     `).bind(userId, userId, userId).first()
     
     if (stats && stats.total_records > 0) {
@@ -1132,6 +1244,85 @@ app.post('/api/login', async (c) => {
   } catch (error) {
     console.error('❌ Login error:', error)
     return c.json({ success: false, message: 'ログイン処理でエラーが発生しました' }, 500)
+  }
+})
+
+// ==================== Student Authentication API (Step 3) ====================
+
+// Student login with users table authentication
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { appkey, sid } = await c.req.json()
+    console.log('🔑 Student login attempt:', { appkey, sid })
+    
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ 
+        success: false, 
+        error: 'Database not available' 
+      }, 500)
+    }
+    
+    // Validate input
+    if (!appkey || !sid) {
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYと学生IDを入力してください' 
+      }, 400)
+    }
+    
+    // Check user in database
+    const user = await db.prepare(`
+      SELECT id, app_key, student_id, student_name, grade, email, is_active, last_login_at
+      FROM users 
+      WHERE app_key = ? AND student_id = ?
+    `).bind(appkey, sid).first()
+    
+    if (!user) {
+      console.log('❌ User not found:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYまたは学生IDが正しくありません' 
+      }, 401)
+    }
+    
+    // Check if user is active
+    if (!user.is_active) {
+      console.log('❌ User is inactive:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'このアカウントは無効化されています。管理者にお問い合わせください。' 
+      }, 403)
+    }
+    
+    // Update last login timestamp
+    await db.prepare(`
+      UPDATE users 
+      SET last_login_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(user.id).run()
+    
+    console.log('✅ Login successful:', { userId: user.id, studentId: user.student_id })
+    
+    return c.json({ 
+      success: true, 
+      message: 'ログインに成功しました',
+      user: {
+        id: user.id,
+        appkey: user.app_key,
+        studentId: user.student_id,
+        studentName: user.student_name || user.student_id,
+        grade: user.grade,
+        email: user.email
+      }
+    })
+  } catch (error) {
+    console.error('❌ Student login error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'ログイン処理でエラーが発生しました' 
+    }, 500)
   }
 })
 
@@ -11739,6 +11930,113 @@ app.get('/admin/users/:id', (c) => {
     .btn-save:hover {
       background: #2563eb;
     }
+    
+    /* History Tabs */
+    .history-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .history-tab {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-bottom: -2px;
+    }
+    
+    .history-tab:hover {
+      color: #374151;
+      background: #f9fafb;
+    }
+    
+    .history-tab.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
+    
+    .history-tab i {
+      margin-right: 0.5rem;
+    }
+    
+    /* History Table */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .history-table th {
+      background: #f9fafb;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+      font-size: 0.875rem;
+    }
+    
+    .history-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      color: #4b5563;
+      font-size: 0.875rem;
+    }
+    
+    .history-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .history-table .date-cell {
+      color: #6b7280;
+      font-size: 0.8125rem;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .badge-info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .badge-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #9ca3af;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
   </style>
 </head>
 <body>
@@ -11855,13 +12153,44 @@ app.get('/admin/users/:id', (c) => {
       <div class="history-card">
         <h3 class="section-title">
           <i class="fas fa-history"></i>
-          最近の学習履歴
+          学習履歴詳細
         </h3>
+        
+        <!-- History Tabs -->
+        <div class="history-tabs">
+          <button class="history-tab active" onclick="switchHistoryTab('essay')">
+            <i class="fas fa-pen-fancy"></i>
+            小論文セッション
+          </button>
+          <button class="history-tab" onclick="switchHistoryTab('flashcard')">
+            <i class="fas fa-layer-group"></i>
+            フラッシュカード
+          </button>
+          <button class="history-tab" onclick="switchHistoryTab('international')">
+            <i class="fas fa-globe"></i>
+            国際コミュニケーション
+          </button>
+        </div>
+        
+        <!-- History Content -->
         <div id="historyContent">
           <div class="loading">
             <div class="spinner"></div>
             <div>履歴を読み込み中...</div>
           </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div id="historyPagination" style="display: none; margin-top: 1.5rem; text-align: center;">
+          <button class="btn" onclick="loadPreviousPage()" id="btnPrevPage" disabled>
+            <i class="fas fa-chevron-left"></i>
+            前へ
+          </button>
+          <span id="pageInfo" style="margin: 0 1rem; color: #6b7280;">-</span>
+          <button class="btn" onclick="loadNextPage()" id="btnNextPage" disabled>
+            次へ
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -12027,30 +12356,240 @@ app.get('/admin/users/:id', (c) => {
       }
     }
 
-    // Load learning history (simplified version - just show count for now)
-    async function loadLearningHistory() {
+    // History state
+    let currentHistoryType = 'essay';
+    let currentHistoryPage = 0;
+    const historyPageSize = 20;
+    
+    // Load learning history with tabs and pagination
+    async function loadLearningHistory(type = 'essay', offset = 0) {
+      currentHistoryType = type;
+      currentHistoryPage = offset / historyPageSize;
+      
       const historyDiv = document.getElementById('historyContent');
+      historyDiv.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
       
       try {
-        // For Phase 2, we'll just show a summary message
-        // In Phase 3, we can add detailed history tables
-        historyDiv.innerHTML = \`
-          <div class="empty-state">
-            <i class="fas fa-clipboard-list"></i>
-            <p>詳細な学習履歴は今後のバージョンで表示されます</p>
-            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
-              上記の統計カードで学習状況を確認できます
-            </p>
-          </div>
-        \`;
+        const response = await fetch(\`/api/admin/users/\${userId}/history?type=\${type}&limit=\${historyPageSize}&offset=\${offset}\`);
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || '履歴の取得に失敗しました');
+        }
+        
+        // Display history based on type
+        if (data.data.length === 0) {
+          historyDiv.innerHTML = \`
+            <div class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>まだ学習履歴がありません</p>
+            </div>
+          \`;
+          document.getElementById('historyPagination').style.display = 'none';
+          return;
+        }
+        
+        let tableHTML = '';
+        
+        if (type === 'essay') {
+          tableHTML = renderEssayHistory(data.data);
+        } else if (type === 'flashcard') {
+          tableHTML = renderFlashcardHistory(data.data);
+        } else if (type === 'international') {
+          tableHTML = renderInternationalHistory(data.data);
+        }
+        
+        historyDiv.innerHTML = tableHTML;
+        
+        // Update pagination
+        updatePagination(data);
+        
       } catch (error) {
+        console.error('Error loading history:', error);
         historyDiv.innerHTML = \`
           <div class="error-message">
             <i class="fas fa-exclamation-circle"></i>
-            <span>履歴の読み込みに失敗しました</span>
+            <span>\${error.message}</span>
           </div>
         \`;
       }
+    }
+    
+    // Render essay history table
+    function renderEssayHistory(sessions) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>日付</th>';
+      html += '<th>テーマ</th>';
+      html += '<th>対象レベル</th>';
+      html += '<th>授業形式</th>';
+      html += '<th>ステップ</th>';
+      html += '<th>ステータス</th>';
+      html += '</tr></thead><tbody>';
+      
+      sessions.forEach(session => {
+        const date = new Date(session.created_at).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const targetLevelMap = {
+          'high_school': '高校',
+          'vocational': '専門学校',
+          'university': '大学'
+        };
+        
+        const lessonFormatMap = {
+          'full_55min': '55分フル',
+          'vocabulary_focus': '語彙重点',
+          'short_essay_focus': '短文重点'
+        };
+        
+        const statusBadge = session.is_completed 
+          ? '<span class="badge badge-success">完了</span>'
+          : '<span class="badge badge-warning">進行中</span>';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${date}</td>\`;
+        html += \`<td>\${session.theme || '-'}</td>\`;
+        html += \`<td>\${targetLevelMap[session.target_level] || session.target_level || '-'}</td>\`;
+        html += \`<td>\${lessonFormatMap[session.lesson_format] || session.lesson_format || '-'}</td>\`;
+        html += \`<td>ステップ \${session.current_step || 1} / 6</td>\`;
+        html += \`<td>\${statusBadge}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Render flashcard history table
+    function renderFlashcardHistory(decks) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>作成日</th>';
+      html += '<th>デッキ名</th>';
+      html += '<th>説明</th>';
+      html += '<th>カード数</th>';
+      html += '<th>学習回数</th>';
+      html += '<th>最終学習日</th>';
+      html += '</tr></thead><tbody>';
+      
+      decks.forEach(deck => {
+        const createdDate = new Date(deck.created_at).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        
+        const lastStudiedDate = deck.last_studied_at 
+          ? new Date(deck.last_studied_at).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            })
+          : '未学習';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${createdDate}</td>\`;
+        html += \`<td><strong>\${deck.deck_name || '名前なし'}</strong></td>\`;
+        html += \`<td>\${deck.description || '-'}</td>\`;
+        html += \`<td>\${deck.card_count || 0} 枚</td>\`;
+        html += \`<td>\${deck.study_count || 0} 回</td>\`;
+        html += \`<td class="date-cell">\${lastStudiedDate}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Render international communication history table
+    function renderInternationalHistory(conversations) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>日時</th>';
+      html += '<th>トピック</th>';
+      html += '<th>シナリオ</th>';
+      html += '<th>役割</th>';
+      html += '<th>画像</th>';
+      html += '<th>メッセージ内容</th>';
+      html += '</tr></thead><tbody>';
+      
+      conversations.forEach(conv => {
+        const date = new Date(conv.timestamp).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const roleBadge = conv.role === 'user'
+          ? '<span class="badge badge-info">生徒</span>'
+          : '<span class="badge badge-secondary">AI</span>';
+        
+        const hasImageBadge = conv.has_image 
+          ? '<i class="fas fa-image" style="color: #3b82f6;"></i>'
+          : '-';
+        
+        const contentPreview = conv.content 
+          ? (conv.content.length > 50 ? conv.content.substring(0, 50) + '...' : conv.content)
+          : '-';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${date}</td>\`;
+        html += \`<td>\${conv.current_topic || '-'}</td>\`;
+        html += \`<td>\${conv.scenario || '-'}</td>\`;
+        html += \`<td>\${roleBadge}</td>\`;
+        html += \`<td style="text-align: center;">\${hasImageBadge}</td>\`;
+        html += \`<td>\${contentPreview}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Update pagination controls
+    function updatePagination(data) {
+      const paginationDiv = document.getElementById('historyPagination');
+      const btnPrev = document.getElementById('btnPrevPage');
+      const btnNext = document.getElementById('btnNextPage');
+      const pageInfo = document.getElementById('pageInfo');
+      
+      const currentPage = Math.floor(data.offset / data.limit) + 1;
+      const totalPages = Math.ceil(data.total / data.limit);
+      
+      pageInfo.textContent = \`\${currentPage} / \${totalPages} ページ (全 \${data.total} 件)\`;
+      
+      btnPrev.disabled = data.offset === 0;
+      btnNext.disabled = !data.hasMore;
+      
+      paginationDiv.style.display = totalPages > 1 ? 'block' : 'none';
+    }
+    
+    // Switch history tab
+    function switchHistoryTab(type) {
+      // Update active tab
+      document.querySelectorAll('.history-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.closest('.history-tab').classList.add('active');
+      
+      // Load history for selected type
+      loadLearningHistory(type, 0);
+    }
+    
+    // Pagination functions
+    function loadNextPage() {
+      const nextOffset = (currentHistoryPage + 1) * historyPageSize;
+      loadLearningHistory(currentHistoryType, nextOffset);
+    }
+    
+    function loadPreviousPage() {
+      const prevOffset = Math.max(0, (currentHistoryPage - 1) * historyPageSize);
+      loadLearningHistory(currentHistoryType, prevOffset);
     }
 
     // Show edit modal
@@ -16134,7 +16673,7 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <!-- API応答の表示先 -->
-                <div id="out" style="background: #f5f5f5; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; min-height: 160px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; word-wrap: break-word; font-family: inherit;"></div>
+                <div id="out" style="display: none;"></div>
             </section>
             
             <!-- フローティングAI質問ボタン -->
@@ -16142,6 +16681,14 @@ app.get('/study-partner', (c) => {
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
                 🤔 AIに質問する
             </button>
+            
+            <!-- 管理画面リンク（フッター） -->
+            <footer style="margin-top: 4rem; padding: 2rem 0; border-top: 1px solid #e5e7eb; text-align: center;">
+                <a href="/admin/login" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #f3f4f6; color: #6b7280; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s ease; border: 1px solid #e5e7eb;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
+                    <i class="fas fa-user-shield" style="font-size: 0.75rem;"></i>
+                    管理画面
+                </a>
+            </footer>
         </main>
 
         <!-- Scripts -->
@@ -16458,7 +17005,7 @@ app.get('/study-partner', (c) => {
         
         // ログイン処理
         async function handleLogin() {
-          console.log('🔑 Login attempt started');
+          console.log('🔑 Login attempt started (Step 3: Users table authentication)');
           
           try {
             const appkey = document.getElementById('appkey')?.value || '180418';
@@ -16471,8 +17018,8 @@ app.get('/study-partner', (c) => {
               throw new Error('APP_KEY と Student ID を両方入力してください');
             }
             
-            // Call the actual login API
-            const response = await fetch('/api/login', {
+            // Call the new authentication API (Step 3)
+            const response = await fetch('/api/auth/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -16491,21 +17038,26 @@ app.get('/study-partner', (c) => {
             if (response.ok && data.success) {
               authenticated = true;
               
-              // localStorageに保存（フラッシュカードページで使用）
+              // Store user information in localStorage
               localStorage.setItem('appkey', appkey);
               localStorage.setItem('sid', sid);
+              localStorage.setItem('user_id', data.user.id);
+              localStorage.setItem('student_name', data.user.studentName);
+              
+              console.log('✅ Login successful, user_id:', data.user.id);
               
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
-                    'APP_KEY: ' + appkey + String.fromCharCode(10) + 
+                    '氏名: ' + data.user.studentName + String.fromCharCode(10) +
+                    '学年: ' + (data.user.grade || '未設定') + String.fromCharCode(10) +
                     'Student ID: ' + sid);
             } else {
               authenticated = false;
-              throw new Error(data.message || 'ログインに失敗しました');
+              throw new Error(data.error || data.message || 'ログインに失敗しました');
             }
           } catch (error) {
             console.error('❌ Login error:', error);
             authenticated = false;
-            const errorMessage = formatErrorMessage(error, 'ログインに失敗しました');
+            const errorMessage = error.message || 'ログインに失敗しました';
             alert('❌ ログインエラー: ' + errorMessage);
           }
         }
