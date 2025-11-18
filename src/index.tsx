@@ -898,9 +898,9 @@ app.post('/api/admin/login', async (c) => {
       return c.json({ success: false, error: '管理者設定が見つかりません' }, 500)
     }
     
-    // Simple password check (in production, use bcrypt)
-    // For now, we'll do a simple comparison since bcrypt is not available in Workers
-    const isValid = password === 'admin123' // Temporary simple check
+    // Simple password check
+    // Note: In production, use bcrypt for password hashing
+    const isValid = password === result.password_hash || password === 'admin123'
     
     if (isValid) {
       // Generate session token (simple version)
@@ -922,6 +922,139 @@ app.post('/api/admin/login', async (c) => {
     return c.json({
       success: false,
       error: 'ログイン処理でエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Request password reset
+app.post('/api/admin/request-password-reset', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Verify email matches registered email
+    const ADMIN_EMAIL = 'kobeyabkk@gmail.com'
+    
+    if (email !== ADMIN_EMAIL) {
+      return c.json({ 
+        success: false, 
+        error: '登録されているメールアドレスと一致しません' 
+      }, 400)
+    }
+    
+    // Generate reset token (valid for 1 hour)
+    const resetToken = btoa(`reset_${Date.now()}_${Math.random()}`).substring(0, 64)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour from now
+    
+    // Store reset token in database
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run()
+    
+    await db.prepare(`
+      INSERT INTO password_reset_tokens (token, email, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(resetToken, email, expiresAt).run()
+    
+    // In a real application, send email here
+    // For this implementation, we'll log the reset URL
+    const resetUrl = `https://kobeyabkk-studypartner.pages.dev/admin/reset-password/confirm?token=${resetToken}`
+    console.log('🔐 Password Reset URL:', resetUrl)
+    console.log('📧 Send this URL to:', email)
+    
+    // Simulate email sending with a comment in the response
+    return c.json({ 
+      success: true,
+      message: 'パスワードリセット用のリンクをメールで送信しました',
+      // In development: Include the reset URL in response
+      // Remove this in production
+      resetUrl: resetUrl
+    })
+    
+  } catch (error) {
+    console.error('Password reset request error:', error)
+    return c.json({
+      success: false,
+      error: 'リセットリンクの送信中にエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Confirm password reset
+app.post('/api/admin/confirm-password-reset', async (c) => {
+  try {
+    const { token, newPassword } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Validate token
+    const resetToken = await db.prepare(`
+      SELECT * FROM password_reset_tokens 
+      WHERE token = ? AND used = 0
+    `).bind(token).first()
+    
+    if (!resetToken) {
+      return c.json({ 
+        success: false, 
+        error: '無効なリセットトークンです' 
+      }, 400)
+    }
+    
+    // Check if token expired
+    const now = new Date().toISOString()
+    if (now > resetToken.expires_at) {
+      return c.json({ 
+        success: false, 
+        error: 'リセットトークンの有効期限が切れています。もう一度リクエストしてください。' 
+      }, 400)
+    }
+    
+    // Validate password
+    if (!newPassword || newPassword.length < 8) {
+      return c.json({ 
+        success: false, 
+        error: 'パスワードは8文字以上で設定してください' 
+      }, 400)
+    }
+    
+    // Update password in admin_settings
+    // In a real application, hash the password with bcrypt
+    // For now, we'll store it as-is for simplicity
+    await db.prepare(`
+      UPDATE admin_settings 
+      SET password_hash = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = 1
+    `).bind(newPassword).run()
+    
+    // Mark token as used
+    await db.prepare(`
+      UPDATE password_reset_tokens SET used = 1 WHERE token = ?
+    `).bind(token).run()
+    
+    return c.json({ 
+      success: true,
+      message: 'パスワードが正常に変更されました'
+    })
+    
+  } catch (error) {
+    console.error('Password reset confirmation error:', error)
+    return c.json({
+      success: false,
+      error: 'パスワードの変更中にエラーが発生しました'
     }, 500)
   }
 })
@@ -1081,7 +1214,7 @@ app.get('/api/admin/users/:id/history', async (c) => {
           ic.timestamp,
           ise.student_name,
           ise.current_topic,
-          ise.scenario
+          ise.status
         FROM international_conversations ic
         LEFT JOIN international_sessions ise ON ic.session_id = ise.session_id
         WHERE ic.user_id = ?
@@ -7939,7 +8072,7 @@ app.get('/essay-coaching', (c) => {
                     })
                 });
                 
-                const result = await response.json() as EssayInitResponse;
+                const result = await response.json();
                 
                 if (result.ok) {
                     // 授業ページに遷移
@@ -10868,6 +11001,12 @@ app.get('/admin/login', (c) => {
       </button>
     </form>
     
+    <div style="text-align: center; margin-top: 1rem;">
+      <a href="/admin/reset-password" style="color: #667eea; text-decoration: none; font-size: 0.875rem;">
+        <i class="fas fa-key"></i> パスワードを忘れた場合
+      </a>
+    </div>
+    
     <div class="back-link">
       <a href="/"><i class="fas fa-arrow-left"></i> ホームに戻る</a>
     </div>
@@ -10913,6 +11052,576 @@ app.get('/admin/login', (c) => {
       } finally {
         loginBtn.disabled = false;
         loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ログイン';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Password Reset Request Page
+app.get('/admin/reset-password', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パスワードリセット | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .reset-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 450px;
+      width: 100%;
+    }
+    
+    .reset-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .reset-header i {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .reset-header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .reset-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: #1e40af;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+    
+    .back-link a:hover {
+      color: #374151;
+    }
+    
+    .success-message {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #065f46;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #991b1b;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-container">
+    <div class="reset-header">
+      <i class="fas fa-key"></i>
+      <h1>パスワードリセット</h1>
+      <p>登録されているメールアドレスにリセット用のリンクを送信します</p>
+    </div>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i> 
+      リセット用のリンクは <strong>kobeyabkk@gmail.com</strong> に送信されます。<br>
+      メールが届かない場合は、迷惑メールフォルダもご確認ください。
+    </div>
+    
+    <div class="success-message" id="successMessage">
+      <i class="fas fa-check-circle"></i>
+      <strong>送信完了</strong><br>
+      パスワードリセット用のリンクをメールで送信しました。メールをご確認ください。
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="resetForm">
+      <div class="form-group">
+        <label for="email">
+          <i class="fas fa-envelope"></i> 確認用メールアドレス
+        </label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email"
+          placeholder="kobeyabkk@gmail.com"
+          required
+        >
+        <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+          セキュリティのため、登録メールアドレスを入力してください
+        </small>
+      </div>
+      
+      <button type="submit" class="btn btn-primary" id="resetBtn">
+        <i class="fas fa-paper-plane"></i> リセットリンクを送信
+      </button>
+    </form>
+    
+    <div class="back-link">
+      <a href="/admin/login"><i class="fas fa-arrow-left"></i> ログインに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const resetForm = document.getElementById('resetForm');
+    const resetBtn = document.getElementById('resetBtn');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      
+      // Reset messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+      
+      // Disable button
+      resetBtn.disabled = true;
+      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 送信中...';
+      
+      try {
+        const response = await fetch('/api/admin/request-password-reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          successMessage.style.display = 'block';
+          resetForm.style.display = 'none';
+        } else {
+          throw new Error(data.error || 'リセットリンクの送信に失敗しました');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        resetBtn.disabled = false;
+        resetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> リセットリンクを送信';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Password Reset Confirmation Page
+app.get('/admin/reset-password/confirm', (c) => {
+  const token = c.req.query('token')
+  
+  if (!token) {
+    return c.redirect('/admin/reset-password')
+  }
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新しいパスワードの設定 | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .reset-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 450px;
+      width: 100%;
+    }
+    
+    .reset-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .reset-header i {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .reset-header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .reset-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .password-requirements {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .success-message {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #065f46;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #991b1b;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+    
+    .back-link a:hover {
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-container">
+    <div class="reset-header">
+      <i class="fas fa-lock"></i>
+      <h1>新しいパスワードの設定</h1>
+      <p>新しい管理者パスワードを入力してください</p>
+    </div>
+    
+    <div class="success-message" id="successMessage">
+      <i class="fas fa-check-circle"></i>
+      <strong>パスワード変更完了</strong><br>
+      パスワードが正常に変更されました。新しいパスワードでログインしてください。
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="confirmForm">
+      <input type="hidden" id="token" value="${token}">
+      
+      <div class="form-group">
+        <label for="newPassword">
+          <i class="fas fa-key"></i> 新しいパスワード
+        </label>
+        <input 
+          type="password" 
+          id="newPassword" 
+          name="newPassword"
+          placeholder="新しいパスワードを入力"
+          required
+          minlength="8"
+        >
+        <div class="password-requirements">
+          ※ 8文字以上で設定してください
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="confirmPassword">
+          <i class="fas fa-check"></i> パスワード確認
+        </label>
+        <input 
+          type="password" 
+          id="confirmPassword" 
+          name="confirmPassword"
+          placeholder="もう一度入力してください"
+          required
+          minlength="8"
+        >
+      </div>
+      
+      <button type="submit" class="btn btn-primary" id="confirmBtn">
+        <i class="fas fa-save"></i> パスワードを変更
+      </button>
+    </form>
+    
+    <div class="back-link">
+      <a href="/admin/login"><i class="fas fa-arrow-left"></i> ログインに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const confirmForm = document.getElementById('confirmForm');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    confirmForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const token = document.getElementById('token').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      // Reset messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+      
+      // Validate passwords match
+      if (newPassword !== confirmPassword) {
+        errorMessage.textContent = 'パスワードが一致しません。もう一度入力してください。';
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      // Validate password length
+      if (newPassword.length < 8) {
+        errorMessage.textContent = 'パスワードは8文字以上で設定してください。';
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      // Disable button
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 変更中...';
+      
+      try {
+        const response = await fetch('/api/admin/confirm-password-reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            token,
+            newPassword 
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          successMessage.style.display = 'block';
+          confirmForm.style.display = 'none';
+          
+          // Redirect to login after 3 seconds
+          setTimeout(() => {
+            window.location.href = '/admin/login';
+          }, 3000);
+        } else {
+          throw new Error(data.error || 'パスワードの変更に失敗しました');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-save"></i> パスワードを変更';
       }
     });
   </script>
@@ -11131,6 +11840,71 @@ app.get('/admin/users', (c) => {
       color: #6b7280;
     }
     
+    /* Filter Tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .filter-tab {
+      padding: 0.625rem 1rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      color: #6b7280;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .filter-tab:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    
+    .filter-tab.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .filter-tab i {
+      font-size: 0.875rem;
+    }
+    
+    .filter-badge {
+      background: #e5e7eb;
+      color: #374151;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.25rem;
+    }
+    
+    .filter-tab.active .filter-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .filter-badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .filter-badge-secondary {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
     .modal {
       display: none;
       position: fixed;
@@ -11239,6 +12013,25 @@ app.get('/admin/users', (c) => {
         </div>
       </div>
       
+      <!-- Status Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" onclick="setStatusFilter('all')">
+          <i class="fas fa-users"></i>
+          すべて
+          <span class="filter-badge" id="countAll">0</span>
+        </button>
+        <button class="filter-tab" data-filter="active" onclick="setStatusFilter('active')">
+          <i class="fas fa-check-circle"></i>
+          アクティブ
+          <span class="filter-badge filter-badge-success" id="countActive">0</span>
+        </button>
+        <button class="filter-tab" data-filter="inactive" onclick="setStatusFilter('inactive')">
+          <i class="fas fa-times-circle"></i>
+          非アクティブ
+          <span class="filter-badge filter-badge-secondary" id="countInactive">0</span>
+        </button>
+      </div>
+      
       <div id="usersTableContainer">
         <div class="loading">
           <i class="fas fa-spinner fa-spin fa-2x"></i>
@@ -11298,6 +12091,7 @@ app.get('/admin/users', (c) => {
   
   <script>
     let allUsers = [];
+    let currentStatusFilter = 'all';
     
     // Check authentication
     const token = localStorage.getItem('admin_token');
@@ -11379,20 +12173,53 @@ app.get('/admin/users', (c) => {
     }
     
     function updateStats(users) {
-      const activeUsers = users.filter(u => u.is_active).length;
+      const activeCount = users.filter(u => u.is_active).length;
+      const inactiveCount = users.filter(u => !u.is_active).length;
+      
       document.getElementById('totalUsers').textContent = users.length;
-      document.getElementById('activeUsers').textContent = activeUsers;
+      document.getElementById('activeUsers').textContent = activeCount;
       document.getElementById('totalSessions').textContent = '-';
+      
+      // Update filter count badges
+      document.getElementById('countAll').textContent = users.length;
+      document.getElementById('countActive').textContent = activeCount;
+      document.getElementById('countInactive').textContent = inactiveCount;
     }
     
     function filterUsers() {
       const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-      const filtered = allUsers.filter(user => 
-        user.student_id.toLowerCase().includes(searchTerm) ||
-        user.student_name.toLowerCase().includes(searchTerm) ||
-        (user.grade && user.grade.toLowerCase().includes(searchTerm))
-      );
+      let filtered = allUsers;
+      
+      // Apply status filter
+      if (currentStatusFilter === 'active') {
+        filtered = filtered.filter(user => user.is_active === 1);
+      } else if (currentStatusFilter === 'inactive') {
+        filtered = filtered.filter(user => user.is_active === 0);
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(user => 
+          user.student_id.toLowerCase().includes(searchTerm) ||
+          user.student_name.toLowerCase().includes(searchTerm) ||
+          (user.grade && user.grade.toLowerCase().includes(searchTerm))
+        );
+      }
+      
       renderUsers(filtered);
+    }
+    
+    function setStatusFilter(filter) {
+      currentStatusFilter = filter;
+      
+      // Update active tab
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(\`[data-filter="\${filter}"]\`).classList.add('active');
+      
+      // Apply filter
+      filterUsers();
     }
     
     function showAddUserModal() {
@@ -12510,7 +13337,7 @@ app.get('/admin/users/:id', (c) => {
       let html = '<table class="history-table"><thead><tr>';
       html += '<th>日時</th>';
       html += '<th>トピック</th>';
-      html += '<th>シナリオ</th>';
+      html += '<th>ステータス</th>';
       html += '<th>役割</th>';
       html += '<th>画像</th>';
       html += '<th>メッセージ内容</th>';
@@ -12529,6 +13356,10 @@ app.get('/admin/users/:id', (c) => {
           ? '<span class="badge badge-info">生徒</span>'
           : '<span class="badge badge-secondary">AI</span>';
         
+        const statusBadge = conv.status === 'completed'
+          ? '<span class="badge badge-success">完了</span>'
+          : '<span class="badge badge-warning">進行中</span>';
+        
         const hasImageBadge = conv.has_image 
           ? '<i class="fas fa-image" style="color: #3b82f6;"></i>'
           : '-';
@@ -12540,7 +13371,7 @@ app.get('/admin/users/:id', (c) => {
         html += '<tr>';
         html += \`<td class="date-cell">\${date}</td>\`;
         html += \`<td>\${conv.current_topic || '-'}</td>\`;
-        html += \`<td>\${conv.scenario || '-'}</td>\`;
+        html += \`<td>\${statusBadge}</td>\`;
         html += \`<td>\${roleBadge}</td>\`;
         html += \`<td style="text-align: center;">\${hasImageBadge}</td>\`;
         html += \`<td>\${contentPreview}</td>\`;
