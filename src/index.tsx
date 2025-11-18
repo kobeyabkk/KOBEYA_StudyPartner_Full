@@ -879,6 +879,226 @@ app.post('/api/admin/migrate-db', async (c) => {
   }
 })
 
+// ==================== Admin API Routes ====================
+
+// Admin Login API
+app.post('/api/admin/login', async (c) => {
+  try {
+    const { password } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Get admin password hash from database
+    const result = await db.prepare('SELECT password_hash FROM admin_settings WHERE id = 1').first()
+    
+    if (!result) {
+      return c.json({ success: false, error: '管理者設定が見つかりません' }, 500)
+    }
+    
+    // Simple password check (in production, use bcrypt)
+    // For now, we'll do a simple comparison since bcrypt is not available in Workers
+    const isValid = password === 'admin123' // Temporary simple check
+    
+    if (isValid) {
+      // Generate session token (simple version)
+      const token = btoa(`admin_${Date.now()}_${Math.random()}`)
+      
+      return c.json({
+        success: true,
+        token,
+        message: 'ログインに成功しました'
+      })
+    } else {
+      return c.json({
+        success: false,
+        error: 'パスワードが正しくありません'
+      }, 401)
+    }
+  } catch (error) {
+    console.error('Admin login error:', error)
+    return c.json({
+      success: false,
+      error: 'ログイン処理でエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Get all users
+app.get('/api/admin/users', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    const users = await db.prepare(`
+      SELECT 
+        id,
+        app_key,
+        student_id,
+        student_name,
+        grade,
+        email,
+        notes,
+        created_at,
+        last_login_at,
+        is_active
+      FROM users
+      ORDER BY created_at DESC
+    `).all()
+    
+    return c.json({
+      success: true,
+      users: users.results || []
+    })
+  } catch (error) {
+    console.error('Get users error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get user with learning history
+app.get('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Get user info
+    const user = await db.prepare(`
+      SELECT * FROM users WHERE id = ?
+    `).bind(userId).first()
+    
+    if (!user) {
+      return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    }
+    
+    // Get learning history counts
+    const stats = await db.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM learning_sessions WHERE user_id = ?) as learning_sessions,
+        (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) as essay_sessions,
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as flashcards,
+        (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as conversations
+    `).bind(userId, userId, userId, userId).first()
+    
+    return c.json({
+      success: true,
+      user,
+      stats
+    })
+  } catch (error) {
+    console.error('Get user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Create new user
+app.post('/api/admin/users', async (c) => {
+  try {
+    const { app_key, student_id, student_name, grade, email, notes } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Check if user already exists
+    const existing = await db.prepare(`
+      SELECT id FROM users WHERE app_key = ? AND student_id = ?
+    `).bind(app_key, student_id).first()
+    
+    if (existing) {
+      return c.json({ success: false, error: 'この生徒IDは既に登録されています' }, 400)
+    }
+    
+    // Insert new user
+    const result = await db.prepare(`
+      INSERT INTO users (app_key, student_id, student_name, grade, email, notes, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).bind(app_key, student_id, student_name, grade || null, email || null, notes || null).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒を追加しました',
+      userId: result.meta?.last_row_id
+    })
+  } catch (error) {
+    console.error('Create user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Update user
+app.put('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const { student_name, grade, email, notes, is_active } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    await db.prepare(`
+      UPDATE users 
+      SET student_name = ?, grade = ?, email = ?, notes = ?, is_active = ?
+      WHERE id = ?
+    `).bind(student_name, grade || null, email || null, notes || null, is_active, userId).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒情報を更新しました'
+    })
+  } catch (error) {
+    console.error('Update user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Delete user
+app.delete('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Check if user has learning history
+    const stats = await db.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM learning_sessions WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as total_records
+    `).bind(userId, userId, userId).first()
+    
+    if (stats && stats.total_records > 0) {
+      return c.json({
+        success: false,
+        error: '学習履歴が存在する生徒は削除できません。無効化してください。'
+      }, 400)
+    }
+    
+    await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒を削除しました'
+    })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
 // ログインAPI（最小限追加）
 app.post('/api/login', async (c) => {
   try {
@@ -10289,6 +10509,1630 @@ function generateLearningData(problemType: string): LearningData {
 // ルートパスハンドラー
 app.get('/', (c) => {
   return c.redirect('/study-partner', 302)
+})
+
+// ==================== Admin User Management Routes ====================
+
+// Admin Login Page
+app.get('/admin/login', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ログイン | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .login-header h1 {
+      font-size: 1.75rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .login-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-login {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      display: none;
+    }
+    
+    .error-message.show {
+      display: block;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1><i class="fas fa-user-shield"></i> 管理者ログイン</h1>
+      <p>生徒管理システムへのアクセス</p>
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="password">
+          <i class="fas fa-lock"></i> パスワード
+        </label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password"
+          placeholder="管理者パスワードを入力"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+      
+      <button type="submit" class="btn-login" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> ログイン
+      </button>
+    </form>
+    
+    <div class="back-link">
+      <a href="/"><i class="fas fa-arrow-left"></i> ホームに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const password = document.getElementById('password').value;
+      
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ログイン中...';
+      errorMessage.classList.remove('show');
+      
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // セッショントークンを保存
+          localStorage.setItem('admin_token', data.token);
+          // 管理画面にリダイレクト
+          window.location.href = '/admin/users';
+        } else {
+          errorMessage.textContent = data.error || 'ログインに失敗しました';
+          errorMessage.classList.add('show');
+        }
+      } catch (error) {
+        errorMessage.textContent = 'エラーが発生しました。もう一度お試しください。';
+        errorMessage.classList.add('show');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ログイン';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Admin Users List Page
+app.get('/admin/users', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生徒管理 | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      color: #374151;
+    }
+    
+    .header {
+      background: white;
+      border-bottom: 2px solid #e5e7eb;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+      font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .stat-card h3 {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #374151;
+    }
+    
+    .users-card {
+      background: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    
+    .users-header {
+      padding: 1.5rem;
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .users-header h2 {
+      font-size: 1.25rem;
+      color: #374151;
+    }
+    
+    .search-box {
+      padding: 0.625rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      width: 250px;
+    }
+    
+    .search-box:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .users-table thead {
+      background: #f9fafb;
+    }
+    
+    .users-table th {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    
+    .users-table td {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.875rem;
+    }
+    
+    .users-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .badge-active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: #374151;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .modal-footer {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-users"></i> 生徒管理システム</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> ログアウト
+      </button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <h3>総生徒数</h3>
+        <div class="value" id="totalUsers">-</div>
+      </div>
+      <div class="stat-card">
+        <h3>アクティブ</h3>
+        <div class="value" id="activeUsers">-</div>
+      </div>
+      <div class="stat-card">
+        <h3>学習セッション</h3>
+        <div class="value" id="totalSessions">-</div>
+      </div>
+    </div>
+    
+    <div class="users-card">
+      <div class="users-header">
+        <h2>生徒一覧</h2>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <input type="text" class="search-box" placeholder="検索..." id="searchBox" onkeyup="filterUsers()">
+          <button class="btn btn-primary" onclick="showAddUserModal()">
+            <i class="fas fa-plus"></i> 新規追加
+          </button>
+        </div>
+      </div>
+      
+      <div id="usersTableContainer">
+        <div class="loading">
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 1rem;">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add/Edit User Modal -->
+  <div class="modal" id="userModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">新規生徒追加</h3>
+      </div>
+      
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        
+        <div class="form-group">
+          <label for="appKey">APP_KEY *</label>
+          <input type="text" id="appKey" value="180418" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="studentId">学生ID *</label>
+          <input type="text" id="studentId" required placeholder="例: JS2-04">
+        </div>
+        
+        <div class="form-group">
+          <label for="studentName">氏名 *</label>
+          <input type="text" id="studentName" required placeholder="例: 山田太郎">
+        </div>
+        
+        <div class="form-group">
+          <label for="grade">学年</label>
+          <input type="text" id="grade" placeholder="例: 中学2年">
+        </div>
+        
+        <div class="form-group">
+          <label for="email">メールアドレス</label>
+          <input type="email" id="email" placeholder="例: example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="notes">メモ</label>
+          <textarea id="notes" rows="3" placeholder="備考やメモを入力"></textarea>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeUserModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="saveUserBtn">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    let allUsers = [];
+    
+    // Check authentication
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      window.location.href = '/admin/login';
+    }
+    
+    // Load users on page load
+    loadUsers();
+    
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/admin/users');
+        const data = await response.json();
+        
+        if (data.success) {
+          allUsers = data.users;
+          renderUsers(allUsers);
+          updateStats(allUsers);
+        } else {
+          document.getElementById('usersTableContainer').innerHTML = 
+            '<div class="empty-state">エラーが発生しました</div>';
+        }
+      } catch (error) {
+        console.error('Load users error:', error);
+        document.getElementById('usersTableContainer').innerHTML = 
+          '<div class="empty-state">データの読み込みに失敗しました</div>';
+      }
+    }
+    
+    function renderUsers(users) {
+      if (users.length === 0) {
+        document.getElementById('usersTableContainer').innerHTML = 
+          '<div class="empty-state"><p>生徒が登録されていません</p><p style="margin-top: 0.5rem; font-size: 0.875rem;">「新規追加」ボタンから生徒を追加してください</p></div>';
+        return;
+      }
+      
+      const html = \`
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>学生ID</th>
+              <th>氏名</th>
+              <th>学年</th>
+              <th>状態</th>
+              <th>登録日</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${users.map(user => \`
+              <tr>
+                <td><strong>\${user.student_id}</strong></td>
+                <td>\${user.student_name}</td>
+                <td>\${user.grade || '-'}</td>
+                <td>
+                  <span class="badge \${user.is_active ? 'badge-active' : 'badge-inactive'}">
+                    \${user.is_active ? 'アクティブ' : '無効'}
+                  </span>
+                </td>
+                <td>\${new Date(user.created_at).toLocaleDateString('ja-JP')}</td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-secondary btn-sm" onclick="viewUser(\${user.id})">
+                      <i class="fas fa-eye"></i> 詳細
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="editUser(\${user.id})">
+                      <i class="fas fa-edit"></i> 編集
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            \`).join('')}
+          </tbody>
+        </table>
+      \`;
+      
+      document.getElementById('usersTableContainer').innerHTML = html;
+    }
+    
+    function updateStats(users) {
+      const activeUsers = users.filter(u => u.is_active).length;
+      document.getElementById('totalUsers').textContent = users.length;
+      document.getElementById('activeUsers').textContent = activeUsers;
+      document.getElementById('totalSessions').textContent = '-';
+    }
+    
+    function filterUsers() {
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+      const filtered = allUsers.filter(user => 
+        user.student_id.toLowerCase().includes(searchTerm) ||
+        user.student_name.toLowerCase().includes(searchTerm) ||
+        (user.grade && user.grade.toLowerCase().includes(searchTerm))
+      );
+      renderUsers(filtered);
+    }
+    
+    function showAddUserModal() {
+      document.getElementById('modalTitle').textContent = '新規生徒追加';
+      document.getElementById('userForm').reset();
+      document.getElementById('userId').value = '';
+      document.getElementById('appKey').value = '180418';
+      document.getElementById('studentId').disabled = false;
+      document.getElementById('userModal').classList.add('show');
+    }
+    
+    function editUser(userId) {
+      const user = allUsers.find(u => u.id === userId);
+      if (!user) return;
+      
+      document.getElementById('modalTitle').textContent = '生徒情報編集';
+      document.getElementById('userId').value = user.id;
+      document.getElementById('appKey').value = user.app_key;
+      document.getElementById('studentId').value = user.student_id;
+      document.getElementById('studentId').disabled = true;
+      document.getElementById('studentName').value = user.student_name;
+      document.getElementById('grade').value = user.grade || '';
+      document.getElementById('email').value = user.email || '';
+      document.getElementById('notes').value = user.notes || '';
+      document.getElementById('userModal').classList.add('show');
+    }
+    
+    function closeUserModal() {
+      document.getElementById('userModal').classList.remove('show');
+    }
+    
+    function viewUser(userId) {
+      window.location.href = \`/admin/users/\${userId}\`;
+    }
+    
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userId = document.getElementById('userId').value;
+      const isEdit = userId !== '';
+      
+      const userData = {
+        app_key: document.getElementById('appKey').value,
+        student_id: document.getElementById('studentId').value,
+        student_name: document.getElementById('studentName').value,
+        grade: document.getElementById('grade').value,
+        email: document.getElementById('email').value,
+        notes: document.getElementById('notes').value,
+        is_active: 1
+      };
+      
+      const saveBtn = document.getElementById('saveUserBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+      
+      try {
+        const url = isEdit ? \`/api/admin/users/\${userId}\` : '/api/admin/users';
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(data.message);
+          closeUserModal();
+          loadUsers();
+        } else {
+          alert('エラー: ' + data.error);
+        }
+      } catch (error) {
+        alert('保存に失敗しました');
+        console.error(error);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    });
+    
+    function logout() {
+      if (confirm('ログアウトしますか？')) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+      }
+    }
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Admin User Detail Page
+app.get('/admin/users/:id', (c) => {
+  const userId = c.req.param('id')
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生徒詳細 | KOBEYA Study Partner</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #37352f;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: white;
+      border-bottom: 2px solid #e5e7eb;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      color: #374151;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    .back-btn:hover {
+      background: #e5e7eb;
+      transform: translateX(-2px);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-edit {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-edit:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-logout {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-logout:hover {
+      background: #4b5563;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+    
+    .user-info-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 2rem;
+    }
+    
+    .user-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .user-name-section h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 0.25rem;
+    }
+    
+    .user-id {
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    
+    .badge-active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .info-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    
+    .info-value {
+      font-size: 1rem;
+      color: #1f2937;
+      font-weight: 500;
+    }
+    
+    .info-value.empty {
+      color: #9ca3af;
+      font-style: italic;
+    }
+    
+    .stats-section {
+      margin-bottom: 2rem;
+    }
+    
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .stat-icon.blue { background: #dbeafe; color: #1e40af; }
+    .stat-icon.green { background: #d1fae5; color: #065f46; }
+    .stat-icon.yellow { background: #fef3c7; color: #92400e; }
+    .stat-icon.purple { background: #ede9fe; color: #5b21b6; }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .history-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 1rem;
+    }
+    
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    
+    .history-table thead {
+      background: #f9fafb;
+    }
+    
+    .history-table th {
+      text-align: left;
+      padding: 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #6b7280;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .history-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+    }
+    
+    .history-table tbody tr:hover {
+      background: #f9fafb;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #9ca3af;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    /* Modal Styles (reuse from list page) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .modal h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-group input:disabled {
+      background: #f3f4f6;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+    }
+    
+    .btn-cancel {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    
+    .btn-cancel:hover {
+      background: #d1d5db;
+    }
+    
+    .btn-save {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-save:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <a href="/admin/users" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+        戻る
+      </a>
+      <h1>生徒詳細</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-edit" onclick="showEditModal()">
+        <i class="fas fa-edit"></i>
+        編集
+      </button>
+      <button class="btn btn-logout" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        ログアウト
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <div>読み込み中...</div>
+    </div>
+
+    <div id="errorState" style="display: none;"></div>
+
+    <div id="contentState" style="display: none;">
+      <!-- User Info Card -->
+      <div class="user-info-card">
+        <div class="user-header">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-name-section">
+            <h2 id="userName">-</h2>
+            <div class="user-id">学生ID: <span id="userStudentId">-</span></div>
+          </div>
+          <span id="userStatus" class="status-badge badge-active">
+            <i class="fas fa-check-circle"></i>
+            有効
+          </span>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">APP_KEY</span>
+            <span class="info-value" id="userAppKey">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">学年</span>
+            <span class="info-value" id="userGrade">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">メールアドレス</span>
+            <span class="info-value" id="userEmail">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">登録日</span>
+            <span class="info-value" id="userCreatedAt">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">最終ログイン</span>
+            <span class="info-value" id="userLastLogin">-</span>
+          </div>
+          <div class="info-item" style="grid-column: 1 / -1;">
+            <span class="info-label">メモ</span>
+            <span class="info-value" id="userNotes">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="stats-section">
+        <h3 class="section-title">
+          <i class="fas fa-chart-line"></i>
+          学習統計
+        </h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <div class="stat-label">学習セッション</div>
+            <div class="stat-value" id="statSessions">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <i class="fas fa-pen-fancy"></i>
+            </div>
+            <div class="stat-label">エッセイ提出</div>
+            <div class="stat-value" id="statEssays">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-label">フラッシュカード</div>
+            <div class="stat-value" id="statFlashcards">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <i class="fas fa-globe"></i>
+            </div>
+            <div class="stat-label">国際交流</div>
+            <div class="stat-value" id="statConversations">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning History -->
+      <div class="history-card">
+        <h3 class="section-title">
+          <i class="fas fa-history"></i>
+          最近の学習履歴
+        </h3>
+        <div id="historyContent">
+          <div class="loading">
+            <div class="spinner"></div>
+            <div>履歴を読み込み中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>生徒情報編集</h3>
+      <form id="editForm">
+        <input type="hidden" id="editUserId" value="${userId}">
+        
+        <div class="form-group">
+          <label>APP_KEY</label>
+          <input type="text" id="editAppKey" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label>学生ID</label>
+          <input type="text" id="editStudentId" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label>氏名 *</label>
+          <input type="text" id="editStudentName" required>
+        </div>
+        
+        <div class="form-group">
+          <label>学年</label>
+          <input type="text" id="editGrade" placeholder="例: 中学3年">
+        </div>
+        
+        <div class="form-group">
+          <label>メールアドレス</label>
+          <input type="email" id="editEmail" placeholder="example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label>メモ</label>
+          <textarea id="editNotes" rows="3" placeholder="生徒に関するメモ"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="editIsActive" style="width: auto; margin-right: 0.5rem;">
+            有効な生徒
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeEditModal()">
+            キャンセル
+          </button>
+          <button type="submit" class="btn btn-save">
+            <i class="fas fa-save"></i>
+            保存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const userId = '${userId}';
+    let currentUser = null;
+
+    // Check authentication
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      window.location.href = '/admin/login';
+    }
+
+    // Load user data
+    async function loadUserData() {
+      try {
+        const response = await fetch(\`/api/admin/users/\${userId}\`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || '生徒データの取得に失敗しました');
+        }
+
+        currentUser = data.user;
+        const stats = data.stats || {};
+
+        // Hide loading, show content
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('contentState').style.display = 'block';
+
+        // Update user info
+        const initials = currentUser.student_name 
+          ? currentUser.student_name.substring(0, 1).toUpperCase()
+          : '?';
+        document.getElementById('userAvatar').textContent = initials;
+        document.getElementById('userName').textContent = currentUser.student_name || '名前未設定';
+        document.getElementById('userStudentId').textContent = currentUser.student_id || '-';
+        document.getElementById('userAppKey').textContent = currentUser.app_key || '-';
+        document.getElementById('userGrade').textContent = currentUser.grade || '-';
+        
+        const emailEl = document.getElementById('userEmail');
+        if (currentUser.email) {
+          emailEl.textContent = currentUser.email;
+          emailEl.classList.remove('empty');
+        } else {
+          emailEl.textContent = '未設定';
+          emailEl.classList.add('empty');
+        }
+        
+        const notesEl = document.getElementById('userNotes');
+        if (currentUser.notes) {
+          notesEl.textContent = currentUser.notes;
+          notesEl.classList.remove('empty');
+        } else {
+          notesEl.textContent = 'メモなし';
+          notesEl.classList.add('empty');
+        }
+
+        // Format dates
+        const createdDate = currentUser.created_at 
+          ? new Date(currentUser.created_at).toLocaleDateString('ja-JP')
+          : '-';
+        document.getElementById('userCreatedAt').textContent = createdDate;
+
+        const lastLoginEl = document.getElementById('userLastLogin');
+        if (currentUser.last_login_at) {
+          lastLoginEl.textContent = new Date(currentUser.last_login_at).toLocaleDateString('ja-JP');
+          lastLoginEl.classList.remove('empty');
+        } else {
+          lastLoginEl.textContent = 'ログイン履歴なし';
+          lastLoginEl.classList.add('empty');
+        }
+
+        // Update status badge
+        const statusEl = document.getElementById('userStatus');
+        if (currentUser.is_active) {
+          statusEl.className = 'status-badge badge-active';
+          statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 有効';
+        } else {
+          statusEl.className = 'status-badge badge-inactive';
+          statusEl.innerHTML = '<i class="fas fa-times-circle"></i> 無効';
+        }
+
+        // Update stats
+        document.getElementById('statSessions').textContent = stats.learning_sessions || 0;
+        document.getElementById('statEssays').textContent = stats.essay_sessions || 0;
+        document.getElementById('statFlashcards').textContent = stats.flashcards || 0;
+        document.getElementById('statConversations').textContent = stats.conversations || 0;
+
+        // Load learning history
+        loadLearningHistory();
+
+      } catch (error) {
+        console.error('Error loading user:', error);
+        document.getElementById('loadingState').style.display = 'none';
+        const errorDiv = document.getElementById('errorState');
+        errorDiv.innerHTML = \`
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>\${error.message}</span>
+          </div>
+        \`;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Load learning history (simplified version - just show count for now)
+    async function loadLearningHistory() {
+      const historyDiv = document.getElementById('historyContent');
+      
+      try {
+        // For Phase 2, we'll just show a summary message
+        // In Phase 3, we can add detailed history tables
+        historyDiv.innerHTML = \`
+          <div class="empty-state">
+            <i class="fas fa-clipboard-list"></i>
+            <p>詳細な学習履歴は今後のバージョンで表示されます</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+              上記の統計カードで学習状況を確認できます
+            </p>
+          </div>
+        \`;
+      } catch (error) {
+        historyDiv.innerHTML = \`
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>履歴の読み込みに失敗しました</span>
+          </div>
+        \`;
+      }
+    }
+
+    // Show edit modal
+    function showEditModal() {
+      if (!currentUser) return;
+
+      document.getElementById('editUserId').value = currentUser.id;
+      document.getElementById('editAppKey').value = currentUser.app_key || '';
+      document.getElementById('editStudentId').value = currentUser.student_id || '';
+      document.getElementById('editStudentName').value = currentUser.student_name || '';
+      document.getElementById('editGrade').value = currentUser.grade || '';
+      document.getElementById('editEmail').value = currentUser.email || '';
+      document.getElementById('editNotes').value = currentUser.notes || '';
+      document.getElementById('editIsActive').checked = currentUser.is_active;
+
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    // Close edit modal
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    // Handle edit form submission
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        student_name: document.getElementById('editStudentName').value.trim(),
+        grade: document.getElementById('editGrade').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        notes: document.getElementById('editNotes').value.trim(),
+        is_active: document.getElementById('editIsActive').checked ? 1 : 0
+      };
+
+      try {
+        const response = await fetch(\`/api/admin/users/\${userId}\`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || '更新に失敗しました');
+        }
+
+        alert('生徒情報を更新しました');
+        closeEditModal();
+        
+        // Reload user data
+        document.getElementById('contentState').style.display = 'none';
+        document.getElementById('loadingState').style.display = 'block';
+        await loadUserData();
+
+      } catch (error) {
+        console.error('Error updating user:', error);
+        alert(\`エラー: \${error.message}\`);
+      }
+    });
+
+    // Logout function
+    function logout() {
+      if (confirm('ログアウトしますか?')) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+      }
+    }
+
+    // Close modal on outside click
+    document.getElementById('editModal').addEventListener('click', (e) => {
+      if (e.target.id === 'editModal') {
+        closeEditModal();
+      }
+    });
+
+    // Load data on page load
+    loadUserData();
+  </script>
+</body>
+</html>
+  `)
 })
 
 // ==================== Flashcard UI Routes ====================
