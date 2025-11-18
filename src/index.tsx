@@ -980,11 +980,12 @@ app.get('/api/admin/users/:id', async (c) => {
     }
     
     // Get learning history counts
+    // Note: learning_sessions table does not exist in this database
     const stats = await db.prepare(`
       SELECT 
-        (SELECT COUNT(*) FROM learning_sessions WHERE user_id = ?) as learning_sessions,
         (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) as essay_sessions,
         (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as flashcards,
+        (SELECT COUNT(*) FROM flashcard_decks WHERE user_id = ?) as flashcard_decks,
         (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as conversations
     `).bind(userId, userId, userId, userId).first()
     
@@ -11821,10 +11822,10 @@ app.get('/admin/users/:id', (c) => {
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon blue">
-              <i class="fas fa-book-open"></i>
+              <i class="fas fa-folder"></i>
             </div>
-            <div class="stat-label">学習セッション</div>
-            <div class="stat-value" id="statSessions">0</div>
+            <div class="stat-label">フラッシュカードデッキ</div>
+            <div class="stat-value" id="statDecks">0</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon green">
@@ -12004,7 +12005,7 @@ app.get('/admin/users/:id', (c) => {
         }
 
         // Update stats
-        document.getElementById('statSessions').textContent = stats.learning_sessions || 0;
+        document.getElementById('statDecks').textContent = stats.flashcard_decks || 0;
         document.getElementById('statEssays').textContent = stats.essay_sessions || 0;
         document.getElementById('statFlashcards').textContent = stats.flashcards || 0;
         document.getElementById('statConversations').textContent = stats.conversations || 0;
