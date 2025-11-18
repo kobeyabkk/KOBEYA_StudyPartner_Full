@@ -16019,14 +16019,6 @@ app.get('/study-partner', (c) => {
                     </button>
                 </div>
 
-                <!-- 管理画面ボタン -->
-                <div style="margin-bottom: 1rem;">
-                    <button onclick="window.location.href='/admin/login'" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #6b7280; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease; border: 2px solid #4b5563;">
-                        <i class="fas fa-user-shield" style="margin-right: 0.5rem;"></i>
-                        🔐 管理画面
-                    </button>
-                </div>
-
                 <!-- 写真アップロード -->
                 <div style="margin-bottom: 2.5rem;">
                     <!-- カメラ撮影ボタン -->
@@ -16142,7 +16134,7 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <!-- API応答の表示先 -->
-                <div id="out" style="background: #f5f5f5; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; min-height: 160px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; word-wrap: break-word; font-family: inherit;"></div>
+                <div id="out" style="display: none;"></div>
             </section>
             
             <!-- フローティングAI質問ボタン -->
@@ -16150,6 +16142,14 @@ app.get('/study-partner', (c) => {
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
                 🤔 AIに質問する
             </button>
+            
+            <!-- 管理画面リンク（フッター） -->
+            <footer style="margin-top: 4rem; padding: 2rem 0; border-top: 1px solid #e5e7eb; text-align: center;">
+                <a href="/admin/login" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #f3f4f6; color: #6b7280; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s ease; border: 1px solid #e5e7eb;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
+                    <i class="fas fa-user-shield" style="font-size: 0.75rem;"></i>
+                    管理画面
+                </a>
+            </footer>
         </main>
 
         <!-- Scripts -->
