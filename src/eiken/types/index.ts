@@ -243,3 +243,128 @@ export interface PaginatedResponse<T> {
     has_more: boolean;
   };
 }
+
+// ====================
+// Phase 2: Topic Management System
+// ====================
+
+export type ContextType = 'personal' | 'daily' | 'general' | 'social' | 'policy';
+export type QuestionFormat = 'grammar_fill' | 'conversation' | 'opinion_speech' | 'reading_aloud' | 'long_reading' | 'essay';
+
+export interface TopicArea {
+  id: number;
+  grade: EikenGrade;
+  topic_code: string;
+  topic_label_ja: string;
+  topic_label_en: string;
+  abstractness_level: number;        // 1-8
+  context_type: ContextType;
+  scenario_description?: string;
+  sub_topics?: string;               // JSON array
+  argument_axes?: string;            // JSON array
+  weight: number;                    // 0.5-3.0
+  official_frequency: number;        // 0.5-3.0
+  is_active: number;                 // 0 or 1
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TopicSuitability {
+  topic_code: string;
+  grade: EikenGrade;
+  question_type: string;
+  suitability_score: number;         // 0.1-2.0
+  reasoning?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TopicUsageHistory {
+  id: number;
+  student_id: string;
+  grade: EikenGrade;
+  topic_code: string;
+  question_type: string;
+  session_id?: string;
+  used_at: string;
+}
+
+export interface TopicBlacklist {
+  id: number;
+  student_id: string;
+  grade: EikenGrade;
+  topic_code: string;
+  question_type: string;
+  reason: string;                    // 'vocabulary_too_hard', 'student_uninterested', etc.
+  failure_count: number;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface TopicStatistics {
+  id: number;
+  grade: EikenGrade;
+  topic_code: string;
+  question_type: string;
+  selection_count: number;
+  success_count: number;
+  failure_count: number;
+  avg_completion_time_ms?: number;
+  last_selected_at?: string;
+  updated_at: string;
+}
+
+// Selection Options
+export interface TopicSelectionOptions {
+  student_id: string;
+  grade: EikenGrade;
+  question_type: QuestionFormat;
+  session_id?: string;
+  excluded_topics?: string[];        // Manual exclusions
+  force_exploration?: boolean;       // Override ε-greedy
+}
+
+// Selection Result
+export interface TopicSelectionResult {
+  topic: TopicArea;
+  selection_method: 'exploration' | 'exploitation';
+  weight_score: number;
+  suitability_score: number;
+  final_score: number;
+  fallback_stage?: number;           // 0-6 (0=normal, 6=emergency)
+  metadata: {
+    candidates_count: number;
+    lru_filtered: number;
+    blacklist_filtered: number;
+    exploration_probability: number;
+    selection_timestamp: string;
+  };
+}
+
+// Blacklist Reason Types
+export type BlacklistReason = 
+  | 'vocabulary_too_hard'
+  | 'student_uninterested'
+  | 'cultural_sensitivity'
+  | 'technical_issue'
+  | 'repetitive_failure'
+  | 'other';
+
+// Blacklist TTL Map (in days)
+export const BLACKLIST_TTL_MAP: Record<BlacklistReason, number> = {
+  vocabulary_too_hard: 7,
+  student_uninterested: 3,
+  cultural_sensitivity: 14,
+  technical_issue: 1,
+  repetitive_failure: 5,
+  other: 3,
+};
+
+// LRU Window Sizes
+export const LRU_WINDOW_SIZES: Record<string, number> = {
+  speaking: 5,
+  writing: 3,
+  grammar: 4,
+  reading: 4,
+  default: 4,
+};
