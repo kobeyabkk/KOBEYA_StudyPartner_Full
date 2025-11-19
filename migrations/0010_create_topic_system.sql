@@ -147,8 +147,7 @@ CREATE TABLE IF NOT EXISTS eiken_topic_blacklist (
 
 -- Indexes for blacklist queries
 CREATE INDEX IF NOT EXISTS idx_blacklist_active 
-    ON eiken_topic_blacklist(student_id, grade, question_type, expires_at) 
-    WHERE datetime(expires_at) > datetime('now');
+    ON eiken_topic_blacklist(student_id, grade, question_type, expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_blacklist_cleanup 
     ON eiken_topic_blacklist(expires_at);
