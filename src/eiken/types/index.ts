@@ -327,7 +327,7 @@ export interface TopicSelectionOptions {
 // Selection Result
 export interface TopicSelectionResult {
   topic: TopicArea;
-  selection_method: 'exploration' | 'exploitation';
+  selection_method: 'exploration' | 'exploitation' | 'manual';
   weight_score: number;
   suitability_score: number;
   final_score: number;
