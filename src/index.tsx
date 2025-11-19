@@ -8020,10 +8020,21 @@ app.get('/essay-coaching', (c) => {
         }
         
         async function startLesson() {
+            console.log('🚀 startLesson called');
+            console.log('📊 Current selections:', {
+                selectedLevel,
+                selectedFormat,
+                selectedProblemMode,
+                selectedLearningStyle
+            });
+            
             if (!selectedLevel || !selectedFormat || !selectedProblemMode) {
                 alert('すべての項目を選択してください');
+                console.log('❌ Validation failed: missing required selections');
                 return;
             }
+            
+            console.log('✅ Validation passed');
             
             // テーマまたは問題文の取得
             if (selectedProblemMode === 'theme') {
@@ -8056,6 +8067,7 @@ app.get('/essay-coaching', (c) => {
             });
             
             // セッション初期化API呼び出し
+            console.log('📡 Calling API: /api/essay/init-session');
             try {
                 const response = await fetch('/api/essay/init-session', {
                     method: 'POST',
@@ -8072,16 +8084,20 @@ app.get('/essay-coaching', (c) => {
                     })
                 });
                 
+                console.log('📥 API response status:', response.status);
                 const result = await response.json();
+                console.log('📦 API result:', result);
                 
                 if (result.ok) {
                     // 授業ページに遷移
+                    console.log('✅ Navigating to session page:', '/essay-coaching/session/' + sessionId);
                     window.location.href = '/essay-coaching/session/' + sessionId;
                 } else {
+                    console.log('❌ API returned error:', result.message);
                     alert('セッションの初期化に失敗しました: ' + result.message);
                 }
             } catch (error) {
-                console.error('Session init error:', error);
+                console.error('❌ Session init error:', error);
                 alert('エラーが発生しました。もう一度お試しください。');
             }
         }
