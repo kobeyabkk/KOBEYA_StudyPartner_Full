@@ -33,6 +33,7 @@ const assetManifest: Record<string, string> = (() => {
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
+import topicRoutes from './eiken/routes/topic-routes'
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
@@ -20999,6 +21000,9 @@ app.route('/api/eiken/analyze', analyzeRoute)
 
 // AI問題生成エンドポイント
 app.route('/api/eiken/generate', generateRoute)
+
+// Phase 2: Topic Management エンドポイント
+app.route('/api/eiken/topics', topicRoutes)
 
 // 404ハンドラー
 app.notFound((c) => {
