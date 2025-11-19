@@ -1,0 +1,4465 @@
+{
+  "students": [
+    "student_001",
+    "student_002",
+    "student_003",
+    "student_004",
+    "student_005",
+    "student_006",
+    "student_007",
+    "student_008",
+    "student_009",
+    "student_010",
+    "student_011",
+    "student_012",
+    "student_013",
+    "student_014",
+    "student_015",
+    "student_016",
+    "student_017",
+    "student_018",
+    "student_019",
+    "student_020"
+  ],
+  "usage_history": [
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "climate_change",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251020",
+      "used_at": "2025-10-20T08:41:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "daily_life",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251020",
+      "used_at": "2025-10-20T12:27:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_012_20251020",
+      "used_at": "2025-10-20T12:50:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "daily_life",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251020",
+      "used_at": "2025-10-20T14:59:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "society",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_018_20251020",
+      "used_at": "2025-10-20T21:06:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_013_20251020",
+      "used_at": "2025-10-20T23:27:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "communication",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251020",
+      "used_at": "2025-10-20T23:42:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "environment",
+      "question_type": "writing_essay",
+      "session_id": "session_student_015_20251021",
+      "used_at": "2025-10-21T00:06:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "communication",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251021",
+      "used_at": "2025-10-21T00:10:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "international_issues",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_010_20251021",
+      "used_at": "2025-10-21T00:17:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "self-introduction",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_016_20251021",
+      "used_at": "2025-10-21T00:49:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "school",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251021",
+      "used_at": "2025-10-21T05:00:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "ai_/_science",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251021",
+      "used_at": "2025-10-21T05:35:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "climate_change",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251021",
+      "used_at": "2025-10-21T06:42:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251021",
+      "used_at": "2025-10-21T12:13:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "studying_abroad",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251021",
+      "used_at": "2025-10-21T15:52:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "school",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251021",
+      "used_at": "2025-10-21T19:51:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "greeting",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_005_20251021",
+      "used_at": "2025-10-21T20:45:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251021",
+      "used_at": "2025-10-21T22:59:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "environment",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251022",
+      "used_at": "2025-10-22T00:01:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "long_reading",
+      "session_id": "session_student_008_20251022",
+      "used_at": "2025-10-22T03:37:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "ai_/_science",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251022",
+      "used_at": "2025-10-22T05:24:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "club_activities",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251022",
+      "used_at": "2025-10-22T09:41:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "environment",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_020_20251022",
+      "used_at": "2025-10-22T10:51:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251022",
+      "used_at": "2025-10-22T12:04:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "technology",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251022",
+      "used_at": "2025-10-22T12:33:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "climate_change",
+      "question_type": "essay",
+      "session_id": "session_student_020_20251022",
+      "used_at": "2025-10-22T15:42:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "greeting",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_015_20251022",
+      "used_at": "2025-10-22T16:19:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "food",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251022",
+      "used_at": "2025-10-22T17:03:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "technology",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_019_20251022",
+      "used_at": "2025-10-22T21:56:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251022",
+      "used_at": "2025-10-22T23:49:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "economics",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251023",
+      "used_at": "2025-10-23T02:35:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_015_20251023",
+      "used_at": "2025-10-23T03:33:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "studying_abroad",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_008_20251023",
+      "used_at": "2025-10-23T05:11:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "ai_/_science",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_002_20251023",
+      "used_at": "2025-10-23T06:41:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "food",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251023",
+      "used_at": "2025-10-23T10:40:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_014_20251023",
+      "used_at": "2025-10-23T12:21:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "environment",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_002_20251023",
+      "used_at": "2025-10-23T12:34:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "self-introduction",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251023",
+      "used_at": "2025-10-23T20:12:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "community",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251024",
+      "used_at": "2025-10-24T02:26:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "society",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251024",
+      "used_at": "2025-10-24T03:08:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "environment",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251024",
+      "used_at": "2025-10-24T03:23:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "family",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251024",
+      "used_at": "2025-10-24T06:24:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "health",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251024",
+      "used_at": "2025-10-24T06:30:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "education",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251024",
+      "used_at": "2025-10-24T07:16:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "health",
+      "question_type": "q_and_a",
+      "session_id": "session_student_015_20251024",
+      "used_at": "2025-10-24T09:56:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "school",
+      "question_type": "summary",
+      "session_id": "session_student_001_20251024",
+      "used_at": "2025-10-24T12:41:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "climate_change",
+      "question_type": "q_and_a",
+      "session_id": "session_student_015_20251024",
+      "used_at": "2025-10-24T16:33:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251024",
+      "used_at": "2025-10-24T18:17:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "long_reading",
+      "session_id": "session_student_019_20251024",
+      "used_at": "2025-10-24T18:30:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "weekend",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_013_20251024",
+      "used_at": "2025-10-24T19:55:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "food",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251024",
+      "used_at": "2025-10-24T21:38:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251025",
+      "used_at": "2025-10-25T01:42:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251025",
+      "used_at": "2025-10-25T04:18:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "future",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251025",
+      "used_at": "2025-10-25T06:56:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251025",
+      "used_at": "2025-10-25T07:09:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "community",
+      "question_type": "q_and_a",
+      "session_id": "session_student_008_20251025",
+      "used_at": "2025-10-25T08:29:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251025",
+      "used_at": "2025-10-25T09:35:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "club_activities",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251025",
+      "used_at": "2025-10-25T09:37:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251025",
+      "used_at": "2025-10-25T09:58:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "economics",
+      "question_type": "email_reply",
+      "session_id": "session_student_016_20251025",
+      "used_at": "2025-10-25T13:47:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "global_health",
+      "question_type": "email_reply",
+      "session_id": "session_student_016_20251025",
+      "used_at": "2025-10-25T14:00:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "international_issues",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251025",
+      "used_at": "2025-10-25T17:42:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "club_activities",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251025",
+      "used_at": "2025-10-25T17:56:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "global_health",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251025",
+      "used_at": "2025-10-25T20:15:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "health",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_013_20251025",
+      "used_at": "2025-10-25T21:52:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "technology",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251026",
+      "used_at": "2025-10-26T00:33:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "future",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_013_20251026",
+      "used_at": "2025-10-26T02:07:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "greeting",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251026",
+      "used_at": "2025-10-26T02:17:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "hobbies",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251026",
+      "used_at": "2025-10-26T02:50:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251026",
+      "used_at": "2025-10-26T04:00:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "education",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251026",
+      "used_at": "2025-10-26T05:31:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "education",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251026",
+      "used_at": "2025-10-26T12:08:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "international_issues",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251026",
+      "used_at": "2025-10-26T13:17:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "daily_life",
+      "question_type": "email_reply",
+      "session_id": "session_student_015_20251026",
+      "used_at": "2025-10-26T13:23:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251026",
+      "used_at": "2025-10-26T13:36:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "economics",
+      "question_type": "long_reading",
+      "session_id": "session_student_012_20251026",
+      "used_at": "2025-10-26T14:13:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_010_20251026",
+      "used_at": "2025-10-26T14:14:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "health",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251026",
+      "used_at": "2025-10-26T14:51:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "food",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251026",
+      "used_at": "2025-10-26T17:18:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "conversation",
+      "session_id": "session_student_012_20251026",
+      "used_at": "2025-10-26T17:25:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "school_life",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251026",
+      "used_at": "2025-10-26T19:02:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "international_issues",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251026",
+      "used_at": "2025-10-26T19:48:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "studying_abroad",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251027",
+      "used_at": "2025-10-27T00:03:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "family",
+      "question_type": "long_reading",
+      "session_id": "session_student_008_20251027",
+      "used_at": "2025-10-27T00:37:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "community",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_020_20251027",
+      "used_at": "2025-10-27T03:42:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "future",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251027",
+      "used_at": "2025-10-27T04:53:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "future",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251027",
+      "used_at": "2025-10-27T06:30:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "hobbies",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_013_20251027",
+      "used_at": "2025-10-27T07:53:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "future",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251027",
+      "used_at": "2025-10-27T09:28:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "food",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251027",
+      "used_at": "2025-10-27T10:02:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251027",
+      "used_at": "2025-10-27T10:19:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251027",
+      "used_at": "2025-10-27T11:05:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "greeting",
+      "question_type": "writing_essay",
+      "session_id": "session_student_015_20251027",
+      "used_at": "2025-10-27T13:32:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "climate_change",
+      "question_type": "q_and_a",
+      "session_id": "session_student_015_20251027",
+      "used_at": "2025-10-27T14:06:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "club_activities",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251027",
+      "used_at": "2025-10-27T15:03:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "communication",
+      "question_type": "long_reading",
+      "session_id": "session_student_002_20251027",
+      "used_at": "2025-10-27T17:53:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "future",
+      "question_type": "q_and_a",
+      "session_id": "session_student_009_20251027",
+      "used_at": "2025-10-27T21:18:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251027",
+      "used_at": "2025-10-27T21:40:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251028",
+      "used_at": "2025-10-28T00:37:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "studying_abroad",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251028",
+      "used_at": "2025-10-28T04:14:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "food",
+      "question_type": "q_and_a",
+      "session_id": "session_student_008_20251028",
+      "used_at": "2025-10-28T04:27:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "travel",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251028",
+      "used_at": "2025-10-28T07:02:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "communication",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251028",
+      "used_at": "2025-10-28T11:48:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "climate_change",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251028",
+      "used_at": "2025-10-28T12:25:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "politics",
+      "question_type": "summary",
+      "session_id": "session_student_010_20251028",
+      "used_at": "2025-10-28T16:00:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "school",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251028",
+      "used_at": "2025-10-28T16:41:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "politics",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251028",
+      "used_at": "2025-10-28T18:21:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "science",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251028",
+      "used_at": "2025-10-28T21:03:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "technology",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_010_20251029",
+      "used_at": "2025-10-29T01:02:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "technology",
+      "question_type": "short_opinion",
+      "session_id": "session_student_010_20251029",
+      "used_at": "2025-10-29T01:48:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "economics",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_015_20251029",
+      "used_at": "2025-10-29T02:54:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251029",
+      "used_at": "2025-10-29T03:03:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "greeting",
+      "question_type": "essay",
+      "session_id": "session_student_014_20251029",
+      "used_at": "2025-10-29T03:13:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "health",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251029",
+      "used_at": "2025-10-29T06:43:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "ai_/_science",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251029",
+      "used_at": "2025-10-29T09:14:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "ai_/_science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251029",
+      "used_at": "2025-10-29T09:31:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "food",
+      "question_type": "essay",
+      "session_id": "session_student_020_20251029",
+      "used_at": "2025-10-29T14:26:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251029",
+      "used_at": "2025-10-29T15:40:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251029",
+      "used_at": "2025-10-29T19:17:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "food",
+      "question_type": "long_reading",
+      "session_id": "session_student_012_20251029",
+      "used_at": "2025-10-29T19:26:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_010_20251029",
+      "used_at": "2025-10-29T20:17:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "future",
+      "question_type": "long_reading",
+      "session_id": "session_student_019_20251029",
+      "used_at": "2025-10-29T20:47:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251029",
+      "used_at": "2025-10-29T22:55:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "international_issues",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_020_20251030",
+      "used_at": "2025-10-30T02:33:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "studying_abroad",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_019_20251030",
+      "used_at": "2025-10-30T02:53:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "health",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251030",
+      "used_at": "2025-10-30T08:27:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251030",
+      "used_at": "2025-10-30T09:15:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "society",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251030",
+      "used_at": "2025-10-30T11:04:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "club_activities",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_001_20251030",
+      "used_at": "2025-10-30T12:31:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "long_reading",
+      "session_id": "session_student_002_20251030",
+      "used_at": "2025-10-30T13:19:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "daily_life",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251030",
+      "used_at": "2025-10-30T13:31:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "international_issues",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251030",
+      "used_at": "2025-10-30T13:59:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "self-introduction",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_008_20251030",
+      "used_at": "2025-10-30T15:58:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "greeting",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_017_20251030",
+      "used_at": "2025-10-30T16:03:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "weekend",
+      "question_type": "long_reading",
+      "session_id": "session_student_012_20251030",
+      "used_at": "2025-10-30T18:07:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251030",
+      "used_at": "2025-10-30T18:42:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "daily_life",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251030",
+      "used_at": "2025-10-30T19:26:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251030",
+      "used_at": "2025-10-30T21:39:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_003_20251031",
+      "used_at": "2025-10-31T00:05:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "food",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251031",
+      "used_at": "2025-10-31T01:40:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "studying_abroad",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251031",
+      "used_at": "2025-10-31T02:25:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "communication",
+      "question_type": "summary",
+      "session_id": "session_student_008_20251031",
+      "used_at": "2025-10-31T02:27:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "international_issues",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251031",
+      "used_at": "2025-10-31T04:47:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "communication",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251031",
+      "used_at": "2025-10-31T08:36:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "ai_/_science",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251031",
+      "used_at": "2025-10-31T12:45:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "climate_change",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251031",
+      "used_at": "2025-10-31T14:06:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "daily_life",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_005_20251031",
+      "used_at": "2025-10-31T14:25:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "hobbies",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251031",
+      "used_at": "2025-10-31T19:09:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251031",
+      "used_at": "2025-10-31T20:53:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "self-introduction",
+      "question_type": "q_and_a",
+      "session_id": "session_student_009_20251101",
+      "used_at": "2025-11-01T00:32:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "environment",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251101",
+      "used_at": "2025-11-01T02:09:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "economics",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_019_20251101",
+      "used_at": "2025-11-01T04:22:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "school_life",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_015_20251101",
+      "used_at": "2025-11-01T06:51:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "environment",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251101",
+      "used_at": "2025-11-01T07:38:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "climate_change",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251101",
+      "used_at": "2025-11-01T10:21:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251101",
+      "used_at": "2025-11-01T12:46:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "future",
+      "question_type": "q_and_a",
+      "session_id": "session_student_010_20251101",
+      "used_at": "2025-11-01T14:44:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "society",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251101",
+      "used_at": "2025-11-01T17:03:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "technology",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251101",
+      "used_at": "2025-11-01T17:22:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "education",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251101",
+      "used_at": "2025-11-01T19:44:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "communication",
+      "question_type": "conversation",
+      "session_id": "session_student_012_20251101",
+      "used_at": "2025-11-01T19:53:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251101",
+      "used_at": "2025-11-01T22:11:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "community",
+      "question_type": "q_and_a",
+      "session_id": "session_student_010_20251101",
+      "used_at": "2025-11-01T23:11:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251102",
+      "used_at": "2025-11-02T01:26:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "science",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_002_20251102",
+      "used_at": "2025-11-02T05:02:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "daily_life",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251102",
+      "used_at": "2025-11-02T05:34:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251102",
+      "used_at": "2025-11-02T06:00:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "food",
+      "question_type": "long_reading",
+      "session_id": "session_student_005_20251102",
+      "used_at": "2025-11-02T12:42:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "travel",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251102",
+      "used_at": "2025-11-02T15:28:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251102",
+      "used_at": "2025-11-02T16:55:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251102",
+      "used_at": "2025-11-02T17:11:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "community",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_003_20251102",
+      "used_at": "2025-11-02T18:09:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251102",
+      "used_at": "2025-11-02T18:43:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "communication",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_018_20251102",
+      "used_at": "2025-11-02T20:12:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251103",
+      "used_at": "2025-11-03T00:17:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "science",
+      "question_type": "long_reading",
+      "session_id": "session_student_014_20251103",
+      "used_at": "2025-11-03T03:05:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "society",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251103",
+      "used_at": "2025-11-03T05:29:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "school",
+      "question_type": "long_reading",
+      "session_id": "session_student_020_20251103",
+      "used_at": "2025-11-03T06:33:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251103",
+      "used_at": "2025-11-03T08:17:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251103",
+      "used_at": "2025-11-03T09:18:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "writing_essay",
+      "session_id": "session_student_003_20251103",
+      "used_at": "2025-11-03T11:21:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251103",
+      "used_at": "2025-11-03T12:23:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "science",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_010_20251103",
+      "used_at": "2025-11-03T22:11:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "weekend",
+      "question_type": "long_reading",
+      "session_id": "session_student_019_20251103",
+      "used_at": "2025-11-03T23:04:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "future",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251104",
+      "used_at": "2025-11-04T04:20:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "economics",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251104",
+      "used_at": "2025-11-04T04:54:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "politics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251104",
+      "used_at": "2025-11-04T06:58:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251104",
+      "used_at": "2025-11-04T08:59:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "daily_life",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251104",
+      "used_at": "2025-11-04T13:06:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "long_reading",
+      "session_id": "session_student_002_20251104",
+      "used_at": "2025-11-04T13:23:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251104",
+      "used_at": "2025-11-04T18:24:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "school",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251104",
+      "used_at": "2025-11-04T20:33:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "climate_change",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251104",
+      "used_at": "2025-11-04T21:56:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "self-introduction",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_010_20251104",
+      "used_at": "2025-11-04T22:22:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251105",
+      "used_at": "2025-11-05T00:04:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "family",
+      "question_type": "q_and_a",
+      "session_id": "session_student_013_20251105",
+      "used_at": "2025-11-05T00:29:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "society",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251105",
+      "used_at": "2025-11-05T01:40:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "international_issues",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251105",
+      "used_at": "2025-11-05T08:50:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "politics",
+      "question_type": "short_opinion",
+      "session_id": "session_student_001_20251105",
+      "used_at": "2025-11-05T18:23:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "greeting",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251105",
+      "used_at": "2025-11-05T19:25:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "club_activities",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251105",
+      "used_at": "2025-11-05T19:31:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_018_20251105",
+      "used_at": "2025-11-05T19:32:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251105",
+      "used_at": "2025-11-05T20:34:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "climate_change",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251105",
+      "used_at": "2025-11-05T20:36:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "family",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251105",
+      "used_at": "2025-11-05T21:06:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "society",
+      "question_type": "summary",
+      "session_id": "session_student_010_20251105",
+      "used_at": "2025-11-05T23:34:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "travel",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_016_20251106",
+      "used_at": "2025-11-06T03:33:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "ai_/_science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251106",
+      "used_at": "2025-11-06T06:50:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "hobbies",
+      "question_type": "email_reply",
+      "session_id": "session_student_015_20251106",
+      "used_at": "2025-11-06T07:33:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "self-introduction",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251106",
+      "used_at": "2025-11-06T08:35:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "politics",
+      "question_type": "essay",
+      "session_id": "session_student_014_20251106",
+      "used_at": "2025-11-06T12:27:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "community",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251106",
+      "used_at": "2025-11-06T14:12:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "future",
+      "question_type": "summary",
+      "session_id": "session_student_008_20251106",
+      "used_at": "2025-11-06T15:50:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_014_20251106",
+      "used_at": "2025-11-06T16:33:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "club_activities",
+      "question_type": "q_and_a",
+      "session_id": "session_student_001_20251106",
+      "used_at": "2025-11-06T19:30:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "food",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251107",
+      "used_at": "2025-11-07T00:26:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251107",
+      "used_at": "2025-11-07T01:16:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "ai_/_science",
+      "question_type": "long_reading",
+      "session_id": "session_student_015_20251107",
+      "used_at": "2025-11-07T01:26:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "school",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251107",
+      "used_at": "2025-11-07T11:56:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "international_issues",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251107",
+      "used_at": "2025-11-07T14:44:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_020_20251107",
+      "used_at": "2025-11-07T14:49:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "society",
+      "question_type": "short_opinion",
+      "session_id": "session_student_008_20251107",
+      "used_at": "2025-11-07T14:54:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251107",
+      "used_at": "2025-11-07T15:23:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "science",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251107",
+      "used_at": "2025-11-07T18:03:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "ai_/_science",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_008_20251107",
+      "used_at": "2025-11-07T19:34:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_018_20251107",
+      "used_at": "2025-11-07T22:40:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "climate_change",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_002_20251108",
+      "used_at": "2025-11-08T10:20:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "society",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251108",
+      "used_at": "2025-11-08T13:55:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "greeting",
+      "question_type": "summary",
+      "session_id": "session_student_020_20251108",
+      "used_at": "2025-11-08T15:35:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "economics",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251108",
+      "used_at": "2025-11-08T15:52:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "economics",
+      "question_type": "q_and_a",
+      "session_id": "session_student_010_20251108",
+      "used_at": "2025-11-08T17:04:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "politics",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251108",
+      "used_at": "2025-11-08T17:35:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "greeting",
+      "question_type": "long_reading",
+      "session_id": "session_student_019_20251108",
+      "used_at": "2025-11-08T23:00:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_002_20251109",
+      "used_at": "2025-11-09T00:47:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "school_life",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_013_20251109",
+      "used_at": "2025-11-09T01:30:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "writing_essay",
+      "session_id": "session_student_019_20251109",
+      "used_at": "2025-11-09T02:33:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "travel",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_010_20251109",
+      "used_at": "2025-11-09T03:04:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "self-introduction",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_015_20251109",
+      "used_at": "2025-11-09T03:50:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251109",
+      "used_at": "2025-11-09T05:41:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "school",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251109",
+      "used_at": "2025-11-09T06:52:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "community",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_017_20251109",
+      "used_at": "2025-11-09T09:27:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "future",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251109",
+      "used_at": "2025-11-09T09:32:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251109",
+      "used_at": "2025-11-09T10:29:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "food",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_003_20251109",
+      "used_at": "2025-11-09T12:13:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "travel",
+      "question_type": "email_reply",
+      "session_id": "session_student_009_20251109",
+      "used_at": "2025-11-09T12:27:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "environment",
+      "question_type": "summary",
+      "session_id": "session_student_018_20251109",
+      "used_at": "2025-11-09T12:28:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "self-introduction",
+      "question_type": "q_and_a",
+      "session_id": "session_student_013_20251109",
+      "used_at": "2025-11-09T13:38:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "daily_life",
+      "question_type": "short_opinion",
+      "session_id": "session_student_017_20251109",
+      "used_at": "2025-11-09T22:09:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "society",
+      "question_type": "long_reading",
+      "session_id": "session_student_020_20251109",
+      "used_at": "2025-11-09T22:31:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "health",
+      "question_type": "short_opinion",
+      "session_id": "session_student_008_20251109",
+      "used_at": "2025-11-09T23:49:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251109",
+      "used_at": "2025-11-09T23:58:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "community",
+      "question_type": "short_opinion",
+      "session_id": "session_student_017_20251110",
+      "used_at": "2025-11-10T00:31:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "society",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251110",
+      "used_at": "2025-11-10T00:47:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_008_20251110",
+      "used_at": "2025-11-10T04:56:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "global_health",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251110",
+      "used_at": "2025-11-10T06:01:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "communication",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_009_20251110",
+      "used_at": "2025-11-10T13:55:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "health",
+      "question_type": "q_and_a",
+      "session_id": "session_student_009_20251110",
+      "used_at": "2025-11-10T14:45:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "hobbies",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251110",
+      "used_at": "2025-11-10T15:38:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "school",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251110",
+      "used_at": "2025-11-10T16:56:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "science",
+      "question_type": "long_reading",
+      "session_id": "session_student_008_20251110",
+      "used_at": "2025-11-10T23:29:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "climate_change",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251111",
+      "used_at": "2025-11-11T00:47:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "community",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251111",
+      "used_at": "2025-11-11T02:54:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "weekend",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251111",
+      "used_at": "2025-11-11T04:22:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "technology",
+      "question_type": "short_opinion",
+      "session_id": "session_student_008_20251111",
+      "used_at": "2025-11-11T06:32:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251111",
+      "used_at": "2025-11-11T12:28:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "club_activities",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_002_20251111",
+      "used_at": "2025-11-11T14:49:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_005_20251111",
+      "used_at": "2025-11-11T15:55:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "international_issues",
+      "question_type": "q_and_a",
+      "session_id": "session_student_001_20251111",
+      "used_at": "2025-11-11T16:23:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "science",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_013_20251111",
+      "used_at": "2025-11-11T16:45:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "club_activities",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_010_20251111",
+      "used_at": "2025-11-11T17:17:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "club_activities",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251111",
+      "used_at": "2025-11-11T17:48:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "3",
+      "topic_code": "studying_abroad",
+      "question_type": "q_and_a",
+      "session_id": "session_student_015_20251111",
+      "used_at": "2025-11-11T20:55:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "greeting",
+      "question_type": "long_reading",
+      "session_id": "session_student_014_20251111",
+      "used_at": "2025-11-11T21:30:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_015_20251111",
+      "used_at": "2025-11-11T22:32:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "future",
+      "question_type": "short_opinion",
+      "session_id": "session_student_001_20251112",
+      "used_at": "2025-11-12T00:55:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "international_issues",
+      "question_type": "short_opinion",
+      "session_id": "session_student_017_20251112",
+      "used_at": "2025-11-12T02:25:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "society",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_019_20251112",
+      "used_at": "2025-11-12T02:48:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "food",
+      "question_type": "q_and_a",
+      "session_id": "session_student_013_20251112",
+      "used_at": "2025-11-12T05:33:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "self-introduction",
+      "question_type": "summary",
+      "session_id": "session_student_001_20251112",
+      "used_at": "2025-11-12T07:16:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "travel",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251112",
+      "used_at": "2025-11-12T07:24:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "community",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251112",
+      "used_at": "2025-11-12T07:53:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "health",
+      "question_type": "q_and_a",
+      "session_id": "session_student_001_20251112",
+      "used_at": "2025-11-12T08:07:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "3",
+      "topic_code": "daily_life",
+      "question_type": "q_and_a",
+      "session_id": "session_student_017_20251112",
+      "used_at": "2025-11-12T08:16:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251112",
+      "used_at": "2025-11-12T12:43:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "community",
+      "question_type": "q_and_a",
+      "session_id": "session_student_009_20251112",
+      "used_at": "2025-11-12T14:20:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "school",
+      "question_type": "long_reading",
+      "session_id": "session_student_008_20251112",
+      "used_at": "2025-11-12T16:55:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "food",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_017_20251112",
+      "used_at": "2025-11-12T20:36:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "school_life",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_005_20251112",
+      "used_at": "2025-11-12T22:19:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "food",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_008_20251112",
+      "used_at": "2025-11-12T23:36:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "community",
+      "question_type": "summary",
+      "session_id": "session_student_008_20251113",
+      "used_at": "2025-11-13T02:27:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "club_activities",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251113",
+      "used_at": "2025-11-13T03:01:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_002_20251113",
+      "used_at": "2025-11-13T04:02:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "greeting",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_017_20251113",
+      "used_at": "2025-11-13T04:51:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251113",
+      "used_at": "2025-11-13T05:36:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "studying_abroad",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_020_20251113",
+      "used_at": "2025-11-13T06:43:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "economics",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251113",
+      "used_at": "2025-11-13T08:57:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "technology",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251113",
+      "used_at": "2025-11-13T14:33:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251113",
+      "used_at": "2025-11-13T17:44:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "international_issues",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_012_20251113",
+      "used_at": "2025-11-13T18:43:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "global_health",
+      "question_type": "long_reading",
+      "session_id": "session_student_006_20251113",
+      "used_at": "2025-11-13T19:18:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "hobbies",
+      "question_type": "essay",
+      "session_id": "session_student_020_20251113",
+      "used_at": "2025-11-13T19:44:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_001_20251113",
+      "used_at": "2025-11-13T20:51:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "education",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251113",
+      "used_at": "2025-11-13T22:35:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "technology",
+      "question_type": "writing_essay",
+      "session_id": "session_student_003_20251114",
+      "used_at": "2025-11-14T00:23:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "international_issues",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251114",
+      "used_at": "2025-11-14T01:16:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "hobbies",
+      "question_type": "summary",
+      "session_id": "session_student_020_20251114",
+      "used_at": "2025-11-14T02:42:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "2",
+      "topic_code": "economics",
+      "question_type": "long_reading",
+      "session_id": "session_student_014_20251114",
+      "used_at": "2025-11-14T02:55:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_006_20251114",
+      "used_at": "2025-11-14T10:31:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "weekend",
+      "question_type": "short_opinion",
+      "session_id": "session_student_008_20251114",
+      "used_at": "2025-11-14T11:24:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "writing_essay",
+      "session_id": "session_student_003_20251114",
+      "used_at": "2025-11-14T12:04:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "weekend",
+      "question_type": "conversation",
+      "session_id": "session_student_012_20251114",
+      "used_at": "2025-11-14T14:42:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251114",
+      "used_at": "2025-11-14T15:22:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "travel",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251114",
+      "used_at": "2025-11-14T18:46:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "communication",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251114",
+      "used_at": "2025-11-14T22:49:39.930321"
+    },
+    {
+      "student_id": "student_017",
+      "grade": "pre2",
+      "topic_code": "education",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_017_20251114",
+      "used_at": "2025-11-14T22:52:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "club_activities",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251114",
+      "used_at": "2025-11-14T23:08:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "travel",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251115",
+      "used_at": "2025-11-15T05:12:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251115",
+      "used_at": "2025-11-15T06:30:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "communication",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251115",
+      "used_at": "2025-11-15T10:46:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "food",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_008_20251115",
+      "used_at": "2025-11-15T13:53:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "school",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251115",
+      "used_at": "2025-11-15T15:25:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "studying_abroad",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251115",
+      "used_at": "2025-11-15T17:31:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "global_health",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251115",
+      "used_at": "2025-11-15T17:32:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "international_issues",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251115",
+      "used_at": "2025-11-15T19:35:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "ai_/_science",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_018_20251115",
+      "used_at": "2025-11-15T20:26:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "pre1",
+      "topic_code": "health",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_018_20251115",
+      "used_at": "2025-11-15T22:54:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "club_activities",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_001_20251115",
+      "used_at": "2025-11-15T23:38:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "club_activities",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_015_20251116",
+      "used_at": "2025-11-16T00:21:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "health",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_012_20251116",
+      "used_at": "2025-11-16T02:03:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "hobbies",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_007_20251116",
+      "used_at": "2025-11-16T07:04:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "international_issues",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_001_20251116",
+      "used_at": "2025-11-16T07:15:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "environment",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251116",
+      "used_at": "2025-11-16T08:21:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "future",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251116",
+      "used_at": "2025-11-16T09:28:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "ai_/_science",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_012_20251116",
+      "used_at": "2025-11-16T09:40:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "education",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_020_20251116",
+      "used_at": "2025-11-16T09:52:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_015_20251116",
+      "used_at": "2025-11-16T09:57:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "health",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251116",
+      "used_at": "2025-11-16T12:24:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "hobbies",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_012_20251116",
+      "used_at": "2025-11-16T12:41:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "global_health",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_001_20251116",
+      "used_at": "2025-11-16T15:10:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "weekend",
+      "question_type": "long_reading",
+      "session_id": "session_student_001_20251116",
+      "used_at": "2025-11-16T16:27:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "self-introduction",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251116",
+      "used_at": "2025-11-16T16:27:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "politics",
+      "question_type": "conversation",
+      "session_id": "session_student_014_20251116",
+      "used_at": "2025-11-16T19:02:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "future",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_010_20251116",
+      "used_at": "2025-11-16T19:25:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "international_issues",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251116",
+      "used_at": "2025-11-16T19:46:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "hobbies",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251116",
+      "used_at": "2025-11-16T20:00:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "writing_essay",
+      "session_id": "session_student_015_20251116",
+      "used_at": "2025-11-16T21:06:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "self-introduction",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251116",
+      "used_at": "2025-11-16T23:42:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "climate_change",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_010_20251117",
+      "used_at": "2025-11-17T01:43:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "environment",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_011_20251117",
+      "used_at": "2025-11-17T02:05:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "studying_abroad",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_013_20251117",
+      "used_at": "2025-11-17T04:08:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "technology",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_010_20251117",
+      "used_at": "2025-11-17T06:31:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "school",
+      "question_type": "q_and_a",
+      "session_id": "session_student_016_20251117",
+      "used_at": "2025-11-17T06:39:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "international_issues",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_004_20251117",
+      "used_at": "2025-11-17T08:25:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "studying_abroad",
+      "question_type": "writing_essay",
+      "session_id": "session_student_015_20251117",
+      "used_at": "2025-11-17T09:23:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "food",
+      "question_type": "essay",
+      "session_id": "session_student_012_20251117",
+      "used_at": "2025-11-17T18:23:39.930321"
+    },
+    {
+      "student_id": "student_015",
+      "grade": "1",
+      "topic_code": "society",
+      "question_type": "writing_essay",
+      "session_id": "session_student_015_20251117",
+      "used_at": "2025-11-17T20:34:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "4",
+      "topic_code": "ai_/_science",
+      "question_type": "conversation",
+      "session_id": "session_student_012_20251117",
+      "used_at": "2025-11-17T21:07:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "hobbies",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251118",
+      "used_at": "2025-11-18T00:54:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "education",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_020_20251118",
+      "used_at": "2025-11-18T02:06:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "community",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251118",
+      "used_at": "2025-11-18T05:28:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "family",
+      "question_type": "writing_essay",
+      "session_id": "session_student_006_20251118",
+      "used_at": "2025-11-18T06:27:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "club_activities",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_020_20251118",
+      "used_at": "2025-11-18T06:54:39.930321"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "travel",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_014_20251118",
+      "used_at": "2025-11-18T06:57:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "future",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251118",
+      "used_at": "2025-11-18T07:44:39.930321"
+    },
+    {
+      "student_id": "student_012",
+      "grade": "2",
+      "topic_code": "community",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_012_20251118",
+      "used_at": "2025-11-18T08:52:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "community",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_002_20251118",
+      "used_at": "2025-11-18T10:00:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "family",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251118",
+      "used_at": "2025-11-18T10:26:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "ai_/_science",
+      "question_type": "email_reply",
+      "session_id": "session_student_016_20251118",
+      "used_at": "2025-11-18T13:22:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "studying_abroad",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_002_20251118",
+      "used_at": "2025-11-18T15:04:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre2",
+      "topic_code": "politics",
+      "question_type": "short_opinion",
+      "session_id": "session_student_010_20251118",
+      "used_at": "2025-11-18T17:45:39.930321"
+    },
+    {
+      "student_id": "student_016",
+      "grade": "3",
+      "topic_code": "weekend",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_016_20251118",
+      "used_at": "2025-11-18T19:22:39.930321"
+    },
+    {
+      "student_id": "student_018",
+      "grade": "5",
+      "topic_code": "technology",
+      "question_type": "conversation",
+      "session_id": "session_student_018_20251118",
+      "used_at": "2025-11-18T19:41:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "long_reading",
+      "session_id": "session_student_002_20251118",
+      "used_at": "2025-11-18T23:37:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre2",
+      "topic_code": "greeting",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_001_20251119",
+      "used_at": "2025-11-19T03:36:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "ai_/_science",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251119",
+      "used_at": "2025-11-19T03:59:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "studying_abroad",
+      "question_type": "long_reading",
+      "session_id": "session_student_010_20251119",
+      "used_at": "2025-11-19T04:19:39.930321"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "1",
+      "topic_code": "climate_change",
+      "question_type": "writing_essay",
+      "session_id": "session_student_002_20251119",
+      "used_at": "2025-11-19T04:58:39.930321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "3",
+      "topic_code": "family",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_009_20251119",
+      "used_at": "2025-11-19T05:41:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "health",
+      "question_type": "long_reading",
+      "session_id": "session_student_020_20251119",
+      "used_at": "2025-11-19T06:16:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "hobbies",
+      "question_type": "long_reading",
+      "session_id": "session_student_003_20251119",
+      "used_at": "2025-11-19T07:17:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251119",
+      "used_at": "2025-11-19T09:02:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "technology",
+      "question_type": "reading_aloud",
+      "session_id": "session_student_013_20251119",
+      "used_at": "2025-11-19T09:09:39.930321"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "pre1",
+      "topic_code": "ai_/_science",
+      "question_type": "long_reading",
+      "session_id": "session_student_010_20251119",
+      "used_at": "2025-11-19T09:37:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "daily_life",
+      "question_type": "essay",
+      "session_id": "session_student_020_20251119",
+      "used_at": "2025-11-19T13:25:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "society",
+      "question_type": "grammar_fill",
+      "session_id": "session_student_020_20251119",
+      "used_at": "2025-11-19T15:52:39.930321"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre1",
+      "topic_code": "economics",
+      "question_type": "summary",
+      "session_id": "session_student_008_20251119",
+      "used_at": "2025-11-19T18:48:39.930321"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "pre2",
+      "topic_code": "travel",
+      "question_type": "short_opinion",
+      "session_id": "session_student_013_20251119",
+      "used_at": "2025-11-19T18:54:39.930321"
+    },
+    {
+      "student_id": "student_004",
+      "grade": "4",
+      "topic_code": "ai_/_science",
+      "question_type": "conversation",
+      "session_id": "session_student_004_20251119",
+      "used_at": "2025-11-19T19:11:39.930321"
+    },
+    {
+      "student_id": "student_005",
+      "grade": "pre1",
+      "topic_code": "communication",
+      "question_type": "summary",
+      "session_id": "session_student_005_20251119",
+      "used_at": "2025-11-19T19:50:39.930321"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "4",
+      "topic_code": "global_health",
+      "question_type": "conversation",
+      "session_id": "session_student_011_20251119",
+      "used_at": "2025-11-19T20:13:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "2",
+      "topic_code": "communication",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_020_20251119",
+      "used_at": "2025-11-19T20:58:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "1",
+      "topic_code": "school_life",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251119",
+      "used_at": "2025-11-19T21:48:39.930321"
+    },
+    {
+      "student_id": "student_007",
+      "grade": "4",
+      "topic_code": "greeting",
+      "question_type": "conversation",
+      "session_id": "session_student_007_20251119",
+      "used_at": "2025-11-19T22:21:39.930321"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "1",
+      "topic_code": "ai_/_science",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_006_20251119",
+      "used_at": "2025-11-19T22:52:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "community",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_003_20251120",
+      "used_at": "2025-11-20T00:45:39.930321"
+    },
+    {
+      "student_id": "student_020",
+      "grade": "pre1",
+      "topic_code": "hobbies",
+      "question_type": "opinion_speech",
+      "session_id": "session_student_020_20251120",
+      "used_at": "2025-11-20T03:17:39.930321"
+    },
+    {
+      "student_id": "student_003",
+      "grade": "1",
+      "topic_code": "school_life",
+      "question_type": "writing_essay",
+      "session_id": "session_student_003_20251120",
+      "used_at": "2025-11-20T03:52:39.930321"
+    },
+    {
+      "student_id": "student_001",
+      "grade": "pre1",
+      "topic_code": "school",
+      "question_type": "summary",
+      "session_id": "session_student_001_20251120",
+      "used_at": "2025-11-20T04:55:39.930321"
+    },
+    {
+      "student_id": "student_019",
+      "grade": "pre1",
+      "topic_code": "travel",
+      "question_type": "opinion_essay",
+      "session_id": "session_student_019_20251120",
+      "used_at": "2025-11-20T05:26:39.930321"
+    }
+  ],
+  "blacklist": [
+    {
+      "student_id": "student_008",
+      "grade": "3",
+      "topic_code": "health",
+      "question_type": "opinion_speech",
+      "failure_reason": "grammar_complexity",
+      "blacklisted_at": "2025-11-06T08:39:39.934299",
+      "expires_at": "2025-11-20T08:39:39.934299"
+    },
+    {
+      "student_id": "student_002",
+      "grade": "2",
+      "topic_code": "travel",
+      "question_type": "email_reply",
+      "failure_reason": "vocabulary_mismatch",
+      "blacklisted_at": "2025-11-07T08:39:39.934312",
+      "expires_at": "2025-11-14T08:39:39.934312"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "5",
+      "topic_code": "climate_change",
+      "question_type": "writing_summary",
+      "failure_reason": "grammar_complexity",
+      "blacklisted_at": "2025-11-07T08:39:39.934321",
+      "expires_at": "2025-11-21T08:39:39.934321"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "5",
+      "topic_code": "community",
+      "question_type": "short_opinion",
+      "failure_reason": "coherence_low",
+      "blacklisted_at": "2025-11-13T08:39:39.934330",
+      "expires_at": "2025-11-16T08:39:39.934330"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "2",
+      "topic_code": "self-introduction",
+      "question_type": "essay",
+      "failure_reason": "vocabulary_mismatch",
+      "blacklisted_at": "2025-11-08T08:39:39.934338",
+      "expires_at": "2025-11-15T08:39:39.934338"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "3",
+      "topic_code": "future",
+      "question_type": "opinion_essay",
+      "failure_reason": "timeout",
+      "blacklisted_at": "2025-11-19T08:39:39.934345",
+      "expires_at": "2025-11-20T08:39:39.934345"
+    },
+    {
+      "student_id": "student_011",
+      "grade": "3",
+      "topic_code": "society",
+      "question_type": "q_and_a",
+      "failure_reason": "blueprint_violation",
+      "blacklisted_at": "2025-11-15T08:39:39.934353",
+      "expires_at": "2025-11-25T08:39:39.934353"
+    },
+    {
+      "student_id": "student_009",
+      "grade": "1",
+      "topic_code": "greeting",
+      "question_type": "opinion_essay",
+      "failure_reason": "vocabulary_mismatch",
+      "blacklisted_at": "2025-11-10T08:39:39.934360",
+      "expires_at": "2025-11-17T08:39:39.934360"
+    },
+    {
+      "student_id": "student_008",
+      "grade": "pre2",
+      "topic_code": "climate_change",
+      "question_type": "reading_aloud",
+      "failure_reason": "grammar_complexity",
+      "blacklisted_at": "2025-10-31T08:39:39.934367",
+      "expires_at": "2025-11-14T08:39:39.934367"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "1",
+      "topic_code": "travel",
+      "question_type": "q_and_a",
+      "failure_reason": "blueprint_violation",
+      "blacklisted_at": "2025-11-12T08:39:39.934375",
+      "expires_at": "2025-11-22T08:39:39.934375"
+    },
+    {
+      "student_id": "student_010",
+      "grade": "3",
+      "topic_code": "daily_life",
+      "question_type": "summary",
+      "failure_reason": "coherence_low",
+      "blacklisted_at": "2025-11-19T08:39:39.934385",
+      "expires_at": "2025-11-22T08:39:39.934385"
+    },
+    {
+      "student_id": "student_014",
+      "grade": "4",
+      "topic_code": "hobbies",
+      "question_type": "essay",
+      "failure_reason": "timeout",
+      "blacklisted_at": "2025-11-19T08:39:39.934392",
+      "expires_at": "2025-11-20T08:39:39.934392"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "3",
+      "topic_code": "self-introduction",
+      "question_type": "opinion_speech",
+      "failure_reason": "blueprint_violation",
+      "blacklisted_at": "2025-11-11T08:39:39.934398",
+      "expires_at": "2025-11-21T08:39:39.934398"
+    },
+    {
+      "student_id": "student_006",
+      "grade": "pre1",
+      "topic_code": "global_health",
+      "question_type": "writing_essay",
+      "failure_reason": "coherence_low",
+      "blacklisted_at": "2025-11-18T08:39:39.934405",
+      "expires_at": "2025-11-21T08:39:39.934405"
+    },
+    {
+      "student_id": "student_013",
+      "grade": "4",
+      "topic_code": "community",
+      "question_type": "writing_essay",
+      "failure_reason": "blueprint_violation",
+      "blacklisted_at": "2025-11-14T08:39:39.934412",
+      "expires_at": "2025-11-24T08:39:39.934412"
+    }
+  ],
+  "statistics": [
+    {
+      "topic_code": "health",
+      "grade": "1",
+      "question_type": "email_reply",
+      "total_uses": 30,
+      "successful_generations": 29,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 1834,
+      "avg_student_score": 0.741,
+      "last_updated": "2025-11-19T08:39:39.935563"
+    },
+    {
+      "topic_code": "economics",
+      "grade": "4",
+      "question_type": "grammar_fill",
+      "total_uses": 31,
+      "successful_generations": 27,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 963,
+      "avg_student_score": 0.905,
+      "last_updated": "2025-11-19T08:39:39.934989"
+    },
+    {
+      "topic_code": "science",
+      "grade": "pre2",
+      "question_type": "q_and_a",
+      "total_uses": 41,
+      "successful_generations": 38,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2956,
+      "avg_student_score": 0.896,
+      "last_updated": "2025-11-19T08:39:39.934933"
+    },
+    {
+      "topic_code": "education",
+      "grade": "1",
+      "question_type": "grammar_fill",
+      "total_uses": 39,
+      "successful_generations": 31,
+      "failed_generations": 8,
+      "avg_generation_time_ms": 1167,
+      "avg_student_score": 0.871,
+      "last_updated": "2025-11-19T08:39:39.935226"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "5",
+      "question_type": "opinion_speech",
+      "total_uses": 20,
+      "successful_generations": 15,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 2942,
+      "avg_student_score": 0.873,
+      "last_updated": "2025-11-19T08:39:39.935077"
+    },
+    {
+      "topic_code": "politics",
+      "grade": "1",
+      "question_type": "long_reading",
+      "total_uses": 18,
+      "successful_generations": 15,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2866,
+      "avg_student_score": 0.768,
+      "last_updated": "2025-11-19T08:39:39.934703"
+    },
+    {
+      "topic_code": "science",
+      "grade": "4",
+      "question_type": "opinion_speech",
+      "total_uses": 14,
+      "successful_generations": 11,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1931,
+      "avg_student_score": 0.795,
+      "last_updated": "2025-11-19T08:39:39.934899"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "pre1",
+      "question_type": "summary",
+      "total_uses": 12,
+      "successful_generations": 9,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1157,
+      "avg_student_score": 0.831,
+      "last_updated": "2025-11-19T08:39:39.935303"
+    },
+    {
+      "topic_code": "education",
+      "grade": "2",
+      "question_type": "writing_summary",
+      "total_uses": 18,
+      "successful_generations": 15,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1186,
+      "avg_student_score": 0.713,
+      "last_updated": "2025-11-19T08:39:39.935263"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "5",
+      "question_type": "summary",
+      "total_uses": 39,
+      "successful_generations": 36,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 3428,
+      "avg_student_score": 0.895,
+      "last_updated": "2025-11-19T08:39:39.935188"
+    },
+    {
+      "topic_code": "ai_/_science",
+      "grade": "1",
+      "question_type": "email_reply",
+      "total_uses": 25,
+      "successful_generations": 18,
+      "failed_generations": 7,
+      "avg_generation_time_ms": 2009,
+      "avg_student_score": 0.78,
+      "last_updated": "2025-11-19T08:39:39.934585"
+    },
+    {
+      "topic_code": "global_health",
+      "grade": "4",
+      "question_type": "short_opinion",
+      "total_uses": 25,
+      "successful_generations": 23,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3337,
+      "avg_student_score": 0.808,
+      "last_updated": "2025-11-19T08:39:39.934614"
+    },
+    {
+      "topic_code": "family",
+      "grade": "pre2",
+      "question_type": "essay",
+      "total_uses": 21,
+      "successful_generations": 17,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 1329,
+      "avg_student_score": 0.719,
+      "last_updated": "2025-11-19T08:39:39.935642"
+    },
+    {
+      "topic_code": "school",
+      "grade": "1",
+      "question_type": "picture_description",
+      "total_uses": 22,
+      "successful_generations": 18,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 961,
+      "avg_student_score": 0.832,
+      "last_updated": "2025-11-19T08:39:39.934477"
+    },
+    {
+      "topic_code": "school",
+      "grade": "pre2",
+      "question_type": "opinion_speech",
+      "total_uses": 13,
+      "successful_generations": 12,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 1765,
+      "avg_student_score": 0.839,
+      "last_updated": "2025-11-19T08:39:39.934490"
+    },
+    {
+      "topic_code": "society",
+      "grade": "2",
+      "question_type": "opinion_speech",
+      "total_uses": 5,
+      "successful_generations": 4,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2278,
+      "avg_student_score": 0.923,
+      "last_updated": "2025-11-19T08:39:39.934841"
+    },
+    {
+      "topic_code": "school",
+      "grade": "4",
+      "question_type": "short_opinion",
+      "total_uses": 11,
+      "successful_generations": 10,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2421,
+      "avg_student_score": 0.928,
+      "last_updated": "2025-11-19T08:39:39.934506"
+    },
+    {
+      "topic_code": "environment",
+      "grade": "2",
+      "question_type": "grammar_fill",
+      "total_uses": 39,
+      "successful_generations": 35,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 1924,
+      "avg_student_score": 0.821,
+      "last_updated": "2025-11-19T08:39:39.935773"
+    },
+    {
+      "topic_code": "school",
+      "grade": "pre2",
+      "question_type": "summary",
+      "total_uses": 29,
+      "successful_generations": 26,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2701,
+      "avg_student_score": 0.666,
+      "last_updated": "2025-11-19T08:39:39.934485"
+    },
+    {
+      "topic_code": "greeting",
+      "grade": "2",
+      "question_type": "long_reading",
+      "total_uses": 8,
+      "successful_generations": 6,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1992,
+      "avg_student_score": 0.654,
+      "last_updated": "2025-11-19T08:39:39.935443"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "5",
+      "question_type": "picture_description",
+      "total_uses": 45,
+      "successful_generations": 43,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3493,
+      "avg_student_score": 0.856,
+      "last_updated": "2025-11-19T08:39:39.935196"
+    },
+    {
+      "topic_code": "club_activities",
+      "grade": "pre2",
+      "question_type": "grammar_fill",
+      "total_uses": 27,
+      "successful_generations": 25,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 2723,
+      "avg_student_score": 0.695,
+      "last_updated": "2025-11-19T08:39:39.935573"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "pre1",
+      "question_type": "conversation",
+      "total_uses": 7,
+      "successful_generations": 5,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 2265,
+      "avg_student_score": 0.849,
+      "last_updated": "2025-11-19T08:39:39.935299"
+    },
+    {
+      "topic_code": "food",
+      "grade": "2",
+      "question_type": "writing_essay",
+      "total_uses": 28,
+      "successful_generations": 21,
+      "failed_generations": 7,
+      "avg_generation_time_ms": 1205,
+      "avg_student_score": 0.793,
+      "last_updated": "2025-11-19T08:39:39.935467"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "pre2",
+      "question_type": "conversation",
+      "total_uses": 32,
+      "successful_generations": 30,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1790,
+      "avg_student_score": 0.868,
+      "last_updated": "2025-11-19T08:39:39.935066"
+    },
+    {
+      "topic_code": "ai_/_science",
+      "grade": "4",
+      "question_type": "long_reading",
+      "total_uses": 17,
+      "successful_generations": 13,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 2851,
+      "avg_student_score": 0.665,
+      "last_updated": "2025-11-19T08:39:39.934596"
+    },
+    {
+      "topic_code": "greeting",
+      "grade": "3",
+      "question_type": "opinion_essay",
+      "total_uses": 8,
+      "successful_generations": 7,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2016,
+      "avg_student_score": 0.875,
+      "last_updated": "2025-11-19T08:39:39.935422"
+    },
+    {
+      "topic_code": "economics",
+      "grade": "5",
+      "question_type": "email_reply",
+      "total_uses": 43,
+      "successful_generations": 35,
+      "failed_generations": 8,
+      "avg_generation_time_ms": 1868,
+      "avg_student_score": 0.668,
+      "last_updated": "2025-11-19T08:39:39.934978"
+    },
+    {
+      "topic_code": "politics",
+      "grade": "pre1",
+      "question_type": "email_reply",
+      "total_uses": 50,
+      "successful_generations": 41,
+      "failed_generations": 9,
+      "avg_generation_time_ms": 2496,
+      "avg_student_score": 0.94,
+      "last_updated": "2025-11-19T08:39:39.934656"
+    },
+    {
+      "topic_code": "environment",
+      "grade": "pre2",
+      "question_type": "email_reply",
+      "total_uses": 36,
+      "successful_generations": 31,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 3156,
+      "avg_student_score": 0.94,
+      "last_updated": "2025-11-19T08:39:39.935745"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "4",
+      "question_type": "email_reply",
+      "total_uses": 50,
+      "successful_generations": 41,
+      "failed_generations": 9,
+      "avg_generation_time_ms": 2625,
+      "avg_student_score": 0.65,
+      "last_updated": "2025-11-19T08:39:39.935022"
+    },
+    {
+      "topic_code": "climate_change",
+      "grade": "pre1",
+      "question_type": "grammar_fill",
+      "total_uses": 17,
+      "successful_generations": 16,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2368,
+      "avg_student_score": 0.705,
+      "last_updated": "2025-11-19T08:39:39.934735"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "pre2",
+      "question_type": "opinion_essay",
+      "total_uses": 28,
+      "successful_generations": 22,
+      "failed_generations": 6,
+      "avg_generation_time_ms": 3470,
+      "avg_student_score": 0.753,
+      "last_updated": "2025-11-19T08:39:39.935169"
+    },
+    {
+      "topic_code": "global_health",
+      "grade": "1",
+      "question_type": "opinion_speech",
+      "total_uses": 16,
+      "successful_generations": 14,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1546,
+      "avg_student_score": 0.941,
+      "last_updated": "2025-11-19T08:39:39.934646"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "5",
+      "question_type": "picture_description",
+      "total_uses": 10,
+      "successful_generations": 9,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 1977,
+      "avg_student_score": 0.809,
+      "last_updated": "2025-11-19T08:39:39.935324"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "1",
+      "question_type": "grammar_fill",
+      "total_uses": 42,
+      "successful_generations": 35,
+      "failed_generations": 7,
+      "avg_generation_time_ms": 2579,
+      "avg_student_score": 0.887,
+      "last_updated": "2025-11-19T08:39:39.935277"
+    },
+    {
+      "topic_code": "climate_change",
+      "grade": "1",
+      "question_type": "q_and_a",
+      "total_uses": 42,
+      "successful_generations": 38,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 2325,
+      "avg_student_score": 0.775,
+      "last_updated": "2025-11-19T08:39:39.934746"
+    },
+    {
+      "topic_code": "community",
+      "grade": "5",
+      "question_type": "email_reply",
+      "total_uses": 6,
+      "successful_generations": 5,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2776,
+      "avg_student_score": 0.805,
+      "last_updated": "2025-11-19T08:39:39.934551"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "pre2",
+      "question_type": "q_and_a",
+      "total_uses": 9,
+      "successful_generations": 7,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3146,
+      "avg_student_score": 0.861,
+      "last_updated": "2025-11-19T08:39:39.935173"
+    },
+    {
+      "topic_code": "daily_life",
+      "grade": "1",
+      "question_type": "reading_aloud",
+      "total_uses": 14,
+      "successful_generations": 11,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1743,
+      "avg_student_score": 0.67,
+      "last_updated": "2025-11-19T08:39:39.934781"
+    },
+    {
+      "topic_code": "communication",
+      "grade": "pre1",
+      "question_type": "grammar_fill",
+      "total_uses": 43,
+      "successful_generations": 41,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3161,
+      "avg_student_score": 0.684,
+      "last_updated": "2025-11-19T08:39:39.934803"
+    },
+    {
+      "topic_code": "greeting",
+      "grade": "4",
+      "question_type": "q_and_a",
+      "total_uses": 44,
+      "successful_generations": 42,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 2434,
+      "avg_student_score": 0.814,
+      "last_updated": "2025-11-19T08:39:39.935416"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "3",
+      "question_type": "summary",
+      "total_uses": 34,
+      "successful_generations": 27,
+      "failed_generations": 7,
+      "avg_generation_time_ms": 2855,
+      "avg_student_score": 0.667,
+      "last_updated": "2025-11-19T08:39:39.935309"
+    },
+    {
+      "topic_code": "hobbies",
+      "grade": "pre2",
+      "question_type": "writing_essay",
+      "total_uses": 46,
+      "successful_generations": 37,
+      "failed_generations": 9,
+      "avg_generation_time_ms": 2603,
+      "avg_student_score": 0.781,
+      "last_updated": "2025-11-19T08:39:39.935373"
+    },
+    {
+      "topic_code": "studying_abroad",
+      "grade": "pre2",
+      "question_type": "writing_summary",
+      "total_uses": 8,
+      "successful_generations": 7,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 1304,
+      "avg_student_score": 0.929,
+      "last_updated": "2025-11-19T08:39:39.935091"
+    },
+    {
+      "topic_code": "science",
+      "grade": "pre1",
+      "question_type": "short_opinion",
+      "total_uses": 12,
+      "successful_generations": 11,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 3006,
+      "avg_student_score": 0.688,
+      "last_updated": "2025-11-19T08:39:39.934913"
+    },
+    {
+      "topic_code": "travel",
+      "grade": "3",
+      "question_type": "writing_summary",
+      "total_uses": 7,
+      "successful_generations": 6,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2137,
+      "avg_student_score": 0.817,
+      "last_updated": "2025-11-19T08:39:39.935732"
+    },
+    {
+      "topic_code": "environment",
+      "grade": "pre2",
+      "question_type": "picture_description",
+      "total_uses": 35,
+      "successful_generations": 28,
+      "failed_generations": 7,
+      "avg_generation_time_ms": 2053,
+      "avg_student_score": 0.908,
+      "last_updated": "2025-11-19T08:39:39.935752"
+    },
+    {
+      "topic_code": "hobbies",
+      "grade": "pre2",
+      "question_type": "short_opinion",
+      "total_uses": 47,
+      "successful_generations": 45,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 2709,
+      "avg_student_score": 0.81,
+      "last_updated": "2025-11-19T08:39:39.935354"
+    },
+    {
+      "topic_code": "hobbies",
+      "grade": "3",
+      "question_type": "long_reading",
+      "total_uses": 25,
+      "successful_generations": 24,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 1819,
+      "avg_student_score": 0.807,
+      "last_updated": "2025-11-19T08:39:39.935390"
+    },
+    {
+      "topic_code": "society",
+      "grade": "pre2",
+      "question_type": "long_reading",
+      "total_uses": 16,
+      "successful_generations": 14,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3010,
+      "avg_student_score": 0.665,
+      "last_updated": "2025-11-19T08:39:39.934863"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "5",
+      "question_type": "email_reply",
+      "total_uses": 9,
+      "successful_generations": 8,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 3091,
+      "avg_student_score": 0.674,
+      "last_updated": "2025-11-19T08:39:39.935328"
+    },
+    {
+      "topic_code": "family",
+      "grade": "4",
+      "question_type": "grammar_fill",
+      "total_uses": 26,
+      "successful_generations": 24,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1789,
+      "avg_student_score": 0.74,
+      "last_updated": "2025-11-19T08:39:39.935670"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "1",
+      "question_type": "writing_summary",
+      "total_uses": 14,
+      "successful_generations": 12,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3301,
+      "avg_student_score": 0.913,
+      "last_updated": "2025-11-19T08:39:39.935033"
+    },
+    {
+      "topic_code": "club_activities",
+      "grade": "pre1",
+      "question_type": "summary",
+      "total_uses": 18,
+      "successful_generations": 15,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1286,
+      "avg_student_score": 0.671,
+      "last_updated": "2025-11-19T08:39:39.935615"
+    },
+    {
+      "topic_code": "family",
+      "grade": "pre1",
+      "question_type": "writing_essay",
+      "total_uses": 47,
+      "successful_generations": 35,
+      "failed_generations": 12,
+      "avg_generation_time_ms": 2409,
+      "avg_student_score": 0.88,
+      "last_updated": "2025-11-19T08:39:39.935652"
+    },
+    {
+      "topic_code": "community",
+      "grade": "5",
+      "question_type": "writing_essay",
+      "total_uses": 18,
+      "successful_generations": 16,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 2850,
+      "avg_student_score": 0.946,
+      "last_updated": "2025-11-19T08:39:39.934547"
+    },
+    {
+      "topic_code": "travel",
+      "grade": "pre1",
+      "question_type": "short_opinion",
+      "total_uses": 46,
+      "successful_generations": 41,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 2520,
+      "avg_student_score": 0.873,
+      "last_updated": "2025-11-19T08:39:39.935706"
+    },
+    {
+      "topic_code": "school",
+      "grade": "4",
+      "question_type": "grammar_fill",
+      "total_uses": 46,
+      "successful_generations": 35,
+      "failed_generations": 11,
+      "avg_generation_time_ms": 1801,
+      "avg_student_score": 0.712,
+      "last_updated": "2025-11-19T08:39:39.934502"
+    },
+    {
+      "topic_code": "daily_life",
+      "grade": "4",
+      "question_type": "q_and_a",
+      "total_uses": 24,
+      "successful_generations": 19,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 3140,
+      "avg_student_score": 0.709,
+      "last_updated": "2025-11-19T08:39:39.934768"
+    },
+    {
+      "topic_code": "school",
+      "grade": "5",
+      "question_type": "opinion_speech",
+      "total_uses": 37,
+      "successful_generations": 36,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2616,
+      "avg_student_score": 0.738,
+      "last_updated": "2025-11-19T08:39:39.934459"
+    },
+    {
+      "topic_code": "greeting",
+      "grade": "1",
+      "question_type": "q_and_a",
+      "total_uses": 29,
+      "successful_generations": 28,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2850,
+      "avg_student_score": 0.92,
+      "last_updated": "2025-11-19T08:39:39.935429"
+    },
+    {
+      "topic_code": "club_activities",
+      "grade": "pre1",
+      "question_type": "short_opinion",
+      "total_uses": 23,
+      "successful_generations": 22,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2642,
+      "avg_student_score": 0.692,
+      "last_updated": "2025-11-19T08:39:39.935611"
+    },
+    {
+      "topic_code": "hobbies",
+      "grade": "4",
+      "question_type": "picture_description",
+      "total_uses": 36,
+      "successful_generations": 28,
+      "failed_generations": 8,
+      "avg_generation_time_ms": 2678,
+      "avg_student_score": 0.928,
+      "last_updated": "2025-11-19T08:39:39.935347"
+    },
+    {
+      "topic_code": "weekend",
+      "grade": "pre1",
+      "question_type": "writing_summary",
+      "total_uses": 40,
+      "successful_generations": 30,
+      "failed_generations": 10,
+      "avg_generation_time_ms": 1563,
+      "avg_student_score": 0.716,
+      "last_updated": "2025-11-19T08:39:39.935679"
+    },
+    {
+      "topic_code": "ai_/_science",
+      "grade": "pre1",
+      "question_type": "grammar_fill",
+      "total_uses": 20,
+      "successful_generations": 17,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1684,
+      "avg_student_score": 0.923,
+      "last_updated": "2025-11-19T08:39:39.934569"
+    },
+    {
+      "topic_code": "ai_/_science",
+      "grade": "4",
+      "question_type": "picture_description",
+      "total_uses": 49,
+      "successful_generations": 38,
+      "failed_generations": 11,
+      "avg_generation_time_ms": 2884,
+      "avg_student_score": 0.883,
+      "last_updated": "2025-11-19T08:39:39.934604"
+    },
+    {
+      "topic_code": "club_activities",
+      "grade": "2",
+      "question_type": "opinion_speech",
+      "total_uses": 6,
+      "successful_generations": 5,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 2665,
+      "avg_student_score": 0.701,
+      "last_updated": "2025-11-19T08:39:39.935597"
+    },
+    {
+      "topic_code": "politics",
+      "grade": "4",
+      "question_type": "essay",
+      "total_uses": 44,
+      "successful_generations": 36,
+      "failed_generations": 8,
+      "avg_generation_time_ms": 2348,
+      "avg_student_score": 0.725,
+      "last_updated": "2025-11-19T08:39:39.934674"
+    },
+    {
+      "topic_code": "studying_abroad",
+      "grade": "2",
+      "question_type": "grammar_fill",
+      "total_uses": 15,
+      "successful_generations": 13,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1165,
+      "avg_student_score": 0.828,
+      "last_updated": "2025-11-19T08:39:39.935137"
+    },
+    {
+      "topic_code": "studying_abroad",
+      "grade": "pre2",
+      "question_type": "picture_description",
+      "total_uses": 42,
+      "successful_generations": 38,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 829,
+      "avg_student_score": 0.793,
+      "last_updated": "2025-11-19T08:39:39.935099"
+    },
+    {
+      "topic_code": "technology",
+      "grade": "1",
+      "question_type": "short_opinion",
+      "total_uses": 33,
+      "successful_generations": 29,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 3288,
+      "avg_student_score": 0.777,
+      "last_updated": "2025-11-19T08:39:39.934951"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "5",
+      "question_type": "opinion_essay",
+      "total_uses": 50,
+      "successful_generations": 45,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 1590,
+      "avg_student_score": 0.736,
+      "last_updated": "2025-11-19T08:39:39.935192"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "1",
+      "question_type": "conversation",
+      "total_uses": 22,
+      "successful_generations": 17,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 939,
+      "avg_student_score": 0.935,
+      "last_updated": "2025-11-19T08:39:39.935281"
+    },
+    {
+      "topic_code": "greeting",
+      "grade": "1",
+      "question_type": "conversation",
+      "total_uses": 44,
+      "successful_generations": 38,
+      "failed_generations": 6,
+      "avg_generation_time_ms": 3466,
+      "avg_student_score": 0.75,
+      "last_updated": "2025-11-19T08:39:39.935437"
+    },
+    {
+      "topic_code": "food",
+      "grade": "1",
+      "question_type": "grammar_fill",
+      "total_uses": 8,
+      "successful_generations": 6,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3368,
+      "avg_student_score": 0.945,
+      "last_updated": "2025-11-19T08:39:39.935473"
+    },
+    {
+      "topic_code": "science",
+      "grade": "pre2",
+      "question_type": "email_reply",
+      "total_uses": 47,
+      "successful_generations": 42,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 1402,
+      "avg_student_score": 0.928,
+      "last_updated": "2025-11-19T08:39:39.934929"
+    },
+    {
+      "topic_code": "family",
+      "grade": "4",
+      "question_type": "conversation",
+      "total_uses": 28,
+      "successful_generations": 23,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 1987,
+      "avg_student_score": 0.885,
+      "last_updated": "2025-11-19T08:39:39.935659"
+    },
+    {
+      "topic_code": "education",
+      "grade": "4",
+      "question_type": "email_reply",
+      "total_uses": 11,
+      "successful_generations": 8,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 1133,
+      "avg_student_score": 0.93,
+      "last_updated": "2025-11-19T08:39:39.935237"
+    },
+    {
+      "topic_code": "travel",
+      "grade": "3",
+      "question_type": "essay",
+      "total_uses": 37,
+      "successful_generations": 32,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 2851,
+      "avg_student_score": 0.683,
+      "last_updated": "2025-11-19T08:39:39.935728"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "5",
+      "question_type": "email_reply",
+      "total_uses": 30,
+      "successful_generations": 27,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 3159,
+      "avg_student_score": 0.774,
+      "last_updated": "2025-11-19T08:39:39.935081"
+    },
+    {
+      "topic_code": "studying_abroad",
+      "grade": "pre2",
+      "question_type": "opinion_essay",
+      "total_uses": 11,
+      "successful_generations": 9,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3333,
+      "avg_student_score": 0.87,
+      "last_updated": "2025-11-19T08:39:39.935095"
+    },
+    {
+      "topic_code": "environment",
+      "grade": "pre2",
+      "question_type": "conversation",
+      "total_uses": 36,
+      "successful_generations": 27,
+      "failed_generations": 9,
+      "avg_generation_time_ms": 1545,
+      "avg_student_score": 0.941,
+      "last_updated": "2025-11-19T08:39:39.935741"
+    },
+    {
+      "topic_code": "education",
+      "grade": "1",
+      "question_type": "opinion_essay",
+      "total_uses": 39,
+      "successful_generations": 37,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3013,
+      "avg_student_score": 0.914,
+      "last_updated": "2025-11-19T08:39:39.935218"
+    },
+    {
+      "topic_code": "politics",
+      "grade": "4",
+      "question_type": "picture_description",
+      "total_uses": 20,
+      "successful_generations": 17,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2562,
+      "avg_student_score": 0.882,
+      "last_updated": "2025-11-19T08:39:39.934678"
+    },
+    {
+      "topic_code": "politics",
+      "grade": "pre2",
+      "question_type": "essay",
+      "total_uses": 6,
+      "successful_generations": 5,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 3141,
+      "avg_student_score": 0.908,
+      "last_updated": "2025-11-19T08:39:39.934717"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "1",
+      "question_type": "email_reply",
+      "total_uses": 31,
+      "successful_generations": 28,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2276,
+      "avg_student_score": 0.683,
+      "last_updated": "2025-11-19T08:39:39.935040"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "4",
+      "question_type": "grammar_fill",
+      "total_uses": 8,
+      "successful_generations": 6,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3086,
+      "avg_student_score": 0.676,
+      "last_updated": "2025-11-19T08:39:39.935026"
+    },
+    {
+      "topic_code": "self-introduction",
+      "grade": "3",
+      "question_type": "long_reading",
+      "total_uses": 13,
+      "successful_generations": 11,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 3258,
+      "avg_student_score": 0.817,
+      "last_updated": "2025-11-19T08:39:39.935202"
+    },
+    {
+      "topic_code": "international_issues",
+      "grade": "pre2",
+      "question_type": "writing_summary",
+      "total_uses": 39,
+      "successful_generations": 31,
+      "failed_generations": 8,
+      "avg_generation_time_ms": 2766,
+      "avg_student_score": 0.666,
+      "last_updated": "2025-11-19T08:39:39.935070"
+    },
+    {
+      "topic_code": "science",
+      "grade": "4",
+      "question_type": "short_opinion",
+      "total_uses": 29,
+      "successful_generations": 25,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 803,
+      "avg_student_score": 0.935,
+      "last_updated": "2025-11-19T08:39:39.934903"
+    },
+    {
+      "topic_code": "climate_change",
+      "grade": "1",
+      "question_type": "opinion_speech",
+      "total_uses": 25,
+      "successful_generations": 21,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 1092,
+      "avg_student_score": 0.802,
+      "last_updated": "2025-11-19T08:39:39.934754"
+    },
+    {
+      "topic_code": "studying_abroad",
+      "grade": "1",
+      "question_type": "long_reading",
+      "total_uses": 24,
+      "successful_generations": 20,
+      "failed_generations": 4,
+      "avg_generation_time_ms": 1067,
+      "avg_student_score": 0.8,
+      "last_updated": "2025-11-19T08:39:39.935105"
+    },
+    {
+      "topic_code": "society",
+      "grade": "2",
+      "question_type": "summary",
+      "total_uses": 37,
+      "successful_generations": 32,
+      "failed_generations": 5,
+      "avg_generation_time_ms": 2628,
+      "avg_student_score": 0.746,
+      "last_updated": "2025-11-19T08:39:39.934846"
+    },
+    {
+      "topic_code": "ai_/_science",
+      "grade": "4",
+      "question_type": "grammar_fill",
+      "total_uses": 20,
+      "successful_generations": 18,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1929,
+      "avg_student_score": 0.946,
+      "last_updated": "2025-11-19T08:39:39.934600"
+    },
+    {
+      "topic_code": "school_life",
+      "grade": "pre1",
+      "question_type": "long_reading",
+      "total_uses": 33,
+      "successful_generations": 27,
+      "failed_generations": 6,
+      "avg_generation_time_ms": 2779,
+      "avg_student_score": 0.676,
+      "last_updated": "2025-11-19T08:39:39.935295"
+    },
+    {
+      "topic_code": "travel",
+      "grade": "5",
+      "question_type": "opinion_speech",
+      "total_uses": 9,
+      "successful_generations": 7,
+      "failed_generations": 2,
+      "avg_generation_time_ms": 1511,
+      "avg_student_score": 0.679,
+      "last_updated": "2025-11-19T08:39:39.935717"
+    },
+    {
+      "topic_code": "community",
+      "grade": "pre1",
+      "question_type": "writing_summary",
+      "total_uses": 44,
+      "successful_generations": 38,
+      "failed_generations": 6,
+      "avg_generation_time_ms": 2977,
+      "avg_student_score": 0.814,
+      "last_updated": "2025-11-19T08:39:39.934529"
+    },
+    {
+      "topic_code": "hobbies",
+      "grade": "5",
+      "question_type": "reading_aloud",
+      "total_uses": 11,
+      "successful_generations": 10,
+      "failed_generations": 1,
+      "avg_generation_time_ms": 3073,
+      "avg_student_score": 0.785,
+      "last_updated": "2025-11-19T08:39:39.935407"
+    },
+    {
+      "topic_code": "society",
+      "grade": "4",
+      "question_type": "long_reading",
+      "total_uses": 40,
+      "successful_generations": 37,
+      "failed_generations": 3,
+      "avg_generation_time_ms": 2246,
+      "avg_student_score": 0.676,
+      "last_updated": "2025-11-19T08:39:39.934857"
+    }
+  ]
+}
