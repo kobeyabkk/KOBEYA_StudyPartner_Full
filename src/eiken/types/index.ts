@@ -368,3 +368,82 @@ export const LRU_WINDOW_SIZES: Record<string, number> = {
   reading: 4,
   default: 4,
 };
+
+// ====================
+// Phase 2C: Blueprint Templates
+// ====================
+
+export type VocabularyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+export type ComplexityLevel = 'simple' | 'moderate' | 'complex' | 'advanced';
+
+// Blueprint Guidelines
+export interface BlueprintGuidelines {
+  vocabulary_level: VocabularyLevel;
+  grammar_patterns: string[];
+  sentence_length: {
+    min: number;
+    max: number;
+    target: number;
+  };
+  complexity: ComplexityLevel;
+  word_count?: {
+    min: number;
+    max: number;
+    target: number;
+  };
+}
+
+// Blueprint Instructions (Format-specific)
+export interface BlueprintInstructions {
+  prompt_template: string;
+  constraints: string[];
+  examples?: string[];
+  time_limit_minutes?: number;
+}
+
+// Evaluation Rubric
+export interface RubricCriterion {
+  name: string;
+  weight: number;
+  description: string;
+  max_score: number;
+}
+
+export interface BlueprintRubric {
+  criteria: RubricCriterion[];
+  total_score: number;
+}
+
+// Main Blueprint Interface
+export interface Blueprint {
+  id?: string;
+  format: QuestionFormat;
+  topic: TopicArea;
+  grade: EikenGrade;
+  guidelines: BlueprintGuidelines;
+  instructions: BlueprintInstructions;
+  rubric: BlueprintRubric;
+  created_at?: string;
+  metadata?: {
+    generator_version: string;
+    selection_method: string;
+    topic_score: number;
+  };
+}
+
+// Blueprint Generation Options
+export interface BlueprintGenerationOptions {
+  student_id: string;
+  grade: EikenGrade;
+  format: QuestionFormat;
+  topic_code?: string;              // Optional: Force specific topic
+  difficulty_adjustment?: number;   // -1 to +1 (easier to harder)
+  session_id?: string;
+}
+
+// Blueprint Generation Result
+export interface BlueprintGenerationResult {
+  blueprint: Blueprint;
+  topic_selection: TopicSelectionResult;
+  generation_timestamp: string;
+}
