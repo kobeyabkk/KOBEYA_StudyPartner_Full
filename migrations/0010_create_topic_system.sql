@@ -134,15 +134,15 @@ CREATE TABLE IF NOT EXISTS eiken_topic_blacklist (
     grade TEXT NOT NULL,
     topic_code TEXT NOT NULL,
     question_type TEXT NOT NULL,
-    failure_reason TEXT,                        -- 'timeout', 'vocabulary_mismatch', etc.
+    reason TEXT,                                -- 'vocabulary_too_hard', 'student_uninterested', etc.
     failure_count INTEGER DEFAULT 1,            -- Increment for repeated failures
-    blacklisted_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     expires_at TEXT NOT NULL,                   -- Auto-cleanup after expiration
     
     -- Constraints
     UNIQUE(student_id, grade, topic_code, question_type),
     CHECK (failure_count > 0),
-    CHECK (expires_at > blacklisted_at)
+    CHECK (expires_at > created_at)
 );
 
 -- Indexes for blacklist queries
@@ -154,7 +154,7 @@ CREATE INDEX IF NOT EXISTS idx_blacklist_cleanup
     ON eiken_topic_blacklist(expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_blacklist_topic 
-    ON eiken_topic_blacklist(topic_code, failure_reason);
+    ON eiken_topic_blacklist(topic_code, reason);
 
 
 -- ============================================================================
@@ -165,32 +165,33 @@ CREATE INDEX IF NOT EXISTS idx_blacklist_topic
 
 CREATE TABLE IF NOT EXISTS eiken_topic_statistics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic_code TEXT NOT NULL,
     grade TEXT NOT NULL,
+    topic_code TEXT NOT NULL,
     question_type TEXT NOT NULL,
-    total_uses INTEGER DEFAULT 0,
-    successful_generations INTEGER DEFAULT 0,
-    failed_generations INTEGER DEFAULT 0,
-    avg_generation_time_ms REAL,               -- Average LLM generation time
-    avg_student_score REAL,                    -- Average student performance
-    last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+    selection_count INTEGER DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    avg_completion_time_ms REAL,              -- Average completion time
+    last_selected_at TEXT,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     
     -- Constraints
-    UNIQUE(topic_code, grade, question_type),
-    CHECK (total_uses >= 0),
-    CHECK (successful_generations >= 0),
-    CHECK (failed_generations >= 0),
-    CHECK (total_uses = successful_generations + failed_generations),
-    CHECK (avg_generation_time_ms IS NULL OR avg_generation_time_ms >= 0),
-    CHECK (avg_student_score IS NULL OR (avg_student_score >= 0 AND avg_student_score <= 1))
+    UNIQUE(grade, topic_code, question_type),
+    CHECK (selection_count >= 0),
+    CHECK (success_count >= 0),
+    CHECK (failure_count >= 0),
+    CHECK (avg_completion_time_ms IS NULL OR avg_completion_time_ms >= 0)
 );
 
 -- Indexes for statistics queries
 CREATE INDEX IF NOT EXISTS idx_stats_performance 
-    ON eiken_topic_statistics(grade, question_type, successful_generations DESC);
+    ON eiken_topic_statistics(grade, question_type, success_count DESC);
 
 CREATE INDEX IF NOT EXISTS idx_stats_topic 
-    ON eiken_topic_statistics(topic_code, total_uses DESC);
+    ON eiken_topic_statistics(topic_code, selection_count DESC);
+
+CREATE INDEX IF NOT EXISTS idx_stats_last_selected
+    ON eiken_topic_statistics(last_selected_at DESC);
 
 
 -- ============================================================================
