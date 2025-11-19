@@ -66,7 +66,6 @@ CREATE INDEX IF NOT EXISTS idx_topic_code_lookup
 -- Record count: 175 combinations (empirically derived from 236 real exam questions)
 
 CREATE TABLE IF NOT EXISTS eiken_topic_question_type_suitability (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic_code TEXT NOT NULL,
     grade TEXT NOT NULL,
     question_type TEXT NOT NULL,                -- 'speaking', 'writing', 'reading', 'grammar', etc.
