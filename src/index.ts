@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import topicRoutes from './eiken/routes/topic-routes';
+import blueprintRoutes from './eiken/routes/blueprint-routes';
 import type { EikenEnv } from './eiken/types';
 
 const app = new Hono<{ Bindings: EikenEnv }>();
@@ -34,6 +35,9 @@ app.get('/api/health', (c) => {
 
 // Phase 2: Topic Management Routes
 app.route('/api/eiken/topics', topicRoutes);
+
+// Phase 2C: Blueprint Generation Routes
+app.route('/api/eiken/blueprints', blueprintRoutes);
 
 // 404 handler
 app.notFound((c) => {
