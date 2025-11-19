@@ -3,11 +3,12 @@
  * OpenAI GPT-4oを使用して英検問題を生成
  */
 
-import type { EikenGrade, QuestionType } from '../types';
+import type { EikenGrade, QuestionType, GenerationMode, QuestionFormat } from '../types';
 import { validateGeneratedQuestion } from './copyright-validator';
 import type { EikenEnv } from '../types';
 import { analyzeVocabularyLevel } from './vocabulary-analyzer';
 import { analyzeTextProfile } from './text-profiler';
+import { selectModel, getModelSelectionReason } from '../utils/model-selector';
 
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
@@ -17,6 +18,8 @@ export interface QuestionGenerationRequest {
   difficulty?: number;        // 0.0-1.0
   topicHints?: string[];
   basedOnAnalysisId?: number; // 分析結果IDを元に生成
+  mode?: GenerationMode;      // 'production' | 'practice' (デフォルト: 'production')
+  format?: QuestionFormat;    // 問題形式（モデル選択に使用）
 }
 
 export interface GeneratedQuestion {
@@ -207,6 +210,15 @@ async function generateSingleQuestion(
   const systemPrompt = buildSystemPrompt(request, analysisContext);
   const userPrompt = buildUserPrompt(request);
   
+  // モデル選択ロジック（ハイブリッド戦略）
+  const mode = request.mode || 'production';
+  const format = request.format || 'grammar_fill'; // デフォルトは文法問題
+  const selectedModel = selectModel({ grade: request.grade, format, mode });
+  
+  // ログ出力（デバッグ用）
+  const reason = getModelSelectionReason({ grade: request.grade, format, mode });
+  console.log(`[Model Selection] ${selectedModel} - ${reason}`);
+  
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -214,7 +226,7 @@ async function generateSingleQuestion(
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: selectedModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

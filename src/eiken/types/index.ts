@@ -22,6 +22,19 @@ export interface EikenEnv {
 export type EikenGrade = '5' | '4' | '3' | 'pre2' | '2' | 'pre1' | '1';
 export type AccountStatus = 'active' | 'suspended' | 'deleted';
 
+// ====================
+// LLM Model Selection
+// ====================
+
+export type LLMModel = 'gpt-4o' | 'gpt-4o-mini';
+export type GenerationMode = 'production' | 'practice';
+
+export interface ModelSelectionOptions {
+  grade: EikenGrade;
+  format: QuestionFormat;
+  mode: GenerationMode;
+}
+
 export interface StudentProfile {
   id: string;                    // UUID
   email: string;
