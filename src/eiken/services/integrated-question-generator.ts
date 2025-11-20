@@ -448,8 +448,18 @@ export class IntegratedQuestionGenerator {
     console.log(`[saveQuestion] Starting save for ${data.format} (${data.grade})`);
     
     // long_reading形式の特別処理: 複数問題を個別レコードとして保存
-    if (data.format === 'long_reading' && data.question_data.questions && Array.isArray(data.question_data.questions)) {
-      return await this.saveLongReadingQuestions(data);
+    if (data.format === 'long_reading') {
+      console.log(`[saveQuestion] Detected long_reading format, checking for questions array`);
+      console.log(`[saveQuestion] question_data keys:`, Object.keys(data.question_data));
+      console.log(`[saveQuestion] questions exists:`, !!data.question_data.questions);
+      console.log(`[saveQuestion] questions is array:`, Array.isArray(data.question_data.questions));
+      
+      if (data.question_data.questions && Array.isArray(data.question_data.questions)) {
+        return await this.saveLongReadingQuestions(data);
+      } else {
+        // questionsが存在しない場合、JSON全体を保存（フォールバック）
+        console.warn(`[saveQuestion] long_reading format but questions array not found, falling back to JSON stringify`);
+      }
     }
     
     // 既存スキーマにマッピング
