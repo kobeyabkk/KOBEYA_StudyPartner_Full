@@ -319,11 +319,15 @@ export class IntegratedQuestionGenerator {
     // 英検級に対応するCEFRレベルを取得
     const targetCEFR = getTargetCEFR(grade);
     
+    // 級ごとの語彙バリデーション基準
+    // 英検1級: 30%まで許容（70%合格基準）- 高難度語彙のため基準を緩和
+    // その他: 25%まで許容（75%合格基準）
+    const maxViolationRate = grade === '1' ? 0.30 : 0.25;
+    
     // DB と CEFR レベルを正しく渡す
-    // 語彙バリデーションの基準を緩和（25%まで許容 = 75%合格基準）
     const validation = await validateVocabulary(textToValidate, this.db, {
       target_level: targetCEFR as any,
-      max_violation_rate: 0.25, // 25%まで許容（デフォルト5%から大幅緩和）
+      max_violation_rate: maxViolationRate,
     });
     
     return {
@@ -382,6 +386,31 @@ export class IntegratedQuestionGenerator {
   }
 
   /**
+   * 形式からセクションを判定
+   */
+  private getSectionFromFormat(format: QuestionFormat): string {
+    // 形式に応じて適切なセクションを返す
+    switch (format) {
+      case 'grammar_fill':
+      case 'long_reading':
+        return 'reading';
+      
+      case 'listening_comprehension':
+        return 'listening';
+      
+      case 'opinion_speech':
+      case 'reading_aloud':
+        return 'speaking';
+      
+      case 'essay':
+        return 'writing';
+      
+      default:
+        return 'reading'; // デフォルト
+    }
+  }
+
+  /**
    * データベースに保存（既存のeiken_generated_questionsスキーマに合わせる）
    */
   private async saveQuestion(data: GeneratedQuestionData): Promise<GeneratedQuestionData> {
@@ -397,6 +426,9 @@ export class IntegratedQuestionGenerator {
     const choicesJson = choices.length > 0 ? JSON.stringify(choices) : null;
     const correctIdx = (answerType === 'mcq' && correctIndex >= 0) ? correctIndex : null;
     
+    // 形式に応じてセクションを設定
+    const section = this.getSectionFromFormat(data.format);
+    
     const result = await this.db
       .prepare(`
         INSERT INTO eiken_generated_questions (
@@ -408,7 +440,7 @@ export class IntegratedQuestionGenerator {
       `)
       .bind(
         data.grade,
-        'reading', // デフォルトセクション
+        section,
         data.format,
         answerType,
         questionText,
