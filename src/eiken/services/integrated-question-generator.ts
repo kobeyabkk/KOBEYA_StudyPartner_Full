@@ -47,6 +47,9 @@ export interface GeneratedQuestionData {
   vocabulary_score?: number;
   copyright_score?: number;
   
+  // long_reading形式の場合、関連問題のID配列
+  related_question_ids?: number[];
+  
   // タイムスタンプ
   created_at: string;
 }
@@ -329,6 +332,18 @@ export class IntegratedQuestionGenerator {
     if (questionData.choices) {
       textToValidate += questionData.choices.join(' ') + ' ';
     }
+    
+    // long_reading形式の場合、複数問題のchoicesも検証対象に含める
+    if (questionData.questions && Array.isArray(questionData.questions)) {
+      for (const q of questionData.questions) {
+        if (q.question_text) {
+          textToValidate += q.question_text + ' ';
+        }
+        if (q.choices && Array.isArray(q.choices)) {
+          textToValidate += q.choices.join(' ') + ' ';
+        }
+      }
+    }
 
     // 英検級に対応するCEFRレベルを取得
     const targetCEFR = getTargetCEFR(grade);
@@ -432,6 +447,11 @@ export class IntegratedQuestionGenerator {
   private async saveQuestion(data: GeneratedQuestionData): Promise<GeneratedQuestionData> {
     console.log(`[saveQuestion] Starting save for ${data.format} (${data.grade})`);
     
+    // long_reading形式の特別処理: 複数問題を個別レコードとして保存
+    if (data.format === 'long_reading' && data.question_data.questions && Array.isArray(data.question_data.questions)) {
+      return await this.saveLongReadingQuestions(data);
+    }
+    
     // 既存スキーマにマッピング
     const questionData = data.question_data;
     // essay形式は essay_prompt を使用
@@ -439,6 +459,9 @@ export class IntegratedQuestionGenerator {
                          || questionData.essay_prompt 
                          || questionData.passage 
                          || JSON.stringify(questionData);
+    
+    console.log(`[saveQuestion] questionText length: ${questionText.length} chars`);
+    console.log(`[saveQuestion] questionData keys:`, Object.keys(questionData));
     const choices = questionData.choices || [];
     const correctAnswer = questionData.correct_answer || '';
     const correctIndex = choices.length > 0 ? choices.indexOf(correctAnswer) : -1;
@@ -504,6 +527,83 @@ export class IntegratedQuestionGenerator {
     return {
       ...data,
       id: result.meta.last_row_id,
+    };
+  }
+
+  /**
+   * long_reading形式の複数問題を個別レコードとして保存
+   * Option A: 1エントリ=1MCQ、passage重複方式
+   */
+  private async saveLongReadingQuestions(data: GeneratedQuestionData): Promise<GeneratedQuestionData> {
+    console.log(`[saveLongReadingQuestions] Starting save for long_reading (${data.grade})`);
+    
+    const questionData = data.question_data;
+    const passage = questionData.passage || '';
+    const questions = questionData.questions || [];
+    
+    if (questions.length === 0) {
+      throw new Error('long_reading format requires questions array');
+    }
+    
+    console.log(`[saveLongReadingQuestions] Processing ${questions.length} questions`);
+    
+    const savedIds: number[] = [];
+    const section = this.getSectionFromFormat(data.format);
+    
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      
+      // passage + 問題文を結合してquestion_textに保存
+      const questionText = `${passage}\n\nQuestion ${i + 1}: ${q.question_text}`;
+      
+      const choices = q.choices || [];
+      const correctAnswer = q.correct_answer || '';
+      const correctIndex = choices.indexOf(correctAnswer);
+      
+      if (correctIndex === -1) {
+        console.warn(`[saveLongReadingQuestions] Warning: correct_answer "${correctAnswer}" not found in choices for question ${i + 1}`);
+      }
+      
+      const result = await this.db
+        .prepare(`
+          INSERT INTO eiken_generated_questions (
+            grade, section, question_type, answer_type,
+            question_text, choices_json, correct_answer_index, correct_answer_text,
+            explanation, explanation_ja, model, difficulty_score,
+            vocab_band, quality_score, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          data.grade,
+          section,
+          data.format,
+          'mcq', // long_readingは常にMCQ
+          questionText,
+          JSON.stringify(choices),
+          correctIndex >= 0 ? correctIndex : null,
+          correctAnswer || null,
+          q.explanation || '',
+          q.explanation_ja || '',
+          data.model_used,
+          0.5,
+          `vocabulary_score:${data.vocabulary_score}`,
+          data.copyright_score ? Math.min(5.0, Math.max(1.0, data.copyright_score / 20)) : null,
+          data.created_at
+        )
+        .run();
+      
+      savedIds.push(result.meta.last_row_id);
+      console.log(`[saveLongReadingQuestions] Saved question ${i + 1}/${questions.length} with ID: ${result.meta.last_row_id}`);
+    }
+    
+    console.log(`[saveLongReadingQuestions] Successfully saved ${savedIds.length} questions`);
+    
+    // 最初のレコードIDを返す（互換性のため）
+    // related_question_idsに全IDを保存（将来的に使用可能）
+    return {
+      ...data,
+      id: savedIds[0],
+      related_question_ids: savedIds,
     };
   }
 
