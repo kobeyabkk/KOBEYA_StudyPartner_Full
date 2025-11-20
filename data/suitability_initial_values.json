@@ -1,0 +1,1402 @@
+[
+  {
+    "topic_code": "AI / science",
+    "grade": "1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "1",
+    "question_type": "writing_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "pre1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "pre1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "AI / science",
+    "grade": "pre1",
+    "question_type": "summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "pre1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "pre1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "pre1",
+    "question_type": "summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "climate change",
+    "grade": "pre1",
+    "question_type": "writing_summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "club activities",
+    "grade": "3",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "club activities",
+    "grade": "3",
+    "question_type": "email_reply",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "club activities",
+    "grade": "3",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "picture_description",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "q_and_a",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "reading_aloud",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "communication",
+    "grade": "pre2",
+    "question_type": "short_opinion",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "community",
+    "grade": "pre2",
+    "question_type": "short_opinion",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "3",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "3",
+    "question_type": "email_reply",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "3",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "3",
+    "question_type": "picture_description",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "3",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "4",
+    "question_type": "conversation",
+    "suitability_score": 1.1,
+    "sample_count": 3,
+    "reasoning": "Based on 3 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "4",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "5",
+    "question_type": "conversation",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "daily life",
+    "grade": "5",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "1",
+    "question_type": "writing_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "economics",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "1",
+    "question_type": "writing_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "essay",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 1.1,
+    "sample_count": 4,
+    "reasoning": "Based on 4 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "education",
+    "grade": "2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "essay",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 1.1,
+    "sample_count": 4,
+    "reasoning": "Based on 4 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "pre1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "environment",
+    "grade": "pre1",
+    "question_type": "summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "3",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "3",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "3",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "4",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "4",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "family",
+    "grade": "5",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "food",
+    "grade": "4",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "food",
+    "grade": "5",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "food",
+    "grade": "5",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "future",
+    "grade": "3",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "1",
+    "question_type": "writing_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "pre1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "pre1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "pre1",
+    "question_type": "summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "global health",
+    "grade": "pre1",
+    "question_type": "writing_summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "greeting",
+    "grade": "5",
+    "question_type": "conversation",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 1.1,
+    "sample_count": 3,
+    "reasoning": "Based on 3 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "opinion_speech",
+    "suitability_score": 1.1,
+    "sample_count": 4,
+    "reasoning": "Based on 4 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "health",
+    "grade": "pre2",
+    "question_type": "short_opinion",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "hobbies",
+    "grade": "3",
+    "question_type": "email_reply",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "hobbies",
+    "grade": "3",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "hobbies",
+    "grade": "3",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "hobbies",
+    "grade": "4",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "hobbies",
+    "grade": "5",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "1",
+    "question_type": "writing_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "pre1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "pre1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "international issues",
+    "grade": "pre1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "politics",
+    "grade": "1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "politics",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "politics",
+    "grade": "1",
+    "question_type": "opinion_essay",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "politics",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "school",
+    "grade": "4",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "school",
+    "grade": "4",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "school",
+    "grade": "5",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "email_reply",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.1,
+    "sample_count": 3,
+    "reasoning": "Based on 3 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "q_and_a",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "school life",
+    "grade": "3",
+    "question_type": "reading_aloud",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "pre1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "pre1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "science",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "self-introduction",
+    "grade": "5",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "opinion_speech",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "pre1",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "pre1",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "society",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.1,
+    "sample_count": 3,
+    "reasoning": "Based on 3 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "long_reading",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "picture_description",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "q_and_a",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "studying abroad",
+    "grade": "pre2",
+    "question_type": "short_opinion",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "1",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "1",
+    "question_type": "opinion_essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "essay",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "picture_description",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "q_and_a",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "2",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "pre1",
+    "question_type": "opinion_speech",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "pre1",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "technology",
+    "grade": "pre1",
+    "question_type": "summary",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "travel",
+    "grade": "3",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "travel",
+    "grade": "3",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "travel",
+    "grade": "3",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "travel",
+    "grade": "pre2",
+    "question_type": "grammar_fill",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "conversation",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "email_reply",
+    "suitability_score": 1.0,
+    "sample_count": 2,
+    "reasoning": "Based on 2 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "grammar_fill",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "long_reading",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "q_and_a",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  },
+  {
+    "topic_code": "weekend",
+    "grade": "3",
+    "question_type": "reading_aloud",
+    "suitability_score": 0.9,
+    "sample_count": 1,
+    "reasoning": "Based on 1 successful examples from real exams"
+  }
+]

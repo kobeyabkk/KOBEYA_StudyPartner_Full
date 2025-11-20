@@ -1,0 +1,65 @@
+import { chromium } from 'playwright';
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  
+  // Listen to console messages
+  page.on('console', msg => {
+    const type = msg.type();
+    const text = msg.text();
+    console.log(`[${type.toUpperCase()}] ${text}`);
+  });
+  
+  // Listen to page errors
+  page.on('pageerror', error => {
+    console.error(`[PAGE ERROR] ${error.message}`);
+  });
+  
+  // Listen to network responses
+  page.on('response', response => {
+    if (response.url().includes('/api/auth/login')) {
+      console.log(`[API RESPONSE] ${response.status()} - ${response.url()}`);
+    }
+  });
+  
+  try {
+    console.log('🔍 Navigating to Study Partner page...');
+    await page.goto('https://f6806105.kobeyabkk-studypartner.pages.dev/study-partner', {
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
+    
+    console.log('✅ Page loaded');
+    
+    // Wait for login button
+    console.log('🔍 Waiting for login button...');
+    await page.waitForSelector('button#btnLogin', { timeout: 10000 });
+    console.log('✅ Login button found');
+    
+    // Check if button is enabled
+    const isDisabled = await page.$eval('button#btnLogin', btn => btn.disabled);
+    console.log(`🔍 Button disabled: ${isDisabled}`);
+    
+    // Fill in credentials
+    await page.fill('input#appkey', '180418');
+    await page.fill('input#sid', 'JS2-04');
+    console.log('✅ Credentials filled');
+    
+    // Click login button
+    console.log('🔘 Clicking login button...');
+    await page.click('button#btnLogin');
+    
+    // Wait for response
+    console.log('⏳ Waiting for API response...');
+    await page.waitForTimeout(5000);
+    
+    console.log('✅ Test completed');
+    
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    console.error(error.stack);
+  } finally {
+    await browser.close();
+  }
+})();
