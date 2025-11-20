@@ -140,11 +140,88 @@ app.post('/generate', async (c) => {
 });
 
 /**
+ * GET /api/eiken/questions/:id
+ * 
+ * 保存された問題を取得
+ */
+app.get('/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+
+    const question = await c.env.DB
+      .prepare('SELECT * FROM eiken_generated_questions WHERE id = ?')
+      .bind(id)
+      .first();
+
+    if (!question) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: 'Question not found',
+            code: 'NOT_FOUND',
+          },
+        },
+        404
+      );
+    }
+
+    // 既存スキーマから question_data オブジェクトを再構築
+    const choices = question.choices_json ? JSON.parse(question.choices_json as string) : [];
+    const correctAnswer = question.correct_answer_text || 
+                          (choices.length > 0 && question.correct_answer_index !== null 
+                            ? choices[question.correct_answer_index] 
+                            : null);
+    
+    const questionData = {
+      question_text: question.question_text,
+      passage: question.question_type === 'long_reading' || question.question_type === 'reading_aloud' 
+                ? question.question_text 
+                : undefined,
+      choices: choices,
+      correct_answer: correctAnswer,
+      explanation: question.explanation || '',
+      explanation_ja: question.explanation_ja || '',
+    };
+
+    return c.json({
+      success: true,
+      data: {
+        id: question.id,
+        grade: question.grade,
+        section: question.section,
+        question_type: question.question_type,
+        answer_type: question.answer_type,
+        question_data: questionData,
+        difficulty_score: question.difficulty_score,
+        quality_score: question.quality_score,
+        model: question.model,
+        created_at: question.created_at,
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+  } catch (error) {
+    console.error('[Question Fetch Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: 'INTERNAL_ERROR',
+        },
+      },
+      500
+    );
+  }
+});
+
+/**
  * GET /api/eiken/questions/list
  * 
  * 生徒の問題履歴を取得
- * 
- * NOTE: This route MUST be defined BEFORE /:id route to avoid path conflicts
  */
 app.get('/list', async (c) => {
   try {
@@ -233,87 +310,6 @@ app.get('/list', async (c) => {
 
   } catch (error) {
     console.error('[Question List Error]', error);
-    return c.json(
-      {
-        success: false,
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          code: 'INTERNAL_ERROR',
-        },
-      },
-      500
-    );
-  }
-});
-
-/**
- * GET /api/eiken/questions/:id
- * 
- * 保存された問題を取得
- * 
- * NOTE: This route MUST be defined AFTER /list route to avoid matching "/list" as an ID
- */
-app.get('/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-
-    const question = await c.env.DB
-      .prepare('SELECT * FROM eiken_generated_questions WHERE id = ?')
-      .bind(id)
-      .first();
-
-    if (!question) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            message: 'Question not found',
-            code: 'NOT_FOUND',
-          },
-        },
-        404
-      );
-    }
-
-    // 既存スキーマから question_data オブジェクトを再構築
-    const choices = question.choices_json ? JSON.parse(question.choices_json as string) : [];
-    const correctAnswer = question.correct_answer_text || 
-                          (choices.length > 0 && question.correct_answer_index !== null 
-                            ? choices[question.correct_answer_index] 
-                            : null);
-    
-    const questionData = {
-      question_text: question.question_text,
-      passage: question.question_type === 'long_reading' || question.question_type === 'reading_aloud' 
-                ? question.question_text 
-                : undefined,
-      choices: choices,
-      correct_answer: correctAnswer,
-      explanation: question.explanation || '',
-      explanation_ja: question.explanation_ja || '',
-    };
-
-    return c.json({
-      success: true,
-      data: {
-        id: question.id,
-        grade: question.grade,
-        section: question.section,
-        question_type: question.question_type,
-        answer_type: question.answer_type,
-        question_data: questionData,
-        difficulty_score: question.difficulty_score,
-        quality_score: question.quality_score,
-        model: question.model,
-        created_at: question.created_at,
-      },
-      meta: {
-        timestamp: new Date().toISOString(),
-      },
-    });
-
-  } catch (error) {
-    console.error('[Question Fetch Error]', error);
     return c.json(
       {
         success: false,
