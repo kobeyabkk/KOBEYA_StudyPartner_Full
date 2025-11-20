@@ -196,6 +196,7 @@ export class IntegratedQuestionGenerator {
 
     // Step 4: データベースに保存（production と practice の両方で保存）
     let savedQuestion: GeneratedQuestionData | undefined;
+    let saveError: string | undefined;
     try {
       savedQuestion = await this.saveQuestion({
         blueprint_id: blueprint.id!,
@@ -213,6 +214,7 @@ export class IntegratedQuestionGenerator {
       });
       console.log(`[Database Save] Question saved with ID: ${savedQuestion.id}`);
     } catch (error) {
+      saveError = (error as Error).message;
       console.error(`[Database Save Error]`, error);
       // 保存失敗しても問題生成自体は成功として扱う（データ蓄積は副次的）
     }
@@ -258,6 +260,8 @@ export class IntegratedQuestionGenerator {
         generation_mode: mode,
         attempts,
         generation_time_ms: endTime - startTime,
+        save_error: saveError,  // エラーをメタデータに追加
+        saved_to_db: !!savedQuestion,  // 保存成功フラグ
       },
     };
   }
@@ -420,6 +424,8 @@ export class IntegratedQuestionGenerator {
    * データベースに保存（既存のeiken_generated_questionsスキーマに合わせる）
    */
   private async saveQuestion(data: GeneratedQuestionData): Promise<GeneratedQuestionData> {
+    console.log(`[saveQuestion] Starting save for ${data.format} (${data.grade})`);
+    
     // 既存スキーマにマッピング
     const questionData = data.question_data;
     const questionText = questionData.question_text || questionData.passage || JSON.stringify(questionData);
@@ -448,6 +454,14 @@ export class IntegratedQuestionGenerator {
     
     // Speaking形式の場合、correct_answer_textに空文字列ではなくNULLを設定
     const correctAnswerText = answerType === 'speaking' ? null : (correctAnswer || null);
+    
+    console.log(`[saveQuestion] Computed values:`, {
+      answerType,
+      section,
+      choicesJson: choicesJson ? 'EXISTS' : 'NULL',
+      correctIdx,
+      correctAnswerText: correctAnswerText ? 'EXISTS' : 'NULL',
+    });
     
     const result = await this.db
       .prepare(`
