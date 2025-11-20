@@ -446,6 +446,9 @@ export class IntegratedQuestionGenerator {
     // 形式に応じてセクションを設定
     const section = this.getSectionFromFormat(data.format);
     
+    // Speaking形式の場合、correct_answer_textに空文字列ではなくNULLを設定
+    const correctAnswerText = answerType === 'speaking' ? null : (correctAnswer || null);
+    
     const result = await this.db
       .prepare(`
         INSERT INTO eiken_generated_questions (
@@ -463,7 +466,7 @@ export class IntegratedQuestionGenerator {
         questionText,
         choicesJson,
         correctIdx,
-        correctAnswer,
+        correctAnswerText,  // 空文字列ではなくNULL
         questionData.explanation || '',
         questionData.explanation_ja || '',
         data.model_used,
