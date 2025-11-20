@@ -392,6 +392,8 @@ export class IntegratedQuestionGenerator {
     // 形式に応じて適切なセクションを返す
     switch (format) {
       case 'grammar_fill':
+        return 'grammar';
+      
       case 'long_reading':
         return 'reading';
       
@@ -421,8 +423,19 @@ export class IntegratedQuestionGenerator {
     const correctAnswer = questionData.correct_answer || '';
     const correctIndex = choices.length > 0 ? choices.indexOf(correctAnswer) : -1;
     
-    // CHECK制約対応: choices があれば mcq、なければ written
-    const answerType = choices.length > 0 ? 'mcq' : 'written';
+    // answer_type を形式に応じて判定（CHECK制約: 'mcq' | 'written' | 'speaking'）
+    const answerType = (() => {
+      // Speaking形式は明示的に 'speaking' を設定
+      if (data.format === 'opinion_speech' || data.format === 'reading_aloud') {
+        return 'speaking';
+      }
+      // 選択肢があればMCQ、なければwritten
+      if (choices.length > 0) {
+        return 'mcq';
+      }
+      return 'written';
+    })();
+    
     const choicesJson = choices.length > 0 ? JSON.stringify(choices) : null;
     const correctIdx = (answerType === 'mcq' && correctIndex >= 0) ? correctIndex : null;
     
