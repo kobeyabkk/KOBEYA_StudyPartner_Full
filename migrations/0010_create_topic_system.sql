@@ -199,7 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_stats_last_selected
 -- Source: 236 actual Eiken exam questions across all 7 grades
 -- Note: Topic codes use underscore separator (e.g., 'daily_life', 'school_life')
 
-INSERT INTO eiken_topic_areas 
+INSERT OR IGNORE INTO eiken_topic_areas 
   (grade, topic_code, topic_label_ja, topic_label_en, abstractness_level, 
    context_type, scenario_description, sub_topics, argument_axes, 
    weight, official_frequency, is_active)
@@ -524,7 +524,7 @@ VALUES
 -- Purpose: Reach minimum 10 topics per grade for adequate selection diversity
 -- Source: Official Eiken guidelines and common exam patterns
 
-INSERT INTO eiken_topic_areas
+INSERT OR IGNORE INTO eiken_topic_areas
   (grade, topic_code, topic_label_ja, topic_label_en, abstractness_level,
    context_type, scenario_description, sub_topics, argument_axes,
    weight, official_frequency, is_active)
@@ -592,7 +592,7 @@ VALUES
 -- Generated on: 2025-11-19
 -- Total records: 175
 
-INSERT INTO eiken_topic_question_type_suitability
+INSERT OR IGNORE INTO eiken_topic_question_type_suitability
   (topic_code, grade, question_type, suitability_score, reasoning)
 VALUES
   ('daily_life', '5', 'conversation', 1.0, 'Based on 2 actual exam question(s) in grade 5'),

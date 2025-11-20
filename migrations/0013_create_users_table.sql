@@ -39,21 +39,21 @@ CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active, created_at DESC)
 -- 2. Add user_id to essay_sessions
 -- ============================================================
 -- essay_sessions has: student_id column
-ALTER TABLE essay_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
+-- NOTE: Columns already exist in Production, only creating indexes
 CREATE INDEX IF NOT EXISTS idx_essay_sessions_user ON essay_sessions(user_id);
 
 -- ============================================================
 -- 3. Add user_id to flashcards
 -- ============================================================
 -- flashcards has: appkey, sid columns
-ALTER TABLE flashcards ADD COLUMN user_id INTEGER REFERENCES users(id);
+-- NOTE: Column already exists in Production, only creating index
 CREATE INDEX IF NOT EXISTS idx_flashcards_user ON flashcards(user_id);
 
 -- ============================================================
 -- 4. Add user_id to flashcard_decks
 -- ============================================================
 -- flashcard_decks has: appkey, sid columns
-ALTER TABLE flashcard_decks ADD COLUMN user_id INTEGER REFERENCES users(id);
+-- NOTE: Column already exists in Production, only creating index
 CREATE INDEX IF NOT EXISTS idx_flashcard_decks_user ON flashcard_decks(user_id);
 
 -- ============================================================
@@ -61,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_flashcard_decks_user ON flashcard_decks(user_id);
 -- ============================================================
 -- international_sessions has: student_name (but NO student_id)
 -- We'll need to link via student_name or manually
-ALTER TABLE international_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
+-- NOTE: Column already exists in Production, only creating index
 CREATE INDEX IF NOT EXISTS idx_international_sessions_user ON international_sessions(user_id);
 
 -- ============================================================
@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_international_sessions_user ON international_sess
 -- ============================================================
 -- international_conversations is linked via session_id to international_sessions
 -- We can link it indirectly through international_sessions
-ALTER TABLE international_conversations ADD COLUMN user_id INTEGER REFERENCES users(id);
+-- NOTE: Column already exists in Production, only creating index
 CREATE INDEX IF NOT EXISTS idx_international_conversations_user ON international_conversations(user_id);
 
 -- ============================================================

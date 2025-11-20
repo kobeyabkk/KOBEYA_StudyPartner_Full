@@ -194,9 +194,9 @@ export class IntegratedQuestionGenerator {
       };
     }
 
-    // Step 4: データベースに保存（productionモードのみ）
+    // Step 4: データベースに保存（production と practice の両方で保存）
     let savedQuestion: GeneratedQuestionData | undefined;
-    if (mode === 'production') {
+    try {
       savedQuestion = await this.saveQuestion({
         blueprint_id: blueprint.id!,
         student_id: request.student_id,
@@ -211,6 +211,10 @@ export class IntegratedQuestionGenerator {
         copyright_score: copyrightScore,
         created_at: new Date().toISOString(),
       });
+      console.log(`[Database Save] Question saved with ID: ${savedQuestion.id}`);
+    } catch (error) {
+      console.error(`[Database Save Error]`, error);
+      // 保存失敗しても問題生成自体は成功として扱う（データ蓄積は副次的）
     }
 
     // Step 5: トピック使用履歴を記録
