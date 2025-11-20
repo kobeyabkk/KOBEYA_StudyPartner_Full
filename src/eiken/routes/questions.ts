@@ -166,15 +166,38 @@ app.get('/:id', async (c) => {
       );
     }
 
-    // question_dataをパース
+    // 既存スキーマから question_data オブジェクトを再構築
+    const choices = question.choices_json ? JSON.parse(question.choices_json as string) : [];
+    const correctAnswer = question.correct_answer_text || 
+                          (choices.length > 0 && question.correct_answer_index !== null 
+                            ? choices[question.correct_answer_index] 
+                            : null);
+    
     const questionData = {
-      ...question,
-      question_data: JSON.parse(question.question_data as string),
+      question_text: question.question_text,
+      passage: question.question_type === 'long_reading' || question.question_type === 'reading_aloud' 
+                ? question.question_text 
+                : undefined,
+      choices: choices,
+      correct_answer: correctAnswer,
+      explanation: question.explanation || '',
+      explanation_ja: question.explanation_ja || '',
     };
 
     return c.json({
       success: true,
-      data: questionData,
+      data: {
+        id: question.id,
+        grade: question.grade,
+        section: question.section,
+        question_type: question.question_type,
+        answer_type: question.answer_type,
+        question_data: questionData,
+        difficulty_score: question.difficulty_score,
+        quality_score: question.quality_score,
+        model: question.model,
+        created_at: question.created_at,
+      },
       meta: {
         timestamp: new Date().toISOString(),
       },
@@ -202,28 +225,21 @@ app.get('/:id', async (c) => {
  */
 app.get('/list', async (c) => {
   try {
-    const studentId = c.req.query('student_id');
+    const studentId = c.req.query('student_id'); // Note: 現在のスキーマには存在しない（将来的に追加予定）
     const grade = c.req.query('grade');
     const format = c.req.query('format');
     const limit = parseInt(c.req.query('limit') || '10');
     const offset = parseInt(c.req.query('offset') || '0');
 
-    if (!studentId) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            message: 'student_id is required',
-            code: 'VALIDATION_ERROR',
-          },
-        },
-        400
-      );
+    // 注: student_id カラムは現在のスキーマに存在しないため、無視される
+    // 将来的にスキーママイグレーションで追加予定
+    if (studentId) {
+      console.warn(`[LIST] student_id=${studentId} provided but column doesn't exist in schema`);
     }
 
     // クエリ構築
-    let query = 'SELECT * FROM eiken_generated_questions WHERE student_id = ?';
-    const params: any[] = [studentId];
+    let query = 'SELECT * FROM eiken_generated_questions WHERE 1=1';
+    const params: any[] = [];
 
     if (grade) {
       query += ' AND grade = ?';
@@ -231,7 +247,7 @@ app.get('/list', async (c) => {
     }
 
     if (format) {
-      query += ' AND format = ?';
+      query += ' AND question_type = ?';
       params.push(format);
     }
 
@@ -243,11 +259,36 @@ app.get('/list', async (c) => {
       .bind(...params)
       .all();
 
-    // question_dataをパース
-    const questions = results.map((q: any) => ({
-      ...q,
-      question_data: JSON.parse(q.question_data),
-    }));
+    // 既存スキーマから question_data オブジェクトを再構築
+    const questions = results.map((q: any) => {
+      const choices = q.choices_json ? JSON.parse(q.choices_json) : [];
+      const correctAnswer = q.correct_answer_text || 
+                            (choices.length > 0 && q.correct_answer_index !== null 
+                              ? choices[q.correct_answer_index] 
+                              : null);
+      
+      return {
+        id: q.id,
+        grade: q.grade,
+        section: q.section,
+        question_type: q.question_type,
+        answer_type: q.answer_type,
+        question_data: {
+          question_text: q.question_text,
+          passage: q.question_type === 'long_reading' || q.question_type === 'reading_aloud' 
+                    ? q.question_text 
+                    : undefined,
+          choices: choices,
+          correct_answer: correctAnswer,
+          explanation: q.explanation || '',
+          explanation_ja: q.explanation_ja || '',
+        },
+        difficulty_score: q.difficulty_score,
+        quality_score: q.quality_score,
+        model: q.model,
+        created_at: q.created_at,
+      };
+    });
 
     return c.json({
       success: true,
