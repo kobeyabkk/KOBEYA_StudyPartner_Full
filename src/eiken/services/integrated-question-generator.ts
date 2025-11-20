@@ -317,6 +317,12 @@ export class IntegratedQuestionGenerator {
     if (questionData.question_text) {
       textToValidate += questionData.question_text + ' ';
     }
+    if (questionData.essay_prompt) {
+      textToValidate += questionData.essay_prompt + ' ';
+    }
+    if (questionData.sample_essay) {
+      textToValidate += questionData.sample_essay + ' ';
+    }
     if (questionData.passage) {
       textToValidate += questionData.passage + ' ';
     }
