@@ -62,6 +62,24 @@ app.post('/generate', async (c) => {
       );
     }
 
+    // デバッグ: DB binding チェック
+    console.log('[DEBUG] c.env.DB type:', typeof c.env.DB);
+    console.log('[DEBUG] c.env.DB exists:', !!c.env.DB);
+    console.log('[DEBUG] c.env.DB.prepare exists:', !!(c.env.DB && typeof c.env.DB.prepare === 'function'));
+    
+    if (!c.env.DB) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: 'Database not configured',
+            code: 'CONFIGURATION_ERROR',
+          },
+        },
+        500
+      );
+    }
+
     // 問題生成
     const generator = new IntegratedQuestionGenerator(c.env.DB, c.env.OPENAI_API_KEY);
     const result = await generator.generateQuestion(body);
