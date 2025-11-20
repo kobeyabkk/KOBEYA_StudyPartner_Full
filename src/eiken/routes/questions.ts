@@ -190,13 +190,16 @@ app.get('/list', async (c) => {
                               ? choices[q.correct_answer_index] 
                               : null);
       
-      return {
-        id: q.id,
-        grade: q.grade,
-        section: q.section,
-        question_type: q.question_type,
-        answer_type: q.answer_type,
-        question_data: {
+      // essay形式の場合、question_textにJSON全体が保存されている可能性があるためパース
+      let questionDataContent: any = {};
+      if (q.question_type === 'essay' && q.question_text.startsWith('{')) {
+        try {
+          questionDataContent = JSON.parse(q.question_text);
+        } catch {
+          questionDataContent = { question_text: q.question_text };
+        }
+      } else {
+        questionDataContent = {
           question_text: q.question_text,
           passage: q.question_type === 'long_reading' || q.question_type === 'reading_aloud' 
                     ? q.question_text 
@@ -205,7 +208,16 @@ app.get('/list', async (c) => {
           correct_answer: correctAnswer,
           explanation: q.explanation || '',
           explanation_ja: q.explanation_ja || '',
-        },
+        };
+      }
+      
+      return {
+        id: q.id,
+        grade: q.grade,
+        section: q.section,
+        question_type: q.question_type,
+        answer_type: q.answer_type,
+        question_data: questionDataContent,
         difficulty_score: q.difficulty_score,
         quality_score: q.quality_score,
         model: q.model,
@@ -282,16 +294,30 @@ app.get('/:id', async (c) => {
                             ? choices[question.correct_answer_index] 
                             : null);
     
-    const questionData = {
-      question_text: question.question_text,
-      passage: question.question_type === 'long_reading' || question.question_type === 'reading_aloud' 
-                ? question.question_text 
-                : undefined,
-      choices: choices,
-      correct_answer: correctAnswer,
-      explanation: question.explanation || '',
-      explanation_ja: question.explanation_ja || '',
-    };
+    // essay形式の場合、question_textにJSON全体が保存されている可能性があるためパース
+    let questionData: any;
+    if (question.question_type === 'essay' && typeof question.question_text === 'string' && question.question_text.startsWith('{')) {
+      try {
+        questionData = JSON.parse(question.question_text);
+      } catch {
+        questionData = {
+          question_text: question.question_text,
+          explanation: question.explanation || '',
+          explanation_ja: question.explanation_ja || '',
+        };
+      }
+    } else {
+      questionData = {
+        question_text: question.question_text,
+        passage: question.question_type === 'long_reading' || question.question_type === 'reading_aloud' 
+                  ? question.question_text 
+                  : undefined,
+        choices: choices,
+        correct_answer: correctAnswer,
+        explanation: question.explanation || '',
+        explanation_ja: question.explanation_ja || '',
+      };
+    }
 
     return c.json({
       success: true,

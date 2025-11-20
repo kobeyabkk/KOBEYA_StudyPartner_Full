@@ -428,7 +428,11 @@ export class IntegratedQuestionGenerator {
     
     // 既存スキーマにマッピング
     const questionData = data.question_data;
-    const questionText = questionData.question_text || questionData.passage || JSON.stringify(questionData);
+    // essay形式は essay_prompt を使用
+    const questionText = questionData.question_text 
+                         || questionData.essay_prompt 
+                         || questionData.passage 
+                         || JSON.stringify(questionData);
     const choices = questionData.choices || [];
     const correctAnswer = questionData.correct_answer || '';
     const correctIndex = choices.length > 0 ? choices.indexOf(correctAnswer) : -1;
