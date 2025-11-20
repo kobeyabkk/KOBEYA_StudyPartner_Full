@@ -5,10 +5,19 @@
  */
 
 import { Hono } from 'hono';
-import type { EikenEnv, QuestionGenerationRequest } from '../types';
+import type { D1Database } from '@cloudflare/workers-types';
+import type { QuestionGenerationRequest } from '../types';
 import { IntegratedQuestionGenerator } from '../services/integrated-question-generator';
 
-const app = new Hono<{ Bindings: EikenEnv }>();
+// メインappと同じBindings型を使用
+type Bindings = {
+  OPENAI_API_KEY: string;
+  DB: D1Database;
+  WEBHOOK_SECRET: string;
+  VERSION: string;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
 
 /**
  * POST /api/eiken/questions/generate
