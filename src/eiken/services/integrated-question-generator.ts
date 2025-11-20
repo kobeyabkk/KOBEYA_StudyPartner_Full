@@ -15,8 +15,9 @@ import type {
 import { BlueprintGenerator } from './blueprint-generator';
 import { buildPromptForBlueprint } from '../prompts/format-prompts';
 import { selectModel, getModelSelectionReason } from '../utils/model-selector';
-import { validateVocabulary as validateVocabularyLevel } from '../lib/vocabulary-validator';
+import { validateVocabulary } from '../lib/vocabulary-validator';
 import { validateGeneratedQuestion } from './copyright-validator';
+import { getTargetCEFR } from './vocabulary-analyzer';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -315,7 +316,13 @@ export class IntegratedQuestionGenerator {
       textToValidate += questionData.choices.join(' ') + ' ';
     }
 
-    const validation = await validateVocabularyLevel(textToValidate, grade);
+    // 英検級に対応するCEFRレベルを取得
+    const targetCEFR = getTargetCEFR(grade);
+    
+    // DB と CEFR レベルを正しく渡す
+    const validation = await validateVocabulary(textToValidate, this.db, {
+      target_level: targetCEFR as any,
+    });
     
     return {
       passed: validation.is_valid,

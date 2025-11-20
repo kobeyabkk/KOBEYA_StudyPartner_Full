@@ -156,7 +156,7 @@ export async function analyzeVocabularyLevel(
 /**
  * 英検級からCEFRレベルへの変換
  */
-function getTargetCEFR(grade: EikenGrade): string {
+export function getTargetCEFR(grade: EikenGrade): string {
   const mapping: Record<EikenGrade, string> = {
     '5': 'A1',
     '4': 'A1',

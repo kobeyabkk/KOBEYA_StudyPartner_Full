@@ -162,9 +162,9 @@ export async function validateVocabulary(
   // SQLクエリを構築（IN句を使用）
   const placeholders = wordsToCheck.map(() => '?').join(',');
   const query = `
-    SELECT word, base_form, pos, cefr_level, eiken_grade
+    SELECT word_lemma as word, word_lemma as base_form, pos, cefr_level, grade_level as eiken_grade
     FROM eiken_vocabulary_lexicon
-    WHERE word IN (${placeholders})
+    WHERE word_lemma IN (${placeholders})
   `;
   
   const stmt = db.prepare(query).bind(...wordsToCheck);
