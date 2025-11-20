@@ -337,28 +337,36 @@ export class IntegratedQuestionGenerator {
     questionData: any,
     grade: EikenGrade
   ): Promise<{ passed: boolean; score: number }> {
-    // 簡易的な実装（実際はより詳細な検証が必要）
-    const textToCheck = JSON.stringify(questionData);
+    // 問題テキストを抽出
+    let generatedQuestion = '';
+    if (questionData.question_text) {
+      generatedQuestion = questionData.question_text;
+    } else if (questionData.passage) {
+      generatedQuestion = questionData.passage;
+    } else {
+      generatedQuestion = JSON.stringify(questionData);
+    }
     
+    // 正しい形式で validateGeneratedQuestion を呼び出す
     const validation = await validateGeneratedQuestion(
       {
-        questionText: textToCheck,
-        choices: questionData.choices || [],
-        correctAnswerIndex: 0,
-        explanation: questionData.explanation || '',
-        difficulty: 0.5,
-        topic: '',
-        copyrightSafe: true,
-        copyrightScore: 1.0,
-        questionNumber: 1,
+        generatedQuestion,
+        generatedChoices: questionData.choices || [],
+        grade,
+        section: 'vocabulary', // デフォルトセクション
       },
-      this.db,
-      grade
+      {
+        DB: this.db,
+        KV: null as any, // 未使用
+        OPENAI_API_KEY: this.openaiApiKey,
+        JWT_SECRET: '',
+        R2_BUCKET: undefined,
+      }
     );
 
     return {
-      passed: validation.copyright_safe,
-      score: validation.copyright_score,
+      passed: validation.safe,
+      score: validation.overallScore,
     };
   }
 
