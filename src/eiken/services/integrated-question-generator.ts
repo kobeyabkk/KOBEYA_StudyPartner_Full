@@ -325,8 +325,8 @@ export class IntegratedQuestionGenerator {
     });
     
     return {
-      passed: validation.is_valid,
-      score: validation.score || 0,
+      passed: validation.valid,
+      score: (validation.valid_words / validation.total_words) * 100 || 0,
     };
   }
 
