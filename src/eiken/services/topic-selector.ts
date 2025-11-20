@@ -37,6 +37,9 @@ export class TopicSelector {
   async selectTopic(options: TopicSelectionOptions): Promise<TopicSelectionResult> {
     const startTime = Date.now();
     
+    console.log(`[TopicSelector] ===== STARTING TOPIC SELECTION =====`);
+    console.log(`[TopicSelector] Options:`, JSON.stringify(options, null, 2));
+    
     // 7-stage fallback strategy
     for (let stage = 0; stage <= 6; stage++) {
       try {
@@ -44,15 +47,23 @@ export class TopicSelector {
         if (result) {
           result.fallback_stage = stage;
           result.metadata.selection_timestamp = new Date().toISOString();
+          
+          const executionTime = Date.now() - startTime;
+          console.log(`[TopicSelector] ✅ SUCCESS at Stage ${stage}! Selected: ${result.topic.topic_code} (${executionTime}ms)`);
+          console.log(`[TopicSelector] ===== END TOPIC SELECTION =====`);
+          
           return result;
         }
       } catch (error) {
-        console.error(`Stage ${stage} failed:`, error);
+        console.error(`[TopicSelector] ❌ Stage ${stage} failed:`, error);
+        console.error(`[TopicSelector] Error stack:`, (error as Error).stack);
         // Continue to next stage
       }
     }
 
     // If all stages fail, throw error
+    console.error(`[TopicSelector] ❌❌❌ ALL 7 STAGES EXHAUSTED! No suitable topic found.`);
+    console.log(`[TopicSelector] ===== END TOPIC SELECTION (FAILURE) =====`);
     throw new Error('All fallback stages exhausted. No suitable topic found.');
   }
 
@@ -63,10 +74,15 @@ export class TopicSelector {
     options: TopicSelectionOptions,
     stage: number
   ): Promise<TopicSelectionResult | null> {
+    console.log(`[TopicSelector] Stage ${stage} starting for grade=${options.grade}, question_type=${options.question_type}`);
+    
     // Get all active topics for grade
     let candidates = await this.getCandidateTopics(options.grade);
     
+    console.log(`[TopicSelector] Stage ${stage}: Initial candidates: ${candidates.length}`);
+    
     if (candidates.length === 0) {
+      console.warn(`[TopicSelector] Stage ${stage}: No candidates found!`);
       return null;
     }
 
@@ -75,33 +91,61 @@ export class TopicSelector {
     // Apply filters based on stage
     if (stage === 0) {
       // Normal selection: Apply all filters
+      console.log(`[TopicSelector] Stage ${stage}: Applying LRU filter (1.0)...`);
       candidates = await this.applyLRUFilter(candidates, options, 1.0);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
+      
+      console.log(`[TopicSelector] Stage ${stage}: Applying blacklist filter...`);
       candidates = await this.applyBlacklistFilter(candidates, options, false);
+      console.log(`[TopicSelector] Stage ${stage}: After blacklist: ${candidates.length} candidates`);
     } else if (stage === 1) {
       // Relax LRU: Reduce window size to 50%
+      console.log(`[TopicSelector] Stage ${stage}: Applying relaxed LRU filter (0.5)...`);
       candidates = await this.applyLRUFilter(candidates, options, 0.5);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
+      
       candidates = await this.applyBlacklistFilter(candidates, options, false);
+      console.log(`[TopicSelector] Stage ${stage}: After blacklist: ${candidates.length} candidates`);
     } else if (stage === 2) {
       // Ignore recent blacklist: Only respect old blacklist entries
+      console.log(`[TopicSelector] Stage ${stage}: Applying LRU + expired blacklist only...`);
       candidates = await this.applyLRUFilter(candidates, options, 0.5);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
+      
       candidates = await this.applyBlacklistFilter(candidates, options, true);
+      console.log(`[TopicSelector] Stage ${stage}: After expired blacklist: ${candidates.length} candidates`);
     } else if (stage === 3) {
       // Ignore all blacklist
+      console.log(`[TopicSelector] Stage ${stage}: Applying LRU only (no blacklist)...`);
       candidates = await this.applyLRUFilter(candidates, options, 0.5);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
     } else if (stage === 4) {
       // Adjacent grades (±1)
+      console.log(`[TopicSelector] Stage ${stage}: Using adjacent grades (±1)...`);
       candidates = await this.getAdjacentGradeTopics(options.grade, 1);
+      console.log(`[TopicSelector] Stage ${stage}: Adjacent grade candidates: ${candidates.length}`);
+      
       candidates = await this.applyLRUFilter(candidates, options, 0.3);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
     } else if (stage === 5) {
       // Extended grades (±2)
+      console.log(`[TopicSelector] Stage ${stage}: Using extended grades (±2)...`);
       candidates = await this.getAdjacentGradeTopics(options.grade, 2);
+      console.log(`[TopicSelector] Stage ${stage}: Extended grade candidates: ${candidates.length}`);
+      
       candidates = await this.applyLRUFilter(candidates, options, 0.2);
+      console.log(`[TopicSelector] Stage ${stage}: After LRU: ${candidates.length} candidates`);
     } else if (stage === 6) {
       // Emergency: Any active topic from any grade
+      console.log(`[TopicSelector] Stage ${stage}: EMERGENCY - using any active topic...`);
       candidates = await this.getEmergencyTopics();
+      console.log(`[TopicSelector] Stage ${stage}: Emergency candidates: ${candidates.length}`);
     }
 
+    console.log(`[TopicSelector] Stage ${stage}: Final candidates after all filters: ${candidates.length}`);
+    
     if (candidates.length === 0) {
+      console.warn(`[TopicSelector] Stage ${stage}: All candidates filtered out!`);
       return null;
     }
 
@@ -159,16 +203,39 @@ export class TopicSelector {
    * Get all active topics for a grade
    */
   private async getCandidateTopics(grade: EikenGrade): Promise<TopicArea[]> {
-    const result = await this.db
-      .prepare(
-        `SELECT * FROM eiken_topic_areas 
-         WHERE grade = ? AND is_active = 1 
-         ORDER BY weight DESC, official_frequency DESC`
-      )
-      .bind(grade)
-      .all<TopicArea>();
+    console.log(`[TopicSelector] Getting candidates for grade: ${grade} (type: ${typeof grade})`);
+    
+    try {
+      const result = await this.db
+        .prepare(
+          `SELECT * FROM eiken_topic_areas 
+           WHERE grade = ? AND is_active = 1 
+           ORDER BY weight DESC, official_frequency DESC`
+        )
+        .bind(grade)
+        .all<TopicArea>();
 
-    return result.results || [];
+      console.log(`[TopicSelector] Query executed. Success: ${result.success}, Results: ${result.results?.length || 0}`);
+      
+      if (result.results && result.results.length > 0) {
+        console.log(`[TopicSelector] Sample topic:`, JSON.stringify(result.results[0]));
+      } else {
+        console.warn(`[TopicSelector] No topics found for grade ${grade}!`);
+        
+        // デバッグ: is_activeなしで試す
+        const debugResult = await this.db
+          .prepare(`SELECT COUNT(*) as count FROM eiken_topic_areas WHERE grade = ?`)
+          .bind(grade)
+          .first<{ count: number }>();
+        
+        console.log(`[TopicSelector] Debug: Total topics for grade ${grade} (ignoring is_active): ${debugResult?.count || 0}`);
+      }
+
+      return result.results || [];
+    } catch (error) {
+      console.error(`[TopicSelector] Error in getCandidateTopics:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -203,6 +270,9 @@ export class TopicSelector {
 
   /**
    * Apply blacklist filtering
+   * 
+   * @param onlyExpired - When false (stage 0-1): filters out ACTIVE blacklists
+   *                      When true (stage 2): filters out EXPIRED blacklists (more relaxed - ignores active ones)
    */
   private async applyBlacklistFilter(
     candidates: TopicArea[],
@@ -217,12 +287,16 @@ export class TopicSelector {
     `;
     
     if (onlyExpired) {
-      query += ` AND expires_at > ?`;
+      // Stage 2 relaxation: Only filter out EXPIRED blacklists (effectively filters nothing useful)
+      // expires_at < now (期限切れ) - これは実質的にフィルタリングしない（期限切れは無効なので）
+      query += ` AND expires_at < ?`;
+    } else {
+      // Stage 0-1: Filter out ACTIVE blacklists
+      // expires_at > now (まだ有効) または expires_at IS NULL (永続的)
+      query += ` AND (expires_at > ? OR expires_at IS NULL)`;
     }
 
-    const stmt = onlyExpired
-      ? this.db.prepare(query).bind(options.student_id, options.grade, options.question_type, now)
-      : this.db.prepare(query).bind(options.student_id, options.grade, options.question_type);
+    const stmt = this.db.prepare(query).bind(options.student_id, options.grade, options.question_type, now);
 
     const blacklisted = await stmt.all<{ topic_code: string }>();
     const blacklistedTopics = new Set(blacklisted.results?.map(r => r.topic_code) || []);
