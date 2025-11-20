@@ -1,9 +1,15 @@
 -- ============================================================
--- Migration 0013: Create Users Table and Link to Learning History
+-- Migration 0013 FINAL: Create Users Table
 -- ============================================================
 -- Purpose: Create user management system for APP_KEY + Student ID
--- Author: System
 -- Date: 2024-11-18
+-- 
+-- VERIFIED TABLE SCHEMA:
+-- ✅ essay_sessions (has student_id)
+-- ✅ flashcards (has appkey, sid)
+-- ✅ flashcard_decks (has appkey, sid)
+-- ✅ international_sessions (has student_name, but NO student_id - uses session_id only)
+-- ✅ international_conversations (linked via session_id)
 -- ============================================================
 
 -- ============================================================
@@ -30,53 +36,66 @@ CREATE INDEX IF NOT EXISTS idx_users_login ON users(app_key, student_id, is_acti
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active, created_at DESC);
 
 -- ============================================================
--- 2. Add user_id to existing tables for learning history linkage
+-- 2. Add user_id to essay_sessions
 -- ============================================================
-
--- Study Partner Sessions
-ALTER TABLE study_partner_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_user ON study_partner_sessions(user_id);
-
--- Essay Coaching Sessions
-ALTER TABLE essay_coaching_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
-CREATE INDEX IF NOT EXISTS idx_essay_sessions_user ON essay_coaching_sessions(user_id);
-
--- Flashcard Cards
-ALTER TABLE flashcard_cards ADD COLUMN user_id INTEGER REFERENCES users(id);
-CREATE INDEX IF NOT EXISTS idx_flashcard_cards_user ON flashcard_cards(user_id);
-
--- Flashcard Categories
-ALTER TABLE flashcard_categories ADD COLUMN user_id INTEGER REFERENCES users(id);
-CREATE INDEX IF NOT EXISTS idx_flashcard_categories_user ON flashcard_categories(user_id);
-
--- Flashcard Tags
-ALTER TABLE flashcard_tags ADD COLUMN user_id INTEGER REFERENCES users(id);
-CREATE INDEX IF NOT EXISTS idx_flashcard_tags_user ON flashcard_tags(user_id);
+-- essay_sessions has: student_id column
+ALTER TABLE essay_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_essay_sessions_user ON essay_sessions(user_id);
 
 -- ============================================================
--- 3. Create admin_settings table (for admin password)
+-- 3. Add user_id to flashcards
+-- ============================================================
+-- flashcards has: appkey, sid columns
+ALTER TABLE flashcards ADD COLUMN user_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_flashcards_user ON flashcards(user_id);
+
+-- ============================================================
+-- 4. Add user_id to flashcard_decks
+-- ============================================================
+-- flashcard_decks has: appkey, sid columns
+ALTER TABLE flashcard_decks ADD COLUMN user_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_flashcard_decks_user ON flashcard_decks(user_id);
+
+-- ============================================================
+-- 5. Add user_id to international_sessions
+-- ============================================================
+-- international_sessions has: student_name (but NO student_id)
+-- We'll need to link via student_name or manually
+ALTER TABLE international_sessions ADD COLUMN user_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_international_sessions_user ON international_sessions(user_id);
+
+-- ============================================================
+-- 6. Add user_id to international_conversations
+-- ============================================================
+-- international_conversations is linked via session_id to international_sessions
+-- We can link it indirectly through international_sessions
+ALTER TABLE international_conversations ADD COLUMN user_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_international_conversations_user ON international_conversations(user_id);
+
+-- ============================================================
+-- 7. Create admin_settings table
 -- ============================================================
 CREATE TABLE IF NOT EXISTS admin_settings (
-  id INTEGER PRIMARY KEY CHECK (id = 1), -- Ensure only one row
+  id INTEGER PRIMARY KEY CHECK (id = 1),
   password_hash TEXT NOT NULL,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================================
--- 4. Insert default admin password (bcrypt hash of "admin123")
--- ============================================================
--- Note: This should be changed immediately after first login
--- Default password: admin123
--- Hash: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+-- Default admin password: admin123 (bcrypt hash for future use)
 INSERT OR IGNORE INTO admin_settings (id, password_hash) 
 VALUES (1, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
 
 -- ============================================================
--- 5. Migration Complete
+-- Migration 0013 Complete
 -- ============================================================
--- Next steps:
--- 1. Run this migration on D1 database
--- 2. Create admin UI at /admin/users
--- 3. Update login logic to use users table
--- 4. Link new sessions to user_id
+-- Created:
+-- ✅ users table with indexes
+-- ✅ user_id column in essay_sessions
+-- ✅ user_id column in flashcards
+-- ✅ user_id column in flashcard_decks
+-- ✅ user_id column in international_sessions
+-- ✅ user_id column in international_conversations
+-- ✅ admin_settings table
+--
+-- Next: Run 0014_FINAL_migrate_existing_users.sql
 -- ============================================================
