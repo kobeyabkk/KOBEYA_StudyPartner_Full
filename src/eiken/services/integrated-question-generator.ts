@@ -382,30 +382,45 @@ export class IntegratedQuestionGenerator {
   }
 
   /**
-   * データベースに保存
+   * データベースに保存（既存のeiken_generated_questionsスキーマに合わせる）
    */
   private async saveQuestion(data: GeneratedQuestionData): Promise<GeneratedQuestionData> {
+    // 既存スキーマにマッピング
+    const questionData = data.question_data;
+    const questionText = questionData.question_text || questionData.passage || JSON.stringify(questionData);
+    const choices = questionData.choices || [];
+    const correctAnswer = questionData.correct_answer || '';
+    const correctIndex = choices.length > 0 ? choices.indexOf(correctAnswer) : -1;
+    
+    // CHECK制約対応: choices があれば mcq、なければ written
+    const answerType = choices.length > 0 ? 'mcq' : 'written';
+    const choicesJson = choices.length > 0 ? JSON.stringify(choices) : null;
+    const correctIdx = (answerType === 'mcq' && correctIndex >= 0) ? correctIndex : null;
+    
     const result = await this.db
       .prepare(`
         INSERT INTO eiken_generated_questions (
-          blueprint_id, student_id, grade, format, topic_code,
-          question_data, model_used, generation_mode,
-          validation_passed, vocabulary_score, copyright_score,
-          created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          grade, section, question_type, answer_type,
+          question_text, choices_json, correct_answer_index, correct_answer_text,
+          explanation, explanation_ja, model, difficulty_score,
+          vocab_band, quality_score, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        data.blueprint_id,
-        data.student_id,
         data.grade,
+        'reading', // デフォルトセクション
         data.format,
-        data.topic_code,
-        JSON.stringify(data.question_data),
+        answerType,
+        questionText,
+        choicesJson,
+        correctIdx,
+        correctAnswer,
+        questionData.explanation || '',
+        questionData.explanation_ja || '',
         data.model_used,
-        data.generation_mode,
-        data.validation_passed ? 1 : 0,
-        data.vocabulary_score,
-        data.copyright_score,
+        0.5, // デフォルト難易度
+        `vocabulary_score:${data.vocabulary_score}`, // 語彙スコアを保存
+        data.copyright_score ? Math.min(5.0, Math.max(1.0, data.copyright_score / 20)) : null, // 100点満点→5点満点に変換
         data.created_at
       )
       .run();
