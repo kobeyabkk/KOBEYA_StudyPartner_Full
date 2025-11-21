@@ -388,6 +388,7 @@ npx wrangler pages deploy dist --project-name=kobeyabkk-studypartner
 
 | 日時 | URL | 内容 |
 |------|-----|------|
-| 2025-11-21 (最新) | https://bc577064.kobeyabkk-studypartner.pages.dev | Phase 4再デプロイ（動作確認後） |
+| 2025-11-21 (最新) | https://3dbbd8e7.kobeyabkk-studypartner.pages.dev | **統合デプロイ**: Phase 4 + UI修正の両方を含む |
+| 2025-11-21 | https://bc577064.kobeyabkk-studypartner.pages.dev | Phase 4再デプロイ（動作確認後） |
 | 2025-11-21 (初回) | https://3f532034.kobeyabkk-studypartner.pages.dev | Phase 4初回デプロイ |
-| 2025-11-21 (UI修正) | https://c244cdee.kobeyabkk-studypartner.pages.dev | GradeSelector UI修正 |
+| 2025-11-21 (UI修正) | https://c244cdee.kobeyabkk-studypartner.pages.dev | GradeSelector UI修正のみ |
