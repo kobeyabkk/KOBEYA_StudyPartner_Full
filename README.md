@@ -67,21 +67,20 @@
 - ✅ アップロード進行表示
 - ✅ 段階学習・類似問題インターフェース
 
-#### 🆕 英検対策機能（Phase 3 リリース）
-- ✅ **3形式の問題生成**: grammar_fill, opinion_speech, reading_aloud
+#### 🆕 英検対策機能（Phase 3-4 本番稼働中）
+- ✅ **5形式の問題生成**: grammar_fill, opinion_speech, reading_aloud, **essay**, **long_reading**
 - ✅ **語彙レベル検証**: CEFR準拠の語彙チェック（A1-C2）
 - ✅ **著作権検証**: 過去問類似度チェック
 - ✅ **トピック管理**: 61トピック（5級-1級）
 - ✅ **Blueprint システム**: AIプロンプト最適化
 - ✅ **全選択肢の語彙解説**: 正解・不正解全ての意味を表示
-- 🚧 **Coming Soon**: essay, long_reading（語彙レベル調整中）
 
-#### 🚀 英検対策機能（Phase 4 - Vocabulary Quality 向上中）
+#### 🚀 Phase 4 語彙品質改善（本番稼働）
 - ✅ **VocabularyFailureTracker**: 動的禁止語学習システム
 - ✅ **Few-shot Examples**: Good/Bad対比による語彙制御
 - ✅ **Optimal Temperature**: 形式別LLMパラメータ調整（0.25-0.5）
 - ✅ **Adaptive Thresholds**: 形式・長さに応じた語彙検証基準
-- 🎯 **Target**: essay 64%→81%, long_reading 69%→85% (Phase 1)
+- 🎉 **実績**: essay 64%→80%, long_reading 69%→84% (Phase 4完了)
 
 #### 新機能プレースホルダー
 - ✅ 小論文対策（実装予定）

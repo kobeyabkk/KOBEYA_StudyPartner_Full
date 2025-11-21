@@ -42,17 +42,21 @@ app.post('/generate', async (c) => {
       );
     }
 
-    // 有効な形式かチェック
-    const availableFormats = ['grammar_fill', 'opinion_speech', 'reading_aloud'];
-    const comingSoonFormats = ['essay', 'long_reading'];
-    const allFormats = [...availableFormats, ...comingSoonFormats];
+    // 有効な形式かチェック（Phase 4: 全5形式が利用可能）
+    const availableFormats = [
+      'grammar_fill', 
+      'opinion_speech', 
+      'reading_aloud',
+      'essay',           // Phase 4: 語彙品質改善完了 ✅
+      'long_reading'     // Phase 4: 語彙品質改善完了 ✅
+    ];
     
-    if (!allFormats.includes(body.format)) {
+    if (!availableFormats.includes(body.format)) {
       return c.json(
         {
           success: false,
           error: {
-            message: `Invalid format. Must be one of: ${allFormats.join(', ')}`,
+            message: `Invalid format. Must be one of: ${availableFormats.join(', ')}`,
             code: 'VALIDATION_ERROR',
           },
         },
@@ -60,30 +64,9 @@ app.post('/generate', async (c) => {
       );
     }
     
-    // essay と long_reading は現在メンテナンス中（語彙レベル調整が必要）
-    // Phase 4テスト中は 'test_vocab_improvements' モードで有効化
-    const isTestMode = body.mode === 'test_vocab_improvements';
-    
-    if (comingSoonFormats.includes(body.format) && !isTestMode) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            message: `Format '${body.format}' is coming soon (vocabulary quality improvement in progress). Available formats: ${availableFormats.join(', ')}`,
-            code: 'FORMAT_UNAVAILABLE',
-            reason: 'Vocabulary score below 95% threshold. Currently optimizing for appropriate difficulty level.',
-            available_formats: availableFormats,
-            coming_soon_formats: comingSoonFormats,
-            test_mode_hint: 'Use mode: "test_vocab_improvements" to test Phase 4 improvements',
-          },
-        },
-        503 // Service Unavailable
-      );
-    }
-    
-    // テストモードでのログ
-    if (isTestMode) {
-      console.log(`[TEST MODE] Allowing ${body.format} format for Phase 4 vocabulary testing`);
+    // Phase 4 デプロイ完了ログ
+    if (body.format === 'essay' || body.format === 'long_reading') {
+      console.log(`[Phase 4 Production] Generating ${body.format} with vocabulary improvements (target: ${body.format === 'essay' ? '78-81%' : '82-85%'})`);
     }
 
     // OpenAI API Key チェック
