@@ -254,6 +254,19 @@ ${LONG_READING_FEW_SHOT_EXAMPLES.bad_problems.map(p => `- ${p}`).join('\n')}
 4. **Break paragraphs clearly**: One main idea per paragraph
 5. **Simple transitions**: First, Second, Also, But, However (not Nevertheless, Furthermore)
 
+## 📖 VOCABULARY NOTES REQUIREMENT
+
+**IMPORTANT**: You MUST provide vocabulary notes for 5-8 key terms from your passage.
+- Select words that are important for understanding the passage
+- Choose words that appear in the passage and might be slightly challenging
+- Provide clear, simple Japanese definitions
+- Focus on content words (nouns, verbs, adjectives) rather than grammar words
+
+**Example vocabulary notes format**:
+• "smartphone" → スマートフォン、携帯電話
+• "worried" → 心配している
+• "outdoor" → 屋外の、外の
+
 ## 🎯 YOUR TASK
 
 Topic: "${topic.topic_label_en}" (${topic.topic_label_ja})
@@ -295,7 +308,8 @@ ${instructions.prompt_template}
     }
   ],
   "vocabulary_notes": [
-    {"word": "term", "meaning_ja": "用語"}
+    {"term": "example term", "definition": "日本語での定義"},
+    {"term": "another term", "definition": "別の定義"}
   ],
   "vocabulary_self_check": "Confirm: I used only ${guidelines.vocabulary_level} vocabulary (yes/no)"
 }
@@ -306,6 +320,7 @@ ${instructions.prompt_template}
 - All information needed to answer must be in the passage
 - Topic: ${topic.topic_label_en}
 - For each question, explanation MUST cover why the correct answer is right AND why each wrong choice is incorrect
+- **MUST include 5-8 vocabulary notes** for key terms that appear in the passage
 - **REMEMBER**: Simple, clear language for 200-300 words is HARD but ESSENTIAL. Complex vocabulary = REJECTED passage`;
 }
 
@@ -352,6 +367,19 @@ ${ESSAY_FEW_SHOT_EXAMPLES.bad_problems.map(p => `- ${p}`).join('\n')}
 4. **Self-check**: Ask yourself "Would a ${blueprint.grade} student know this word?"
 5. **Simplify complex ideas**: Break down sophisticated concepts into simple language
 
+## 📖 VOCABULARY NOTES REQUIREMENT
+
+**IMPORTANT**: You MUST provide vocabulary notes for 3-5 key terms that appear in your essay prompt or sample essay.
+- Select words that are important for understanding the topic
+- Choose words that are at or just slightly above ${guidelines.vocabulary_level} level
+- Provide clear, simple Japanese definitions
+- Include terms that students might struggle with, but are necessary for this topic
+
+**Example vocabulary notes format**:
+• "renewable energy" → 再生可能エネルギー
+• "communicate" → コミュニケーションする、伝える
+• "opinion" → 意見
+
 ## 🎯 YOUR TASK
 
 Topic: "${topic.topic_label_en}" (${topic.topic_label_ja})
@@ -395,6 +423,10 @@ ${instructions.prompt_template}
   "sample_essay_ja": "模範解答の日本語訳",
   "useful_expressions": ["expression 1", "expression 2", "expression 3"],
   "common_mistakes": ["mistake to avoid 1", "mistake to avoid 2"],
+  "vocabulary_notes": [
+    {"term": "example term", "definition": "日本語での定義"},
+    {"term": "another term", "definition": "別の定義"}
+  ],
   "vocabulary_self_check": "Confirm: I used only ${guidelines.vocabulary_level} vocabulary (yes/no)"
 }
 
@@ -403,6 +435,7 @@ ${instructions.prompt_template}
 - Allow for different perspectives
 - Appropriate difficulty for ${blueprint.grade} level
 - Topic: ${topic.topic_label_en}
+- **MUST include 3-5 vocabulary notes** for key terms in the essay prompt or sample essay
 - **REMEMBER**: Simple vocabulary + clear structure = GOOD essay. Complex vocabulary = REJECTED essay`;
 }
 
