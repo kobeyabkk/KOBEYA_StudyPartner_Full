@@ -59,8 +59,8 @@ export default function GradeSelector({ value, onChange, disabled = false }: Gra
         目標級を選択 {/* v2.0 - 順序修正版 */}
       </label>
       
-      {/* グリッドレイアウト: 左上から右へ、上から下へ自動配置 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* グリッドレイアウト: 3列固定で期待通りの順序を表示 */}
+      <div className="grid grid-cols-3 gap-3">
         {grades.map((grade) => {
           const info = GRADE_INFO[grade];
           const isSelected = value === grade;
