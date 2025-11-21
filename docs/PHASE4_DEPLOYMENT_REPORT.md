@@ -4,7 +4,8 @@
 
 **デプロイ日時**: 2025-11-21  
 **ステータス**: ✅ **デプロイ成功**  
-**デプロイURL**: https://3f532034.kobeyabkk-studypartner.pages.dev
+**最新デプロイURL**: https://bc577064.kobeyabkk-studypartner.pages.dev  
+**前回デプロイURL**: https://3f532034.kobeyabkk-studypartner.pages.dev
 
 ---
 
@@ -378,5 +379,15 @@ npx wrangler pages deploy dist --project-name=kobeyabkk-studypartner
 
 **デプロイ完了日時**: 2025-11-21  
 **デプロイ担当**: AI Development Team  
-**デプロイURL**: https://3f532034.kobeyabkk-studypartner.pages.dev  
+**最新デプロイURL**: https://bc577064.kobeyabkk-studypartner.pages.dev  
 **ステータス**: ✅ 本番環境稼働中
+
+---
+
+## 🔄 デプロイ履歴
+
+| 日時 | URL | 内容 |
+|------|-----|------|
+| 2025-11-21 (最新) | https://bc577064.kobeyabkk-studypartner.pages.dev | Phase 4再デプロイ（動作確認後） |
+| 2025-11-21 (初回) | https://3f532034.kobeyabkk-studypartner.pages.dev | Phase 4初回デプロイ |
+| 2025-11-21 (UI修正) | https://c244cdee.kobeyabkk-studypartner.pages.dev | GradeSelector UI修正 |
