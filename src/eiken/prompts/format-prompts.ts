@@ -38,9 +38,15 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
   "correct_answer": "the correct form",
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
-  "explanation": "Why this is correct (in English)",
-  "explanation_ja": "なぜこれが正解か（日本語で）",
-  "translation_ja": "問題文の日本語訳"
+  "explanation": "Why this is correct (in English). Include meanings of ALL choices.",
+  "explanation_ja": "なぜこれが正解か（日本語で）。全ての選択肢の語彙の意味を含めること。",
+  "translation_ja": "問題文の日本語訳",
+  "vocabulary_meanings": {
+    "correct_answer": "meaning in Japanese",
+    "distractor_1": "meaning in Japanese",
+    "distractor_2": "meaning in Japanese",
+    "distractor_3": "meaning in Japanese"
+  }
 }
 
 ## Important Notes
@@ -48,7 +54,8 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
 - Provide clear context clues
 - Distractors should be plausible but clearly wrong
 - Use natural, authentic English
-- The sentence must relate to the topic: ${topic.topic_label_en}`;
+- The sentence must relate to the topic: ${topic.topic_label_en}
+- MUST provide Japanese meanings for ALL vocabulary choices (correct answer + all distractors)`;
 }
 
 /**
@@ -170,8 +177,8 @@ ${instructions.prompt_template}
       "question_text": "What is the main idea?",
       "choices": ["A) option 1", "B) option 2", "C) option 3", "D) option 4"],
       "correct_answer": "A",
-      "explanation": "Why A is correct",
-      "explanation_ja": "なぜAが正解か"
+      "explanation": "Why A is correct. Explain why other choices are wrong.",
+      "explanation_ja": "なぜAが正解か。他の選択肢が不正解である理由も説明すること。"
     }
   ],
   "vocabulary_notes": [
@@ -183,7 +190,8 @@ ${instructions.prompt_template}
 - Passage should have clear structure (intro, body, conclusion)
 - Questions test different skills (main idea, details, inference)
 - All information needed to answer must be in the passage
-- Topic: ${topic.topic_label_en}`;
+- Topic: ${topic.topic_label_en}
+- For each question, explanation MUST cover why the correct answer is right AND why each wrong choice is incorrect`;
 }
 
 /**
