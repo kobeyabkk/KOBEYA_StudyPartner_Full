@@ -7,14 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Phase 3 Release] - 2025-11-21
 
-### 🎉 Added - 英検対策機能リリース
+### 🎉 Added - 英検対策機能リリース（3形式）
 
-#### 新機能
-- **4形式の問題生成システム**
-  - `grammar_fill`: 文法穴埋め問題（4択MCQ）
+#### 新機能（Production Ready）
+- **3形式の問題生成システム**
+  - `grammar_fill`: 文法穴埋め問題（4択MCQ、語彙解説付き）
   - `opinion_speech`: 意見スピーチ問題（質問+模範解答）
-  - `reading_aloud`: 音読問題（50-80語パッセージ）
-  - `essay`: エッセイ問題（プロンプト+模範解答+アウトライン）
+  - `reading_aloud`: 音読問題（50-80語パッセージ、発音ガイド）
 
 #### 品質保証システム
 - **語彙レベル検証**: CEFR準拠（A1-C2）の語彙チェック
@@ -42,12 +41,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 100語ずつ分割クエリで「too many SQL variables」エラーを解決
   - デバッグログ追加でトラブルシューティング容易化
 
-### ⏳ Known Issues
+### 🚧 Coming Soon（語彙レベル調整中）
 
-- **long_reading形式**: 現在メンテナンス中
-  - 語彙スコア69% (目標: 95%)
+- **essay形式**: 語彙スコア64% → 目標95%
+  - 120-150語のエッセイで語彙が難しすぎる
+  - LLMプロンプト調整が必要
+  
+- **long_reading形式**: 語彙スコア69% → 目標95%
   - 250-300語の長文で語彙レベル調整が必要
-  - 別途デバッグ予定
+  - 複数問題の一括生成で複雑性が高い
+
+### 📋 Vocabulary Quality Issues (Technical Details)
+
+**Problem**: 長文形式（essay, long_reading）で語彙レベルが高すぎる
+
+**Root Cause**:
+1. LLMが自然な英語を生成すると、CEFR基準を超える語彙を使用
+2. 短文（grammar_fill）は制約が強く機能するが、長文は制御困難
+3. 語彙データベースのレベル分類が厳格すぎる可能性
+
+**Next Steps**:
+1. LLMプロンプトに語彙制約を強化
+2. 後処理で難しい単語を置換
+3. 語彙検証の許容度調整（95% → 90%?）
+4. CEFRレベルの再評価
 
 ### 📊 Technical Details
 
@@ -63,11 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `eiken_topic_question_type_suitability` - 形式適性
 - `eiken_topic_usage_history` - 使用履歴
 
-#### Performance
-- grammar_fill: ~9秒
-- opinion_speech: ~18秒
-- reading_aloud: ~22秒
-- essay: ~62秒
+#### Performance（Production Ready形式）
+- grammar_fill: ~9秒（85%+ vocab score）
+- opinion_speech: ~18秒（95%+ vocab score）
+- reading_aloud: ~22秒（95%+ vocab score）
+
+#### Performance（Coming Soon形式）
+- essay: ~62秒（64% vocab score ❌）
+- long_reading: ~80秒（69% vocab score ❌）
 
 ### 🎯 Migration Steps
 

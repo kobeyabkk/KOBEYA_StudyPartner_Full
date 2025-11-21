@@ -43,8 +43,8 @@ app.post('/generate', async (c) => {
     }
 
     // 有効な形式かチェック
-    const availableFormats = ['grammar_fill', 'opinion_speech', 'reading_aloud', 'essay'];
-    const comingSoonFormats = ['long_reading'];
+    const availableFormats = ['grammar_fill', 'opinion_speech', 'reading_aloud'];
+    const comingSoonFormats = ['essay', 'long_reading'];
     const allFormats = [...availableFormats, ...comingSoonFormats];
     
     if (!allFormats.includes(body.format)) {
@@ -60,14 +60,15 @@ app.post('/generate', async (c) => {
       );
     }
     
-    // long_reading は現在メンテナンス中
+    // essay と long_reading は現在メンテナンス中（語彙レベル調整が必要）
     if (comingSoonFormats.includes(body.format)) {
       return c.json(
         {
           success: false,
           error: {
-            message: `Format '${body.format}' is currently under maintenance. Available formats: ${availableFormats.join(', ')}`,
+            message: `Format '${body.format}' is coming soon (vocabulary quality improvement in progress). Available formats: ${availableFormats.join(', ')}`,
             code: 'FORMAT_UNAVAILABLE',
+            reason: 'Vocabulary score below 95% threshold. Currently optimizing for appropriate difficulty level.',
             available_formats: availableFormats,
             coming_soon_formats: comingSoonFormats,
           },

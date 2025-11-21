@@ -68,13 +68,13 @@
 - ✅ 段階学習・類似問題インターフェース
 
 #### 🆕 英検対策機能（Phase 3 リリース）
-- ✅ **4形式の問題生成**: grammar_fill, opinion_speech, reading_aloud, essay
+- ✅ **3形式の問題生成**: grammar_fill, opinion_speech, reading_aloud
 - ✅ **語彙レベル検証**: CEFR準拠の語彙チェック（A1-C2）
 - ✅ **著作権検証**: 過去問類似度チェック
 - ✅ **トピック管理**: 61トピック（5級-1級）
 - ✅ **Blueprint システム**: AIプロンプト最適化
 - ✅ **全選択肢の語彙解説**: 正解・不正解全ての意味を表示
-- ⏳ **long_reading形式**: メンテナンス中（近日追加予定）
+- 🚧 **Coming Soon**: essay, long_reading（語彙レベル調整中）
 
 #### 新機能プレースホルダー
 - ✅ 小論文対策（実装予定）
@@ -150,7 +150,7 @@
 ### 🎓 英検対策API（Phase 3）
 | Path | Method | 説明 | 対応形式 |
 |------|--------|------|----------|
-| `/api/eiken/questions/generate` | POST | 問題生成 | grammar_fill, opinion_speech, reading_aloud, essay |
+| `/api/eiken/questions/generate` | POST | 問題生成 | grammar_fill, opinion_speech, reading_aloud |
 | `/api/eiken/questions/list` | GET | 問題一覧 | 全形式 |
 | `/api/eiken/questions/:id` | GET | 問題詳細 | 全形式 |
 
@@ -164,12 +164,14 @@
 }
 ```
 
-#### 対応形式
-- ✅ `grammar_fill` - 文法穴埋め問題（4択）
-- ✅ `opinion_speech` - 意見スピーチ問題（模範解答付き）
-- ✅ `reading_aloud` - 音読問題（50-80語パッセージ）
-- ✅ `essay` - エッセイ問題（プロンプト+模範解答）
-- ⏳ `long_reading` - 長文読解問題（メンテナンス中）
+#### 対応形式（Production Ready）
+- ✅ `grammar_fill` - 文法穴埋め問題（4択、語彙解説付き）
+- ✅ `opinion_speech` - 意見スピーチ問題（質問+模範解答）
+- ✅ `reading_aloud` - 音読問題（50-80語パッセージ、発音ガイド）
+
+#### Coming Soon（語彙レベル調整中）
+- 🚧 `essay` - エッセイ問題（語彙スコア64% → 目標95%）
+- 🚧 `long_reading` - 長文読解問題（語彙スコア69% → 目標95%）
 
 #### 利用可能グレード
 `5`, `4`, `3`, `pre2`, `2`, `pre1`, `1` (小文字)
