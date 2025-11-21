@@ -681,7 +681,32 @@ Always respond with valid JSON.`;
     console.log(`[saveQuestion] questionData keys:`, Object.keys(questionData));
     const choices = questionData.choices || [];
     const correctAnswer = questionData.correct_answer || '';
-    const correctIndex = choices.length > 0 ? choices.indexOf(correctAnswer) : -1;
+    
+    // 正解のインデックスを柔軟に検索
+    let correctIndex = -1;
+    if (choices.length > 0) {
+      // 1. 完全一致を試す
+      correctIndex = choices.indexOf(correctAnswer);
+      
+      // 2. 完全一致が見つからない場合、プレフィックス付き選択肢から検索
+      if (correctIndex === -1 && correctAnswer.length <= 2) {
+        correctIndex = choices.findIndex(choice => {
+          const prefix = choice.trim().substring(0, 3).toUpperCase();
+          return prefix.startsWith(correctAnswer.toUpperCase() + ')') ||
+                 prefix.startsWith(correctAnswer.toUpperCase() + '.') ||
+                 prefix.startsWith(correctAnswer.toUpperCase() + ' ') ||
+                 prefix.startsWith('(' + correctAnswer.toUpperCase() + ')');
+        });
+      }
+      
+      // 3. それでも見つからない場合、選択肢のテキスト部分との部分一致を試す
+      if (correctIndex === -1) {
+        correctIndex = choices.findIndex(choice => {
+          const textPart = choice.replace(/^[A-D][).]\s*/, '').trim();
+          return textPart === correctAnswer.trim();
+        });
+      }
+    }
     
     // answer_type を形式に応じて判定（CHECK制約: 'mcq' | 'written' | 'speaking'）
     const answerType = (() => {
@@ -695,6 +720,25 @@ Always respond with valid JSON.`;
       }
       return 'written';
     })();
+    
+    // MCQの場合、正解が選択肢に含まれていることを検証
+    if (answerType === 'mcq' && correctIndex === -1) {
+      console.error(`[saveQuestion] ERROR: correct_answer "${correctAnswer}" not found in choices:`, choices);
+      throw new Error(
+        `Invalid question data for ${data.format}: ` +
+        `correct_answer "${correctAnswer}" is not in choices [${choices.join(', ')}]. ` +
+        `This indicates a data quality issue in the generated question.`
+      );
+    }
+    
+    // 選択肢の数をバリデーション（CHECK制約: correct_answer_index < 10）
+    if (choices.length > 10) {
+      console.error(`[saveQuestion] ERROR: Too many choices (${choices.length})`);
+      throw new Error(
+        `Invalid question data for ${data.format}: ` +
+        `${choices.length} choices provided, but maximum is 10.`
+      );
+    }
     
     const choicesJson = choices.length > 0 ? JSON.stringify(choices) : null;
     const correctIdx = (answerType === 'mcq' && correctIndex >= 0) ? correctIndex : null;
@@ -775,11 +819,59 @@ Always respond with valid JSON.`;
       
       const choices = q.choices || [];
       const correctAnswer = q.correct_answer || '';
-      const correctIndex = choices.indexOf(correctAnswer);
       
-      if (correctIndex === -1) {
-        console.warn(`[saveLongReadingQuestions] Warning: correct_answer "${correctAnswer}" not found in choices for question ${i + 1}`);
+      // 正解のインデックスを柔軟に検索
+      // 1. 完全一致を試す
+      let correctIndex = choices.indexOf(correctAnswer);
+      
+      // 2. 完全一致が見つからない場合、プレフィックス付き選択肢から検索
+      //    例: correct_answer="A" と choices=["A) Text", "B) Text", ...] を照合
+      if (correctIndex === -1 && correctAnswer.length <= 2) {
+        // correctAnswerが "A", "B", "C", "D" のような短い形式の場合
+        correctIndex = choices.findIndex(choice => {
+          // "A)", "A.", "A -", "(A)" などのパターンに対応
+          const prefix = choice.trim().substring(0, 3).toUpperCase();
+          return prefix.startsWith(correctAnswer.toUpperCase() + ')') ||
+                 prefix.startsWith(correctAnswer.toUpperCase() + '.') ||
+                 prefix.startsWith(correctAnswer.toUpperCase() + ' ') ||
+                 prefix.startsWith('(' + correctAnswer.toUpperCase() + ')');
+        });
       }
+      
+      // 3. それでも見つからない場合、選択肢のテキスト部分との部分一致を試す
+      if (correctIndex === -1) {
+        correctIndex = choices.findIndex(choice => {
+          // プレフィックスを削除してテキスト部分を抽出（例: "A) Text" → "Text"）
+          const textPart = choice.replace(/^[A-D][).]\s*/, '').trim();
+          return textPart === correctAnswer.trim();
+        });
+      }
+      
+      // 正解が見つからない場合はエラーをスロー（データ品質保証）
+      if (correctIndex === -1) {
+        console.error(`[saveLongReadingQuestions] ERROR: correct_answer "${correctAnswer}" not found in choices:`, choices);
+        console.error(`[saveLongReadingQuestions] Attempted matching strategies:`, {
+          exactMatch: false,
+          prefixMatch: false,
+          textPartMatch: false
+        });
+        throw new Error(
+          `Invalid question data for long_reading question ${i + 1}: ` +
+          `correct_answer "${correctAnswer}" is not in choices [${choices.join(', ')}]. ` +
+          `This indicates a data quality issue in the generated question.`
+        );
+      }
+      
+      // 選択肢の数をバリデーション（CHECK制約: correct_answer_index < 10）
+      if (choices.length > 10) {
+        console.error(`[saveLongReadingQuestions] ERROR: Too many choices (${choices.length}) for question ${i + 1}`);
+        throw new Error(
+          `Invalid question data for long_reading question ${i + 1}: ` +
+          `${choices.length} choices provided, but maximum is 10.`
+        );
+      }
+      
+      console.log(`[saveLongReadingQuestions] Question ${i + 1}: correctIndex=${correctIndex}, choices.length=${choices.length}`);
       
       const result = await this.db
         .prepare(`
@@ -797,8 +889,8 @@ Always respond with valid JSON.`;
           'mcq', // long_readingは常にMCQ
           questionText,
           JSON.stringify(choices),
-          correctIndex >= 0 ? correctIndex : null,
-          correctAnswer || null,
+          correctIndex, // correctIndex >= 0 が保証されているので直接使用
+          correctAnswer,
           q.explanation || '',
           q.explanation_ja || '',
           data.model_used,
@@ -810,7 +902,7 @@ Always respond with valid JSON.`;
         .run();
       
       savedIds.push(result.meta.last_row_id);
-      console.log(`[saveLongReadingQuestions] Saved question ${i + 1}/${questions.length} with ID: ${result.meta.last_row_id}`);
+      console.log(`[saveLongReadingQuestions] ✅ Saved question ${i + 1}/${questions.length} with ID: ${result.meta.last_row_id}`);
     }
     
     console.log(`[saveLongReadingQuestions] Successfully saved ${savedIds.length} questions`);
