@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase 4 - Vocabulary Quality Improvements] - 2025-11-21
+
+### 🚀 Priority 1 Implementation (Immediate Impact)
+
+#### Core Improvements
+1. **VocabularyFailureTracker Service** (NEW)
+   - Dynamic forbidden words learning from generation failures
+   - Static + dynamic forbidden word lists (50+ words per grade)
+   - Grade-specific vocabulary constraints
+   - Automatic failure recording and statistics
+
+2. **Few-shot Examples with Good/Bad Comparison**
+   - Essay format: Good (95%) vs Bad (68%) examples with explicit problem identification
+   - Long Reading format: Good (92%) vs Bad (69%) examples
+   - Clear vocabulary level guidance in prompts
+   - Self-check requirements for LLM
+
+3. **Optimal Temperature Settings**
+   - Essay: 0.3 (reduced from 0.7) - strict control for 120-150 words
+   - Long Reading: 0.25 (reduced from 0.7) - strictest for 200-300 words
+   - Grammar Fill: 0.5 - balanced
+   - Format-specific LLM configurations with reasoning
+
+4. **Adaptive Threshold Calculation**
+   - Essay: 92% (relaxed from 95% for long text)
+   - Long Reading: 91% (relaxed from 95% for very long text)
+   - Dynamic adjustment based on format, grade, and word count
+   - Realistic targets for long-text generation
+
+### 📊 Expected Impact
+
+#### Immediate (Day 1-2)
+- Essay: 64% → **78-81%** (+14-17%)
+- Long Reading: 69% → **82-85%** (+13-16%)
+
+#### Contributing Factors
+- Few-shot examples: +14% improvement
+- Temperature reduction: +3% improvement
+- Forbidden words: +2-3% improvement
+- Adaptive thresholds: Better success rate within 3 attempts
+
+#### Next Steps (Week 1)
+- Implement iterative feedback system (3 retries with context)
+- Further refine with production testing
+- Target: **87-90%** by end of week
+
+### 🔧 Technical Changes
+
+#### New Files
+- `src/eiken/services/vocabulary-tracker.ts` - VocabularyFailureTracker class
+- `docs/VOCABULARY_IMPROVEMENT_IMPLEMENTATION.md` - Comprehensive implementation guide
+
+#### Modified Files
+- `src/eiken/prompts/format-prompts.ts` - Enhanced with Few-shot examples
+- `src/eiken/services/integrated-question-generator.ts` - Integrated adaptive strategies
+
+### 📝 Implementation Details
+
+See `docs/VOCABULARY_IMPROVEMENT_IMPLEMENTATION.md` for:
+- Complete code examples from 5 AI consultations
+- Detailed improvement timeline
+- Success criteria and testing notes
+
+---
+
 ## [Phase 3 Release] - 2025-11-21
 
 ### 🎉 Added - 英検対策機能リリース（3形式）
