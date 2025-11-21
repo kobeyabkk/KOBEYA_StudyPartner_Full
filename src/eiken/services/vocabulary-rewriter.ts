@@ -117,7 +117,7 @@ export async function rewriteQuestion(
           'Authorization': `Bearer ${openaiApiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o', // 語彙書き換えは常に高品質モデルを使用（文法的正確性・自然さ重視）
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

@@ -1,10 +1,14 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 
-export const renderer = jsxRenderer(({ children, title = 'AI & プログラミングのKOBEYA - バンコク日本人小中学生向けプログラミング教室' }) => {
+export const renderer = jsxRenderer((props) => {
+  const { children, title = 'AI & プログラミングのKOBEYA - バンコク日本人小中学生向けプログラミング教室' } = props as {
+    children: unknown
+    title?: string
+  }
   return (
     <html lang="ja">
       <head>
-        <meta charset="UTF-8" />
+        <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
         
@@ -33,7 +37,7 @@ export const renderer = jsxRenderer(({ children, title = 'AI & プログラミ�
         
         {/* Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         
         {/* Font Awesome */}

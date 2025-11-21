@@ -1,0 +1,4376 @@
+[
+  {
+    "grade": "5",
+    "section": "mixed",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "grammar_fill",
+        "question_text_en": "I ___ a student.",
+        "question_text_ja": "私は学生です。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "am",
+          "is",
+          "are",
+          "be"
+        ],
+        "correct_answer": "am",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": null,
+          "word_count": null,
+          "required_sentences": null,
+          "target_grammar": [
+            "be verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "school",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "grammar_fill",
+        "question_text_en": "This is my ___.",
+        "question_text_ja": "これは私の本です。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "book",
+          "dog",
+          "school",
+          "milk"
+        ],
+        "correct_answer": "book",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "noun"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "school",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "grammar_fill",
+        "question_text_en": "I ___ soccer every day.",
+        "question_text_ja": "私は毎日サッカーをします。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "play",
+          "plays",
+          "playing",
+          "played"
+        ],
+        "correct_answer": "play",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "hobbies",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "grammar_fill",
+        "question_text_en": "She ___ a cat.",
+        "question_text_ja": "彼女は猫を飼っています。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "has",
+          "have",
+          "having",
+          "had"
+        ],
+        "correct_answer": "has",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "family",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "grammar_fill",
+        "question_text_en": "I like ___.",
+        "question_text_ja": "私はりんごが好きです。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "apples",
+          "cat",
+          "school",
+          "chairs"
+        ],
+        "correct_answer": "apples",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "object"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "food",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "grammar_fill",
+        "question_text_en": "We ___ to school.",
+        "question_text_ja": "私たちは学校へ行きます。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "go",
+          "goes",
+          "going",
+          "went"
+        ],
+        "correct_answer": "go",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "conversation",
+        "question_text_en": "A: Good morning!  B: ___",
+        "question_text_ja": "A: おはようございます！ B: ___",
+        "choices": [
+          "Good morning!",
+          "Good night!",
+          "Hello?",
+          "I’m fine."
+        ],
+        "correct_answer": "Good morning!",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "greeting",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "conversation",
+        "question_text_en": "A: How are you?  B: ___",
+        "question_text_ja": "A: 元気ですか？ B: ___",
+        "choices": [
+          "I’m fine, thank you.",
+          "See you.",
+          "Good morning.",
+          "Yes, I am."
+        ],
+        "correct_answer": "I’m fine, thank you.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "conversation",
+        "question_text_en": "A: What’s your name?  B: ___",
+        "question_text_ja": "A: あなたの名前は？ B: ___",
+        "choices": [
+          "I’m Tom.",
+          "I’m fine.",
+          "Yes, it is.",
+          "It’s sunny."
+        ],
+        "correct_answer": "I’m Tom.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "self-introduction",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "conversation",
+        "question_text_en": "A: Do you like apples?  B: ___",
+        "question_text_ja": "A: りんごは好きですか？ B: ___",
+        "choices": [
+          "Yes, I do.",
+          "Good evening.",
+          "I’m ten.",
+          "See you."
+        ],
+        "correct_answer": "Yes, I do.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "food",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "conversation",
+        "question_text_en": "A: Thank you.  B: ___",
+        "question_text_ja": "A: ありがとう。 B: ___",
+        "choices": [
+          "You’re welcome.",
+          "I’m fine.",
+          "See you.",
+          "Yes, I am."
+        ],
+        "correct_answer": "You’re welcome.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "conversation",
+        "question_text_en": "A: See you.  B: ___",
+        "question_text_ja": "A: またね。 B: ___",
+        "choices": [
+          "See you.",
+          "Good night.",
+          "I’m ten.",
+          "Thank you."
+        ],
+        "correct_answer": "See you.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "greeting",
+        "difficulty": "easy",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "4",
+    "section": "mixed",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "grammar_fill",
+        "question_text_en": "I ___ to music every day.",
+        "question_text_ja": "私は毎日音楽を聞きます。",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [
+          "listen",
+          "listens",
+          "listening",
+          "listened"
+        ],
+        "correct_answer": "listen",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "hobbies",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "grammar_fill",
+        "question_text_en": "Tom and Ken ___ brothers.",
+        "question_text_ja": "トムとケンは兄弟です。",
+        "choices": [
+          "are",
+          "is",
+          "am",
+          "be"
+        ],
+        "correct_answer": "are",
+        "constraints": {
+          "target_grammar": [
+            "be verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "family",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "grammar_fill",
+        "question_text_en": "My mother ___ breakfast every morning.",
+        "question_text_ja": "私の母は毎朝朝食を作ります。",
+        "choices": [
+          "makes",
+          "make",
+          "made",
+          "making"
+        ],
+        "correct_answer": "makes",
+        "constraints": {
+          "target_grammar": [
+            "verb -s"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "grammar_fill",
+        "question_text_en": "There are two ___ in the room.",
+        "question_text_ja": "部屋には2つのいすがあります。",
+        "choices": [
+          "chairs",
+          "chair",
+          "chare",
+          "chairses"
+        ],
+        "correct_answer": "chairs",
+        "constraints": {
+          "target_grammar": [
+            "plural noun"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "school",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "grammar_fill",
+        "question_text_en": "Ken ___ play the piano.",
+        "question_text_ja": "ケンはピアノをひくことができます。",
+        "choices": [
+          "can",
+          "cans",
+          "can to",
+          "can is"
+        ],
+        "correct_answer": "can",
+        "constraints": {
+          "target_grammar": [
+            "modal verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "hobbies",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "grammar_fill",
+        "question_text_en": "We ___ soccer after school.",
+        "question_text_ja": "私たちは放課後サッカーをします。",
+        "choices": [
+          "play",
+          "plays",
+          "playing",
+          "played"
+        ],
+        "correct_answer": "play",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A1"
+        },
+        "evaluation_criteria": {},
+        "topic": "school",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "conversation",
+        "question_text_en": "A: Where do you live? B: ___",
+        "question_text_ja": "A: どこに住んでいますか？ B: ___",
+        "choices": [
+          "I live in Tokyo.",
+          "I’m twelve.",
+          "Yes, I do.",
+          "It’s sunny."
+        ],
+        "correct_answer": "I live in Tokyo.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "conversation",
+        "question_text_en": "A: What time is it? B: ___",
+        "question_text_ja": "A: 今何時ですか？ B: ___",
+        "choices": [
+          "It’s three o’clock.",
+          "I’m fine.",
+          "Yes, it is.",
+          "I like apples."
+        ],
+        "correct_answer": "It’s three o’clock.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "conversation",
+        "question_text_en": "A: Do you have any pets? B: ___",
+        "question_text_ja": "A: ペットは飼っていますか？ B: ___",
+        "choices": [
+          "Yes, I have a dog.",
+          "I’m ten.",
+          "Good night.",
+          "It’s cold."
+        ],
+        "correct_answer": "Yes, I have a dog.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "family",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "conversation",
+        "question_text_en": "A: What’s your favorite food? B: ___",
+        "question_text_ja": "A: 好きな食べ物は何ですか？ B: ___",
+        "choices": [
+          "I like pizza.",
+          "Yes, I do.",
+          "Good evening.",
+          "I’m Tom."
+        ],
+        "correct_answer": "I like pizza.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "food",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "conversation",
+        "question_text_en": "A: Can you help me? B: ___",
+        "question_text_ja": "A: 手伝ってくれますか？ B: ___",
+        "choices": [
+          "Sure.",
+          "I’m fine.",
+          "It’s Monday.",
+          "See you."
+        ],
+        "correct_answer": "Sure.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "school",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "conversation",
+        "question_text_en": "A: See you tomorrow. B: ___",
+        "question_text_ja": "A: また明日。 B: ___",
+        "choices": [
+          "See you.",
+          "I’m twelve.",
+          "Thank you.",
+          "It’s hot."
+        ],
+        "correct_answer": "See you.",
+        "constraints": {},
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "3",
+    "section": "speaking",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "reading_aloud",
+        "question_text_en": "I like to play soccer after school. I practice with my friends every day.",
+        "question_text_ja": "",
+        "passage": "I like to play soccer after school. I practice with my friends every day.",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "word_count": null,
+          "required_sentences": null,
+          "target_grammar": [],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "Clear and accurate pronunciation",
+          "intonation": "Natural rising and falling patterns",
+          "fluency": "Smooth reading with minimal pauses",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "reading_aloud",
+        "question_text_en": "My family likes to travel in the summer. We visit many interesting places.",
+        "passage": "My family likes to travel in the summer. We visit many interesting places.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "target_grammar": [],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "travel",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "reading_aloud",
+        "question_text_en": "I usually spend weekends with my friends. We like playing games together.",
+        "passage": "I usually spend weekends with my friends. We like playing games together.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "target_grammar": [],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "weekend",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "reading_aloud",
+        "question_text_en": "Our school has many clubs. Students can join sports, music, or science clubs.",
+        "passage": "Our school has many clubs. Students can join sports, music, or science clubs.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "club activities",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "reading_aloud",
+        "question_text_en": "I want to study abroad someday. I hope to learn about different cultures.",
+        "passage": "I want to study abroad someday. I hope to learn about different cultures.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "school life",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A boy is reading a book at a desk. A cat is sleeping next to him.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "The boy is reading a book at a desk. There is a cat sleeping next to him.",
+        "constraints": {
+          "time_limit_seconds": 20,
+          "required_sentences": 2,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "Include main actions and objects",
+          "grammar": ""
+        },
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "Two girls are playing tennis outside on a sunny day.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Two girls are playing tennis outside. It looks sunny.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "hobbies",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A family is eating dinner together at a table.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "A family is eating dinner together. They look happy.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "family",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A teacher is talking to students in a classroom.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "A teacher is talking to students in a classroom.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A woman is buying vegetables at a store.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "A woman is buying vegetables at a store.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "q_and_a",
+        "question_text_en": "What do you usually do after school?",
+        "question_text_ja": "",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "I usually do my homework and then play games.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "Answer should match the question.",
+          "grammar": ""
+        },
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "q_and_a",
+        "question_text_en": "Who do you often spend time with on weekends?",
+        "choices": [],
+        "sample_answer": "I often spend time with my friends.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 13,
+        "question_type": "q_and_a",
+        "question_text_en": "What is your favorite subject?",
+        "choices": [],
+        "sample_answer": "My favorite subject is English.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 14,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you like traveling? Why or why not?",
+        "choices": [],
+        "sample_answer": "Yes, I do. I like traveling because I can see new places.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "travel",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 15,
+        "question_type": "q_and_a",
+        "question_text_en": "What do you usually eat for breakfast?",
+        "choices": [],
+        "sample_answer": "I usually eat toast and eggs for breakfast.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 16,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you like reading books?",
+        "choices": [],
+        "sample_answer": "Yes, I do. I like reading adventure stories.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "hobbies",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 17,
+        "question_type": "email_reply",
+        "question_text_en": "You received an email from your friend: ‘Can you come to my birthday party this Saturday?’ Write a short reply.",
+        "choices": [],
+        "sample_answer": "Thank you for your email. Yes, I can come to your birthday party. I’m looking forward to it.",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "content": "Answer the question clearly",
+          "organization": "Logical flow",
+          "grammar": "Correct simple grammar",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 18,
+        "question_type": "email_reply",
+        "question_text_en": "Your friend writes: ‘Let’s study together after school tomorrow.’ Write a reply.",
+        "sample_answer": "Thanks for your message. Yes, let's study together after school. See you tomorrow!",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 19,
+        "question_type": "email_reply",
+        "question_text_en": "Your cousin writes: ‘Do you want to go shopping this Sunday?’ Write a short reply.",
+        "sample_answer": "Thanks for your email. Yes, I want to go shopping with you this Sunday.",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 20,
+        "question_type": "email_reply",
+        "question_text_en": "Your friend asks: ‘Can you help me with my homework tonight?’ Write a reply.",
+        "sample_answer": "Thanks for your message. I can help you tonight. Let's study together.",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 21,
+        "question_type": "email_reply",
+        "question_text_en": "Your friend writes: ‘Do you want to join our soccer club?’ Write a short reply.",
+        "question_text_ja": "",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Thank you for your message. Yes, I want to join your soccer club. It sounds fun!",
+        "constraints": {
+          "time_limit_seconds": null,
+          "word_count": 25,
+          "required_sentences": null,
+          "target_grammar": [],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "Clearly answer the invitation",
+          "grammar": "",
+          "organization": ""
+        },
+        "topic": "club activities",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 22,
+        "question_type": "email_reply",
+        "question_text_en": "Your sister writes: ‘Can you come to the library with me after lunch?’ Write a reply.",
+        "sample_answer": "Thanks for your message. Yes, I can go to the library with you after lunch.",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 23,
+        "question_type": "email_reply",
+        "question_text_en": "Your friend writes: ‘Let’s have a picnic next Sunday.’ Write a reply.",
+        "sample_answer": "Thank you for your email. Yes, let's have a picnic next Sunday. I’m excited!",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 24,
+        "question_type": "email_reply",
+        "question_text_en": "Your friend writes: ‘Do you want to watch a movie with me tonight?’ Write a reply.",
+        "sample_answer": "Thanks for your message. Yes, I want to watch a movie with you tonight.",
+        "constraints": {
+          "word_count": 25,
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "hobbies",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 25,
+        "question_type": "grammar_fill",
+        "question_text_en": "Tom ___ to school by bike.",
+        "question_text_ja": "トムは自転車で学校に行きます。",
+        "choices": [
+          "goes",
+          "go",
+          "going",
+          "went"
+        ],
+        "correct_answer": "goes",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "present simple -s"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 26,
+        "question_type": "grammar_fill",
+        "question_text_en": "There ___ many students in the library.",
+        "question_text_ja": "図書館にはたくさんの生徒がいます。",
+        "choices": [
+          "are",
+          "is",
+          "am",
+          "be"
+        ],
+        "correct_answer": "are",
+        "constraints": {
+          "target_grammar": [
+            "be verb"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 27,
+        "question_type": "grammar_fill",
+        "question_text_en": "Ken wants ___ a doctor in the future.",
+        "question_text_ja": "ケンは将来医者になりたいです。",
+        "choices": [
+          "to be",
+          "being",
+          "be",
+          "to being"
+        ],
+        "correct_answer": "to be",
+        "constraints": {
+          "target_grammar": [
+            "infinitive"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "future",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 28,
+        "question_type": "grammar_fill",
+        "question_text_en": "My father ___ cooking very much.",
+        "question_text_ja": "私の父は料理がとても好きです。",
+        "choices": [
+          "likes",
+          "like",
+          "liking",
+          "liked"
+        ],
+        "correct_answer": "likes",
+        "constraints": {
+          "target_grammar": [
+            "verb -s"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "family",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 29,
+        "question_type": "grammar_fill",
+        "question_text_en": "I ___ to play tennis with my friends on weekends.",
+        "question_text_ja": "私は週末に友だちとテニスをすることを楽しみにしています。",
+        "choices": [
+          "like",
+          "look",
+          "enjoy",
+          "hope"
+        ],
+        "correct_answer": "enjoy",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 30,
+        "question_type": "grammar_fill",
+        "question_text_en": "My sister ___ English every night.",
+        "question_text_ja": "私の妹は毎晩英語を勉強します。",
+        "choices": [
+          "studies",
+          "study",
+          "studying",
+          "studied"
+        ],
+        "correct_answer": "studies",
+        "constraints": {
+          "target_grammar": [
+            "present simple -s"
+          ],
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 31,
+        "question_type": "conversation",
+        "question_text_en": "A: What are you going to do this weekend? B: ___",
+        "question_text_ja": "",
+        "choices": [
+          "I’m going to visit my grandparents.",
+          "Yes, I am.",
+          "At five o’clock.",
+          "I like music."
+        ],
+        "correct_answer": "I’m going to visit my grandparents.",
+        "sample_answer": "",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 32,
+        "question_type": "conversation",
+        "question_text_en": "A: Do you like studying science? B: ___",
+        "choices": [
+          "Yes, I do. It’s interesting.",
+          "I’m twelve.",
+          "At school.",
+          "Good morning."
+        ],
+        "correct_answer": "Yes, I do. It’s interesting.",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 33,
+        "question_type": "conversation",
+        "question_text_en": "A: How do you go to school? B: ___",
+        "choices": [
+          "I go by bus.",
+          "Yes, I do.",
+          "I like pizza.",
+          "Next Sunday."
+        ],
+        "correct_answer": "I go by bus.",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 34,
+        "question_type": "conversation",
+        "question_text_en": "A: What club are you in? B: ___",
+        "choices": [
+          "I’m in the tennis club.",
+          "I’m fine.",
+          "Yes, I am.",
+          "It’s sunny today."
+        ],
+        "correct_answer": "I’m in the tennis club.",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "club activities",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 35,
+        "question_type": "long_reading",
+        "question_text_en": "Read the passage and answer: What does Ken like to do after school?",
+        "passage": "Ken usually goes to the library after school. He enjoys reading books, especially mystery stories. Sometimes he studies with his friends there.",
+        "choices": [
+          "He likes reading books.",
+          "He likes playing soccer.",
+          "He likes cooking.",
+          "He likes watching TV."
+        ],
+        "correct_answer": "He likes reading books.",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 36,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer do with friends?",
+        "passage": "Every Saturday, I meet my friends at the park. We talk, play games, and sometimes bring snacks to share. It is my favorite time of the week.",
+        "choices": [
+          "They meet and play games.",
+          "They study at school.",
+          "They play soccer every day.",
+          "They go shopping."
+        ],
+        "correct_answer": "They meet and play games.",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "weekend",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 37,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer want to visit Australia?",
+        "passage": "I want to visit Australia someday. I want to see many wild animals such as koalas and kangaroos. I also want to learn about Australian culture.",
+        "choices": [
+          "To see wild animals",
+          "To buy clothes",
+          "To study math",
+          "To meet relatives"
+        ],
+        "correct_answer": "To see wild animals",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "travel",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 38,
+        "question_type": "long_reading",
+        "question_text_en": "Where does the boy usually practice piano?",
+        "passage": "Taro practices piano every day. He usually practices in the music room at school, because it is quiet and has a good piano.",
+        "choices": [
+          "In the music room",
+          "At home",
+          "In the library",
+          "At his friend's house"
+        ],
+        "correct_answer": "In the music room",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "school life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 39,
+        "question_type": "long_reading",
+        "question_text_en": "What does the girl want to buy?",
+        "passage": "Yumi saved her money for two months. She wants to buy a new bag for school because her old one is broken.",
+        "choices": [
+          "A new bag",
+          "Snacks",
+          "Shoes",
+          "A book"
+        ],
+        "correct_answer": "A new bag",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "daily life",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 40,
+        "question_type": "long_reading",
+        "question_text_en": "Why is Sunday special for the writer?",
+        "passage": "Sunday is special for me. My family eats breakfast together and then we go hiking. I enjoy spending time in nature.",
+        "choices": [
+          "Because the family goes hiking",
+          "Because he studies English",
+          "Because he buys clothes",
+          "Because he meets classmates"
+        ],
+        "correct_answer": "Because the family goes hiking",
+        "constraints": {
+          "cefr_level": "A2"
+        },
+        "evaluation_criteria": {},
+        "topic": "family",
+        "difficulty": "standard",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "pre2",
+    "section": "mixed_part1",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "reading_aloud",
+        "question_text_en": "Many people enjoy watching movies at home. They can choose from many genres such as action, comedy, and drama.",
+        "question_text_ja": "",
+        "passage": "Many people enjoy watching movies at home. They can choose from many genres such as action, comedy, and drama.",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "word_count": null,
+          "required_sentences": null,
+          "target_grammar": [],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "reading_aloud",
+        "question_text_en": "Studying abroad gives students a chance to learn about different cultures. It also helps them improve their language skills.",
+        "passage": "Studying abroad gives students a chance to learn about different cultures. It also helps them improve their language skills.",
+        "choices": [],
+        "correct_answer": "",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "reading_aloud",
+        "question_text_en": "Regular exercise is important for a healthy life. Even a short walk every day can make a big difference.",
+        "passage": "Regular exercise is important for a healthy life. Even a short walk every day can make a big difference.",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "reading_aloud",
+        "question_text_en": "Many communities have local events to bring people together. These events help people make new friends.",
+        "passage": "Many communities have local events to bring people together. These events help people make new friends.",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "reading_aloud",
+        "question_text_en": "Technology has changed the way we communicate. People can now send messages instantly from anywhere in the world.",
+        "passage": "Technology has changed the way we communicate. People can now send messages instantly from anywhere in the world.",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A woman is talking on the phone while sitting at a desk. A computer is open in front of her.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "A woman is sitting at a desk and talking on the phone. She has a computer in front of her.",
+        "constraints": {
+          "time_limit_seconds": 25,
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A group of students are studying together in a library.",
+        "sample_answer": "A group of students are studying together in the library. They look focused on their work.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A man is jogging in the park early in the morning.",
+        "sample_answer": "A man is jogging in a park in the morning. It seems peaceful.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "Several people are cleaning a beach together.",
+        "sample_answer": "Several people are cleaning the beach. They are picking up trash together.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A student is taking an online class at home using a laptop.",
+        "sample_answer": "A student is attending an online class at home. They are using a laptop to study.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you often communicate with your friends online?",
+        "choices": [],
+        "sample_answer": "Yes, I often message my friends online because it is fast and easy.",
+        "constraints": {
+          "time_limit_seconds": 10,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "q_and_a",
+        "question_text_en": "Would you like to study abroad someday?",
+        "sample_answer": "Yes, I would. I want to learn about different cultures.",
+        "constraints": {
+          "time_limit_seconds": 12,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 13,
+        "question_type": "q_and_a",
+        "question_text_en": "What do you do to stay healthy?",
+        "sample_answer": "I try to exercise regularly and eat balanced meals.",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 14,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you think community events are important?",
+        "sample_answer": "Yes, they help people meet each other and become closer.",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 15,
+        "question_type": "q_and_a",
+        "question_text_en": "How do you usually communicate with your family?",
+        "sample_answer": "I usually talk with them at home, but sometimes we text each other.",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 16,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you prefer studying alone or with friends?",
+        "sample_answer": "I prefer studying with friends because we can help each other.",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "topic": "studying abroad",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 17,
+        "question_type": "short_opinion",
+        "question_text_en": "Do you think students should join club activities?",
+        "sample_answer": "Yes, I think students should join club activities because they can make friends and learn new skills.",
+        "constraints": {
+          "word_count": 40,
+          "required_sentences": 2,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 18,
+        "question_type": "short_opinion",
+        "question_text_en": "Do you think exercise should be part of daily life?",
+        "sample_answer": "Yes, because exercising every day keeps people healthy and gives them more energy.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 19,
+        "question_type": "short_opinion",
+        "question_text_en": "Should students use technology in the classroom?",
+        "sample_answer": "Yes, because technology helps students find information quickly and makes learning more interesting.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "topic": "communication",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 20,
+        "question_type": "short_opinion",
+        "question_text_en": "Is traveling a good way to learn about the world?",
+        "sample_answer": "Yes, traveling is a great way to learn about different cultures and meet new people.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "topic": "studying abroad",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 21,
+        "question_type": "short_opinion",
+        "question_text_en": "Do you think people should do volunteer work?",
+        "question_text_ja": "",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Yes, I think people should do volunteer work because it helps the community and teaches people to care for others.",
+        "constraints": {
+          "time_limit_seconds": null,
+          "word_count": 40,
+          "required_sentences": 2,
+          "target_grammar": [],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": "",
+          "organization": ""
+        },
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 22,
+        "question_type": "short_opinion",
+        "question_text_en": "Do you think students should learn foreign languages?",
+        "sample_answer": "Yes, because learning foreign languages helps students communicate with more people and understand different cultures.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 23,
+        "question_type": "short_opinion",
+        "question_text_en": "Do you think technology makes life better?",
+        "sample_answer": "Yes, technology makes life better because it helps us work faster and stay connected with others.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 24,
+        "question_type": "short_opinion",
+        "question_text_en": "Should people exercise regularly?",
+        "sample_answer": "Yes, people should exercise regularly because it keeps them healthy and reduces stress.",
+        "constraints": {
+          "word_count": 40,
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 25,
+        "question_type": "grammar_fill",
+        "question_text_en": "Ken ___ to Australia last summer.",
+        "question_text_ja": "ケンは去年の夏にオーストラリアへ行きました。",
+        "choices": [
+          "went",
+          "go",
+          "goes",
+          "going"
+        ],
+        "correct_answer": "went",
+        "constraints": {
+          "target_grammar": [
+            "past tense"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "travel",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 26,
+        "question_type": "grammar_fill",
+        "question_text_en": "There are many people ___ want to study abroad.",
+        "question_text_ja": "留学したいと思う人はたくさんいます。",
+        "choices": [
+          "who",
+          "which",
+          "what",
+          "that"
+        ],
+        "correct_answer": "who",
+        "constraints": {
+          "target_grammar": [
+            "relative pronouns"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 27,
+        "question_type": "grammar_fill",
+        "question_text_en": "My father enjoys ___ photos when we travel.",
+        "question_text_ja": "父は旅行のときに写真を撮るのが好きです。",
+        "choices": [
+          "taking",
+          "take",
+          "taken",
+          "to taking"
+        ],
+        "correct_answer": "taking",
+        "constraints": {
+          "target_grammar": [
+            "gerund"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "travel",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 28,
+        "question_type": "grammar_fill",
+        "question_text_en": "If you want to stay healthy, you ___ exercise more.",
+        "question_text_ja": "健康でいたいなら、もっと運動すべきです。",
+        "choices": [
+          "should",
+          "can",
+          "may",
+          "mustn't"
+        ],
+        "correct_answer": "should",
+        "constraints": {
+          "target_grammar": [
+            "modal verbs"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 29,
+        "question_type": "grammar_fill",
+        "question_text_en": "I will join the event ___ it rains.",
+        "question_text_ja": "雨が降らなければ、そのイベントに参加します。",
+        "choices": [
+          "unless",
+          "because",
+          "until",
+          "but"
+        ],
+        "correct_answer": "unless",
+        "constraints": {
+          "target_grammar": [
+            "conjunctions"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 30,
+        "question_type": "grammar_fill",
+        "question_text_en": "This is the website ___ I used to learn English.",
+        "question_text_ja": "これは私が英語を勉強するために使ったウェブサイトです。",
+        "choices": [
+          "that",
+          "who",
+          "what",
+          "where"
+        ],
+        "correct_answer": "that",
+        "constraints": {
+          "target_grammar": [
+            "relative pronoun"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 31,
+        "question_type": "grammar_fill",
+        "question_text_en": "I have been studying English ___ three years.",
+        "question_text_ja": "私は3年間英語を勉強しています。",
+        "choices": [
+          "for",
+          "since",
+          "in",
+          "during"
+        ],
+        "correct_answer": "for",
+        "constraints": {
+          "target_grammar": [
+            "present perfect"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 32,
+        "question_type": "grammar_fill",
+        "question_text_en": "We need to save energy ___ protect the environment.",
+        "question_text_ja": "環境を守るために、私たちはエネルギーを節約する必要があります。",
+        "choices": [
+          "to",
+          "for",
+          "in",
+          "at"
+        ],
+        "correct_answer": "to",
+        "constraints": {
+          "target_grammar": [
+            "infinitives"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 33,
+        "question_type": "grammar_fill",
+        "question_text_en": "My sister is interested ___ foreign cultures.",
+        "question_text_ja": "私の姉は外国の文化に興味があります。",
+        "choices": [
+          "in",
+          "on",
+          "for",
+          "to"
+        ],
+        "correct_answer": "in",
+        "constraints": {
+          "target_grammar": [
+            "prepositions"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 34,
+        "question_type": "grammar_fill",
+        "question_text_en": "___ you help me with my homework later?",
+        "question_text_ja": "後で宿題を手伝ってくれませんか？",
+        "choices": [
+          "Could",
+          "Should",
+          "Must",
+          "May"
+        ],
+        "correct_answer": "Could",
+        "constraints": {
+          "target_grammar": [
+            "modal verbs"
+          ],
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 35,
+        "question_type": "long_reading",
+        "question_text_en": "What is one reason the writer likes studying abroad?",
+        "passage": "I studied in Canada for six months. I met people from many countries and learned to communicate in English every day. It was a great experience.",
+        "choices": [
+          "They met people from many countries",
+          "They learned French",
+          "They stayed with their family",
+          "They traveled alone"
+        ],
+        "correct_answer": "They met people from many countries",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 36,
+        "question_type": "long_reading",
+        "question_text_en": "Why do people join local events?",
+        "passage": "Local events help people connect with others in their community. They also give people a chance to learn something new.",
+        "choices": [
+          "To connect with others",
+          "To travel abroad",
+          "To buy new clothes",
+          "To avoid studying"
+        ],
+        "correct_answer": "To connect with others",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 37,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer do to stay healthy?",
+        "passage": "I try to walk every morning before breakfast. It helps me stay active and clear my mind. I also drink plenty of water every day.",
+        "choices": [
+          "They walk every morning",
+          "They run every night",
+          "They take medicine",
+          "They eat fast food"
+        ],
+        "correct_answer": "They walk every morning",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 38,
+        "question_type": "long_reading",
+        "question_text_en": "What did the writer buy?",
+        "passage": "Last week, I bought a new laptop because my old one stopped working. Now I can study and communicate online easily.",
+        "choices": [
+          "A laptop",
+          "A bicycle",
+          "A book",
+          "A camera"
+        ],
+        "correct_answer": "A laptop",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "communication",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 39,
+        "question_type": "long_reading",
+        "question_text_en": "Why did the writer start volunteering?",
+        "passage": "I joined a volunteer group to help clean parks in my city. I wanted to do something good for the community.",
+        "choices": [
+          "To help the community",
+          "To study abroad",
+          "To meet celebrities",
+          "To earn money"
+        ],
+        "correct_answer": "To help the community",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "community",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 40,
+        "question_type": "long_reading",
+        "question_text_en": "Where does the writer usually study?",
+        "passage": "I usually study at the library because it is quiet and has many useful books. Sometimes I study at home when I need to use my computer.",
+        "choices": [
+          "At the library",
+          "At a café",
+          "On the train",
+          "At school"
+        ],
+        "correct_answer": "At the library",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "studying abroad",
+        "difficulty": "easy",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "2",
+    "section": "mixed_part1",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "reading_aloud",
+        "question_text_en": "Many schools are using technology to improve education. Students can access online materials and learn at their own pace.",
+        "question_text_ja": "",
+        "passage": "Many schools are using technology to improve education. Students can access online materials and learn at their own pace.",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "word_count": null,
+          "required_sentences": null,
+          "target_grammar": [],
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "reading_aloud",
+        "question_text_en": "Environmental problems such as climate change are becoming more serious. People need to find ways to reduce waste and save energy.",
+        "passage": "Environmental problems such as climate change are becoming more serious. People need to find ways to reduce waste and save energy.",
+        "choices": [],
+        "correct_answer": "",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "reading_aloud",
+        "question_text_en": "Advances in technology have made communication faster and easier. People can connect instantly with others around the world.",
+        "passage": "Advances in technology have made communication faster and easier. People can connect instantly with others around the world.",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "reading_aloud",
+        "question_text_en": "Many young people are interested in volunteering because it allows them to help their communities and gain valuable experience.",
+        "passage": "Many young people are interested in volunteering because it allows them to help their communities and gain valuable experience.",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "reading_aloud",
+        "question_text_en": "Some people believe that science will solve many global health problems in the future. However, others think more action is needed today.",
+        "passage": "Some people believe that science will solve many global health problems in the future. However, others think more action is needed today.",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "picture_description",
+        "question_text_en": "Please describe the picture.",
+        "image_description": "A woman is giving a presentation in an office. Several people are listening and taking notes.",
+        "choices": [],
+        "sample_answer": "A woman is giving a presentation, and several people are listening and taking notes.",
+        "constraints": {
+          "time_limit_seconds": 30,
+          "required_sentences": 2,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "grammar": ""
+        },
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "picture_description",
+        "image_description": "Two students are working on a science experiment in a classroom.",
+        "sample_answer": "Two students are working together on a science experiment in a classroom.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "picture_description",
+        "image_description": "A group of people are planting trees in a park.",
+        "sample_answer": "A group of people are planting trees in a park to help the environment.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "picture_description",
+        "image_description": "A doctor is talking to a patient in a clinic.",
+        "sample_answer": "A doctor is speaking with a patient in a clinic. They seem to be discussing health problems.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "picture_description",
+        "image_description": "A young man is using a laptop in a cafe while drinking coffee.",
+        "sample_answer": "A young man is using a laptop in a cafe while drinking coffee.",
+        "constraints": {
+          "required_sentences": 2,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think technology makes life better?",
+        "sample_answer": "Yes, I think technology makes life better because it helps us communicate faster and work more efficiently. It also gives us access to a lot of useful information.",
+        "constraints": {
+          "word_count": 70,
+          "required_sentences": 3,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think environmental protection should be taught in schools?",
+        "sample_answer": "Yes, environmental protection should be taught in schools. Students need to learn how to take care of the planet. This knowledge will help them make better decisions in the future.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 13,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should students do volunteer activities?",
+        "sample_answer": "Yes, students should do volunteer activities because they can learn responsibility and understand the needs of society. It also helps them grow as people.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 14,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think science will solve global health problems?",
+        "sample_answer": "I think science will help solve many global health problems by developing new medicines and technologies. However, people must also improve their lifestyles.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 15,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should schools use more digital tools in the classroom?",
+        "sample_answer": "Yes, digital tools can make learning more interesting and effective. Students can access many resources and study at their own pace.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 16,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think people should exercise more?",
+        "sample_answer": "Yes, people should exercise more because it helps them stay healthy and reduces stress. Regular exercise also improves mental health.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 17,
+        "question_type": "q_and_a",
+        "question_text_en": "What do you usually do to stay healthy?",
+        "sample_answer": "I try to exercise regularly and eat healthy food.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 18,
+        "question_type": "q_and_a",
+        "question_text_en": "How do you usually get information about the world?",
+        "sample_answer": "I usually get information from news websites and online videos.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 19,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you think volunteering is important?",
+        "sample_answer": "Yes, it helps people understand social problems and support their communities.",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 20,
+        "question_type": "q_and_a",
+        "question_text_en": "What environmental problems are common today?",
+        "sample_answer": "Climate change, air pollution, and plastic waste are major problems today.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 21,
+        "question_type": "q_and_a",
+        "question_text_en": "How can schools encourage students to read more?",
+        "question_text_ja": "",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Schools can encourage students by giving them time to read and recommending interesting books.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 22,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you think using technology in class is helpful?",
+        "choices": [],
+        "sample_answer": "Yes, it helps students access information quickly and learn in different ways.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 23,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think governments should invest more in science research?",
+        "choices": [],
+        "sample_answer": "Yes, because scientific research can solve important problems such as diseases and environmental issues. It also helps create new technologies.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 24,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should schools teach more about social issues?",
+        "sample_answer": "Yes, students should learn about social issues so they can understand the world better and think about how to solve problems in society.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 25,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think exercise should be part of everyone’s lifestyle?",
+        "sample_answer": "Yes, regular exercise helps people stay physically and mentally healthy. It also improves energy levels.",
+        "constraints": {
+          "word_count": 70,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 26,
+        "question_type": "essay",
+        "question_text_en": "Do you think students should study abroad? Write an essay explaining your opinion with two reasons.",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "required_sentences": 4,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 27,
+        "question_type": "essay",
+        "question_text_en": "Should cities create more green spaces such as parks?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 28,
+        "question_type": "essay",
+        "question_text_en": "Should schools use digital textbooks instead of paper ones?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 29,
+        "question_type": "essay",
+        "question_text_en": "Should people work from home more often?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 30,
+        "question_type": "essay",
+        "question_text_en": "Do you think science education should start earlier in school?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 31,
+        "question_type": "essay",
+        "question_text_en": "Should healthy eating be taught as a required school subject?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 32,
+        "question_type": "essay",
+        "question_text_en": "Should people rely more on public transportation?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 100,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 33,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer enjoy using technology?",
+        "passage": "I enjoy using technology because it helps me learn new things quickly. I often use online videos and articles to study topics that are not taught in school.",
+        "choices": [
+          "Because it helps them learn quickly",
+          "Because it helps them play games",
+          "Because it helps them sleep",
+          "Because it helps them travel"
+        ],
+        "correct_answer": "Because it helps them learn quickly",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 34,
+        "question_type": "long_reading",
+        "question_text_en": "What did the writer do at the volunteer event?",
+        "passage": "Last weekend, I joined a volunteer event to clean a river in my city. Many people worked together to collect trash and remove plants blocking the river.",
+        "choices": [
+          "Cleaned a river",
+          "Planted trees",
+          "Cooked food",
+          "Helped children study"
+        ],
+        "correct_answer": "Cleaned a river",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 35,
+        "question_type": "long_reading",
+        "question_text_en": "Why is the forest important to the town?",
+        "passage": "The forest near our town is an important place for animals and plants. It also provides clean air and a quiet area for people to relax.",
+        "choices": [
+          "Because it provides clean air",
+          "Because it makes noise",
+          "Because it has shops",
+          "Because it is a tourist spot"
+        ],
+        "correct_answer": "Because it provides clean air",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 36,
+        "question_type": "long_reading",
+        "question_text_en": "What did the writer learn?",
+        "passage": "I learned a lot from studying abroad. I met people from different backgrounds and learned how to communicate better in English.",
+        "choices": [
+          "How to communicate better",
+          "How to cook",
+          "How to drive",
+          "How to fix computers"
+        ],
+        "correct_answer": "How to communicate better",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 37,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer want to become a scientist?",
+        "passage": "I want to become a scientist because I am interested in discovering new medicines that can help sick people around the world.",
+        "choices": [
+          "To develop new medicines",
+          "To become famous",
+          "To make money",
+          "To travel the world"
+        ],
+        "correct_answer": "To develop new medicines",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 38,
+        "question_type": "long_reading",
+        "question_text_en": "What is one problem mentioned in the passage?",
+        "passage": "Many cities are facing problems with air pollution. Cars and factories produce harmful gases, which make the air unhealthy.",
+        "choices": [
+          "Air pollution",
+          "Lack of schools",
+          "Flooding",
+          "No hospitals"
+        ],
+        "correct_answer": "Air pollution",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 39,
+        "question_type": "long_reading",
+        "question_text_en": "Where does the writer study most often?",
+        "passage": "I usually study at the school library because it is quiet. Sometimes I go to a cafe when I want a change of scenery.",
+        "choices": [
+          "At the library",
+          "At a park",
+          "At a train station",
+          "At home only"
+        ],
+        "correct_answer": "At the library",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 40,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer do to stay healthy?",
+        "passage": "To stay healthy, I try to cook meals at home using fresh vegetables. I also take walks in the evening to relax.",
+        "choices": [
+          "Cooking healthy meals",
+          "Sleeping all day",
+          "Eating fast food",
+          "Working long hours"
+        ],
+        "correct_answer": "Cooking healthy meals",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 41,
+        "question_type": "grammar_fill",
+        "question_text_en": "Students should learn how to think critically, ___ will help them in the future.",
+        "question_text_ja": "",
+        "choices": [
+          "which",
+          "who",
+          "what",
+          "when"
+        ],
+        "correct_answer": "which",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "relative pronoun"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 42,
+        "question_type": "grammar_fill",
+        "question_text_en": "If people used public transportation more often, the air ___ cleaner.",
+        "choices": [
+          "would be",
+          "is",
+          "was",
+          "will be"
+        ],
+        "correct_answer": "would be",
+        "constraints": {
+          "target_grammar": [
+            "conditional"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 43,
+        "question_type": "grammar_fill",
+        "question_text_en": "The number of people who work from home ___ increasing.",
+        "choices": [
+          "is",
+          "are",
+          "were",
+          "be"
+        ],
+        "correct_answer": "is",
+        "constraints": {
+          "target_grammar": [
+            "subject-verb agreement"
+          ],
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 44,
+        "question_type": "grammar_fill",
+        "question_text_en": "Many scientists believe that new technologies will ___ the quality of life.",
+        "choices": [
+          "improve",
+          "improving",
+          "improved",
+          "to improve"
+        ],
+        "correct_answer": "improve",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 45,
+        "question_type": "grammar_fill",
+        "question_text_en": "Some people think that students today do not read as ___ as they used to.",
+        "choices": [
+          "much",
+          "many",
+          "most",
+          "more"
+        ],
+        "correct_answer": "much",
+        "constraints": {
+          "target_grammar": [
+            "comparative"
+          ],
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 46,
+        "question_type": "grammar_fill",
+        "question_text_en": "___ technology continues to develop, new jobs will appear.",
+        "choices": [
+          "As",
+          "Because",
+          "But",
+          "Unless"
+        ],
+        "correct_answer": "As",
+        "constraints": {
+          "target_grammar": [
+            "conjunctions"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 47,
+        "question_type": "grammar_fill",
+        "question_text_en": "Eating healthy food is one of the best ways to ___ diseases.",
+        "choices": [
+          "prevent",
+          "prevents",
+          "preventing",
+          "prevented"
+        ],
+        "correct_answer": "prevent",
+        "constraints": {
+          "target_grammar": [
+            "verb"
+          ],
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 48,
+        "question_type": "grammar_fill",
+        "question_text_en": "More people are becoming aware of environmental problems, ___ is a good sign.",
+        "choices": [
+          "which",
+          "who",
+          "that",
+          "what"
+        ],
+        "correct_answer": "which",
+        "constraints": {
+          "target_grammar": [
+            "relative pronoun"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 49,
+        "question_type": "long_reading",
+        "question_text_en": "Why do some people prefer online classes?",
+        "passage": "Some students prefer online classes because they can study at their own pace. They also save time by not having to travel to school.",
+        "choices": [
+          "Because they can study at their own pace",
+          "Because they can meet many friends",
+          "Because they like sports",
+          "Because it is required"
+        ],
+        "correct_answer": "Because they can study at their own pace",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 50,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer think about electric cars?",
+        "passage": "Electric cars are becoming more popular. I think they are good for the environment because they do not produce harmful gases.",
+        "choices": [
+          "They are good for the environment",
+          "They are too fast",
+          "They are dangerous",
+          "They are cheap to make"
+        ],
+        "correct_answer": "They are good for the environment",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 51,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer enjoy learning science?",
+        "passage": "I enjoy learning science because it helps me understand how the world works. I also like doing experiments in class.",
+        "choices": [
+          "Because it helps them understand the world",
+          "Because they can travel",
+          "Because it is easy",
+          "Because their friends like it"
+        ],
+        "correct_answer": "Because it helps them understand the world",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 52,
+        "question_type": "long_reading",
+        "question_text_en": "Why did the writer start exercising?",
+        "passage": "I started exercising because I wanted to feel healthier. After exercising regularly, I found that I had more energy.",
+        "choices": [
+          "To feel healthier",
+          "To win a competition",
+          "To meet new friends",
+          "To get a job"
+        ],
+        "correct_answer": "To feel healthier",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 53,
+        "question_type": "long_reading",
+        "question_text_en": "What is one problem the town is facing?",
+        "passage": "Our town has a growing problem with traffic. More cars on the road mean longer travel times and more air pollution.",
+        "choices": [
+          "Traffic",
+          "Lack of water",
+          "Too many parks",
+          "Few schools"
+        ],
+        "correct_answer": "Traffic",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 54,
+        "question_type": "long_reading",
+        "question_text_en": "Where does the writer like to relax?",
+        "passage": "I like to relax in quiet places such as the park near my house. The fresh air and greenery help me feel calm.",
+        "choices": [
+          "In the park",
+          "In a shopping mall",
+          "At school",
+          "On the train"
+        ],
+        "correct_answer": "In the park",
+        "constraints": {
+          "cefr_level": "B1"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 55,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer think science is important for the future?",
+        "passage": "Science is important for the future because it helps solve global problems like diseases and environmental issues. It also leads to new inventions.",
+        "choices": [
+          "It helps solve global problems",
+          "It entertains people",
+          "It makes people rich",
+          "It teaches cooking"
+        ],
+        "correct_answer": "It helps solve global problems",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 56,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer enjoy using the library?",
+        "passage": "I enjoy using the library because it is quiet and has many books on different subjects. It is the best place for me to study.",
+        "choices": [
+          "Because it is quiet and has many books",
+          "Because it has a gym",
+          "Because it is free food",
+          "Because friends play games there"
+        ],
+        "correct_answer": "Because it is quiet and has many books",
+        "constraints": {
+          "cefr_level": "B1-B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "pre1",
+    "section": "mixed_part1",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "summary",
+        "question_text_en": "Please read the passage aloud and summarize it in your own words.",
+        "question_text_ja": "",
+        "passage": "Many experts believe that climate change is becoming one of the most serious issues in the world. Rising temperatures are causing more extreme weather, such as heat waves, heavy rains, and strong storms. Scientists say that people must reduce carbon emissions if they want to slow down these changes.",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "The passage says that climate change is becoming worse and causing extreme weather. Experts say people need to reduce carbon emissions.",
+        "constraints": {
+          "time_limit_seconds": 40,
+          "word_count": null,
+          "required_sentences": 2,
+          "target_grammar": [],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "Include main ideas accurately",
+          "grammar": "",
+          "organization": ""
+        },
+        "topic": "climate change",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "summary",
+        "question_text_en": "Please read the passage aloud and summarize it.",
+        "passage": "Artificial intelligence (AI) is rapidly changing many industries. It can analyze large amounts of data and perform tasks more accurately than humans. However, some people worry that AI may take jobs away from workers in the future.",
+        "sample_answer": "AI is improving many industries by analyzing data accurately, but some people worry it may replace workers.",
+        "constraints": {
+          "time_limit_seconds": 40,
+          "required_sentences": 2,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "AI / science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "summary",
+        "question_text_en": "Summarize the passage.",
+        "passage": "Global health organizations are working to stop the spread of infectious diseases. They provide vaccines, educate people, and support medical workers in developing countries. Their efforts have saved millions of lives.",
+        "sample_answer": "Global health groups fight infectious diseases by giving vaccines, educating people, and supporting medical workers.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "summary",
+        "question_text_en": "Summarize the passage.",
+        "passage": "Many governments are starting programs to reduce plastic waste. They encourage people to recycle and use eco-friendly products. These programs aim to protect the environment and reduce pollution.",
+        "sample_answer": "Governments are trying to reduce plastic waste by promoting recycling and eco-friendly products.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "summary",
+        "question_text_en": "Summarize the passage.",
+        "passage": "Electric vehicles are becoming more popular because they do not produce exhaust gases. Many companies are developing new technologies to make batteries last longer and charge faster.",
+        "sample_answer": "Electric vehicles are growing in popularity because they reduce pollution, and companies are improving battery technology.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think schools should teach more about environmental issues?",
+        "sample_answer": "Yes, schools should teach more about environmental issues. Students need to understand how their actions affect the planet. Learning this early will help them make better choices as adults.",
+        "constraints": {
+          "word_count": 80,
+          "required_sentences": 3,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think governments should invest more in science research?",
+        "sample_answer": "I believe governments should invest more in science research because new discoveries can improve people’s lives. Research can lead to better medicine, cleaner energy, and solutions to global issues.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should people work remotely more often?",
+        "sample_answer": "Yes, remote work offers flexibility and reduces commuting time. It can also help the environment by lowering emissions. However, companies should support workers to avoid isolation.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "opinion_speech",
+        "question_text_en": "Is climate change the most serious problem in the world today?",
+        "sample_answer": "Climate change is one of the most serious problems because it affects weather, food production, and people’s safety. If we do not act now, the consequences will become much worse.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "climate change",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think technology will improve education in the future?",
+        "sample_answer": "Yes, technology will likely improve education by giving students access to more information and personalized learning tools. However, teachers will still play an important role.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should governments do more to support public health?",
+        "sample_answer": "Yes, governments should support public health by improving medical systems and providing education on healthy lifestyles. This will reduce diseases and healthcare costs.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think economic equality is important?",
+        "sample_answer": "I think economic equality is important because large income gaps create social problems. Governments should ensure everyone has access to basic services like education and healthcare.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "economics",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 13,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should science classes focus more on experiments?",
+        "sample_answer": "Yes, experiments help students understand scientific ideas better. They also make learning more enjoyable and encourage curiosity.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 14,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think international cooperation is important?",
+        "sample_answer": "Yes, many problems such as climate change and disease cannot be solved by one country alone. Nations must work together to create effective solutions.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 15,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should schools teach students more about mental health?",
+        "sample_answer": "Yes, understanding mental health is essential for students. It helps them manage stress and recognize when they need help.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 16,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think the use of AI in daily life is good?",
+        "sample_answer": "AI can make life more convenient, but people must use it carefully. We need rules to protect privacy and prevent misuse.",
+        "constraints": {
+          "word_count": 80,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "AI / science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 17,
+        "question_type": "q_and_a",
+        "question_text_en": "What global issues are you most concerned about?",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "I'm concerned about climate change because it affects the entire planet.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "climate change",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 18,
+        "question_type": "q_and_a",
+        "question_text_en": "How do you think technology will change the workplace?",
+        "sample_answer": "Technology will automate some tasks but also create new kinds of jobs.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 19,
+        "question_type": "q_and_a",
+        "question_text_en": "What can people do to stay healthy?",
+        "sample_answer": "They can exercise regularly and eat balanced meals.",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 20,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you think countries should work together to solve environmental problems?",
+        "sample_answer": "Yes, because environmental issues affect all countries, so cooperation is necessary.",
+        "constraints": {
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 41,
+        "question_type": "grammar_fill",
+        "question_text_en": "Many scientists warn that climate change will continue ___ people take strong action.",
+        "question_text_ja": "",
+        "choices": [
+          "unless",
+          "because",
+          "although",
+          "while"
+        ],
+        "correct_answer": "unless",
+        "sample_answer": "",
+        "constraints": {
+          "target_grammar": [
+            "conjunctions"
+          ],
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "climate change",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 42,
+        "question_type": "grammar_fill",
+        "question_text_en": "Some experts believe that AI will create new jobs, ___ others worry it may increase unemployment.",
+        "choices": [
+          "while",
+          "if",
+          "because",
+          "unless"
+        ],
+        "correct_answer": "while",
+        "constraints": {
+          "target_grammar": [
+            "conjunction contrast"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "AI / science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 43,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer believe international cooperation is necessary?",
+        "passage": "Many global issues today cannot be solved by a single country. Problems such as climate change, pandemics, and economic instability require countries to share information and work together. The writer believes that international cooperation helps nations respond more effectively to crises.",
+        "choices": [
+          "Because many problems require countries to work together",
+          "Because countries want to compete more",
+          "Because individual countries can easily solve global problems",
+          "Because cooperation reduces travel"
+        ],
+        "correct_answer": "Because many problems require countries to work together",
+        "constraints": {
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 44,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer suggest people should do to stay informed?",
+        "passage": "With so much information available online, it is important for people to check reliable sources. The writer recommends reading different viewpoints and avoiding articles that spread misinformation.",
+        "choices": [
+          "Check reliable sources",
+          "Ignore news completely",
+          "Read only social media posts",
+          "Avoid different viewpoints"
+        ],
+        "correct_answer": "Check reliable sources",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 45,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer support increasing funding for science?",
+        "passage": "Science plays a vital role in solving global challenges. From developing new medical treatments to improving clean energy technologies, scientific research benefits society in many ways. The writer argues that more funding will speed up progress.",
+        "choices": [
+          "Because scientific research solves major global challenges",
+          "Because science is more important than education",
+          "Because technology should replace workers",
+          "Because science is entertainment"
+        ],
+        "correct_answer": "Because scientific research solves major global challenges",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 46,
+        "question_type": "long_reading",
+        "question_text_en": "What problem is mentioned in the passage?",
+        "passage": "Many cities are struggling with the rapid increase in population. This growth has led to overcrowded public transportation systems, housing shortages, and rising pollution.",
+        "choices": [
+          "Overcrowding and housing shortages",
+          "Lack of technology",
+          "Too many open spaces",
+          "Falling population"
+        ],
+        "correct_answer": "Overcrowding and housing shortages",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 47,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer enjoy studying global politics?",
+        "passage": "I enjoy studying global politics because it helps me understand how different countries make decisions. It also teaches me how international organizations work to solve conflicts and promote peace.",
+        "choices": [
+          "Because it explains how countries make decisions",
+          "Because it teaches cooking",
+          "Because it focuses on sports",
+          "Because it avoids discussing conflicts"
+        ],
+        "correct_answer": "Because it explains how countries make decisions",
+        "constraints": {
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 48,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer say is important for good health?",
+        "passage": "Good health does not come from medical care alone. People need access to clean water, healthy food, and safe living conditions. The writer believes that improving living environments will greatly reduce health problems.",
+        "choices": [
+          "Improving living environments",
+          "Watching more TV",
+          "Working longer hours",
+          "Traveling frequently"
+        ],
+        "correct_answer": "Improving living environments",
+        "constraints": {
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 49,
+        "question_type": "writing_summary",
+        "question_text_en": "Summarize the following passage.",
+        "question_text_ja": "",
+        "passage": "Many experts argue that countries need to work together to fight global warming. They say that no single nation can reduce emissions enough on its own. International cooperation is necessary to create effective long-term solutions.",
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Experts say countries must work together to fight global warming because one nation cannot reduce emissions alone.",
+        "constraints": {
+          "time_limit_seconds": null,
+          "word_count": 60,
+          "required_sentences": 1,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "climate change",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 50,
+        "question_type": "writing_summary",
+        "question_text_en": "Summarize the following passage.",
+        "passage": "Advances in medical technology have allowed doctors to diagnose diseases earlier than ever before. Early diagnosis often leads to more effective treatment and better patient outcomes.",
+        "sample_answer": "Medical technology helps doctors diagnose diseases early, which leads to more effective treatment.",
+        "constraints": {
+          "word_count": 60,
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 51,
+        "question_type": "opinion_essay",
+        "question_text_en": "Do you think technology will replace many jobs in the future?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 120,
+          "required_sentences": 4,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "AI / science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 52,
+        "question_type": "opinion_essay",
+        "question_text_en": "Should governments invest more in renewable energy?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 120,
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 53,
+        "question_type": "opinion_essay",
+        "question_text_en": "Is globalization a positive force in today's world?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 120,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 54,
+        "question_type": "grammar_fill",
+        "question_text_en": "The scientist suggested that more research ___ before any conclusions were made.",
+        "choices": [
+          "be done",
+          "is done",
+          "was done",
+          "will be done"
+        ],
+        "correct_answer": "be done",
+        "constraints": {
+          "target_grammar": [
+            "subjunctive"
+          ],
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 55,
+        "question_type": "grammar_fill",
+        "question_text_en": "It is important for citizens to stay informed, ___ they can make responsible decisions.",
+        "choices": [
+          "so that",
+          "unless",
+          "although",
+          "in case"
+        ],
+        "correct_answer": "so that",
+        "constraints": {
+          "target_grammar": [
+            "conjunction purpose"
+          ],
+          "cefr_level": "B2"
+        },
+        "evaluation_criteria": {},
+        "topic": "society",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 56,
+        "question_type": "long_reading",
+        "question_text_en": "What is one reason the writer supports scientific transparency?",
+        "passage": "Scientific transparency allows researchers from different countries to share information and verify results. This helps prevent misinformation and ensures that scientific progress is trustworthy. The writer argues that open communication in science is essential for solving global problems.",
+        "choices": [
+          "It helps verify scientific results",
+          "It reduces the cost of research",
+          "It limits international cooperation",
+          "It encourages competition among scientists"
+        ],
+        "correct_answer": "It helps verify scientific results",
+        "constraints": {
+          "cefr_level": "B2-C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "standard",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "grade": "1",
+    "section": "mixed_part1",
+    "questions": [
+      {
+        "question_number": 1,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think international cooperation is essential for solving global crises?",
+        "question_text_ja": "",
+        "passage": "",
+        "image_description": "",
+        "required_elements": [],
+        "choices": [],
+        "correct_answer": "",
+        "sample_answer": "Yes. International cooperation is essential because global crises such as climate change, pandemics, and economic instability cannot be solved by individual countries. Shared expertise and joint policymaking lead to more effective solutions.",
+        "constraints": {
+          "time_limit_seconds": 60,
+          "word_count": 90,
+          "required_sentences": 3,
+          "target_grammar": [],
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {
+          "pronunciation": "",
+          "intonation": "",
+          "fluency": "",
+          "content": "",
+          "grammar": "",
+          "organization": ""
+        },
+        "topic": "international issues",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 2,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should governments regulate the development of artificial intelligence more strictly?",
+        "sample_answer": "Yes. AI has the potential to improve society, but without proper regulation, it may harm privacy, employment, and security. Governments should create clear guidelines to ensure safe and ethical development.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "AI / science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 3,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think globalization benefits developing countries?",
+        "sample_answer": "Globalization can benefit developing countries by providing access to international markets and technology. However, governments must manage risks such as economic inequality and dependence on foreign companies.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "economics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 4,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should wealthy nations take more responsibility for addressing climate change?",
+        "sample_answer": "Yes. Wealthy nations have contributed most to historical emissions and have the resources to take action. They should lead efforts such as investing in renewable energy and supporting developing countries.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "climate change",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 5,
+        "question_type": "opinion_speech",
+        "question_text_en": "Is scientific literacy essential for citizens in modern society?",
+        "sample_answer": "Yes. Scientific literacy helps people evaluate information, understand public policies, and make responsible decisions. It is crucial in areas such as health, technology, and environmental protection.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 6,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should governments invest more in public health systems?",
+        "sample_answer": "Yes. Strong public health systems save lives and reduce long-term medical costs. Investment in prevention, education, and accessibility is essential for national security and social stability.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "global health",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 7,
+        "question_type": "opinion_speech",
+        "question_text_en": "Do you think democratic nations should promote democracy abroad?",
+        "sample_answer": "Democratic nations may support democracy abroad, but they must respect cultural and political contexts. Forced intervention often fails, while education and cooperation are more effective.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "politics",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 8,
+        "question_type": "opinion_speech",
+        "question_text_en": "Should countries rely more on renewable energy sources?",
+        "sample_answer": "Yes. Renewable energy reduces pollution and dependence on fossil fuels. Although initial costs are high, long-term environmental and economic benefits are significant.",
+        "constraints": {
+          "word_count": 90,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 9,
+        "question_type": "q_and_a",
+        "question_text_en": "What global issue worries you the most?",
+        "choices": [],
+        "sample_answer": "Climate change worries me most because it affects every region and threatens future generations.",
+        "constraints": {
+          "time_limit_seconds": 15,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "climate change",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 10,
+        "question_type": "q_and_a",
+        "question_text_en": "How can societies prepare for future pandemics?",
+        "sample_answer": "Societies can prepare by strengthening health systems, improving communication, and investing in scientific research.",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "global health",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 11,
+        "question_type": "q_and_a",
+        "question_text_en": "Do you think economic inequality will increase in the future?",
+        "sample_answer": "It may increase unless governments address wage gaps, education inequality, and access to technology.",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "economics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 12,
+        "question_type": "q_and_a",
+        "question_text_en": "What role should technology play in education?",
+        "sample_answer": "Technology should support learning by providing access to resources, but it should not replace human interaction.",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "technology",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 13,
+        "question_type": "q_and_a",
+        "question_text_en": "What can individuals do to reduce their environmental impact?",
+        "sample_answer": "They can reduce energy use, recycle more, and support environmentally responsible companies.",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "environment",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 14,
+        "question_type": "opinion_essay",
+        "question_text_en": "Should governments regulate social media platforms more strictly?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "required_sentences": 4,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "politics",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 15,
+        "question_type": "opinion_essay",
+        "question_text_en": "Is space exploration worth the cost?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 16,
+        "question_type": "opinion_essay",
+        "question_text_en": "Should nations prioritize economic growth over environmental protection?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "economics",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 17,
+        "question_type": "opinion_essay",
+        "question_text_en": "Should voting be mandatory in democratic countries?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "politics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 18,
+        "question_type": "opinion_essay",
+        "question_text_en": "Do you think technological progress will always improve human life?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "technology",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 19,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer believe scientific cooperation is essential?",
+        "passage": "Scientific challenges such as developing vaccines and understanding climate systems require global knowledge. The writer argues that when countries share information openly, research becomes faster and more reliable.",
+        "choices": [
+          "Because it speeds up reliable research",
+          "Because it reduces taxes",
+          "Because it limits competition",
+          "Because it is required by law"
+        ],
+        "correct_answer": "Because it speeds up reliable research",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 20,
+        "question_type": "long_reading",
+        "question_text_en": "What is the main problem described?",
+        "passage": "Many large cities are experiencing rising housing costs. This makes it difficult for young people and low-income families to find affordable places to live, contributing to economic inequality.",
+        "choices": [
+          "Rising housing costs",
+          "Falling population",
+          "Lack of public parks",
+          "Too many new buildings"
+        ],
+        "correct_answer": "Rising housing costs",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "economics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 21,
+        "question_type": "long_reading",
+        "question_text_en": "What solution does the writer suggest for reducing political polarization?",
+        "passage": "Political polarization has become a major issue in many democracies. The writer argues that one effective solution is improving education on media literacy. By teaching people how to evaluate information critically, society can reduce the influence of misinformation and extreme opinions.",
+        "choices": [
+          "Improving media literacy education",
+          "Banning political discussions",
+          "Reducing election frequency",
+          "Increasing taxes"
+        ],
+        "correct_answer": "Improving media literacy education",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "politics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 22,
+        "question_type": "long_reading",
+        "question_text_en": "What is the writer’s main concern?",
+        "passage": "As technology advances rapidly, many people worry about the future of privacy. Companies collect vast amounts of data, often without users fully understanding how it will be used. The writer warns that stronger regulations are necessary to protect citizens.",
+        "choices": [
+          "Loss of privacy",
+          "Lack of economic growth",
+          "Decline in education",
+          "Increase in travel"
+        ],
+        "correct_answer": "Loss of privacy",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "technology",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 23,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer support cultural exchange programs?",
+        "passage": "Cultural exchange programs allow students to experience different lifestyles and learn new perspectives. The writer believes these programs help reduce prejudice and promote international understanding.",
+        "choices": [
+          "They promote international understanding",
+          "They increase tourism",
+          "They reduce school costs",
+          "They make travel easier"
+        ],
+        "correct_answer": "They promote international understanding",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "international issues",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 24,
+        "question_type": "grammar_fill",
+        "question_text_en": "Many experts argue that economic growth must be balanced with environmental protection, ___ long-term sustainability cannot be achieved.",
+        "choices": [
+          "otherwise",
+          "although",
+          "unless",
+          "despite"
+        ],
+        "correct_answer": "otherwise",
+        "constraints": {
+          "target_grammar": [
+            "conjunctive adverbs"
+          ],
+          "cefr_level": "C1"
+        },
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 25,
+        "question_type": "grammar_fill",
+        "question_text_en": "The government is considering policies to support workers who may lose their jobs as automation becomes ___ common.",
+        "choices": [
+          "increasingly",
+          "increased",
+          "increase",
+          "to increase"
+        ],
+        "correct_answer": "increasingly",
+        "constraints": {
+          "target_grammar": [
+            "adverbs"
+          ],
+          "cefr_level": "C1"
+        },
+        "topic": "AI / science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 26,
+        "question_type": "grammar_fill",
+        "question_text_en": "It is vital that the public ___ access to reliable information during emergencies.",
+        "choices": [
+          "have",
+          "has",
+          "had",
+          "having"
+        ],
+        "correct_answer": "have",
+        "constraints": {
+          "target_grammar": [
+            "subjunctive"
+          ],
+          "cefr_level": "C1"
+        },
+        "topic": "global health",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 27,
+        "question_type": "grammar_fill",
+        "question_text_en": "The report proposes several measures, one of ___ is improving transparency in political funding.",
+        "choices": [
+          "which",
+          "that",
+          "what",
+          "whose"
+        ],
+        "correct_answer": "which",
+        "constraints": {
+          "target_grammar": [
+            "relative pronouns"
+          ],
+          "cefr_level": "C1"
+        },
+        "topic": "politics",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 28,
+        "question_type": "writing_essay",
+        "question_text_en": "Should developed countries take stronger measures to prevent global pandemics?",
+        "sample_answer": "",
+        "constraints": {
+          "word_count": 150,
+          "required_sentences": 4,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {
+          "content": "",
+          "organization": "",
+          "grammar": "",
+          "vocabulary": "",
+          "task_completion": ""
+        },
+        "topic": "global health",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 29,
+        "question_type": "writing_essay",
+        "question_text_en": "Do you believe economic sanctions are an effective foreign policy tool?",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "international issues",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 30,
+        "question_type": "writing_essay",
+        "question_text_en": "Should governments support the development of artificial intelligence even if it risks job loss?",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "AI / science",
+        "difficulty": "hard",
+        "notes": ""
+      },
+      {
+        "question_number": 31,
+        "question_type": "writing_essay",
+        "question_text_en": "Is economic inequality the most serious social issue today?",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "economics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 32,
+        "question_type": "writing_essay",
+        "question_text_en": "Should schools focus more on teaching critical thinking than memorization?",
+        "constraints": {
+          "word_count": 150,
+          "cefr_level": "C1"
+        },
+        "evaluation_criteria": {},
+        "topic": "education",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 33,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer say renewable energy investment is necessary?",
+        "passage": "Experts argue that renewable energy is vital not only for reducing greenhouse gases but also for ensuring energy independence. Countries that rely heavily on imported fossil fuels face economic instability. Investing in renewable energy can help prevent future crises.",
+        "choices": [
+          "It reduces emissions and increases energy independence",
+          "It creates more pollution",
+          "It is cheaper than all fossil fuels",
+          "It removes the need for technology"
+        ],
+        "correct_answer": "It reduces emissions and increases energy independence",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 34,
+        "question_type": "long_reading",
+        "question_text_en": "What is the writer’s main point?",
+        "passage": "Some believe automation will completely eliminate certain industries, while others argue it will create new opportunities. The writer suggests that the future depends on how governments and businesses manage technological changes.",
+        "choices": [
+          "The impact of automation depends on policies",
+          "Automation will fix the economy",
+          "Automation has no downsides",
+          "Automation will not change industries"
+        ],
+        "correct_answer": "The impact of automation depends on policies",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "AI / science",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 35,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer criticize current political systems?",
+        "passage": "The writer argues that many political systems fail to address long-term issues such as climate change and economic inequality. Politicians tend to focus on short-term gains to win elections rather than sustainable policies.",
+        "choices": [
+          "They focus on short-term gains",
+          "They spend too much on education",
+          "They avoid election campaigns",
+          "They ignore economic growth"
+        ],
+        "correct_answer": "They focus on short-term gains",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "politics",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 36,
+        "question_type": "long_reading",
+        "question_text_en": "What is one major benefit of scientific collaboration?",
+        "passage": "When scientists from different countries collaborate, they share knowledge, equipment, and perspectives. This not only accelerates discoveries but also reduces the likelihood of errors.",
+        "choices": [
+          "It accelerates discoveries",
+          "It limits communication",
+          "It reduces worldwide interest",
+          "It stops competition"
+        ],
+        "correct_answer": "It accelerates discoveries",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "science",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 37,
+        "question_type": "long_reading",
+        "question_text_en": "What does the writer suggest as a way to improve global health?",
+        "passage": "Improving global health requires not only better hospitals but also stronger public infrastructure. Clean water systems, reliable electricity, and safe housing all play critical roles in preventing disease.",
+        "choices": [
+          "Improve public infrastructure",
+          "Hire more politicians",
+          "Close international borders",
+          "Reduce scientific research"
+        ],
+        "correct_answer": "Improve public infrastructure",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "global health",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 38,
+        "question_type": "long_reading",
+        "question_text_en": "Why is misinformation considered dangerous?",
+        "passage": "Misinformation spreads quickly online and can influence public opinion. It may lead people to make harmful decisions, especially during crises such as pandemics or elections.",
+        "choices": [
+          "It leads to harmful decisions",
+          "It reduces online activity",
+          "It slows technological progress",
+          "It increases scientific literacy"
+        ],
+        "correct_answer": "It leads to harmful decisions",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "society",
+        "difficulty": "easy",
+        "notes": ""
+      },
+      {
+        "question_number": 39,
+        "question_type": "long_reading",
+        "question_text_en": "Why does the writer emphasize long-term environmental planning?",
+        "passage": "Short-term environmental policies may provide quick benefits but often fail to address deeper issues. Long-term planning helps ensure sustainable resource use and prevents future disasters.",
+        "choices": [
+          "It ensures sustainable resource use",
+          "It reduces scientific cooperation",
+          "It increases energy prices",
+          "It avoids international agreements"
+        ],
+        "correct_answer": "It ensures sustainable resource use",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "environment",
+        "difficulty": "standard",
+        "notes": ""
+      },
+      {
+        "question_number": 40,
+        "question_type": "long_reading",
+        "question_text_en": "What is the writer’s main argument?",
+        "passage": "Economic stability depends heavily on education. When citizens have access to high-quality learning opportunities, societies innovate more and adapt quickly to global changes.",
+        "choices": [
+          "Education supports economic stability",
+          "Education is too expensive",
+          "Technology replaces education",
+          "Travel improves economies"
+        ],
+        "correct_answer": "Education supports economic stability",
+        "constraints": {
+          "cefr_level": "C1"
+        },
+        "topic": "education",
+        "difficulty": "standard",
+        "notes": ""
+      }
+    ]
+  }
+]

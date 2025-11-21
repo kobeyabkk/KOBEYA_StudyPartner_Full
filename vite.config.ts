@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [
     build({
       minify: false, // 開発時はminifyを無効化
+      entry: 'src/index.tsx' // 本番ビルドのエントリーポイントを明示
     }),
     devServer({
       adapter,

@@ -1,21 +1,18 @@
 -- AI生成コンテンツ管理のための追加フィールド
 -- 問題モード、カスタム入力、学習スタイル、生成されたコンテンツを保存
-
--- 問題モード (AI生成 or 手動入力)
-ALTER TABLE essay_sessions ADD COLUMN problem_mode TEXT DEFAULT 'ai';
-
--- カスタム入力テーマ（手動入力モード用）
-ALTER TABLE essay_sessions ADD COLUMN custom_input TEXT;
-
--- 学習スタイル（例文重視/解説重視/自動）
-ALTER TABLE essay_sessions ADD COLUMN learning_style TEXT DEFAULT 'auto';
-
--- 最後に生成されたテーマコンテンツ（読み物）
-ALTER TABLE essay_sessions ADD COLUMN last_theme_content TEXT;
-
--- 最後に生成されたテーマタイトル
-ALTER TABLE essay_sessions ADD COLUMN last_theme_title TEXT;
+--
+-- NOTE: このマイグレーションはべき等（何度実行しても安全）です
+-- Productionでは以下の列が既に存在しているため、インデックス作成のみ実行します:
+-- - problem_mode
+-- - custom_input
+-- - learning_style
+-- - last_theme_content
+-- - last_theme_title
 
 -- インデックスを追加（カスタム入力での検索用）
+-- IF NOT EXISTSを使用しているため、既に存在する場合はスキップされる
 CREATE INDEX IF NOT EXISTS idx_essay_sessions_custom_input ON essay_sessions(custom_input);
 CREATE INDEX IF NOT EXISTS idx_essay_sessions_problem_mode ON essay_sessions(problem_mode);
+
+-- マイグレーション成功をマーク
+SELECT 'Migration 0005 completed: Indexes created or already exist' as status;

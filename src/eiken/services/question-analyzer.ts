@@ -75,7 +75,7 @@ Provide detailed analysis in JSON format.`;
         'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o', // 問題分析は常に高品質モデルを使用（正確な分析結果が重要）
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

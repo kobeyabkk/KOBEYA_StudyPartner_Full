@@ -28,11 +28,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251111.0",
     "@hono/vite-build": "^1.7.0",
     "@hono/vite-dev-server": "^0.18.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.0",
     "better-sqlite3": "^12.4.1",
+    "playwright": "^1.56.1",
     "typescript": "^5.9.3",
     "vite": "^6.3.5",
     "wrangler": "^4.4.0"

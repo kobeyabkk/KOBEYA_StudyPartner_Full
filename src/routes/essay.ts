@@ -14,6 +14,52 @@ import { learningSessions } from '../utils/session'
 import { getStudyPartnerSession } from '../services/database'
 
 // ========================================
+// Type Definitions
+// ========================================
+
+type UploadedImage = {
+  step: number
+  [key: string]: unknown
+}
+
+type OCRResult = {
+  step: number
+  text?: string
+  [key: string]: unknown
+}
+
+type OpenAIChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string
+    }
+  }>
+}
+
+const DEFAULT_ERROR_MESSAGE = '不明なエラー'
+
+function toErrorMessage(error: unknown, fallback = DEFAULT_ERROR_MESSAGE): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+  if (typeof error === 'string') {
+    return error || fallback
+  }
+  return fallback
+}
+
+function toErrorDetails(error: unknown): { message: string; stack?: string; name?: string } {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    }
+  }
+  return { message: String(error) }
+}
+
+// ========================================
 // Helper Functions
 // ========================================
 
@@ -291,7 +337,7 @@ export function registerEssayRoutes(app: Hono<any>) {
     return c.json({
       ok: false,
       error: 'init_error',
-      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `セッション初期化でエラーが発生しました: ${toErrorMessage(error)}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -353,7 +399,7 @@ export function registerEssayRoutes(app: Hono<any>) {
     return c.json({
       ok: false,
       error: 'upload_error',
-      message: '画像アップロードでエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `画像アップロードでエラーが発生しました: ${toErrorMessage(error)}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -472,10 +518,10 @@ export function registerEssayRoutes(app: Hono<any>) {
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('✅ OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     let ocrResult
     
     try {
@@ -524,7 +570,7 @@ export function registerEssayRoutes(app: Hono<any>) {
     return c.json({
       ok: false,
       error: 'ocr_error',
-      message: 'OCR処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `OCR処理でエラーが発生しました: ${toErrorMessage(error)}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -720,10 +766,10 @@ ${essayText}
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('🤖 OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 AI response content:', aiResponse.substring(0, 100) + '...')
     
     let feedback
@@ -812,7 +858,7 @@ ${essayText}
     return c.json({
       ok: false,
       error: 'feedback_error',
-      message: 'AI添削でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `AI添削でエラーが発生しました: ${toErrorMessage(error)}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -883,16 +929,16 @@ ${essayText}
       
       // 画像がアップロードされたかチェック（OCR処理済みの回答）
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 1)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 1)
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+                     session.essaySession.ocrResults.some((ocr: OCRResult) => ocr.step === 1)
       
       // OCR結果がある場合、AI添削を実行
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
         console.log('📝 Step 1: OCR confirmed, generating feedback...')
         
         try {
-          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const step1OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 1)
           const latestOCR = step1OCRs[step1OCRs.length - 1]
           const essayText = latestOCR.text || ''
           
@@ -952,12 +998,21 @@ ${essayText}
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const parsedFeedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: unknown
+            improvements?: unknown
+            overallScore?: unknown
+            nextSteps?: unknown
+          }
+          const goodPoints = Array.isArray(parsedFeedback.goodPoints) ? parsedFeedback.goodPoints : []
+          const improvements = Array.isArray(parsedFeedback.improvements) ? parsedFeedback.improvements : []
+          const nextSteps = Array.isArray(parsedFeedback.nextSteps) ? parsedFeedback.nextSteps : []
+          const overallScore = typeof parsedFeedback.overallScore === 'number' ? parsedFeedback.overallScore : 0
           
           console.log('✅ Step 1 feedback generated')
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -1044,7 +1099,7 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             const generatedAnswer = result.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated pass answer length:', generatedAnswer.length)
@@ -1125,12 +1180,21 @@ ${themeContent}
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const parsedFeedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: unknown
+            improvements?: unknown
+            overallScore?: unknown
+            nextSteps?: unknown
+          }
+          const goodPoints = Array.isArray(parsedFeedback.goodPoints) ? parsedFeedback.goodPoints : []
+          const improvements = Array.isArray(parsedFeedback.improvements) ? parsedFeedback.improvements : []
+          const nextSteps = Array.isArray(parsedFeedback.nextSteps) ? parsedFeedback.nextSteps : []
+          const overallScore = typeof parsedFeedback.overallScore === 'number' ? parsedFeedback.overallScore : 0
           
           console.log('✅ Step 1 text feedback generated')
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -1158,7 +1222,7 @@ ${themeContent}
         })
         
         // カスタムテーマに基づいた質問を生成
-        let questions = null
+        let questions = ''
         
         if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) {
           console.log('✅ Generating questions for theme:', themeTitle)
@@ -1231,9 +1295,9 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for questions')
-            console.log('📊 API result structure (questions):', Object.keys(result))
+            console.log('📊 API result structure (questions):', Object.keys(result as Record<string, unknown>))
             
             const generatedQuestions = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated questions length:', generatedQuestions?.length || 0)
@@ -1250,11 +1314,7 @@ ${themeContent}
             }
           } catch (error) {
             console.error('❌ Questions generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          console.error('❌ Error details:', toErrorDetails(error))
             // エラー時もカスタムテーマを使ったフォールバック
             questions = `1. ${themeTitle}の基本的な概念や定義について説明してください。\n2. ${themeTitle}に関する現代社会における問題点や課題は何ですか？\n3. ${themeTitle}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
@@ -1528,9 +1588,9 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for AI mode')
-            console.log('📊 API result structure:', Object.keys(result))
+            console.log('📊 API result structure:', Object.keys(result as Record<string, unknown>))
             
             const generatedText = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
@@ -1546,38 +1606,42 @@ ${targetLevel === 'high_school' ? `
                 themeMatch = generatedText.match(/テーマ[：:]\s*(.+?)(?=\n|$)/)
               }
               
+              let themeCandidate = themeMatch?.[1]?.trim() ?? null
+              let contentCandidate = contentMatch?.[1]?.trim() ?? null
+
               // パターン3: 最初の行がテーマの可能性
-              if (!themeMatch && generatedText.trim()) {
+              if (!themeCandidate && generatedText.trim()) {
                 const firstLine = generatedText.trim().split('\n')[0]
                 if (firstLine.length < 30 && firstLine.length > 3) {
-                  themeMatch = [null, firstLine]
+                  themeCandidate = firstLine
                   console.log('🔍 Using first line as theme:', firstLine)
                 }
               }
               
               // 読み物がマッチしない場合、全文を読み物として使用
-              if (!contentMatch && generatedText.length > 200) {
+              if (!contentCandidate && generatedText.length > 200) {
                 // テーマ行を除いた残りを読み物とする
                 const lines = generatedText.split('\n')
-                const contentText = lines.slice(themeMatch ? 1 : 0).join('\n').trim()
+                const startIndex = themeCandidate ? 1 : 0
+                const contentText = lines.slice(startIndex).join('\n').trim()
                 if (contentText.length > 200) {
-                  contentMatch = [null, contentText]
+                  contentCandidate = contentText
                   console.log('🔍 Using remaining text as content')
                 }
               }
               
               console.log('🔍 Parsing AI response:', {
-                hasThemeMatch: !!themeMatch,
-                hasContentMatch: !!contentMatch,
-                themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
-                contentLength: contentMatch ? contentMatch[1]?.length : 0,
+                hasThemeMatch: !!themeCandidate,
+                hasContentMatch: !!contentCandidate,
+                themeMatchValue: themeCandidate ?? 'N/A',
+                contentLength: contentCandidate?.length ?? 0,
                 fullTextLength: generatedText.length,
                 firstLine: generatedText.split('\n')[0]
               })
               
-              if (themeMatch && contentMatch && contentMatch[1].length > 50) {
-                themeTitle = themeMatch[1].trim()
-                themeContent = contentMatch[1].trim()
+              if (themeCandidate && contentCandidate && contentCandidate.length > 50) {
+                themeTitle = themeCandidate
+                themeContent = contentCandidate
                 console.log('✅ ✨ AI-generated NEW theme:', themeTitle)
                 console.log('✅ AI-generated content length:', themeContent.length)
                 console.log('🎯 This is a UNIQUE theme for this session')
@@ -1585,21 +1649,17 @@ ${targetLevel === 'high_school' ? `
                 // AI生成失敗 - エラーメッセージを表示
                 console.error('❌ Failed to parse AI response for theme generation')
                 console.error('❌ Parse results:', {
-                  themeMatch: !!themeMatch,
-                  contentMatch: !!contentMatch,
-                  themeValue: themeMatch ? themeMatch[1] : null,
-                  contentLength: contentMatch ? contentMatch[1]?.length : 0
+                  themeMatch: !!themeCandidate,
+                  contentMatch: !!contentCandidate,
+                  themeValue: themeCandidate,
+                  contentLength: contentCandidate?.length ?? 0
                 })
                 console.error('❌ Full AI response:', generatedText)
                 throw new Error('AI theme generation failed - could not parse response')
               }
             } catch (error) {
               console.error('❌ AI auto-generation error:', error)
-              console.error('❌ Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-              })
+              console.error('❌ Error details:', toErrorDetails(error))
               
               // エラーメッセージを返す
               return c.json({
@@ -1687,9 +1747,9 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful')
-            console.log('📊 API result structure:', Object.keys(result))
+            console.log('📊 API result structure:', Object.keys(result as Record<string, unknown>))
             
             const generatedText = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated text length:', generatedText?.length || 0)
@@ -1707,11 +1767,7 @@ ${targetLevel === 'high_school' ? `
             }
           } catch (error) {
             console.error('❌ Theme generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+            console.error('❌ Error details:', toErrorDetails(error))
             // エラー時もカスタムテーマを使ったフォールバック
             themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
             console.log('🔄 Using error fallback with custom theme')
@@ -1836,7 +1892,7 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
           }
           
-          const result = await response.json()
+          const result = await response.json() as OpenAIChatCompletionResponse
           console.log('✅ OpenAI API call successful for vocab problems')
           
           const generated = result.choices?.[0]?.message?.content || ''
@@ -1860,10 +1916,10 @@ ${targetLevel === 'high_school' ? `
               }
               
               // 解答から問題を生成（左側のフレーズを抽出して「→ ?」に置き換え）
-              const answerLines = answerText.split('\n').filter(line => line.trim())
+              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
               const problemLines = answerLines
-                .filter(line => /^\d+\./.test(line.trim()) && line.includes('→'))
-                .map(line => {
+                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+                .map((line: string) => {
                   // 「フレーズ」→「解答」の形式から「フレーズ」→ ? を生成
                   const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
                   return match ? `${match[1]} → ?` : null
@@ -1966,13 +2022,22 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Short essay feedback generated')
           
           // フィードバックを整形して表示
-          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -2019,7 +2084,7 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 4)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 4)
       
       // OCR結果があるかチェック
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
@@ -2148,10 +2213,10 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
             }
             
-            const result = await response_api.json()
-            console.log('✅ OpenAI API call successful for Step 4 problem')
-            
-            const generatedProblem = result.choices?.[0]?.message?.content || ''
+                const result = await response_api.json() as OpenAIChatCompletionResponse
+                console.log('✅ OpenAI API call successful for Step 4 problem')
+                
+                const generatedProblem = result.choices?.[0]?.message?.content || ''
             console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
             console.log('📝 Generated problem preview:', generatedProblem?.substring(0, 100) || 'EMPTY')
             
@@ -2165,11 +2230,7 @@ ${targetLevel === 'high_school' ? `
             charCount = wordCount
           } catch (error) {
             console.error('❌ Step 4 problem generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+            console.error('❌ Error details:', toErrorDetails(error))
             mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
             console.log('🔄 Using error fallback with custom theme')
           }
@@ -2188,11 +2249,11 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 5)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 5)
       
       // このステップのOCR結果があるかチェック（Step 5用の新しい原稿）
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 5)
+                     session.essaySession.ocrResults.some((ocr: OCRResult) => ocr.step === 5)
       
       if (message.includes('次へ') || message.includes('完了')) {
         response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
@@ -2209,7 +2270,7 @@ ${targetLevel === 'high_school' ? `
       else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
         // ユーザーが修正したテキストを入力した場合
         if (session && session.essaySession && session.essaySession.ocrResults) {
-          const step5OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 5)
+          const step5OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 5)
           if (step5OCRs.length > 0) {
             const latestOCR = step5OCRs[step5OCRs.length - 1]
             
@@ -2316,7 +2377,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             const generatedProblem = result.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated challenge problem:', generatedProblem)
@@ -2381,7 +2442,7 @@ ${targetLevel === 'high_school' ? `
     return c.json({
       ok: false,
       error: 'chat_error',
-      message: 'チャット処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `チャット処理でエラーが発生しました: ${toErrorMessage(error)}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -4881,7 +4942,7 @@ ${targetLevel === 'high_school' ? `
                 
             } catch (error) {
                 console.error('❌ Upload/OCR error:', error);
-                const errorMessage = error.message || 'エラーが発生しました';
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 addMessage('❌ ' + errorMessage + '\\n\\nもう一度お試しください。\\n問題が続く場合は、ブラウザのコンソール（F12キー）でエラー詳細を確認してください。', true);
             }
         }

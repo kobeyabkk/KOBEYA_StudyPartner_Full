@@ -71,7 +71,7 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
   };
 
   const removeTopicHint = (topic: string) => {
-    setTopicHints(topicHints.filter(t => t !== topic));
+    setTopicHints(topicHints.filter((t: string) => t !== topic));
   };
 
   return (
@@ -203,7 +203,7 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
           {/* 選択されたトピック */}
           {topicHints.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {topicHints.map((topic) => (
+              {topicHints.map((topic: string) => (
                 <span
                   key={topic}
                   className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full"

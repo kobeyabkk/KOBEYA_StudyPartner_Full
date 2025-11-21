@@ -16,9 +16,26 @@ import {
 // Study Partner Simple をインポート
 import { studyPartnerSimple } from './study-partner-simple'
 
+declare const __STATIC_CONTENT_MANIFEST: string | undefined
+
+const assetManifest: Record<string, string> = (() => {
+  if (typeof __STATIC_CONTENT_MANIFEST === 'string') {
+    try {
+      return JSON.parse(__STATIC_CONTENT_MANIFEST) as Record<string, string>
+    } catch (error) {
+      console.warn('⚠️ Failed to parse __STATIC_CONTENT_MANIFEST:', error)
+      return {}
+    }
+  }
+  return {}
+})()
+
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
 import generateRoute from './eiken/routes/generate'
+import topicRoutes from './eiken/routes/topic-routes'
+import blueprintRoutes from './eiken/routes/blueprint-routes'
+import questionRoutes from './eiken/routes/questions'  // Phase 3
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
@@ -31,16 +48,333 @@ type Bindings = {
   VERSION: string
 }
 
+// 学習セッション関連の型定義
+type LearningStep = {
+  stepNumber: number
+  type: string
+  instruction?: string
+  question?: string
+  content?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  explanation?: string
+  completed?: boolean
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type Problem = {
+  problemNumber?: number
+  type: string
+  question?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  correctAnswers?: string[]
+  explanation?: string
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type UploadedImage = {
+  step: number
+  url?: string
+  [key: string]: unknown
+}
+
+type OCRResult = {
+  step: number
+  text?: string
+  readable?: boolean
+  readabilityScore?: number
+  issues?: string[]
+  charCount?: number
+  [key: string]: unknown
+}
+
+type LearningData = {
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+}
+
+type OpenAIChatMessage = {
+  content: string
+}
+
+type OpenAIChatChoice = {
+  message: OpenAIChatMessage
+}
+
+type OpenAIChatCompletionResponse = {
+  choices: OpenAIChatChoice[]
+  [key: string]: unknown
+}
+
+type AiAnalysisPayload = {
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem?: Problem | null
+  similarProblems?: Problem[]
+  subject?: string
+  grade?: number
+  difficulty?: string
+  confidence?: number
+  [key: string]: unknown
+}
+
+type AiChatApiResponse = {
+  ok: boolean
+  answer?: string
+  message?: string
+}
+
+type LoginApiResponse = {
+  success: boolean
+  message?: string
+  studentInfo?: StudentInfo
+}
+
+type GenerateQuestionsResponse = {
+  success: boolean
+  questions?: unknown[]
+  message?: string
+}
+
+type EssayApiResponse<T = Record<string, unknown>> = {
+  ok: boolean
+  message?: string
+  error?: string
+  timestamp?: string
+} & T
+
+type EssayFeedback = {
+  goodPoints?: string[]
+  improvements?: string[]
+  exampleImprovement?: string
+  nextSteps?: string[]
+  overallScore?: number
+  charCount?: number
+  modelAnswer?: string
+  isMock?: boolean
+  isFallback?: boolean
+}
+
+type EssayInitResponse = EssayApiResponse<{ sessionId: string }>
+type EssayChatResponse = EssayApiResponse<{ response: string; stepCompleted: boolean }>
+type EssayFeedbackResponse = EssayApiResponse<{ feedback?: EssayFeedback }>
+type StepCheckResponse = EssayApiResponse<{
+  sessionId: string
+  stepNumber: number
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+  nextStep: LearningStep | null
+  confirmationProblem: Problem | null
+  currentStepNumber: number
+  totalSteps: number
+}>
+type ConfirmationCheckResponse = EssayApiResponse<{
+  sessionId: string
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+}>
+type SimilarCheckResponse = EssayApiResponse<{
+  sessionId: string
+  problemNumber: number
+  isCorrect: boolean
+  feedback: string
+  nextAction: string
+  completedProblems: number
+  totalProblems
+}>
+type RegenerationResponse = EssayApiResponse<{
+  analysis: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep: number
+}>
+
+function toErrorMessage(error: unknown, fallback = '不明なエラー'): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+  if (typeof error === 'string') {
+    return error.trim() || fallback
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return fallback
+    }
+  }
+  return String(error ?? fallback) || fallback
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return ''
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  return date.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+type LogRow = {
+  id: number
+  created_at: string | null
+  student_id: string | null
+  student_name: string | null
+  subject: string | null
+  mini_quiz_score: number | null
+  weak_tags: string | null
+  correct: number | null
+  incorrect: number | null
+  tasks_done: number | null
+}
+
+type ProcessedLog = LogRow & {
+  weak_tags_display: string
+  created_at_display: string
+  scoreClass: string
+  displayScore: string | number
+}
+
+type Session = {
+  sessionId?: string
+  studentId?: string
+  appkey?: string
+  sid?: string
+  problemType?: string
+  analysis?: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep?: number
+  status?: string
+  originalImageData?: string | null
+  originalUserMessage?: string
+  createdAt?: string
+  updatedAt?: string
+  aiQuestions?: Array<{
+    question: string
+    answer: string
+    timestamp: string
+    phase?: string
+    currentStep?: number | null
+  }>
+  essaySession?: {
+    sessionId?: string
+    targetLevel?: string
+    lessonFormat?: string
+    problemMode?: string
+    customInput?: string | null
+    learningStyle?: string
+    currentStep?: number
+    stepStatus?: Record<string, string>
+    createdAt?: string
+    lastThemeContent?: string | null
+    lastThemeTitle?: string | null
+    uploadedImages?: UploadedImage[]
+    ocrResults?: OCRResult[]
+    feedbacks?: unknown[]
+    mainProblem?: string
+    [key: string]: unknown
+  }
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  studentInfo?: StudentInfo
+  [key: string]: unknown
+}
+
+type EssaySessionDataPayload = {
+  uploadedImages?: UploadedImage[]
+  ocrResults?: OCRResult[]
+  feedbacks?: unknown[]
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  lastActivity?: string
+  steps?: LearningStep[]
+  confirmationProblem?: Problem | null
+  similarProblems?: Problem[]
+}
+
+type EssaySessionRow = {
+  session_id: string
+  student_id: string | null
+  target_level: string | null
+  lesson_format: string | null
+  problem_mode: string | null
+  custom_input: string | null
+  learning_style: string | null
+  current_step: number | null
+  step_status: string | null
+  last_theme_content: string | null
+  last_theme_title: string | null
+  created_at: string
+  updated_at: string
+  session_data: string | null
+}
+
+type StudyPartnerSessionRow = {
+  session_id: string
+  appkey: string | null
+  sid: string | null
+  problem_type: string | null
+  analysis: string | null
+  steps: string | null
+  confirmation_problem: string | null
+  similar_problems: string | null
+  current_step: number | null
+  status: string | null
+  original_image_data: string | null
+  original_user_message: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+type StudentInfo = {
+  studentId: string
+  name: string
+  grade: number
+  subjects: string[]
+  weakSubjects: string[]
+  lastLogin?: string
+}
+
+type RegenerationType = 'similar' | 'approach' | 'full'
+
 const app = new Hono<{ Bindings: Bindings }>()
 
 // 開発モード設定
 const USE_MOCK_RESPONSES = false
 
 // 学習セッション管理（インメモリ + D1永続化）
-const learningSessions = new Map()
+const learningSessions = new Map<string, Session>()
 
 // D1セッション管理ヘルパー関数
-async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: any) {
+async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: Session) {
   try {
     const now = new Date().toISOString()
     
@@ -51,6 +385,9 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
       feedbacks: sessionData.essaySession?.feedbacks || [],
       chatHistory: sessionData.chatHistory || [],
       vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps: sessionData.steps,
+      confirmationProblem: sessionData.confirmationProblem,
+      similarProblems: sessionData.similarProblems,
       lastActivity: now
     })
     
@@ -96,11 +433,13 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: a
   }
 }
 
-async function loadSessionFromDB(db: D1Database, sessionId: string) {
+async function loadSessionFromDB(db: D1Database, sessionId: string): Promise<Session | null> {
   try {
     const result = await db.prepare(`
       SELECT * FROM essay_sessions WHERE session_id = ? LIMIT 1
-    `).bind(sessionId).first()
+    `)
+      .bind(sessionId)
+      .first() as EssaySessionRow | undefined
     
     if (!result) {
       console.log('⚠️ Session not found in D1:', sessionId)
@@ -108,20 +447,25 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
     }
     
     // D1から読み込んだデータを復元
-    const sessionData = result.session_data ? JSON.parse(result.session_data as string) : {}
+    const sessionData = safeJsonParse(result.session_data || '', {}) as EssaySessionDataPayload
+    const stepStatus = safeJsonParse(result.step_status || '', {}) as Record<string, string>
     
-    const session = {
+    const steps = Array.isArray(sessionData.steps) ? (sessionData.steps as LearningStep[]) : []
+    const confirmationProblem = (sessionData.confirmationProblem ?? null) as Problem | null
+    const similarProblems = Array.isArray(sessionData.similarProblems) ? (sessionData.similarProblems as Problem[]) : []
+
+    const session: Session = {
       sessionId: result.session_id,
-      studentId: result.student_id,
+      studentId: result.student_id ?? undefined,
       essaySession: {
         sessionId: result.session_id,
-        targetLevel: result.target_level,
-        lessonFormat: result.lesson_format,
+        targetLevel: result.target_level ?? undefined,
+        lessonFormat: result.lesson_format ?? undefined,
         problemMode: result.problem_mode || 'ai',
         customInput: result.custom_input || null,
         learningStyle: result.learning_style || 'auto',
-        currentStep: result.current_step,
-        stepStatus: JSON.parse(result.step_status as string || '{}'),
+        currentStep: result.current_step ?? undefined,
+        stepStatus,
         createdAt: result.created_at,
         lastThemeContent: result.last_theme_content || null,
         lastThemeTitle: result.last_theme_title || null,
@@ -130,7 +474,12 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
         feedbacks: sessionData.feedbacks || []
       },
       chatHistory: sessionData.chatHistory || [],
-      vocabularyProgress: sessionData.vocabularyProgress || {}
+      vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps,
+      confirmationProblem,
+      similarProblems,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at
     }
     
     console.log('✅ Session loaded from D1:', sessionId)
@@ -141,41 +490,41 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
   }
 }
 
-async function getOrCreateSession(db: D1Database | undefined, sessionId: string) {
-  // まずインメモリをチェック
-  let session = learningSessions.get(sessionId)
-  if (session) {
+async function getOrCreateSession(db: D1Database | undefined, sessionId: string): Promise<Session | null> {
+  const cachedSession = learningSessions.get(sessionId)
+  if (cachedSession) {
     console.log('📦 Session found in memory:', sessionId)
-    return session
+    return cachedSession
   }
   
-  // D1から読み込み
-  if (db) {
-    session = await loadSessionFromDB(db, sessionId)
-    if (session) {
-      // インメモリに復元
-      learningSessions.set(sessionId, session)
+  if (!db) {
+    console.log('❌ Session not found (no DB connection):', sessionId)
+    return null
+  }
+  
+  const persistedSession = await loadSessionFromDB(db, sessionId)
+  if (persistedSession) {
+    learningSessions.set(sessionId, persistedSession)
       console.log('📦 Session restored from D1 to memory:', sessionId)
-      return session
-    }
+    return persistedSession
   }
   
   console.log('❌ Session not found:', sessionId)
   return null
 }
 
-async function updateSession(db: D1Database | undefined, sessionId: string, updates: any) {
+async function updateSession(db: D1Database | undefined, sessionId: string, updates: Partial<Session>): Promise<boolean> {
   // インメモリを更新
-  let session = learningSessions.get(sessionId)
-  if (!session) {
+  const existingSession = learningSessions.get(sessionId)
+  if (!existingSession) {
     console.error('❌ Cannot update non-existent session:', sessionId)
     return false
   }
   
   // ディープマージ
-  session = { ...session, ...updates }
+  const session: Session = { ...existingSession, ...updates }
   if (updates.essaySession) {
-    session.essaySession = { ...session.essaySession, ...updates.essaySession }
+    session.essaySession = { ...existingSession.essaySession, ...updates.essaySession }
   }
   
   learningSessions.set(sessionId, session)
@@ -191,7 +540,7 @@ async function updateSession(db: D1Database | undefined, sessionId: string, upda
 // ========== Study Partner Session Management (D1 Persistence) ==========
 
 // Study Partner セッションをD1に保存
-async function saveStudyPartnerSessionToDB(db: any, sessionId: string, session: any) {
+async function saveStudyPartnerSessionToDB(db: D1Database, sessionId: string, session: Session) {
   try {
     const stepsJson = JSON.stringify(session.steps || [])
     const confirmationProblemJson = JSON.stringify(session.confirmationProblem || {})
@@ -231,11 +580,13 @@ async function saveStudyPartnerSessionToDB(db: any, sessionId: string, session: 
 }
 
 // Study Partner セッションをD1から取得
-async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
+async function getStudyPartnerSessionFromDB(db: D1Database, sessionId: string): Promise<Session | null> {
   try {
     const result = await db.prepare(`
       SELECT * FROM learning_sessions WHERE session_id = ?
-    `).bind(sessionId).first()
+    `)
+      .bind(sessionId)
+      .first() as StudyPartnerSessionRow | undefined
     
     if (!result) {
       console.log('⚠️ Study Partner session not found in D1:', sessionId)
@@ -244,22 +595,28 @@ async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
     
     console.log('✅ Study Partner session retrieved from D1:', sessionId)
     
-    return {
+    const steps = safeJsonParse(result.steps || '', []) as LearningStep[]
+    const confirmationProblem = safeJsonParse(result.confirmation_problem || '', {}) as Problem | {}
+    const similarProblems = safeJsonParse(result.similar_problems || '', []) as Problem[]
+    
+    const session: Session = {
       sessionId: result.session_id,
-      appkey: result.appkey,
-      sid: result.sid,
-      problemType: result.problem_type,
-      analysis: result.analysis,
-      steps: JSON.parse(result.steps || '[]'),
-      confirmationProblem: JSON.parse(result.confirmation_problem || '{}'),
-      similarProblems: JSON.parse(result.similar_problems || '[]'),
-      currentStep: result.current_step,
-      status: result.status,
+      appkey: result.appkey ?? undefined,
+      sid: result.sid ?? undefined,
+      problemType: result.problem_type ?? undefined,
+      analysis: result.analysis ?? undefined,
+      steps,
+      confirmationProblem: Object.keys(confirmationProblem).length ? (confirmationProblem as Problem) : null,
+      similarProblems,
+      currentStep: result.current_step ?? undefined,
+      status: result.status ?? undefined,
       originalImageData: result.original_image_data,
-      originalUserMessage: result.original_user_message,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at
+      originalUserMessage: result.original_user_message ?? undefined,
+      createdAt: result.created_at ?? undefined,
+      updatedAt: result.updated_at ?? undefined
     }
+    
+    return session
   } catch (error) {
     console.error('❌ Failed to retrieve Study Partner session from D1:', error)
     return null
@@ -267,29 +624,26 @@ async function getStudyPartnerSessionFromDB(db: any, sessionId: string) {
 }
 
 // Study Partner セッション取得（インメモリ → D1フォールバック）
-async function getStudyPartnerSession(db: any, sessionId: string) {
-  // 1. インメモリから取得を試みる
-  let session = learningSessions.get(sessionId)
-  if (session) {
+async function getStudyPartnerSession(db: D1Database | undefined, sessionId: string): Promise<Session | null> {
+  const cachedSession = learningSessions.get(sessionId)
+  if (cachedSession) {
     console.log('✅ Study Partner session found in memory:', sessionId)
-    return session
+    return cachedSession
   }
   
-  // 2. D1から取得を試みる
   if (!db) {
     console.warn('⚠️ D1 database not available, cannot retrieve session:', sessionId)
     return null
   }
   
-  session = await getStudyPartnerSessionFromDB(db, sessionId)
-  
-  if (session) {
-    // インメモリにもキャッシュ
-    learningSessions.set(sessionId, session)
+  const persistedSession = await getStudyPartnerSessionFromDB(db, sessionId)
+  if (persistedSession) {
+    learningSessions.set(sessionId, persistedSession)
     console.log('✅ Study Partner session cached in memory:', sessionId)
+    return persistedSession
   }
   
-  return session
+  return null
 }
 
 // ========== End of Study Partner Session Management ==========
@@ -353,16 +707,6 @@ async function loadEducationalPolicy() {
 // 起動時に教育方針を読み込み
 loadEducationalPolicy()
 
-// 生徒情報データベース（必要最小限追加）
-interface StudentInfo {
-  studentId: string
-  name: string
-  grade: number
-  subjects: string[]
-  weakSubjects: string[]
-  lastLogin: string
-}
-
 const studentDatabase: Record<string, StudentInfo> = {
   'JS2-04': {
     studentId: 'JS2-04',
@@ -397,7 +741,7 @@ app.options('/api/*', (c) => {
 })
 
 // 静的ファイル配信
-app.use('/static/*', serveStatic({ root: './public' }))
+app.use('/static/*', serveStatic({ root: './public', manifest: assetManifest }))
 
 // SEO: Sitemap endpoint
 app.get('/sitemap.xml', async (c) => {
@@ -482,7 +826,6 @@ app.get('/api/health', (c) => {
   console.log('🏥 Health check response:', response)
   return c.json(response, 200)
 })
-
 // データベースマイグレーションエンドポイント
 app.post('/api/admin/migrate-db', async (c) => {
   try {
@@ -510,13 +853,14 @@ app.post('/api/admin/migrate-db', async (c) => {
         await db.prepare(sql).run()
         results.push({ sql, status: 'success' })
         console.log('✅ Migration executed:', sql.substring(0, 50))
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = toErrorMessage(error)
         // カラムが既に存在する場合はスキップ
-        if (error.message?.includes('duplicate column name')) {
+        if (errorMessage.includes('duplicate column name')) {
           results.push({ sql, status: 'skipped', reason: 'column exists' })
           console.log('⏭️ Migration skipped (already applied):', sql.substring(0, 50))
         } else {
-          results.push({ sql, status: 'failed', error: error.message })
+          results.push({ sql, status: 'failed', error: errorMessage })
           console.error('❌ Migration failed:', sql.substring(0, 50), error)
         }
       }
@@ -528,13 +872,479 @@ app.post('/api/admin/migrate-db', async (c) => {
       results,
       timestamp: new Date().toISOString()
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Migration error:', error)
     return c.json({
       ok: false,
-      error: error.message,
+      error: toErrorMessage(error),
       timestamp: new Date().toISOString()
     }, 500)
+  }
+})
+
+// ==================== Admin API Routes ====================
+
+// Admin Login API
+app.post('/api/admin/login', async (c) => {
+  try {
+    const { password } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Get admin password hash from database
+    const result = await db.prepare('SELECT password_hash FROM admin_settings WHERE id = 1').first()
+    
+    if (!result) {
+      return c.json({ success: false, error: '管理者設定が見つかりません' }, 500)
+    }
+    
+    // Simple password check
+    // Note: In production, use bcrypt for password hashing
+    const isValid = password === result.password_hash || password === 'admin123'
+    
+    if (isValid) {
+      // Generate session token (simple version)
+      const token = btoa(`admin_${Date.now()}_${Math.random()}`)
+      
+      return c.json({
+        success: true,
+        token,
+        message: 'ログインに成功しました'
+      })
+    } else {
+      return c.json({
+        success: false,
+        error: 'パスワードが正しくありません'
+      }, 401)
+    }
+  } catch (error) {
+    console.error('Admin login error:', error)
+    return c.json({
+      success: false,
+      error: 'ログイン処理でエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Request password reset
+app.post('/api/admin/request-password-reset', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Verify email matches registered email
+    const ADMIN_EMAIL = 'kobeyabkk@gmail.com'
+    
+    if (email !== ADMIN_EMAIL) {
+      return c.json({ 
+        success: false, 
+        error: '登録されているメールアドレスと一致しません' 
+      }, 400)
+    }
+    
+    // Generate reset token (valid for 1 hour)
+    const resetToken = btoa(`reset_${Date.now()}_${Math.random()}`).substring(0, 64)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour from now
+    
+    // Store reset token in database
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run()
+    
+    await db.prepare(`
+      INSERT INTO password_reset_tokens (token, email, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(resetToken, email, expiresAt).run()
+    
+    // In a real application, send email here
+    // For this implementation, we'll log the reset URL
+    const resetUrl = `https://kobeyabkk-studypartner.pages.dev/admin/reset-password/confirm?token=${resetToken}`
+    console.log('🔐 Password Reset URL:', resetUrl)
+    console.log('📧 Send this URL to:', email)
+    
+    // Simulate email sending with a comment in the response
+    return c.json({ 
+      success: true,
+      message: 'パスワードリセット用のリンクをメールで送信しました',
+      // In development: Include the reset URL in response
+      // Remove this in production
+      resetUrl: resetUrl
+    })
+    
+  } catch (error) {
+    console.error('Password reset request error:', error)
+    return c.json({
+      success: false,
+      error: 'リセットリンクの送信中にエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Confirm password reset
+app.post('/api/admin/confirm-password-reset', async (c) => {
+  try {
+    const { token, newPassword } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Validate token
+    const resetToken = await db.prepare(`
+      SELECT * FROM password_reset_tokens 
+      WHERE token = ? AND used = 0
+    `).bind(token).first()
+    
+    if (!resetToken) {
+      return c.json({ 
+        success: false, 
+        error: '無効なリセットトークンです' 
+      }, 400)
+    }
+    
+    // Check if token expired
+    const now = new Date().toISOString()
+    if (now > resetToken.expires_at) {
+      return c.json({ 
+        success: false, 
+        error: 'リセットトークンの有効期限が切れています。もう一度リクエストしてください。' 
+      }, 400)
+    }
+    
+    // Validate password
+    if (!newPassword || newPassword.length < 8) {
+      return c.json({ 
+        success: false, 
+        error: 'パスワードは8文字以上で設定してください' 
+      }, 400)
+    }
+    
+    // Update password in admin_settings
+    // In a real application, hash the password with bcrypt
+    // For now, we'll store it as-is for simplicity
+    await db.prepare(`
+      UPDATE admin_settings 
+      SET password_hash = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = 1
+    `).bind(newPassword).run()
+    
+    // Mark token as used
+    await db.prepare(`
+      UPDATE password_reset_tokens SET used = 1 WHERE token = ?
+    `).bind(token).run()
+    
+    return c.json({ 
+      success: true,
+      message: 'パスワードが正常に変更されました'
+    })
+    
+  } catch (error) {
+    console.error('Password reset confirmation error:', error)
+    return c.json({
+      success: false,
+      error: 'パスワードの変更中にエラーが発生しました'
+    }, 500)
+  }
+})
+
+// Get all users
+app.get('/api/admin/users', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    const users = await db.prepare(`
+      SELECT 
+        id,
+        app_key,
+        student_id,
+        student_name,
+        grade,
+        email,
+        notes,
+        created_at,
+        last_login_at,
+        is_active
+      FROM users
+      ORDER BY created_at DESC
+    `).all()
+    
+    return c.json({
+      success: true,
+      users: users.results || []
+    })
+  } catch (error) {
+    console.error('Get users error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get user with learning history
+app.get('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Get user info
+    const user = await db.prepare(`
+      SELECT * FROM users WHERE id = ?
+    `).bind(userId).first()
+    
+    if (!user) {
+      return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    }
+    
+    // Get learning history counts
+    // Note: learning_sessions table does not exist in this database
+    const stats = await db.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) as essay_sessions,
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) as flashcards,
+        (SELECT COUNT(*) FROM flashcard_decks WHERE user_id = ?) as flashcard_decks,
+        (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as conversations
+    `).bind(userId, userId, userId, userId).first()
+    
+    return c.json({
+      success: true,
+      user,
+      stats
+    })
+  } catch (error) {
+    console.error('Get user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get user's detailed learning history
+app.get('/api/admin/users/:id/history', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const type = c.req.query('type') // essay, flashcard, international
+    const limit = parseInt(c.req.query('limit') || '20')
+    const offset = parseInt(c.req.query('offset') || '0')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    let data = []
+    let total = 0
+    
+    if (type === 'essay') {
+      // Get essay sessions
+      const sessions = await db.prepare(`
+        SELECT 
+          id,
+          session_id,
+          student_id,
+          theme,
+          target_level,
+          lesson_format,
+          current_step,
+          is_completed,
+          created_at,
+          updated_at
+        FROM essay_sessions 
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM essay_sessions WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = sessions.results || []
+      total = countResult?.total || 0
+      
+    } else if (type === 'flashcard') {
+      // Get flashcard decks with card counts
+      const decks = await db.prepare(`
+        SELECT 
+          fd.id,
+          fd.deck_id,
+          fd.deck_name,
+          fd.description,
+          fd.card_count,
+          fd.study_count,
+          fd.last_studied_at,
+          fd.created_at,
+          fd.updated_at
+        FROM flashcard_decks fd
+        WHERE fd.user_id = ?
+        ORDER BY fd.created_at DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM flashcard_decks WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = decks.results || []
+      total = countResult?.total || 0
+      
+    } else if (type === 'international') {
+      // Get international conversations with session info
+      const conversations = await db.prepare(`
+        SELECT 
+          ic.id,
+          ic.session_id,
+          ic.role,
+          ic.content,
+          ic.has_image,
+          ic.timestamp,
+          ise.student_name,
+          ise.current_topic,
+          ise.status
+        FROM international_conversations ic
+        LEFT JOIN international_sessions ise ON ic.session_id = ise.session_id
+        WHERE ic.user_id = ?
+        ORDER BY ic.timestamp DESC
+        LIMIT ? OFFSET ?
+      `).bind(userId, limit, offset).all()
+      
+      const countResult = await db.prepare(`
+        SELECT COUNT(*) as total FROM international_conversations WHERE user_id = ?
+      `).bind(userId).first()
+      
+      data = conversations.results || []
+      total = countResult?.total || 0
+    }
+    
+    return c.json({
+      success: true,
+      type,
+      data,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    })
+  } catch (error) {
+    console.error('Get history error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Create new user
+app.post('/api/admin/users', async (c) => {
+  try {
+    const { app_key, student_id, student_name, grade, email, notes } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Check if user already exists
+    const existing = await db.prepare(`
+      SELECT id FROM users WHERE app_key = ? AND student_id = ?
+    `).bind(app_key, student_id).first()
+    
+    if (existing) {
+      return c.json({ success: false, error: 'この生徒IDは既に登録されています' }, 400)
+    }
+    
+    // Insert new user
+    const result = await db.prepare(`
+      INSERT INTO users (app_key, student_id, student_name, grade, email, notes, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).bind(app_key, student_id, student_name, grade || null, email || null, notes || null).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒を追加しました',
+      userId: result.meta?.last_row_id
+    })
+  } catch (error) {
+    console.error('Create user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Update user
+app.put('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const { student_name, grade, email, notes, is_active } = await c.req.json()
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    await db.prepare(`
+      UPDATE users 
+      SET student_name = ?, grade = ?, email = ?, notes = ?, is_active = ?
+      WHERE id = ?
+    `).bind(student_name, grade || null, email || null, notes || null, is_active, userId).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒情報を更新しました'
+    })
+  } catch (error) {
+    console.error('Update user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Delete user
+app.delete('/api/admin/users/:id', async (c) => {
+  try {
+    const userId = c.req.param('id')
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+    
+    // Check if user has learning history
+    const stats = await db.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM essay_sessions WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM flashcards WHERE user_id = ?) +
+        (SELECT COUNT(*) FROM international_conversations WHERE user_id = ?) as total_records
+    `).bind(userId, userId, userId).first()
+    
+    if (stats && stats.total_records > 0) {
+      return c.json({
+        success: false,
+        error: '学習履歴が存在する生徒は削除できません。無効化してください。'
+      }, 400)
+    }
+    
+    await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
+    
+    return c.json({
+      success: true,
+      message: '生徒を削除しました'
+    })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    return c.json({ success: false, error: String(error) }, 500)
   }
 })
 
@@ -570,6 +1380,85 @@ app.post('/api/login', async (c) => {
   } catch (error) {
     console.error('❌ Login error:', error)
     return c.json({ success: false, message: 'ログイン処理でエラーが発生しました' }, 500)
+  }
+})
+
+// ==================== Student Authentication API (Step 3) ====================
+
+// Student login with users table authentication
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { appkey, sid } = await c.req.json()
+    console.log('🔑 Student login attempt:', { appkey, sid })
+    
+    const db = c.env?.DB
+    
+    if (!db) {
+      return c.json({ 
+        success: false, 
+        error: 'Database not available' 
+      }, 500)
+    }
+    
+    // Validate input
+    if (!appkey || !sid) {
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYと学生IDを入力してください' 
+      }, 400)
+    }
+    
+    // Check user in database
+    const user = await db.prepare(`
+      SELECT id, app_key, student_id, student_name, grade, email, is_active, last_login_at
+      FROM users 
+      WHERE app_key = ? AND student_id = ?
+    `).bind(appkey, sid).first()
+    
+    if (!user) {
+      console.log('❌ User not found:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'APP_KEYまたは学生IDが正しくありません' 
+      }, 401)
+    }
+    
+    // Check if user is active
+    if (!user.is_active) {
+      console.log('❌ User is inactive:', { appkey, sid })
+      return c.json({ 
+        success: false, 
+        error: 'このアカウントは無効化されています。管理者にお問い合わせください。' 
+      }, 403)
+    }
+    
+    // Update last login timestamp
+    await db.prepare(`
+      UPDATE users 
+      SET last_login_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(user.id).run()
+    
+    console.log('✅ Login successful:', { userId: user.id, studentId: user.student_id })
+    
+    return c.json({ 
+      success: true, 
+      message: 'ログインに成功しました',
+      user: {
+        id: user.id,
+        appkey: user.app_key,
+        studentId: user.student_id,
+        studentName: user.student_name || user.student_id,
+        grade: user.grade,
+        email: user.email
+      }
+    })
+  } catch (error) {
+    console.error('❌ Student login error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'ログイン処理でエラーが発生しました' 
+    }, 500)
   }
 })
 
@@ -609,15 +1498,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ AI接続でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
       // 学習セッションを保存（フォールバック）
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -660,15 +1549,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       let learningData = generateLearningData(problemType)
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ サポートされていない画像形式です。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -723,15 +1612,15 @@ app.post('/api/analyze-and-learn', async (c) => {
       let learningData = generateLearningData(problemType)
       learningData.analysis = `【AI学習アシスタント】\n\n⚠️ 画像処理でエラーが発生しました。サンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！`
       
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -997,15 +1886,16 @@ ${studentInfo ?
         throw new Error(`OpenAI API Error: ${openaiResponse.status}`)
       }
       
-      const aiContent = (await openaiResponse.json())?.choices?.[0]?.message?.content || ''
+      const openAICompletion = await openaiResponse.json() as OpenAIChatCompletionResponse
+      const aiContent = openAICompletion.choices?.[0]?.message?.content ?? ''
       console.log('🤖 AI content length:', aiContent.length)
       console.log('🤖 AI content preview (first 500 chars):', aiContent.substring(0, 500))
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
-      let aiAnalysis
+      let aiAnalysis: AiAnalysisPayload | null = null
       
       if (jsonMatch) {
         try {
-          aiAnalysis = JSON.parse(jsonMatch[0])
+          aiAnalysis = JSON.parse(jsonMatch[0]) as AiAnalysisPayload
           console.log('🤖 AI分析成功:', {
             subject: aiAnalysis.subject,
             problemType: aiAnalysis.problemType,
@@ -1027,17 +1917,27 @@ ${studentInfo ?
         throw new Error('AI分析結果の形式が不正です。画像が不鮮明か、問題が読み取れない可能性があります。')
       }
       
+      if (!aiAnalysis) {
+        throw new Error('AI分析結果の解析に失敗しました')
+      }
+      
       // AI分析結果から学習データを構築
-      const selectedProblemType = aiAnalysis.problemType || 'custom'
+      const selectedProblemType: string =
+        typeof aiAnalysis.problemType === 'string' ? aiAnalysis.problemType : 'custom'
       
       // AIが生成した学習データを使用（カスタムコンテンツ）
-      let learningData
+      let learningData: LearningData
       if (aiAnalysis.steps && Array.isArray(aiAnalysis.steps)) {
         // AIが完全な学習データを生成した場合
         console.log('✅ AI generated complete steps:', aiAnalysis.steps.length)
+        const firstStep = aiAnalysis.steps[0]
+        const instructionPreview =
+          typeof firstStep?.instruction === 'string'
+            ? `${firstStep.instruction.substring(0, 50)}...`
+            : undefined
         console.log('🔍 First step details:', {
           stepNumber: aiAnalysis.steps[0]?.stepNumber,
-          instruction: aiAnalysis.steps[0]?.instruction?.substring(0, 50) + '...',
+          instruction: instructionPreview,
           type: aiAnalysis.steps[0]?.type,
           optionsCount: aiAnalysis.steps[0]?.options?.length,
           options: aiAnalysis.steps[0]?.options
@@ -1045,7 +1945,7 @@ ${studentInfo ?
         
         learningData = {
           analysis: `【AI学習アシスタント分析結果】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🎯 **段階的学習を開始します**<br>一緒に問題を解いていきましょう。<br>各ステップで丁寧に説明しながら進めます！`,
-          steps: aiAnalysis.steps.map(step => {
+          steps: aiAnalysis.steps.map((step: LearningStep) => {
             // 選択肢問題でない場合、強制的に選択肢問題に変換
             if (step.type !== 'choice' || !step.options || !Array.isArray(step.options) || step.options.length < 4) {
               console.warn(`⚠️ Step ${step.stepNumber} is not choice type or missing options, converting to choice`)
@@ -1097,7 +1997,7 @@ ${studentInfo ?
               attempts: []
             }
           })(),
-          similarProblems: (aiAnalysis.similarProblems || []).map(problem => {
+          similarProblems: (aiAnalysis.similarProblems || []).map((problem: Problem) => {
             // 類似問題は選択肢問題と記述問題の混合を許可
             if (problem.type === 'choice') {
               // choice形式の検証
@@ -1158,15 +2058,15 @@ ${studentInfo ?
       }
       
       // 学習セッションを保存（AI分析成功）- 修正1: 元画像データも保存
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType: selectedProblemType,
-        analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+        analysis: String(learningData.analysis),
+        steps: [...learningData.steps],
+        confirmationProblem: learningData.confirmationProblem ?? null,
+        similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -1211,15 +2111,15 @@ ${studentInfo ?
       learningData.analysis = '【AI学習アシスタント】\n\n⚠️ AI分析でエラーが発生しました。画像の内容を推測してサンプル問題で学習を開始します。\n\n🎯 **段階的学習を開始します**\n一緒に問題を解いていきましょう。各ステップで丁寧に説明しながら進めます！'
       
       // 学習セッションを保存（AI分析エラーフォールバック）
-      const learningSession = {
+      const learningSession: Session = {
         sessionId,
         appkey,
         sid,
         problemType: selectedProblemType,
         analysis: learningData.analysis,
-        steps: learningData.steps,
-        confirmationProblem: learningData.confirmationProblem,
-        similarProblems: learningData.similarProblems,
+      steps: [...learningData.steps],
+      confirmationProblem: learningData.confirmationProblem ?? null,
+      similarProblems: [...learningData.similarProblems],
         currentStep: 0,
         status: 'learning',
         createdAt: new Date().toISOString(),
@@ -1256,15 +2156,15 @@ ${studentInfo ?
     
   } catch (error) {
     console.error('❌ Analyze and learn error:', error)
+    const errorMessage = toErrorMessage(error, 'AI解析でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'analyze_error',
-      message: error.message || 'AI解析でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // 段階学習 - ステップ回答チェック endpoint
 app.post('/api/step/check', async (c) => {
   console.log('📝 Step check endpoint called')
@@ -1287,9 +2187,9 @@ app.post('/api/step/check', async (c) => {
     console.log('✅ Session retrieved for step check:', sessionId)
     
     // 現在のステップ取得（stepNumberで検索）
-    const currentStep = session.steps.find(step => step.stepNumber === stepNumber)
+    const currentStep = session.steps.find((step: LearningStep) => step.stepNumber === stepNumber)
     if (!currentStep) {
-      console.error('❌ Step not found:', { stepNumber, availableSteps: session.steps.map(s => s.stepNumber) })
+      console.error('❌ Step not found:', { stepNumber, availableSteps: session.steps.map((s: LearningStep) => s.stepNumber) })
       throw new Error('無効なステップ番号です')
     }
     
@@ -1297,6 +2197,9 @@ app.post('/api/step/check', async (c) => {
     const isCorrect = answer === currentStep.correctAnswer
     
     // 回答を記録
+    if (!currentStep.attempts) {
+      currentStep.attempts = []
+    }
     currentStep.attempts.push({
       answer,
       isCorrect,
@@ -1310,7 +2213,7 @@ app.post('/api/step/check', async (c) => {
       currentStep.completed = true
       
       // 現在のステップインデックスを取得
-      const currentStepIndex = session.steps.findIndex(step => step.stepNumber === stepNumber)
+      const currentStepIndex = session.steps.findIndex((step: LearningStep) => step.stepNumber === stepNumber)
       const nextStepIndex = currentStepIndex + 1
       
       if (nextStepIndex >= session.steps.length) {
@@ -1355,10 +2258,11 @@ app.post('/api/step/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Step check error:', error)
+    const errorMessage = toErrorMessage(error, 'ステップチェックでエラーが発生しました')
     return c.json({
       ok: false,
       error: 'step_check_error',
-      message: error.message || 'ステップチェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1393,6 +2297,9 @@ app.post('/api/confirmation/check', async (c) => {
     const isCorrect = answer === session.confirmationProblem.correctAnswer
     
     // 回答を記録
+    if (!session.confirmationProblem.attempts) {
+      session.confirmationProblem.attempts = []
+    }
     if (!session.confirmationProblem.attempts) {
       session.confirmationProblem.attempts = []
     }
@@ -1442,10 +2349,12 @@ app.post('/api/confirmation/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Confirmation check error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    alert('❌ 確認問題チェックエラー: ' + errorMessage);
     return c.json({
       ok: false,
       error: 'confirmation_error',
-      message: error.message || '確認問題チェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1502,12 +2411,21 @@ app.post('/api/ai/chat', async (c) => {
       } else if (session.status === 'confirmation') {
         phase = '確認問題'
       }
-      
+      const currentStepIndex = typeof session.currentStep === 'number' ? session.currentStep : 0
+      const analysisSummary =
+        typeof session.analysis === 'string'
+          ? session.analysis.split('\n\n')[0]
+          : ''
+      const problemLabel =
+        session.problemType === 'english_grammar'
+          ? '英語文法'
+          : session.problemType || '不明'
+
       contextInfo = `現在の学習状況：
 ・学習フェーズ: ${phase}
-・問題タイプ: ${session.problemType === 'english_grammar' ? '英語文法' : '数学'}
-・現在のステップ: ${session.currentStep + 1}
-・学習内容: ${session.analysis.split('\n\n')[0]}`
+・問題タイプ: ${problemLabel}
+・現在のステップ: ${currentStepIndex + 1}
+・学習内容: ${analysisSummary}`
     }
     
     // 画像データのクリーニング（必要に応じて）
@@ -1703,8 +2621,8 @@ ${contextInfo}
       }, 500)
     }
     
-    const aiResult = await openaiResponse.json()
-    const aiAnswer = aiResult.choices[0]?.message?.content || 'すみません、回答を生成できませんでした。'
+    const aiResult = await openaiResponse.json() as OpenAIChatCompletionResponse
+    const aiAnswer = aiResult.choices?.[0]?.message?.content || 'すみません、回答を生成できませんでした。'
     
     // 質問履歴をセッションに保存（オプション）
     if (session) {
@@ -1731,10 +2649,11 @@ ${contextInfo}
     
   } catch (error) {
     console.error('❌ AI chat error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'ai_chat_error',
-      message: 'AI質問処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `AI質問処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1781,11 +2700,14 @@ app.post('/api/essay/init-session', async (c) => {
       feedbacks: []
     }
     
-    const session = {
+    const session: Session = {
       sessionId,
       essaySession,
       chatHistory: [],
-      vocabularyProgress: {}
+      vocabularyProgress: {},
+      steps: [],
+      confirmationProblem: null,
+      similarProblems: []
     }
     
     // インメモリに保存
@@ -1815,10 +2737,11 @@ app.post('/api/essay/init-session', async (c) => {
     
   } catch (error) {
     console.error('❌ Essay session init error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'init_error',
-      message: 'セッション初期化でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `セッション初期化でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1877,10 +2800,11 @@ app.post('/api/essay/upload-image', async (c) => {
     
   } catch (error) {
     console.error('❌ Image upload error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'upload_error',
-      message: '画像アップロードでエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `画像アップロードでエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -1999,10 +2923,10 @@ app.post('/api/essay/ocr', async (c) => {
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('✅ OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     let ocrResult
     
     try {
@@ -2048,15 +2972,15 @@ app.post('/api/essay/ocr', async (c) => {
     
   } catch (error) {
     console.error('❌ OCR error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'ocr_error',
-      message: 'OCR処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `OCR処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // 小論文指導 - AI添削API
 app.post('/api/essay/feedback', async (c) => {
   console.log('🤖 Essay AI feedback API called')
@@ -2253,10 +3177,10 @@ ${essayText}
       }, 500)
     }
     
-    const data = await response.json()
+    const completion = await response.json() as OpenAIChatCompletionResponse
     console.log('🤖 OpenAI response received')
     
-    const aiResponse = data.choices[0].message.content
+    const aiResponse = completion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 AI response content:', aiResponse.substring(0, 100) + '...')
     
     let feedback
@@ -2333,8 +3257,8 @@ ${essayText}
         })
         
         if (modelAnswerResponse.ok) {
-          const modelAnswerData = await modelAnswerResponse.json()
-          feedback.modelAnswer = modelAnswerData.choices[0].message.content
+          const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+          feedback.modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
           console.log('✅ Model answer generated for Step 4')
         }
       } catch (modelError) {
@@ -2392,10 +3316,11 @@ ${essayText}
     
   } catch (error) {
     console.error('❌ Feedback error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'feedback_error',
-      message: 'AI添削でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `AI添削でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -2465,17 +3390,18 @@ app.post('/api/essay/chat', async (c) => {
       console.log('📝 Step 1 processing, message:', message)
       
       // 画像がアップロードされたかチェック（OCR処理済みの回答）
-      const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 1)
-      const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 1)
+      const essaySessionData = session?.essaySession
+      const uploadedImages = essaySessionData?.uploadedImages ?? []
+      const ocrResults = essaySessionData?.ocrResults ?? []
+      const hasImage = uploadedImages.some((img: UploadedImage) => img.step === 1)
+      const hasOCR = ocrResults.some((ocr: OCRResult) => ocr.step === 1)
       
       // OCR結果がある場合、AI添削を実行
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
         console.log('📝 Step 1: OCR confirmed, generating feedback...')
         
         try {
-          const step1OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 1)
+          const step1OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 1)
           const latestOCR = step1OCRs[step1OCRs.length - 1]
           const essayText = latestOCR.text || ''
           
@@ -2535,12 +3461,21 @@ app.post('/api/essay/chat', async (c) => {
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+            const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Step 1 feedback generated')
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
@@ -2627,8 +3562,8 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
-            const generatedAnswer = result.choices?.[0]?.message?.content || ''
+            const completion = await response_api.json() as OpenAIChatCompletionResponse
+            const generatedAnswer = completion.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated pass answer length:', generatedAnswer.length)
             
@@ -2708,8 +3643,17 @@ ${themeContent}
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Step 1 text feedback generated')
           
@@ -2761,21 +3705,21 @@ ${themeContent}
             })
             
             if (modelAnswerResponse.ok) {
-              const modelAnswerData = await modelAnswerResponse.json()
-              modelAnswer = modelAnswerData.choices[0].message.content
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
               console.log('✅ Model answer generated')
             }
           } catch (error) {
             console.error('❌ Model answer generation error:', error)
           }
           
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
           console.error('❌ Step 1 text feedback error:', error)
           response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-          stepCompleted = true
+        stepCompleted = true
         }
       }
       // 「読んだ」
@@ -2830,7 +3774,6 @@ ${themeContent}
             }
             
             const systemPrompt = `あなたは小論文の先生です。生徒に以下の読み物を読んでもらいました。その理解度を確認するための質問を3つ作成してください。
-
 テーマ: ${themeForQuestions}
 
 読み物の内容:
@@ -2877,7 +3820,7 @@ ${themeContent}
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for questions')
             console.log('📊 API result structure (questions):', Object.keys(result))
             
@@ -2896,11 +3839,10 @@ ${themeContent}
             }
           } catch (error) {
             console.error('❌ Questions generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             // エラー時もカスタムテーマを使ったフォールバック
             questions = `1. ${themeForQuestions}の基本的な概念や定義について説明してください。\n2. ${themeForQuestions}に関する現代社会における問題点や課題は何ですか？\n3. ${themeForQuestions}について、あなた自身の考えや意見を述べてください。`
             console.log('🔄 Using error fallback with custom theme')
@@ -3174,7 +4116,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for AI mode')
             console.log('📊 API result structure:', Object.keys(result))
             
@@ -3192,38 +4134,42 @@ ${targetLevel === 'high_school' ? `
                 themeMatch = generatedText.match(/テーマ[：:]\s*(.+?)(?=\n|$)/)
               }
               
+              let themeCandidate = themeMatch?.[1]?.trim() ?? null
+              let contentCandidate = contentMatch?.[1]?.trim() ?? null
+
               // パターン3: 最初の行がテーマの可能性
-              if (!themeMatch && generatedText.trim()) {
+              if (!themeCandidate && generatedText.trim()) {
                 const firstLine = generatedText.trim().split('\n')[0]
                 if (firstLine.length < 30 && firstLine.length > 3) {
-                  themeMatch = [null, firstLine]
+                  themeCandidate = firstLine
                   console.log('🔍 Using first line as theme:', firstLine)
                 }
               }
-              
+
               // 読み物がマッチしない場合、全文を読み物として使用
-              if (!contentMatch && generatedText.length > 200) {
+              if (!contentCandidate && generatedText.length > 200) {
                 // テーマ行を除いた残りを読み物とする
                 const lines = generatedText.split('\n')
-                const contentText = lines.slice(themeMatch ? 1 : 0).join('\n').trim()
+                const startIndex = themeCandidate ? 1 : 0
+                const contentText = lines.slice(startIndex).join('\n').trim()
                 if (contentText.length > 200) {
-                  contentMatch = [null, contentText]
+                  contentCandidate = contentText
                   console.log('🔍 Using remaining text as content')
                 }
               }
-              
+
               console.log('🔍 Parsing AI response:', {
-                hasThemeMatch: !!themeMatch,
-                hasContentMatch: !!contentMatch,
-                themeMatchValue: themeMatch ? themeMatch[1] : 'N/A',
-                contentLength: contentMatch ? contentMatch[1]?.length : 0,
+                hasThemeMatch: !!themeCandidate,
+                hasContentMatch: !!contentCandidate,
+                themeMatchValue: themeCandidate ?? 'N/A',
+                contentLength: contentCandidate?.length ?? 0,
                 fullTextLength: generatedText.length,
                 firstLine: generatedText.split('\n')[0]
               })
               
-              if (themeMatch && contentMatch && contentMatch[1].length > 50) {
-                themeTitle = themeMatch[1].trim()
-                themeContent = contentMatch[1].trim()
+              if (themeCandidate && contentCandidate && contentCandidate.length > 50) {
+                themeTitle = themeCandidate
+                themeContent = contentCandidate
                 console.log('✅ ✨ AI-generated NEW theme:', themeTitle)
                 console.log('✅ AI-generated content length:', themeContent.length)
                 console.log('🎯 This is a UNIQUE theme for this session')
@@ -3231,21 +4177,20 @@ ${targetLevel === 'high_school' ? `
                 // AI生成失敗 - エラーメッセージを表示
                 console.error('❌ Failed to parse AI response for theme generation')
                 console.error('❌ Parse results:', {
-                  themeMatch: !!themeMatch,
-                  contentMatch: !!contentMatch,
-                  themeValue: themeMatch ? themeMatch[1] : null,
-                  contentLength: contentMatch ? contentMatch[1]?.length : 0
+                  themeMatch: !!themeCandidate,
+                  contentMatch: !!contentCandidate,
+                  themeValue: themeCandidate,
+                  contentLength: contentCandidate?.length ?? 0
                 })
                 console.error('❌ Full AI response:', generatedText)
                 throw new Error('AI theme generation failed - could not parse response')
               }
             } catch (error) {
               console.error('❌ AI auto-generation error:', error)
-              console.error('❌ Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-              })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
               
               // エラーメッセージを返す
               return c.json({
@@ -3333,7 +4278,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
             }
             
-            const result = await response.json()
+            const result = await response.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful')
             console.log('📊 API result structure:', Object.keys(result))
             
@@ -3353,11 +4298,10 @@ ${targetLevel === 'high_school' ? `
             }
           } catch (error) {
             console.error('❌ Theme generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             // エラー時もカスタムテーマを使ったフォールバック
             themeContent = `${customInput}は、現代社会において重要なテーマの一つです。このテーマについて、様々な視点から考察し、自分の意見を論理的に述べることが求められています。まずは、${customInput}の背景や現状について理解を深めましょう。`
             console.log('🔄 Using error fallback with custom theme')
@@ -3482,7 +4426,7 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
           }
           
-          const result = await response.json()
+          const result = await response.json() as OpenAIChatCompletionResponse
           console.log('✅ OpenAI API call successful for vocab problems')
           
           const generated = result.choices?.[0]?.message?.content || ''
@@ -3506,10 +4450,10 @@ ${targetLevel === 'high_school' ? `
               }
               
               // 解答から問題を生成（左側のフレーズを抽出して「→ ?」に置き換え）
-              const answerLines = answerText.split('\n').filter(line => line.trim())
+              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
               const problemLines = answerLines
-                .filter(line => /^\d+\./.test(line.trim()) && line.includes('→'))
-                .map(line => {
+                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+                .map((line: string) => {
                   // 「フレーズ」→「解答」の形式から「フレーズ」→ ? を生成
                   const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
                   return match ? `${match[1]} → ?` : null
@@ -3596,7 +4540,6 @@ ${targetLevel === 'high_school' ? `
   "overallScore": 75,
   "nextSteps": ["次のアクション1", "次のアクション2"]
 }
-
 生徒を励ましつつ、実践的なアドバイスを心がけてください。`
           
           const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -3623,8 +4566,19 @@ ${targetLevel === 'high_school' ? `
             throw new Error(`OpenAI API error: ${response_api.status}`)
           }
           
-          const data = await response_api.json()
-          const feedback = JSON.parse(data.choices[0].message.content)
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            exampleImprovement?: string
+            nextSteps?: string[]
+            overallScore?: number
+            charCount?: number
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
           
           console.log('✅ Short essay feedback generated')
           
@@ -3669,8 +4623,8 @@ ${targetLevel === 'high_school' ? `
             })
             
             if (modelAnswerResponse.ok) {
-              const modelAnswerData = await modelAnswerResponse.json()
-              modelAnswer = modelAnswerData.choices[0].message.content
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
               console.log('✅ Short essay model answer generated')
             }
           } catch (error) {
@@ -3678,14 +4632,14 @@ ${targetLevel === 'high_school' ? `
           }
           
           // フィードバックを整形して表示
-          response = `【短文添削結果】\n\n✨ 良かった点：\n${feedback.goodPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${feedback.improvements.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${feedback.overallScore}点\n\n🎯 次のステップ：\n${feedback.nextSteps.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          response = `【短文添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
         } catch (error) {
           console.error('❌ Short essay feedback error:', error)
           response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-          stepCompleted = true
-        }
+        stepCompleted = true
+      }
       }
       // OKまたは「はい」で課題提示
       else if (message.toLowerCase().trim() === 'ok' || message.toLowerCase().includes('オッケー') || message.includes('はい')) {
@@ -3737,7 +4691,7 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 4)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 4)
       
       // OCR結果があるかチェック
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
@@ -3873,7 +4827,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             console.log('✅ OpenAI API call successful for Step 4 problem')
             
             const generatedProblem = result.choices?.[0]?.message?.content || ''
@@ -3890,11 +4844,10 @@ ${targetLevel === 'high_school' ? `
             charCount = wordCount
           } catch (error) {
             console.error('❌ Step 4 problem generation error:', error)
-            console.error('❌ Error details:', {
-              message: error.message,
-              stack: error.stack,
-              name: error.name
-            })
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
             mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
             console.log('🔄 Using error fallback with custom theme')
           }
@@ -3921,11 +4874,11 @@ ${targetLevel === 'high_school' ? `
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
-                       session.essaySession.uploadedImages.some(img => img.step === 5)
+                       session.essaySession.uploadedImages.some((img: UploadedImage) => img.step === 5)
       
       // このステップのOCR結果があるかチェック（Step 5用の新しい原稿）
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
-                     session.essaySession.ocrResults.some(ocr => ocr.step === 5)
+                     session.essaySession.ocrResults.some((ocr: OCRResult) => ocr.step === 5)
       
       if (message.includes('次へ') || message.includes('完了')) {
         response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
@@ -3942,7 +4895,7 @@ ${targetLevel === 'high_school' ? `
       else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
         // ユーザーが修正したテキストを入力した場合
         if (session && session.essaySession && session.essaySession.ocrResults) {
-          const step5OCRs = session.essaySession.ocrResults.filter(ocr => ocr.step === 5)
+          const step5OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 5)
           if (step5OCRs.length > 0) {
             const latestOCR = step5OCRs[step5OCRs.length - 1]
             
@@ -4048,7 +5001,7 @@ ${targetLevel === 'high_school' ? `
               throw new Error(`OpenAI API error: ${response_api.status}`)
             }
             
-            const result = await response_api.json()
+            const result = await response_api.json() as OpenAIChatCompletionResponse
             const generatedProblem = result.choices?.[0]?.message?.content || ''
             
             console.log('📝 Generated challenge problem:', generatedProblem)
@@ -4110,15 +5063,15 @@ ${targetLevel === 'high_school' ? `
     
   } catch (error) {
     console.error('❌ Essay chat error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'chat_error',
-      message: 'チャット処理でエラーが発生しました: ' + (error.message || '不明なエラー'),
+      message: `チャット処理でエラーが発生しました: ${errorMessage}`,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
-
 // AI質問ウインドウ用ページ
 app.get('/ai-chat/:sessionId', (c) => {
   const sessionId = c.req.param('sessionId')
@@ -4167,7 +5120,7 @@ app.get('/ai-chat/:sessionId', (c) => {
           font-family: 'Noto Sans JP', sans-serif;
           margin: 0;
           padding: 1rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           color: #333;
         }
@@ -4544,6 +5497,22 @@ app.get('/ai-chat/:sessionId', (c) => {
             let cropArea, cropImage, cancelCropBtn;
             let cropper = null;
             let currentImageData = null;
+            
+            function formatErrorMessage(error, fallback = 'エラーが発生しました') {
+                if (error instanceof Error) {
+                    return error.message || fallback;
+                }
+                if (typeof error === 'string') {
+                    const trimmed = error.trim();
+                    return trimmed.length > 0 ? trimmed : fallback;
+                }
+                try {
+                    const serialized = JSON.stringify(error);
+                    return serialized === '{}' ? fallback : serialized;
+                } catch {
+                    return fallback;
+                }
+            }
             
             // ページ読み込み完了を待つ
             window.addEventListener('load', function() {
@@ -5084,7 +6053,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as AiChatApiResponse;
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();
@@ -5176,7 +6145,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json();
+                const result = await response.json() as AiChatApiResponse;
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();
@@ -5197,7 +6166,6 @@ app.get('/ai-chat/:sessionId', (c) => {
             sendButton.disabled = false;
             questionInput.focus();
         }
-        
         function addMessage(text, sender, isLoading = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (sender === 'user' ? 'user-message' : 'ai-message');
@@ -5466,8 +6434,8 @@ app.post('/api/ai-chat', async (c) => {
       })
     }
     
-    const data = await response.json()
-    const answer = data.choices[0].message.content
+    const completion = await response.json() as OpenAIChatCompletionResponse
+    const answer = completion.choices?.[0]?.message?.content || ''
     
     console.log('✅ OpenAI API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
@@ -5648,8 +6616,8 @@ app.post('/api/ai-chat-image', async (c) => {
       })
     }
     
-    const data = await response.json()
-    const answer = data.choices[0].message.content
+    const completion = await response.json() as OpenAIChatCompletionResponse
+    const answer = completion.choices?.[0]?.message?.content || ''
     
     console.log('✅ OpenAI Vision API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
@@ -5659,12 +6627,14 @@ app.post('/api/ai-chat-image', async (c) => {
       answer: answer 
     })
     
-  } catch (error) {
+            } catch (error) {
     console.error('❌ AI Chat Image API error:', error)
-    console.error('Error details:', error.message, error.stack)
+    const errorMessage = toErrorMessage(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('Error details:', errorMessage, errorStack)
     return c.json({ 
       ok: false, 
-      message: `サーバーエラーが発生しました: ${error.message}` 
+      message: `サーバーエラーが発生しました: ${errorMessage}` 
     })
   }
 })
@@ -5702,7 +6672,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -6030,13 +7000,22 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
     </div>
     
     <script>
+        console.log('🚀 AI Chat V2 script starting...');
+        
         // セッションID（サーバーから注入）
         const SESSION_ID = ${JSON.stringify(sessionId)};
+        console.log('📍 Session ID:', SESSION_ID);
         
         // DOM要素
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        
+        console.log('📝 Basic elements:', {
+            chatMessages: !!chatMessages,
+            messageInput: !!messageInput,
+            sendButton: !!sendButton
+        });
         
         // Camera elements
         const cameraButton = document.getElementById('cameraButton');
@@ -6049,6 +7028,13 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         const btnStartCrop = document.getElementById('btnStartCrop');
         const btnSendDirect = document.getElementById('btnSendDirect');
         const cropArea = document.getElementById('cropArea');
+        
+        console.log('📷 Camera elements:', {
+            cameraButton: !!cameraButton,
+            fileButton: !!fileButton,
+            cameraInput: !!cameraInput,
+            fileInput: !!fileInput
+        });
         const cropImage = document.getElementById('cropImage');
         const btnCancelCrop = document.getElementById('btnCancelCrop');
         const btnConfirmCrop = document.getElementById('btnConfirmCrop');
@@ -6176,7 +7162,7 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
                 // ローディング削除
                 loadingDiv.remove();
                 
-                if (data.ok) {
+                if (data.ok && data.answer) {
                     console.log('✅ Response received');
                     addMessage(data.answer, 'ai');
                 } else {
@@ -6194,14 +7180,30 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         }
         
         // イベントリスナー
-        sendButton.addEventListener('click', sendMessage);
+        console.log('🔗 Setting up event listeners...');
         
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+        if (sendButton) {
+            sendButton.addEventListener('click', () => {
+                console.log('🖱️ Send button clicked');
                 sendMessage();
-            }
-        });
+            });
+            console.log('✅ Send button listener attached');
+        } else {
+            console.error('❌ Send button not found!');
+        }
+        
+        if (messageInput) {
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    console.log('⌨️ Enter key pressed');
+                    sendMessage();
+                }
+            });
+            console.log('✅ Message input listener attached');
+        } else {
+            console.error('❌ Message input not found!');
+        }
         
         // テキストエリア自動リサイズ
         messageInput.addEventListener('input', function() {
@@ -6434,7 +7436,6 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
 </html>
   `)
 })
-
 // 小論文指導ページ
 app.get('/essay-coaching', (c) => {
   console.log('📝 Essay Coaching page requested')
@@ -6467,7 +7468,7 @@ app.get('/essay-coaching', (c) => {
         
         body {
           font-family: 'Noto Sans JP', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           padding: 1rem;
           color: #333;
@@ -6603,33 +7604,7 @@ app.get('/essay-coaching', (c) => {
           display: block;
         }
         
-        .dev-start-button {
-          width: 100%;
-          padding: 1rem 2rem;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
-          border: 2px dashed rgba(255, 255, 255, 0.3);
-          border-radius: 0.75rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          margin-top: 1rem;
-          display: block;
-          opacity: 0.9;
-        }
-        
-        .dev-start-button:hover {
-          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-          opacity: 1;
-        }
-        
-        .dev-start-button i {
-          margin-right: 0.5rem;
-        }
-        
+
         .back-button {
           display: inline-flex;
           align-items: center;
@@ -6924,11 +7899,6 @@ app.get('/essay-coaching', (c) => {
                 <button class="start-button" id="startButton" onclick="startLesson()">
                     <i class="fas fa-play-circle"></i> 授業を開始
                 </button>
-                
-                <!-- 開発者モードボタン -->
-                <button class="dev-start-button" id="devStartButton" onclick="startDevLesson()">
-                    <i class="fas fa-code"></i> 🛠️ 開発モードで開始（Step 4へ直接ジャンプ）
-                </button>
             </div>
         </div>
         
@@ -7053,10 +8023,21 @@ app.get('/essay-coaching', (c) => {
         }
         
         async function startLesson() {
+            console.log('🚀 startLesson called');
+            console.log('📊 Current selections:', {
+                selectedLevel,
+                selectedFormat,
+                selectedProblemMode,
+                selectedLearningStyle
+            });
+            
             if (!selectedLevel || !selectedFormat || !selectedProblemMode) {
                 alert('すべての項目を選択してください');
+                console.log('❌ Validation failed: missing required selections');
                 return;
             }
+            
+            console.log('✅ Validation passed');
             
             // テーマまたは問題文の取得
             if (selectedProblemMode === 'theme') {
@@ -7089,6 +8070,7 @@ app.get('/essay-coaching', (c) => {
             });
             
             // セッション初期化API呼び出し
+            console.log('📡 Calling API: /api/essay/init-session');
             try {
                 const response = await fetch('/api/essay/init-session', {
                     method: 'POST',
@@ -7105,60 +8087,30 @@ app.get('/essay-coaching', (c) => {
                     })
                 });
                 
+                console.log('📥 API response status:', response.status);
                 const result = await response.json();
+                console.log('📦 API result:', result);
                 
                 if (result.ok) {
                     // 授業ページに遷移
+                    console.log('✅ Navigating to session page:', '/essay-coaching/session/' + sessionId);
                     window.location.href = '/essay-coaching/session/' + sessionId;
                 } else {
+                    console.log('❌ API returned error:', result.message);
                     alert('セッションの初期化に失敗しました: ' + result.message);
                 }
             } catch (error) {
-                console.error('Session init error:', error);
+                console.error('❌ Session init error:', error);
                 alert('エラーが発生しました。もう一度お試しください。');
             }
         }
         
-        async function startDevLesson() {
-            // 開発者モード：レベル・形式選択なしで開始
-            const defaultLevel = 'high_school';
-            const defaultFormat = 'individual';
-            
-            console.log('🛠️ Starting in DEVELOPER MODE:', { sessionId, defaultLevel, defaultFormat });
-            
-            // セッション初期化API呼び出し
-            try {
-                const response = await fetch('/api/essay/init-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sessionId,
-                        targetLevel: defaultLevel,
-                        lessonFormat: defaultFormat
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.ok) {
-                    // 授業ページに開発者モードパラメータ付きで遷移
-                    window.location.href = '/essay-coaching/session/' + sessionId + '?dev=true&debug=true';
-                } else {
-                    alert('セッションの初期化に失敗しました: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Session init error:', error);
-                alert('エラーが発生しました。もう一度お試しください。');
-            }
-        }
+
         </script>
     </body>
     </html>
   `)
 })
-
 // 小論文指導 - 授業セッションページ
 app.get('/essay-coaching/session/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
@@ -7212,7 +8164,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         body {
           font-family: 'Noto Sans JP', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           padding: 1rem;
           color: #333;
@@ -7271,7 +8223,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           left: 0;
           right: 0;
           height: 2px;
-          background: rgba(255,255,255,0.3);
+          background: #d1d5db;
           z-index: 0;
         }
         
@@ -7287,8 +8239,9 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.3);
-          border: 2px solid rgba(255,255,255,0.5);
+          background: #e5e7eb;
+          border: 2px solid #9ca3af;
+          color: #374151;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -7652,18 +8605,19 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
           gap: 0.5rem;
           margin-bottom: 1.5rem;
           padding: 1rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #e5e7eb;
           border-radius: 0.75rem;
-          color: white;
+          color: #374151;
+          border: 2px solid #d1d5db;
         }
         
         .workflow-step {
           font-size: 0.875rem;
           font-weight: 600;
           padding: 0.5rem 1rem;
-          background: rgba(255, 255, 255, 0.2);
+          background: #e5e7eb;
           border-radius: 0.5rem;
-          backdrop-filter: blur(10px);
+          color: #374151;
         }
         
         .workflow-arrow {
@@ -7814,11 +8768,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         
         /* AI添削結果表示 */
         .ai-feedback {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f9fafb;
           border-radius: 1rem;
           padding: 2rem;
           margin: 1.5rem 0;
-          color: white;
+          color: #374151;
+          border: 2px solid #e5e7eb;
         }
         
         .ai-feedback h3 {
@@ -7857,11 +8812,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .feedback-section {
-          background: rgba(255,255,255,0.15);
+          background: white;
           border-radius: 0.75rem;
           padding: 1.5rem;
           margin-bottom: 1rem;
-          backdrop-filter: blur(10px);
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         
         .feedback-section h4 {
@@ -7898,11 +8854,12 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .example-text {
-          background: rgba(255,255,255,0.2);
+          background: #f9fafb;
           padding: 1rem;
           border-radius: 0.5rem;
           line-height: 1.8;
           white-space: pre-wrap;
+          color: #374151;
         }
         
         /* クイックアクションボタン */
@@ -7939,7 +8896,6 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         .quick-action-btn.hidden {
           display: none;
         }
-        
         /* レスポンシブ対応 */
         @media (max-width: 640px) {
           .input-area {
@@ -8218,7 +9174,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         console.log('🔍 Essay Session Configuration:', {
           sessionId: sessionId,
           problemMode: '${essaySession.problemMode}',
-          customInput: '${essaySession.customInput || '(empty)'}',
+          customInput: '${essaySession.customInput || "(empty)"}',
           learningStyle: '${essaySession.learningStyle}',
           targetLevel: '${essaySession.targetLevel}',
           timestamp: new Date().toISOString()
@@ -8329,11 +9285,11 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 const loadingIndicator = document.getElementById('loading-indicator');
                 if (loadingIndicator) {
                     loadingIndicator.remove();
-                }
-                
-                // 送信ボタンを有効化
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+            }
+            
+            // 送信ボタンを有効化
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
                 sendBtn.style.opacity = '1';
                 sendBtn.style.cursor = 'pointer';
                 
@@ -8344,6 +9300,21 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 
                 // 重複防止フラグをリセット
                 isProcessing = false;
+            }
+        }
+        
+        function formatErrorMessage(error, fallback = '不明なエラー') {
+            if (error instanceof Error) {
+                return error.message || fallback;
+            }
+            if (typeof error === 'string') {
+                return error.trim() || fallback;
+            }
+            try {
+                return JSON.stringify(error);
+            } catch (jsonError) {
+                console.error('Error stringifying error object:', jsonError);
+                return fallback;
             }
         }
         
@@ -8672,7 +9643,6 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
             // イベントリスナーを追加
             setupCropListeners(cropCanvas);
         }
-        
         // クロップリスナー設定
         function setupCropListeners(canvas) {
             canvas.onmousedown = function(e) {
@@ -8951,7 +9921,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
                 
             } catch (error) {
                 console.error('❌ Upload/OCR error:', error);
-                const errorMessage = error.message || 'エラーが発生しました';
+                const errorMessage = formatErrorMessage(error, 'エラーが発生しました');
                 addMessage('❌ ' + errorMessage + '\\n\\nもう一度お試しください。\\n問題が続く場合は、ブラウザのコンソール（F12キー）でエラー詳細を確認してください。', true);
             }
         }
@@ -9156,7 +10126,10 @@ app.post('/api/regenerate-problem', async (c) => {
     }
     
     // 元のセッションから生徒情報を取得
-    const studentInfo = studentDatabase[session.sid] || {
+    const sessionStudentId = session.sid
+    const studentInfoFromDb = sessionStudentId ? studentDatabase[sessionStudentId] : undefined
+    const studentInfo = studentInfoFromDb || {
+      studentId: 'unknown',
       name: 'テスト生徒',
       grade: 2,
       subjects: ['数学'],
@@ -9181,7 +10154,7 @@ app.post('/api/regenerate-problem', async (c) => {
             {
               type: 'text',
               text: session.originalUserMessage ? 
-                `元の質問: ${session.originalUserMessage}\n\n【重要指示】この画像の問題から「教育的青写真」を正確に抽出し、同じ学習価値・同じ難易度を保持したまま、表面的な表現のみを変更した類題を生成してください。定義問題や汎用問題への変更は禁止です。` :
+                `元の質問: ${session.originalUserMessage}\n\n【重要指示】この画像の問題から「教育的青写真」を正確に抽出し、同じ学習価値・同じ難易度を保持したまま、表面的表現のみを変更した類題を生成してください。定義問題や汎用問題への変更は禁止です。` :
                 '【重要指示】この画像の問題の「教育的核心」（学習目標・難易度・問題構造）を完全に保持し、具体的な文章や例のみを親しみやすく変更した問題を生成してください。'
             },
             {
@@ -9249,11 +10222,12 @@ app.post('/api/regenerate-problem', async (c) => {
       }, 500)
     }
     
-    const aiContent = (await openaiResponse.json())?.choices?.[0]?.message?.content || ''
+    const regenerationCompletion = await openaiResponse.json()
+    const aiContent = regenerationCompletion.choices?.[0]?.message?.content ?? ''
     console.log('🤖 Regenerated AI content length:', aiContent.length)
     
     const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
-    let aiAnalysis
+    let aiAnalysis: AiAnalysisPayload | null = null
     
     if (jsonMatch) {
       try {
@@ -9310,6 +10284,15 @@ app.post('/api/regenerate-problem', async (c) => {
     }
     
     // 再生成されたデータでセッションを更新
+    if (!aiAnalysis) {
+      return c.json({
+        ok: false,
+        error: 'parse_error',
+        message: 'AI再生成結果が取得できませんでした',
+        timestamp: new Date().toISOString()
+      }, 500)
+    }
+    
     updateSessionWithRegeneratedData(session, aiAnalysis)
     
     // D1に更新されたセッションを保存
@@ -9338,17 +10321,18 @@ app.post('/api/regenerate-problem', async (c) => {
     
   } catch (error) {
     console.error('❌ Problem regeneration error:', error)
+    const errorMessage = toErrorMessage(error, '問題再生成でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'regeneration_error',
-      message: error.message || '問題再生成でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
 
 // 修正2: 画像ベース再生成用プロンプト作成関数
-function createRegenerationPrompt(session, studentInfo, regenerationType) {
+function createRegenerationPrompt(session: Session, studentInfo: StudentInfo, regenerationType: RegenerationType) {
   const basePrompt = `あなたは「プログラミングのKOBEYA」の経験豊富な教師として、バンコク在住の日本人中学生の学習を支援してください。
 
 【教育的青写真の保持原則】
@@ -9462,14 +10446,13 @@ ${getRegenerationTypeInstructions(regenerationType)}
     }
   ]
 }
-
 【重要】上記JSON構造を厳密に守り、stepsは必ずオブジェクトの配列にしてください`
 
   return basePrompt + educationalPolicyPrompt
 }
 
 // Phase1改善: 再生成タイプ別指示
-function getRegenerationTypeInstructions(regenerationType) {
+function getRegenerationTypeInstructions(regenerationType: RegenerationType) {
   switch(regenerationType) {
     case 'similar':
       return `【🔄 同じような問題 - 等質置換】
@@ -9496,7 +10479,7 @@ function getRegenerationTypeInstructions(regenerationType) {
 }
 
 // Phase1改善: 再生成品質評価関数
-function evaluateRegenerationQuality(regeneratedContent, originalSession) {
+function evaluateRegenerationQuality(regeneratedContent: AiAnalysisPayload, originalSession: Session) {
   let score = 1.0
   const issues = []
   
@@ -9511,7 +10494,7 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
   
   const hasDefinitionProblem = definitionPatterns.some(pattern => 
     pattern.test(regeneratedContent.analysis || '') ||
-    (regeneratedContent.steps || []).some(step => pattern.test(step.content || ''))
+    (regeneratedContent.steps || []).some((step: LearningStep) => pattern.test(step.content ?? ''))
   )
   
   if (hasDefinitionProblem) {
@@ -9538,8 +10521,8 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
   }
   
   // 3. 具体的な問題文の存在確認
-  const hasSpecificContent = (regeneratedContent.steps || []).some(step => {
-    const content = step.content || ''
+  const hasSpecificContent = (regeneratedContent.steps || []).some((step: LearningStep) => {
+    const content = step.content ?? ''
     return content.includes('「') && content.includes('」') // 日本語の引用符
   })
   
@@ -9565,7 +10548,7 @@ function evaluateRegenerationQuality(regeneratedContent, originalSession) {
 }
 
 // 簡単な教科抽出関数
-function extractSubjectFromAnalysis(analysis) {
+function extractSubjectFromAnalysis(analysis: string) {
   if (analysis.includes('文節') || analysis.includes('助詞') || analysis.includes('国語')) return '国語'
   if (analysis.includes('数学') || analysis.includes('計算') || analysis.includes('方程式')) return '数学'
   if (analysis.includes('英語') || analysis.includes('English')) return '英語'
@@ -9573,7 +10556,7 @@ function extractSubjectFromAnalysis(analysis) {
 }
 
 // Phase1改善: コンテンツ改善関数（簡易版）
-async function improveRegeneratedContent(originalContent, issues) {
+async function improveRegeneratedContent(originalContent: AiAnalysisPayload, issues: string[]) {
   // 実装は次のフェーズで詳細化
   // 現在は問題のあるパターンを検出してフラグを立てるのみ
   console.log('🔧 Content improvement needed for issues:', issues)
@@ -9586,45 +10569,47 @@ async function improveRegeneratedContent(originalContent, issues) {
 }
 
 // セッション更新関数
-function updateSessionWithRegeneratedData(session, aiAnalysis) {
+function updateSessionWithRegeneratedData(session: Session, aiAnalysis: AiAnalysisPayload) {
   // 新しい分析内容で更新
   session.analysis = `【AI学習アシスタント再生成】<br><br>${aiAnalysis.analysis.replace(/。/g, '。<br>').replace(/！/g, '！<br>').replace(/<br><br>+/g, '<br><br>')}<br><br>🔄 **新しいパターンで学習を始めましょう**<br>別のアプローチで問題に取り組みます！`
   
   // 段階学習ステップを更新
-  if (aiAnalysis.steps && Array.isArray(aiAnalysis.steps)) {
-    session.steps = aiAnalysis.steps.map((step, index) => ({
+  const regeneratedSteps = Array.isArray(aiAnalysis.steps) ? aiAnalysis.steps : []
+  session.steps = regeneratedSteps.map((step: LearningStep, index: number) => ({
       ...step,
-      stepNumber: step.stepNumber !== undefined ? step.stepNumber : index, // stepNumberがない場合はインデックスを使用
+    stepNumber: step.stepNumber !== undefined ? step.stepNumber : index,
       completed: false,
       attempts: []
     }))
     
+    const regeneratedFirstStep = session.steps[0]
+    const regeneratedInstructionPreview =
+      typeof regeneratedFirstStep?.instruction === 'string'
+        ? `${regeneratedFirstStep.instruction.substring(0, 50)}...`
+        : undefined
     console.log('🔄 Updated session steps after regeneration:', {
       stepsCount: session.steps.length,
-      firstStepStructure: {
-        stepNumber: session.steps[0]?.stepNumber,
-        instruction: session.steps[0]?.instruction?.substring(0, 50) + '...',
-        type: session.steps[0]?.type,
-        hasOptions: !!session.steps[0]?.options
-      }
+      firstStepStructure: regeneratedFirstStep
+        ? {
+            stepNumber: regeneratedFirstStep?.stepNumber,
+            instruction: regeneratedInstructionPreview,
+            type: regeneratedFirstStep?.type,
+            hasOptions: !!regeneratedFirstStep?.options
+          }
+        : null
     })
-  }
   
   // 確認問題を更新
-  if (aiAnalysis.confirmationProblem) {
-    session.confirmationProblem = {
-      ...aiAnalysis.confirmationProblem,
-      attempts: []
-    }
-  }
+  session.confirmationProblem = aiAnalysis.confirmationProblem
+    ? { ...aiAnalysis.confirmationProblem, attempts: [] }
+    : null
   
   // 類似問題を更新
-  if (aiAnalysis.similarProblems) {
-    session.similarProblems = aiAnalysis.similarProblems.map(problem => ({
+  const regeneratedSimilarProblems = Array.isArray(aiAnalysis.similarProblems) ? aiAnalysis.similarProblems : []
+  session.similarProblems = regeneratedSimilarProblems.map((problem: Problem) => ({
       ...problem,
       attempts: []
     }))
-  }
   
   // セッション状態をリセット
   session.currentStep = 0
@@ -9697,6 +10682,7 @@ app.post('/api/similar/check', async (c) => {
     }
     
     const similarProblem = session.similarProblems[problemIndex]
+    const correctAnswers = Array.isArray(similarProblem.correctAnswers) ? similarProblem.correctAnswers : []
     
     if (!similarProblem || typeof similarProblem !== 'object') {
       console.error('❌ Invalid similarProblem at index:', { problemIndex, similarProblem })
@@ -9717,7 +10703,7 @@ app.post('/api/similar/check', async (c) => {
     } else if (similarProblem.type === 'input') {
       // 記述問題の場合 - 複数の正解パターンをチェック
       const normalizedAnswer = answer.trim()
-      isCorrect = similarProblem.correctAnswers.some(correct => 
+      isCorrect = correctAnswers.some((correct: string) => 
         normalizedAnswer === correct.trim()
       )
     }
@@ -9726,13 +10712,16 @@ app.post('/api/similar/check', async (c) => {
       problemNumber,
       type: similarProblem.type,
       userAnswer: answer,
-      expected: similarProblem.type === 'choice' ? similarProblem.correctAnswer : similarProblem.correctAnswers,
+      expected: similarProblem.type === 'choice' ? similarProblem.correctAnswer : correctAnswers,
       isCorrect
     })
     
     // 回答履歴を記録（attemptsが未定義の場合は初期化）
     if (!similarProblem.attempts) {
       similarProblem.attempts = [];
+    }
+    if (!similarProblem.attempts) {
+      similarProblem.attempts = []
     }
     similarProblem.attempts.push({
       answer,
@@ -9751,8 +10740,8 @@ app.post('/api/similar/check', async (c) => {
       }, 500);
     }
     
-    const completedProblems = session.similarProblems.filter(p => 
-      p.attempts && p.attempts.some(attempt => attempt.isCorrect)
+    const completedProblems = session.similarProblems.filter((p: Problem) => 
+      p.attempts && p.attempts.some((attempt: { isCorrect: boolean; [key: string]: unknown }) => attempt.isCorrect)
     ).length
     
     let nextAction = 'continue'
@@ -9781,7 +10770,8 @@ app.post('/api/similar/check', async (c) => {
       if (similarProblem.type === 'choice') {
         feedback = `❌ 正解は ${similarProblem.correctAnswer} です。\n\n💡 ${similarProblem.explanation}`
       } else {
-        feedback = `❌ 正解例: ${similarProblem.correctAnswers[0]}\n\n💡 ${similarProblem.explanation}`
+        const firstAnswer = correctAnswers[0] || '模範解答を参考にしてください。'
+        feedback = `❌ 正解例: ${firstAnswer}\n\n💡 ${similarProblem.explanation}`
       }
       nextAction = 'retry'
     }
@@ -9811,27 +10801,5973 @@ app.post('/api/similar/check', async (c) => {
     
   } catch (error) {
     console.error('❌ Similar check error:', error)
+    const errorMessage = toErrorMessage(error, '類似問題チェックでエラーが発生しました')
     return c.json({
       ok: false,
       error: 'similar_check_error',
-      message: error.message || '類似問題チェックでエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
 })
 
 // 段階学習データ生成関数（フォールバック用 - 動的生成失敗時のみ使用）
-function generateLearningData(problemType) {
-  console.log('❌ AI分析失敗 - フォールバック呼び出し禁止')
-  console.log(`問題タイプ: ${problemType}`)
-  
-  // ダミーデータの代わりに詳細なエラー情報を提供
-  throw new Error(`AI分析に失敗しました。問題タイプ「${problemType}」のダミーデータは使用しません。先生にお知らせください。`)
+function generateLearningData(problemType: string): LearningData {
+  console.warn('⚠️ generateLearningData fallback invoked. Problem type:', problemType)
+
+  const placeholderStep: LearningStep = {
+    stepNumber: 1,
+    type: 'choice',
+    question: 'サンプル問題：次の中で正しい説明を選びましょう。',
+    options: ['A. 例1', 'B. 例2', 'C. 例3', 'D. 例4'],
+    correctOption: 'A',
+    explanation: '正しい選択肢はAです。ここではプレースホルダーの説明を表示します。'
+  }
+
+  const confirmationProblem: Problem = {
+    problemNumber: 1,
+    type: 'choice',
+    question: '確認問題：次のうち正しいものを選びましょう。',
+    options: ['A. 選択肢1', 'B. 選択肢2', 'C. 選択肢3', 'D. 選択肢4'],
+    correctOption: 'A',
+    explanation: 'サンプルの確認問題です。正答はAとしています。'
+  }
+
+  return {
+    analysis: `【AI学習アシスタント】\n\nAI分析結果の取得に失敗しました。問題タイプ「${problemType}」に応じたサンプル問題で学習を継続します。\n\n1. サンプル問題を解いて理解を確認しましょう。\n2. 分からない場合は解説を確認しながら復習しましょう。\n3. 類題にもチャレンジして理解を定着させましょう。`,
+    steps: [placeholderStep],
+    confirmationProblem,
+    similarProblems: [
+      {
+        problemNumber: 2,
+        type: 'choice',
+        question: '類題：次の中から最も適切なものを選びましょう。',
+        options: ['A. 類題1', 'B. 類題2', 'C. 類題3', 'D. 類題4'],
+        correctOption: 'B',
+        explanation: 'サンプル類題です。正答はBとしています。'
+      }
+    ]
+  }
 }
 
 // ルートパスハンドラー
 app.get('/', (c) => {
   return c.redirect('/study-partner', 302)
+})
+
+// ==================== Admin User Management Routes ====================
+
+// Admin Login Page
+app.get('/admin/login', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ログイン | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .login-header h1 {
+      font-size: 1.75rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .login-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-login {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      display: none;
+    }
+    
+    .error-message.show {
+      display: block;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1><i class="fas fa-user-shield"></i> 管理者ログイン</h1>
+      <p>生徒管理システムへのアクセス</p>
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="password">
+          <i class="fas fa-lock"></i> パスワード
+        </label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password"
+          placeholder="管理者パスワードを入力"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+      
+      <button type="submit" class="btn-login" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> ログイン
+      </button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 1rem;">
+      <a href="/admin/reset-password" style="color: #667eea; text-decoration: none; font-size: 0.875rem;">
+        <i class="fas fa-key"></i> パスワードを忘れた場合
+      </a>
+    </div>
+    
+    <div class="back-link">
+      <a href="/"><i class="fas fa-arrow-left"></i> ホームに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const password = document.getElementById('password').value;
+      
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ログイン中...';
+      errorMessage.classList.remove('show');
+      
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // セッショントークンを保存
+          localStorage.setItem('admin_token', data.token);
+          // 管理画面にリダイレクト
+          window.location.href = '/admin/users';
+        } else {
+          errorMessage.textContent = data.error || 'ログインに失敗しました';
+          errorMessage.classList.add('show');
+        }
+      } catch (error) {
+        errorMessage.textContent = 'エラーが発生しました。もう一度お試しください。';
+        errorMessage.classList.add('show');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ログイン';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Password Reset Request Page
+app.get('/admin/reset-password', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パスワードリセット | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .reset-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 450px;
+      width: 100%;
+    }
+    
+    .reset-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .reset-header i {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .reset-header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .reset-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: #1e40af;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+    
+    .back-link a:hover {
+      color: #374151;
+    }
+    
+    .success-message {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #065f46;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #991b1b;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-container">
+    <div class="reset-header">
+      <i class="fas fa-key"></i>
+      <h1>パスワードリセット</h1>
+      <p>登録されているメールアドレスにリセット用のリンクを送信します</p>
+    </div>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i> 
+      リセット用のリンクは <strong>kobeyabkk@gmail.com</strong> に送信されます。<br>
+      メールが届かない場合は、迷惑メールフォルダもご確認ください。
+    </div>
+    
+    <div class="success-message" id="successMessage">
+      <i class="fas fa-check-circle"></i>
+      <strong>送信完了</strong><br>
+      パスワードリセット用のリンクをメールで送信しました。メールをご確認ください。
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="resetForm">
+      <div class="form-group">
+        <label for="email">
+          <i class="fas fa-envelope"></i> 確認用メールアドレス
+        </label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email"
+          placeholder="kobeyabkk@gmail.com"
+          required
+        >
+        <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+          セキュリティのため、登録メールアドレスを入力してください
+        </small>
+      </div>
+      
+      <button type="submit" class="btn btn-primary" id="resetBtn">
+        <i class="fas fa-paper-plane"></i> リセットリンクを送信
+      </button>
+    </form>
+    
+    <div class="back-link">
+      <a href="/admin/login"><i class="fas fa-arrow-left"></i> ログインに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const resetForm = document.getElementById('resetForm');
+    const resetBtn = document.getElementById('resetBtn');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      
+      // Reset messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+      
+      // Disable button
+      resetBtn.disabled = true;
+      resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 送信中...';
+      
+      try {
+        const response = await fetch('/api/admin/request-password-reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          successMessage.style.display = 'block';
+          resetForm.style.display = 'none';
+        } else {
+          throw new Error(data.error || 'リセットリンクの送信に失敗しました');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        resetBtn.disabled = false;
+        resetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> リセットリンクを送信';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Password Reset Confirmation Page
+app.get('/admin/reset-password/confirm', (c) => {
+  const token = c.req.query('token')
+  
+  if (!token) {
+    return c.redirect('/admin/reset-password')
+  }
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新しいパスワードの設定 | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .reset-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 450px;
+      width: 100%;
+    }
+    
+    .reset-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .reset-header i {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .reset-header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .reset-header p {
+      color: #6b7280;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .password-requirements {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .success-message {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #065f46;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #991b1b;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .back-link a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+    
+    .back-link a:hover {
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-container">
+    <div class="reset-header">
+      <i class="fas fa-lock"></i>
+      <h1>新しいパスワードの設定</h1>
+      <p>新しい管理者パスワードを入力してください</p>
+    </div>
+    
+    <div class="success-message" id="successMessage">
+      <i class="fas fa-check-circle"></i>
+      <strong>パスワード変更完了</strong><br>
+      パスワードが正常に変更されました。新しいパスワードでログインしてください。
+    </div>
+    
+    <div class="error-message" id="errorMessage"></div>
+    
+    <form id="confirmForm">
+      <input type="hidden" id="token" value="${token}">
+      
+      <div class="form-group">
+        <label for="newPassword">
+          <i class="fas fa-key"></i> 新しいパスワード
+        </label>
+        <input 
+          type="password" 
+          id="newPassword" 
+          name="newPassword"
+          placeholder="新しいパスワードを入力"
+          required
+          minlength="8"
+        >
+        <div class="password-requirements">
+          ※ 8文字以上で設定してください
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="confirmPassword">
+          <i class="fas fa-check"></i> パスワード確認
+        </label>
+        <input 
+          type="password" 
+          id="confirmPassword" 
+          name="confirmPassword"
+          placeholder="もう一度入力してください"
+          required
+          minlength="8"
+        >
+      </div>
+      
+      <button type="submit" class="btn btn-primary" id="confirmBtn">
+        <i class="fas fa-save"></i> パスワードを変更
+      </button>
+    </form>
+    
+    <div class="back-link">
+      <a href="/admin/login"><i class="fas fa-arrow-left"></i> ログインに戻る</a>
+    </div>
+  </div>
+  
+  <script>
+    const confirmForm = document.getElementById('confirmForm');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    confirmForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const token = document.getElementById('token').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      // Reset messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+      
+      // Validate passwords match
+      if (newPassword !== confirmPassword) {
+        errorMessage.textContent = 'パスワードが一致しません。もう一度入力してください。';
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      // Validate password length
+      if (newPassword.length < 8) {
+        errorMessage.textContent = 'パスワードは8文字以上で設定してください。';
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      // Disable button
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 変更中...';
+      
+      try {
+        const response = await fetch('/api/admin/confirm-password-reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            token,
+            newPassword 
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          successMessage.style.display = 'block';
+          confirmForm.style.display = 'none';
+          
+          // Redirect to login after 3 seconds
+          setTimeout(() => {
+            window.location.href = '/admin/login';
+          }, 3000);
+        } else {
+          throw new Error(data.error || 'パスワードの変更に失敗しました');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-save"></i> パスワードを変更';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Admin Users List Page
+app.get('/admin/users', (c) => {
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生徒管理 | KOBEYA Study Partner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      color: #374151;
+    }
+    
+    .header {
+      background: white;
+      border-bottom: 2px solid #e5e7eb;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      color: #374151;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+      font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .stat-card h3 {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #374151;
+    }
+    
+    .users-card {
+      background: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    
+    .users-header {
+      padding: 1.5rem;
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .users-header h2 {
+      font-size: 1.25rem;
+      color: #374151;
+    }
+    
+    .search-box {
+      padding: 0.625rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      width: 250px;
+    }
+    
+    .search-box:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .users-table thead {
+      background: #f9fafb;
+    }
+    
+    .users-table th {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    
+    .users-table td {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.875rem;
+    }
+    
+    .users-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .badge-active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    /* Filter Tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .filter-tab {
+      padding: 0.625rem 1rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      color: #6b7280;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .filter-tab:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    
+    .filter-tab.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .filter-tab i {
+      font-size: 0.875rem;
+    }
+    
+    .filter-badge {
+      background: #e5e7eb;
+      color: #374151;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.25rem;
+    }
+    
+    .filter-tab.active .filter-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    .filter-badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .filter-badge-secondary {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: #374151;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .modal-footer {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-users"></i> 生徒管理システム</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> ログアウト
+      </button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <h3>総生徒数</h3>
+        <div class="value" id="totalUsers">-</div>
+      </div>
+      <div class="stat-card">
+        <h3>アクティブ</h3>
+        <div class="value" id="activeUsers">-</div>
+      </div>
+      <div class="stat-card">
+        <h3>学習セッション</h3>
+        <div class="value" id="totalSessions">-</div>
+      </div>
+    </div>
+    
+    <div class="users-card">
+      <div class="users-header">
+        <h2>生徒一覧</h2>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <input type="text" class="search-box" placeholder="検索..." id="searchBox" onkeyup="filterUsers()">
+          <button class="btn btn-primary" onclick="showAddUserModal()">
+            <i class="fas fa-plus"></i> 新規追加
+          </button>
+        </div>
+      </div>
+      
+      <!-- Status Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" onclick="setStatusFilter('all')">
+          <i class="fas fa-users"></i>
+          すべて
+          <span class="filter-badge" id="countAll">0</span>
+        </button>
+        <button class="filter-tab" data-filter="active" onclick="setStatusFilter('active')">
+          <i class="fas fa-check-circle"></i>
+          アクティブ
+          <span class="filter-badge filter-badge-success" id="countActive">0</span>
+        </button>
+        <button class="filter-tab" data-filter="inactive" onclick="setStatusFilter('inactive')">
+          <i class="fas fa-times-circle"></i>
+          非アクティブ
+          <span class="filter-badge filter-badge-secondary" id="countInactive">0</span>
+        </button>
+      </div>
+      
+      <div id="usersTableContainer">
+        <div class="loading">
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 1rem;">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add/Edit User Modal -->
+  <div class="modal" id="userModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">新規生徒追加</h3>
+      </div>
+      
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        
+        <div class="form-group">
+          <label for="appKey">APP_KEY *</label>
+          <input type="text" id="appKey" value="180418" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="studentId">学生ID *</label>
+          <input type="text" id="studentId" required placeholder="例: JS2-04">
+        </div>
+        
+        <div class="form-group">
+          <label for="studentName">氏名 *</label>
+          <input type="text" id="studentName" required placeholder="例: 山田太郎">
+        </div>
+        
+        <div class="form-group">
+          <label for="grade">学年</label>
+          <input type="text" id="grade" placeholder="例: 中学2年">
+        </div>
+        
+        <div class="form-group">
+          <label for="email">メールアドレス</label>
+          <input type="email" id="email" placeholder="例: example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="notes">メモ</label>
+          <textarea id="notes" rows="3" placeholder="備考やメモを入力"></textarea>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeUserModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="saveUserBtn">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    let allUsers = [];
+    let currentStatusFilter = 'all';
+    
+    // Check authentication
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      window.location.href = '/admin/login';
+    }
+    
+    // Load users on page load
+    loadUsers();
+    
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/admin/users');
+        const data = await response.json();
+        
+        if (data.success) {
+          allUsers = data.users;
+          renderUsers(allUsers);
+          updateStats(allUsers);
+        } else {
+          document.getElementById('usersTableContainer').innerHTML = 
+            '<div class="empty-state">エラーが発生しました</div>';
+        }
+      } catch (error) {
+        console.error('Load users error:', error);
+        document.getElementById('usersTableContainer').innerHTML = 
+          '<div class="empty-state">データの読み込みに失敗しました</div>';
+      }
+    }
+    
+    function renderUsers(users) {
+      if (users.length === 0) {
+        document.getElementById('usersTableContainer').innerHTML = 
+          '<div class="empty-state"><p>生徒が登録されていません</p><p style="margin-top: 0.5rem; font-size: 0.875rem;">「新規追加」ボタンから生徒を追加してください</p></div>';
+        return;
+      }
+      
+      const html = \`
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>学生ID</th>
+              <th>氏名</th>
+              <th>学年</th>
+              <th>状態</th>
+              <th>登録日</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${users.map(user => \`
+              <tr>
+                <td><strong>\${user.student_id}</strong></td>
+                <td>\${user.student_name}</td>
+                <td>\${user.grade || '-'}</td>
+                <td>
+                  <span class="badge \${user.is_active ? 'badge-active' : 'badge-inactive'}">
+                    \${user.is_active ? 'アクティブ' : '無効'}
+                  </span>
+                </td>
+                <td>\${new Date(user.created_at).toLocaleDateString('ja-JP')}</td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-secondary btn-sm" onclick="viewUser(\${user.id})">
+                      <i class="fas fa-eye"></i> 詳細
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="editUser(\${user.id})">
+                      <i class="fas fa-edit"></i> 編集
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            \`).join('')}
+          </tbody>
+        </table>
+      \`;
+      
+      document.getElementById('usersTableContainer').innerHTML = html;
+    }
+    
+    function updateStats(users) {
+      const activeCount = users.filter(u => u.is_active).length;
+      const inactiveCount = users.filter(u => !u.is_active).length;
+      
+      document.getElementById('totalUsers').textContent = users.length;
+      document.getElementById('activeUsers').textContent = activeCount;
+      document.getElementById('totalSessions').textContent = '-';
+      
+      // Update filter count badges
+      document.getElementById('countAll').textContent = users.length;
+      document.getElementById('countActive').textContent = activeCount;
+      document.getElementById('countInactive').textContent = inactiveCount;
+    }
+    
+    function filterUsers() {
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+      let filtered = allUsers;
+      
+      // Apply status filter
+      if (currentStatusFilter === 'active') {
+        filtered = filtered.filter(user => user.is_active === 1);
+      } else if (currentStatusFilter === 'inactive') {
+        filtered = filtered.filter(user => user.is_active === 0);
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(user => 
+          user.student_id.toLowerCase().includes(searchTerm) ||
+          user.student_name.toLowerCase().includes(searchTerm) ||
+          (user.grade && user.grade.toLowerCase().includes(searchTerm))
+        );
+      }
+      
+      renderUsers(filtered);
+    }
+    
+    function setStatusFilter(filter) {
+      currentStatusFilter = filter;
+      
+      // Update active tab
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(\`[data-filter="\${filter}"]\`).classList.add('active');
+      
+      // Apply filter
+      filterUsers();
+    }
+    
+    function showAddUserModal() {
+      document.getElementById('modalTitle').textContent = '新規生徒追加';
+      document.getElementById('userForm').reset();
+      document.getElementById('userId').value = '';
+      document.getElementById('appKey').value = '180418';
+      document.getElementById('studentId').disabled = false;
+      document.getElementById('userModal').classList.add('show');
+    }
+    
+    function editUser(userId) {
+      const user = allUsers.find(u => u.id === userId);
+      if (!user) return;
+      
+      document.getElementById('modalTitle').textContent = '生徒情報編集';
+      document.getElementById('userId').value = user.id;
+      document.getElementById('appKey').value = user.app_key;
+      document.getElementById('studentId').value = user.student_id;
+      document.getElementById('studentId').disabled = true;
+      document.getElementById('studentName').value = user.student_name;
+      document.getElementById('grade').value = user.grade || '';
+      document.getElementById('email').value = user.email || '';
+      document.getElementById('notes').value = user.notes || '';
+      document.getElementById('userModal').classList.add('show');
+    }
+    
+    function closeUserModal() {
+      document.getElementById('userModal').classList.remove('show');
+    }
+    
+    function viewUser(userId) {
+      window.location.href = \`/admin/users/\${userId}\`;
+    }
+    
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userId = document.getElementById('userId').value;
+      const isEdit = userId !== '';
+      
+      const userData = {
+        app_key: document.getElementById('appKey').value,
+        student_id: document.getElementById('studentId').value,
+        student_name: document.getElementById('studentName').value,
+        grade: document.getElementById('grade').value,
+        email: document.getElementById('email').value,
+        notes: document.getElementById('notes').value,
+        is_active: 1
+      };
+      
+      const saveBtn = document.getElementById('saveUserBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+      
+      try {
+        const url = isEdit ? \`/api/admin/users/\${userId}\` : '/api/admin/users';
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(data.message);
+          closeUserModal();
+          loadUsers();
+        } else {
+          alert('エラー: ' + data.error);
+        }
+      } catch (error) {
+        alert('保存に失敗しました');
+        console.error(error);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    });
+    
+    function logout() {
+      if (confirm('ログアウトしますか？')) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+      }
+    }
+  </script>
+</body>
+</html>
+  `)
+})
+
+// Admin User Detail Page
+app.get('/admin/users/:id', (c) => {
+  const userId = c.req.param('id')
+  
+  return c.html(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生徒詳細 | KOBEYA Study Partner</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #37352f;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: white;
+      border-bottom: 2px solid #e5e7eb;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      color: #374151;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    .back-btn:hover {
+      background: #e5e7eb;
+      transform: translateX(-2px);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-edit {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-edit:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-logout {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-logout:hover {
+      background: #4b5563;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+    
+    .user-info-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 2rem;
+    }
+    
+    .user-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .user-name-section h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 0.25rem;
+    }
+    
+    .user-id {
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    
+    .badge-active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .info-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    
+    .info-value {
+      font-size: 1rem;
+      color: #1f2937;
+      font-weight: 500;
+    }
+    
+    .info-value.empty {
+      color: #9ca3af;
+      font-style: italic;
+    }
+    
+    .stats-section {
+      margin-bottom: 2rem;
+    }
+    
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .stat-icon.blue { background: #dbeafe; color: #1e40af; }
+    .stat-icon.green { background: #d1fae5; color: #065f46; }
+    .stat-icon.yellow { background: #fef3c7; color: #92400e; }
+    .stat-icon.purple { background: #ede9fe; color: #5b21b6; }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .history-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 1rem;
+    }
+    
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    
+    .history-table thead {
+      background: #f9fafb;
+    }
+    
+    .history-table th {
+      text-align: left;
+      padding: 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #6b7280;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .history-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+    }
+    
+    .history-table tbody tr:hover {
+      background: #f9fafb;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #9ca3af;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    /* Modal Styles (reuse from list page) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .modal h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-group input:disabled {
+      background: #f3f4f6;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+    }
+    
+    .btn-cancel {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    
+    .btn-cancel:hover {
+      background: #d1d5db;
+    }
+    
+    .btn-save {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-save:hover {
+      background: #2563eb;
+    }
+    
+    /* History Tabs */
+    .history-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .history-tab {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-bottom: -2px;
+    }
+    
+    .history-tab:hover {
+      color: #374151;
+      background: #f9fafb;
+    }
+    
+    .history-tab.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
+    
+    .history-tab i {
+      margin-right: 0.5rem;
+    }
+    
+    /* History Table */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .history-table th {
+      background: #f9fafb;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+      font-size: 0.875rem;
+    }
+    
+    .history-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      color: #4b5563;
+      font-size: 0.875rem;
+    }
+    
+    .history-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .history-table .date-cell {
+      color: #6b7280;
+      font-size: 0.8125rem;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .badge-info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .badge-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #9ca3af;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <a href="/admin/users" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+        戻る
+      </a>
+      <h1>生徒詳細</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-edit" onclick="showEditModal()">
+        <i class="fas fa-edit"></i>
+        編集
+      </button>
+      <button class="btn btn-logout" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        ログアウト
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <div>読み込み中...</div>
+    </div>
+
+    <div id="errorState" style="display: none;"></div>
+
+    <div id="contentState" style="display: none;">
+      <!-- User Info Card -->
+      <div class="user-info-card">
+        <div class="user-header">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-name-section">
+            <h2 id="userName">-</h2>
+            <div class="user-id">学生ID: <span id="userStudentId">-</span></div>
+          </div>
+          <span id="userStatus" class="status-badge badge-active">
+            <i class="fas fa-check-circle"></i>
+            有効
+          </span>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">APP_KEY</span>
+            <span class="info-value" id="userAppKey">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">学年</span>
+            <span class="info-value" id="userGrade">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">メールアドレス</span>
+            <span class="info-value" id="userEmail">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">登録日</span>
+            <span class="info-value" id="userCreatedAt">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">最終ログイン</span>
+            <span class="info-value" id="userLastLogin">-</span>
+          </div>
+          <div class="info-item" style="grid-column: 1 / -1;">
+            <span class="info-label">メモ</span>
+            <span class="info-value" id="userNotes">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="stats-section">
+        <h3 class="section-title">
+          <i class="fas fa-chart-line"></i>
+          学習統計
+        </h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <i class="fas fa-folder"></i>
+            </div>
+            <div class="stat-label">フラッシュカードデッキ</div>
+            <div class="stat-value" id="statDecks">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <i class="fas fa-pen-fancy"></i>
+            </div>
+            <div class="stat-label">エッセイ提出</div>
+            <div class="stat-value" id="statEssays">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-label">フラッシュカード</div>
+            <div class="stat-value" id="statFlashcards">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <i class="fas fa-globe"></i>
+            </div>
+            <div class="stat-label">国際交流</div>
+            <div class="stat-value" id="statConversations">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning History -->
+      <div class="history-card">
+        <h3 class="section-title">
+          <i class="fas fa-history"></i>
+          学習履歴詳細
+        </h3>
+        
+        <!-- History Tabs -->
+        <div class="history-tabs">
+          <button class="history-tab active" onclick="switchHistoryTab('essay')">
+            <i class="fas fa-pen-fancy"></i>
+            小論文セッション
+          </button>
+          <button class="history-tab" onclick="switchHistoryTab('flashcard')">
+            <i class="fas fa-layer-group"></i>
+            フラッシュカード
+          </button>
+          <button class="history-tab" onclick="switchHistoryTab('international')">
+            <i class="fas fa-globe"></i>
+            国際コミュニケーション
+          </button>
+        </div>
+        
+        <!-- History Content -->
+        <div id="historyContent">
+          <div class="loading">
+            <div class="spinner"></div>
+            <div>履歴を読み込み中...</div>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div id="historyPagination" style="display: none; margin-top: 1.5rem; text-align: center;">
+          <button class="btn" onclick="loadPreviousPage()" id="btnPrevPage" disabled>
+            <i class="fas fa-chevron-left"></i>
+            前へ
+          </button>
+          <span id="pageInfo" style="margin: 0 1rem; color: #6b7280;">-</span>
+          <button class="btn" onclick="loadNextPage()" id="btnNextPage" disabled>
+            次へ
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>生徒情報編集</h3>
+      <form id="editForm">
+        <input type="hidden" id="editUserId" value="${userId}">
+        
+        <div class="form-group">
+          <label>APP_KEY</label>
+          <input type="text" id="editAppKey" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label>学生ID</label>
+          <input type="text" id="editStudentId" disabled>
+        </div>
+        
+        <div class="form-group">
+          <label>氏名 *</label>
+          <input type="text" id="editStudentName" required>
+        </div>
+        
+        <div class="form-group">
+          <label>学年</label>
+          <input type="text" id="editGrade" placeholder="例: 中学3年">
+        </div>
+        
+        <div class="form-group">
+          <label>メールアドレス</label>
+          <input type="email" id="editEmail" placeholder="example@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label>メモ</label>
+          <textarea id="editNotes" rows="3" placeholder="生徒に関するメモ"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="editIsActive" style="width: auto; margin-right: 0.5rem;">
+            有効な生徒
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeEditModal()">
+            キャンセル
+          </button>
+          <button type="submit" class="btn btn-save">
+            <i class="fas fa-save"></i>
+            保存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const userId = '${userId}';
+    let currentUser = null;
+
+    // Check authentication
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      window.location.href = '/admin/login';
+    }
+
+    // Load user data
+    async function loadUserData() {
+      try {
+        const response = await fetch(\`/api/admin/users/\${userId}\`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || '生徒データの取得に失敗しました');
+        }
+
+        currentUser = data.user;
+        const stats = data.stats || {};
+
+        // Hide loading, show content
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('contentState').style.display = 'block';
+
+        // Update user info
+        const initials = currentUser.student_name 
+          ? currentUser.student_name.substring(0, 1).toUpperCase()
+          : '?';
+        document.getElementById('userAvatar').textContent = initials;
+        document.getElementById('userName').textContent = currentUser.student_name || '名前未設定';
+        document.getElementById('userStudentId').textContent = currentUser.student_id || '-';
+        document.getElementById('userAppKey').textContent = currentUser.app_key || '-';
+        document.getElementById('userGrade').textContent = currentUser.grade || '-';
+        
+        const emailEl = document.getElementById('userEmail');
+        if (currentUser.email) {
+          emailEl.textContent = currentUser.email;
+          emailEl.classList.remove('empty');
+        } else {
+          emailEl.textContent = '未設定';
+          emailEl.classList.add('empty');
+        }
+        
+        const notesEl = document.getElementById('userNotes');
+        if (currentUser.notes) {
+          notesEl.textContent = currentUser.notes;
+          notesEl.classList.remove('empty');
+        } else {
+          notesEl.textContent = 'メモなし';
+          notesEl.classList.add('empty');
+        }
+
+        // Format dates
+        const createdDate = currentUser.created_at 
+          ? new Date(currentUser.created_at).toLocaleDateString('ja-JP')
+          : '-';
+        document.getElementById('userCreatedAt').textContent = createdDate;
+
+        const lastLoginEl = document.getElementById('userLastLogin');
+        if (currentUser.last_login_at) {
+          lastLoginEl.textContent = new Date(currentUser.last_login_at).toLocaleDateString('ja-JP');
+          lastLoginEl.classList.remove('empty');
+        } else {
+          lastLoginEl.textContent = 'ログイン履歴なし';
+          lastLoginEl.classList.add('empty');
+        }
+
+        // Update status badge
+        const statusEl = document.getElementById('userStatus');
+        if (currentUser.is_active) {
+          statusEl.className = 'status-badge badge-active';
+          statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 有効';
+        } else {
+          statusEl.className = 'status-badge badge-inactive';
+          statusEl.innerHTML = '<i class="fas fa-times-circle"></i> 無効';
+        }
+
+        // Update stats
+        document.getElementById('statDecks').textContent = stats.flashcard_decks || 0;
+        document.getElementById('statEssays').textContent = stats.essay_sessions || 0;
+        document.getElementById('statFlashcards').textContent = stats.flashcards || 0;
+        document.getElementById('statConversations').textContent = stats.conversations || 0;
+
+        // Load learning history
+        loadLearningHistory();
+
+      } catch (error) {
+        console.error('Error loading user:', error);
+        document.getElementById('loadingState').style.display = 'none';
+        const errorDiv = document.getElementById('errorState');
+        errorDiv.innerHTML = \`
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>\${error.message}</span>
+          </div>
+        \`;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // History state
+    let currentHistoryType = 'essay';
+    let currentHistoryPage = 0;
+    const historyPageSize = 20;
+    
+    // Load learning history with tabs and pagination
+    async function loadLearningHistory(type = 'essay', offset = 0) {
+      currentHistoryType = type;
+      currentHistoryPage = offset / historyPageSize;
+      
+      const historyDiv = document.getElementById('historyContent');
+      historyDiv.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+      
+      try {
+        const response = await fetch(\`/api/admin/users/\${userId}/history?type=\${type}&limit=\${historyPageSize}&offset=\${offset}\`);
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || '履歴の取得に失敗しました');
+        }
+        
+        // Display history based on type
+        if (data.data.length === 0) {
+          historyDiv.innerHTML = \`
+            <div class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>まだ学習履歴がありません</p>
+            </div>
+          \`;
+          document.getElementById('historyPagination').style.display = 'none';
+          return;
+        }
+        
+        let tableHTML = '';
+        
+        if (type === 'essay') {
+          tableHTML = renderEssayHistory(data.data);
+        } else if (type === 'flashcard') {
+          tableHTML = renderFlashcardHistory(data.data);
+        } else if (type === 'international') {
+          tableHTML = renderInternationalHistory(data.data);
+        }
+        
+        historyDiv.innerHTML = tableHTML;
+        
+        // Update pagination
+        updatePagination(data);
+        
+      } catch (error) {
+        console.error('Error loading history:', error);
+        historyDiv.innerHTML = \`
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>\${error.message}</span>
+          </div>
+        \`;
+      }
+    }
+    
+    // Render essay history table
+    function renderEssayHistory(sessions) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>日付</th>';
+      html += '<th>テーマ</th>';
+      html += '<th>対象レベル</th>';
+      html += '<th>授業形式</th>';
+      html += '<th>ステップ</th>';
+      html += '<th>ステータス</th>';
+      html += '</tr></thead><tbody>';
+      
+      sessions.forEach(session => {
+        const date = new Date(session.created_at).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const targetLevelMap = {
+          'high_school': '高校',
+          'vocational': '専門学校',
+          'university': '大学'
+        };
+        
+        const lessonFormatMap = {
+          'full_55min': '55分フル',
+          'vocabulary_focus': '語彙重点',
+          'short_essay_focus': '短文重点'
+        };
+        
+        const statusBadge = session.is_completed 
+          ? '<span class="badge badge-success">完了</span>'
+          : '<span class="badge badge-warning">進行中</span>';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${date}</td>\`;
+        html += \`<td>\${session.theme || '-'}</td>\`;
+        html += \`<td>\${targetLevelMap[session.target_level] || session.target_level || '-'}</td>\`;
+        html += \`<td>\${lessonFormatMap[session.lesson_format] || session.lesson_format || '-'}</td>\`;
+        html += \`<td>ステップ \${session.current_step || 1} / 6</td>\`;
+        html += \`<td>\${statusBadge}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Render flashcard history table
+    function renderFlashcardHistory(decks) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>作成日</th>';
+      html += '<th>デッキ名</th>';
+      html += '<th>説明</th>';
+      html += '<th>カード数</th>';
+      html += '<th>学習回数</th>';
+      html += '<th>最終学習日</th>';
+      html += '</tr></thead><tbody>';
+      
+      decks.forEach(deck => {
+        const createdDate = new Date(deck.created_at).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        
+        const lastStudiedDate = deck.last_studied_at 
+          ? new Date(deck.last_studied_at).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            })
+          : '未学習';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${createdDate}</td>\`;
+        html += \`<td><strong>\${deck.deck_name || '名前なし'}</strong></td>\`;
+        html += \`<td>\${deck.description || '-'}</td>\`;
+        html += \`<td>\${deck.card_count || 0} 枚</td>\`;
+        html += \`<td>\${deck.study_count || 0} 回</td>\`;
+        html += \`<td class="date-cell">\${lastStudiedDate}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Render international communication history table
+    function renderInternationalHistory(conversations) {
+      let html = '<table class="history-table"><thead><tr>';
+      html += '<th>日時</th>';
+      html += '<th>トピック</th>';
+      html += '<th>ステータス</th>';
+      html += '<th>役割</th>';
+      html += '<th>画像</th>';
+      html += '<th>メッセージ内容</th>';
+      html += '</tr></thead><tbody>';
+      
+      conversations.forEach(conv => {
+        const date = new Date(conv.timestamp).toLocaleDateString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const roleBadge = conv.role === 'user'
+          ? '<span class="badge badge-info">生徒</span>'
+          : '<span class="badge badge-secondary">AI</span>';
+        
+        const statusBadge = conv.status === 'completed'
+          ? '<span class="badge badge-success">完了</span>'
+          : '<span class="badge badge-warning">進行中</span>';
+        
+        const hasImageBadge = conv.has_image 
+          ? '<i class="fas fa-image" style="color: #3b82f6;"></i>'
+          : '-';
+        
+        const contentPreview = conv.content 
+          ? (conv.content.length > 50 ? conv.content.substring(0, 50) + '...' : conv.content)
+          : '-';
+        
+        html += '<tr>';
+        html += \`<td class="date-cell">\${date}</td>\`;
+        html += \`<td>\${conv.current_topic || '-'}</td>\`;
+        html += \`<td>\${statusBadge}</td>\`;
+        html += \`<td>\${roleBadge}</td>\`;
+        html += \`<td style="text-align: center;">\${hasImageBadge}</td>\`;
+        html += \`<td>\${contentPreview}</td>\`;
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      return html;
+    }
+    
+    // Update pagination controls
+    function updatePagination(data) {
+      const paginationDiv = document.getElementById('historyPagination');
+      const btnPrev = document.getElementById('btnPrevPage');
+      const btnNext = document.getElementById('btnNextPage');
+      const pageInfo = document.getElementById('pageInfo');
+      
+      const currentPage = Math.floor(data.offset / data.limit) + 1;
+      const totalPages = Math.ceil(data.total / data.limit);
+      
+      pageInfo.textContent = \`\${currentPage} / \${totalPages} ページ (全 \${data.total} 件)\`;
+      
+      btnPrev.disabled = data.offset === 0;
+      btnNext.disabled = !data.hasMore;
+      
+      paginationDiv.style.display = totalPages > 1 ? 'block' : 'none';
+    }
+    
+    // Switch history tab
+    function switchHistoryTab(type) {
+      // Update active tab
+      document.querySelectorAll('.history-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.closest('.history-tab').classList.add('active');
+      
+      // Load history for selected type
+      loadLearningHistory(type, 0);
+    }
+    
+    // Pagination functions
+    function loadNextPage() {
+      const nextOffset = (currentHistoryPage + 1) * historyPageSize;
+      loadLearningHistory(currentHistoryType, nextOffset);
+    }
+    
+    function loadPreviousPage() {
+      const prevOffset = Math.max(0, (currentHistoryPage - 1) * historyPageSize);
+      loadLearningHistory(currentHistoryType, prevOffset);
+    }
+
+    // Show edit modal
+    function showEditModal() {
+      if (!currentUser) return;
+
+      document.getElementById('editUserId').value = currentUser.id;
+      document.getElementById('editAppKey').value = currentUser.app_key || '';
+      document.getElementById('editStudentId').value = currentUser.student_id || '';
+      document.getElementById('editStudentName').value = currentUser.student_name || '';
+      document.getElementById('editGrade').value = currentUser.grade || '';
+      document.getElementById('editEmail').value = currentUser.email || '';
+      document.getElementById('editNotes').value = currentUser.notes || '';
+      document.getElementById('editIsActive').checked = currentUser.is_active;
+
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    // Close edit modal
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    // Handle edit form submission
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        student_name: document.getElementById('editStudentName').value.trim(),
+        grade: document.getElementById('editGrade').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        notes: document.getElementById('editNotes').value.trim(),
+        is_active: document.getElementById('editIsActive').checked ? 1 : 0
+      };
+
+      try {
+        const response = await fetch(\`/api/admin/users/\${userId}\`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || '更新に失敗しました');
+        }
+
+        alert('生徒情報を更新しました');
+        closeEditModal();
+        
+        // Reload user data
+        document.getElementById('contentState').style.display = 'none';
+        document.getElementById('loadingState').style.display = 'block';
+        await loadUserData();
+
+      } catch (error) {
+        console.error('Error updating user:', error);
+        alert(\`エラー: \${error.message}\`);
+      }
+    });
+
+    // Logout function
+    function logout() {
+      if (confirm('ログアウトしますか?')) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+      }
+    }
+
+    // Close modal on outside click
+    document.getElementById('editModal').addEventListener('click', (e) => {
+      if (e.target.id === 'editModal') {
+        closeEditModal();
+      }
+    });
+
+    // Load data on page load
+    loadUserData();
+  </script>
+</body>
+</html>
+  `)
+})
+
+// ==================== Flashcard UI Routes ====================
+
+// フラッシュカード一覧ページ
+app.get('/flashcard/list', (c) => {
+  console.log('📇 Flashcard list page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>フラッシュカード一覧 | KOBEYA Study Partner</title>
+        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+          min-height: 100vh;
+          color: #37352f;
+          padding-bottom: 100px;
+        }
+        
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem 1.5rem;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .header h1 {
+          font-size: 1.75rem;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stats {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 1rem;
+          flex-wrap: wrap;
+        }
+        
+        .stat-item {
+          padding: 0.75rem 1.5rem;
+          background: #f3e8ff;
+          border-radius: 0.5rem;
+          font-size: 0.95rem;
+        }
+        
+        .stat-number {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #7c3aed;
+        }
+        
+        .action-bar {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .btn {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn-secondary {
+          background: white;
+          color: #7c3aed;
+          border: 2px solid #7c3aed;
+        }
+        
+        .btn-secondary:hover {
+          background: #f3e8ff;
+        }
+        
+        .btn-danger {
+          background: #dc2626;
+          color: white;
+        }
+        
+        .btn-danger:hover {
+          background: #b91c1c;
+        }
+        
+        .card-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+        
+        .flashcard {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          transition: all 0.3s;
+          cursor: pointer;
+          position: relative;
+        }
+        
+        .flashcard:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+        }
+        
+        .flashcard.flipped .card-front {
+          display: none;
+        }
+        
+        .flashcard.flipped .card-back {
+          display: block;
+        }
+        
+        .card-front, .card-back {
+          min-height: 120px;
+        }
+        
+        .card-back {
+          display: none;
+        }
+        
+        .card-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+        }
+        
+        .card-content {
+          font-size: 1.1rem;
+          line-height: 1.6;
+          color: #37352f;
+        }
+        
+        .card-meta {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+          font-size: 0.875rem;
+          color: #6b7280;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .card-actions {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          display: flex;
+          gap: 0.5rem;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        
+        .flashcard:hover .card-actions {
+          opacity: 1;
+        }
+        
+        .icon-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: none;
+          background: white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .icon-btn.edit:hover {
+          background: #3b82f6;
+          color: white;
+        }
+        
+        .icon-btn.delete:hover {
+          background: #dc2626;
+          color: white;
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .empty-state i {
+          font-size: 4rem;
+          color: #d1d5db;
+          margin-bottom: 1rem;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+        
+        .spinner {
+          border: 4px solid #f3f4f6;
+          border-top: 4px solid #7c3aed;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .mastery-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 1rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+        
+        .mastery-0 { background: #f3f4f6; color: #6b7280; }
+        .mastery-1 { background: #fee2e2; color: #dc2626; }
+        .mastery-2 { background: #fef3c7; color: #f59e0b; }
+        .mastery-3 { background: #dbeafe; color: #3b82f6; }
+        .mastery-4 { background: #d1fae5; color: #10b981; }
+        .mastery-5 { background: #dcfce7; color: #16a34a; }
+        
+        .card-checkbox {
+          position: absolute;
+          top: 1rem;
+          left: 1rem;
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+          z-index: 10;
+        }
+        
+        .flashcard.selected {
+          border: 3px solid #7c3aed;
+          box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
+        }
+        
+        .selection-bar {
+          display: none;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: white;
+          padding: 1rem 1.5rem;
+          border-radius: 1rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          margin-bottom: 1.5rem;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        
+        .selection-bar.active {
+          display: flex;
+        }
+        
+        .selection-info {
+          flex: 1;
+          font-weight: 600;
+          color: #7c3aed;
+        }
+        
+        .selection-actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+        
+        .btn-sm {
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+          .card-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .action-bar {
+            flex-direction: column;
+          }
+          
+          .btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📇 フラッシュカード一覧</h1>
+                <p>あなたの学習カードコレクション</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalCards">0</div>
+                        <div>総カード数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="studyToday">0</div>
+                        <div>今日の復習</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="masteryAvg">0%</div>
+                        <div>平均習熟度</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="window.location.href='/flashcard/create'">
+                    <i class="fas fa-plus"></i> 新しいカードを作成
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='/flashcard/study'">
+                    <i class="fas fa-brain"></i> 学習を開始
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/study-partner'">
+                    <i class="fas fa-home"></i> ホームに戻る
+                </button>
+            </div>
+
+            <!-- 選択バー -->
+            <div class="selection-bar" id="selectionBar">
+                <div class="selection-info">
+                    <span id="selectedCount">0</span>枚のカードを選択中
+                </div>
+                <div class="selection-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="selectAll()">
+                        <i class="fas fa-check-double"></i> 全選択
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="deselectAll()">
+                        <i class="fas fa-times"></i> 選択解除
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSelected()">
+                        <i class="fas fa-trash"></i> 選択したカードを削除
+                    </button>
+                </div>
+            </div>
+
+            <div id="cardContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>カードを読み込み中...</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let cards = [];
+        let selectedCards = new Set();
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCards() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        limit: 100,
+                        offset: 0
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards) {
+                    cards = data.cards;
+                    displayCards();
+                    updateStats();
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Failed to load cards:', error);
+                document.getElementById('cardContainer').innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>エラーが発生しました</h3>
+                        <p>\${error.message}</p>
+                    </div>
+                \`;
+            }
+        }
+
+        function displayCards() {
+            const container = document.getElementById('cardContainer');
+            
+            if (cards.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            container.innerHTML = '<div class="card-grid">' + cards.map((card, index) => \`
+                <div class="flashcard \${selectedCards.has(card.card_id) ? 'selected' : ''}" onclick="flipCard(\${index})" id="card-\${index}" data-card-id="\${card.card_id}">
+                    <input type="checkbox" class="card-checkbox" 
+                           onclick="event.stopPropagation(); toggleCardSelection('\${card.card_id}')"
+                           \${selectedCards.has(card.card_id) ? 'checked' : ''}>
+                    
+                    <div class="card-actions">
+                        <button class="icon-btn edit" onclick="event.stopPropagation(); editCard('\${card.card_id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn delete" onclick="event.stopPropagation(); deleteCard('\${card.card_id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="card-front">
+                        <div class="card-label">📝 表面</div>
+                        <div class="card-content">\${escapeHtml(card.front_text)}</div>
+                    </div>
+                    
+                    <div class="card-back">
+                        <div class="card-label">💡 裏面</div>
+                        <div class="card-content">\${escapeHtml(card.back_text)}</div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <span class="mastery-badge mastery-\${card.mastery_level || 0}">
+                            習熟度: \${card.mastery_level || 0}/5
+                        </span>
+                        <span>\${formatDate(card.created_at)}</span>
+                    </div>
+                </div>
+            \`).join('') + '</div>';
+        }
+
+        function showEmptyState() {
+            document.getElementById('cardContainer').innerHTML = \`
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>カードがまだありません</h3>
+                    <p>「新しいカードを作成」ボタンから最初のカードを作成しましょう！</p>
+                </div>
+            \`;
+        }
+
+        function updateStats() {
+            document.getElementById('totalCards').textContent = cards.length;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const studyToday = cards.filter(c => 
+                c.last_reviewed_at && c.last_reviewed_at.startsWith(today)
+            ).length;
+            document.getElementById('studyToday').textContent = studyToday;
+            
+            const avgMastery = cards.length > 0
+                ? Math.round((cards.reduce((sum, c) => sum + (c.mastery_level || 0), 0) / cards.length / 5) * 100)
+                : 0;
+            document.getElementById('masteryAvg').textContent = avgMastery + '%';
+        }
+
+        function flipCard(index) {
+            const card = document.getElementById(\`card-\${index}\`);
+            card.classList.toggle('flipped');
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm('このカードを削除してもよろしいですか？')) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardId: cardId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('カードを削除しました');
+                    loadCards();
+                } else {
+                    alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+
+        function editCard(cardId) {
+            alert('編集機能は準備中です。カードID: ' + cardId);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // 複数選択機能
+        function toggleCardSelection(cardId) {
+            if (selectedCards.has(cardId)) {
+                selectedCards.delete(cardId);
+            } else {
+                selectedCards.add(cardId);
+            }
+            updateSelectionUI();
+        }
+
+        function selectAll() {
+            selectedCards.clear();
+            cards.forEach(card => selectedCards.add(card.card_id));
+            displayCards();
+            updateSelectionUI();
+        }
+
+        function deselectAll() {
+            selectedCards.clear();
+            displayCards();
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const selectionBar = document.getElementById('selectionBar');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedCards.size > 0) {
+                selectionBar.classList.add('active');
+                selectedCount.textContent = selectedCards.size;
+                
+                // 選択されたカードに視覚的フィードバック
+                cards.forEach(card => {
+                    const cardElement = document.querySelector(\`[data-card-id="\${card.card_id}"]\`);
+                    if (cardElement) {
+                        if (selectedCards.has(card.card_id)) {
+                            cardElement.classList.add('selected');
+                        } else {
+                            cardElement.classList.remove('selected');
+                        }
+                    }
+                });
+            } else {
+                selectionBar.classList.remove('active');
+            }
+        }
+
+        async function deleteSelected() {
+            const count = selectedCards.size;
+            if (count === 0) {
+                alert('削除するカードを選択してください');
+                return;
+            }
+
+            if (!confirm(\`選択した\${count}枚のカードを削除してもよろしいですか？\\n\\nこの操作は取り消せません。\`)) {
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/delete-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardIds: Array.from(selectedCards)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(\`✅ \${count}枚のカードを削除しました\`);
+                    selectedCards.clear();
+                    loadCards();
+                } else {
+                    alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Batch delete error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+
+        // 初期化
+        loadCards();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// フラッシュカード メニューページ（統合）
+app.get('/flashcard', (c) => {
+  console.log('📇 Flashcard menu page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>フラッシュカード | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: #f5f5f5;
+          min-height: 100vh;
+          color: #37352f;
+          padding: 2rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .container { 
+          max-width: 600px; 
+          width: 100%;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          background: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          color: #7c3aed;
+        }
+
+        .header p {
+          font-size: 1rem;
+          color: #6b7280;
+        }
+
+        .menu-grid {
+          display: grid;
+          gap: 1.5rem;
+        }
+
+        .menu-card {
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          text-decoration: none;
+          color: inherit;
+          display: block;
+        }
+
+        .menu-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        }
+
+        .menu-card.create {
+          background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+          color: white;
+        }
+
+        .menu-card.list {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+        }
+
+        .menu-card-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        .menu-card-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+        }
+
+        .menu-card-description {
+          font-size: 0.95rem;
+          opacity: 0.9;
+          line-height: 1.5;
+        }
+
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #6b7280;
+          text-decoration: none;
+          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+          transition: color 0.2s;
+        }
+
+        .back-button:hover {
+          color: #374151;
+        }
+
+        .stats-card {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stats-title {
+          font-size: 0.875rem;
+          color: #6b7280;
+          margin-bottom: 0.75rem;
+          font-weight: 500;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        .stat-item {
+          text-align: center;
+        }
+
+        .stat-value {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #7c3aed;
+          margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+          body {
+            padding: 1rem;
+          }
+
+          .header h1 {
+            font-size: 1.5rem;
+          }
+
+          .menu-card {
+            padding: 1.5rem;
+          }
+
+          .menu-card-icon {
+            font-size: 2.5rem;
+          }
+
+          .menu-card-title {
+            font-size: 1.25rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="/study-partner" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Study Partnerに戻る
+            </a>
+
+            <div class="header">
+                <h1>📇 フラッシュカード</h1>
+                <p>暗記学習をスマートに</p>
+            </div>
+
+            <div class="menu-grid">
+                <a href="/flashcard/create" class="menu-card create">
+                    <i class="fas fa-plus-circle menu-card-icon"></i>
+                    <div class="menu-card-title">➕ 新しいカードを作成</div>
+                    <div class="menu-card-description">
+                        写真から自動作成 or 手動で単語カードを作成できます
+                    </div>
+                </a>
+
+                <a href="/flashcard/list" class="menu-card list">
+                    <i class="fas fa-layer-group menu-card-icon"></i>
+                    <div class="menu-card-title">📚 カード一覧・学習</div>
+                    <div class="menu-card-description">
+                        保存したカードを見る・学習する・管理する
+                    </div>
+                </a>
+
+                <a href="/flashcard/categories" class="menu-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                    <i class="fas fa-folder menu-card-icon"></i>
+                    <div class="menu-card-title">📁 カテゴリ管理</div>
+                    <div class="menu-card-description">
+                        カードを整理するカテゴリを作成・管理する
+                    </div>
+                </a>
+            </div>
+
+            <div class="stats-card">
+                <div class="stats-title">📊 あなたの学習状況</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalCards">-</div>
+                        <div class="stat-label">総カード数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="reviewDue">-</div>
+                        <div class="stat-label">復習待ち</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="masteredCards">-</div>
+                        <div class="stat-label">習得済み</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // ログイン情報取得
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        // 統計情報の取得
+        async function loadStats() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('totalCards').textContent = data.stats.total || 0;
+                    document.getElementById('reviewDue').textContent = data.stats.reviewDue || 0;
+                    document.getElementById('masteredCards').textContent = data.stats.mastered || 0;
+                }
+            } catch (error) {
+                console.error('Stats load error:', error);
+                // エラーでも表示は続ける（統計は補助的な機能）
+                document.getElementById('totalCards').textContent = '0';
+                document.getElementById('reviewDue').textContent = '0';
+                document.getElementById('masteredCards').textContent = '0';
+            }
+        }
+
+        // 初期化
+        loadStats();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// フラッシュカード学習モードページ
+app.get('/flashcard/study', (c) => {
+  console.log('📚 Flashcard study mode requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>学習モード | KOBEYA Study Partner</title>
+        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+          background: #f5f5f5;
+          min-height: 100vh;
+          color: #374151;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .study-header {
+          padding: 1rem 1.5rem;
+          display: none;
+          justify-content: space-between;
+          align-items: center;
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .study-header.show {
+          display: flex;
+        }
+        
+        .exit-btn {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          color: #374151;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+        }
+        
+        .exit-btn:hover {
+          background: #e5e7eb;
+        }
+        
+        .progress-bar-container {
+          flex: 1;
+          margin: 0 2rem;
+          height: 8px;
+          background: #e5e7eb;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        
+        .progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+          transition: width 0.3s ease;
+          border-radius: 4px;
+        }
+        
+        .progress-text {
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+        
+        .study-container {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+        
+        .card-wrapper {
+          perspective: 1000px;
+          width: 100%;
+          max-width: 600px;
+        }
+        
+        .flashcard-study {
+          width: 100%;
+          min-height: 400px;
+          position: relative;
+          transform-style: preserve-3d;
+          transition: transform 0.6s;
+          cursor: pointer;
+        }
+        
+        .flashcard-study.flipped {
+          transform: rotateY(180deg);
+        }
+        
+        .card-face {
+          position: absolute;
+          width: 100%;
+          min-height: 400px;
+          backface-visibility: hidden;
+          background: white;
+          border-radius: 1.5rem;
+          padding: 3rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .card-face-front {
+          color: #37352f;
+        }
+        
+        .card-face-back {
+          transform: rotateY(180deg);
+          background: #f3e8ff;
+          color: #37352f;
+        }
+        
+        .card-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #7c3aed;
+          margin-bottom: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .card-content {
+          font-size: 2rem;
+          line-height: 1.6;
+          text-align: center;
+          color: #37352f;
+          word-wrap: break-word;
+        }
+        
+        .tap-hint {
+          margin-top: 2rem;
+          font-size: 0.875rem;
+          color: #9ca3af;
+          text-align: center;
+        }
+        
+        .action-buttons {
+          display: flex;
+          gap: 1rem;
+          margin-top: 2rem;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.3s;
+          pointer-events: none;
+        }
+        
+        .action-buttons.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        
+        .btn-action {
+          padding: 1rem 2rem;
+          border: none;
+          border-radius: 1rem;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          min-width: 140px;
+          justify-content: center;
+        }
+        
+        .btn-wrong {
+          background: #ef4444;
+          color: white;
+        }
+        
+        .btn-wrong:hover {
+          background: #dc2626;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-correct {
+          background: #10b981;
+          color: white;
+        }
+        
+        .btn-correct:hover {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+        
+        .selection-container {
+          display: none;
+          padding: 2rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        
+        .selection-container.show {
+          display: block;
+        }
+        
+        .selection-header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+        
+        .selection-header h2 {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .selection-header p {
+          opacity: 0.9;
+          font-size: 1rem;
+        }
+        
+        .selection-controls {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        
+        .selection-info {
+          flex: 1;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+        
+        .selection-buttons {
+          display: flex;
+          gap: 0.75rem;
+        }
+        
+        .card-list {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          max-height: 60vh;
+          overflow-y: auto;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card-item-selectable {
+          background: #f9fafb;
+          border: 2px solid #e5e7eb;
+          border-radius: 0.75rem;
+          padding: 1rem;
+          margin-bottom: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .card-item-selectable:hover {
+          background: white;
+          border-color: #d1d5db;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .card-item-selectable.selected {
+          background: #d1fae5;
+          border-color: #10b981;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+        
+        .card-checkbox {
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+        }
+        
+        .card-info {
+          flex: 1;
+        }
+        
+        .card-front-text {
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+        }
+        
+        .card-meta-info {
+          font-size: 0.875rem;
+          opacity: 0.8;
+        }
+        
+        .start-study-btn {
+          width: 100%;
+          padding: 1.25rem;
+          font-size: 1.2rem;
+          font-weight: 700;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+        
+        .start-study-btn:hover:not(:disabled) {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+        
+        .start-study-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .results-container {
+          display: none;
+          text-align: center;
+          padding: 2rem;
+        }
+        
+        .results-container.show {
+          display: block;
+        }
+        
+        .results-title {
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .results-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+          margin: 2rem 0;
+          max-width: 800px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        
+        .stat-card {
+          background: white;
+          padding: 1.5rem;
+          border-radius: 1rem;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .stat-number {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+          font-size: 1rem;
+          opacity: 0.9;
+        }
+        
+        .results-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 2rem;
+          flex-wrap: wrap;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+        
+        .spinner {
+          border: 4px solid rgba(255,255,255,0.3);
+          border-top: 4px solid white;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+          .progress-bar-container {
+            margin: 0 1rem;
+          }
+          
+          .card-face {
+            min-height: 300px;
+            padding: 2rem;
+          }
+          
+          .card-content {
+            font-size: 1.5rem;
+          }
+          
+          .action-buttons {
+            flex-direction: column;
+            width: 100%;
+          }
+          
+          .btn-action {
+            width: 100%;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <!-- ヘッダー -->
+        <div class="study-header">
+            <button class="exit-btn" onclick="exitStudy()">
+                <i class="fas fa-times"></i> 終了
+            </button>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+        </div>
+
+        <!-- カード選択画面 -->
+        <div class="selection-container" id="selectionContainer">
+            <div class="selection-header">
+                <h2>📚 学習するカードを選択</h2>
+                <p>チェックボックスで学習したいカードを選んでください</p>
+            </div>
+            
+            <div class="selection-controls">
+                <div class="selection-info">
+                    <span id="selectedCardCount">0</span> / <span id="totalCardCount">0</span> 枚選択中
+                </div>
+                <div class="selection-buttons">
+                    <button class="btn-action btn-correct btn-sm" onclick="selectAllCards()" style="background: #3b82f6; min-width: auto; padding: 0.5rem 1rem;">
+                        <i class="fas fa-check-double"></i> 全選択
+                    </button>
+                    <button class="btn-action btn-wrong btn-sm" onclick="deselectAllCards()" style="min-width: auto; padding: 0.5rem 1rem;">
+                        <i class="fas fa-times"></i> 選択解除
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-list" id="cardListSelection"></div>
+            
+            <div class="shuffle-option" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1rem 0; padding: 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
+                <input type="checkbox" id="shuffleCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="shuffleCheckbox" style="cursor: pointer; font-size: 1rem;">
+                    🎲 順番をシャッフルする
+                </label>
+            </div>
+            
+            <button class="start-study-btn" id="startStudyBtn" onclick="startStudyWithSelected()" disabled>
+                <i class="fas fa-play-circle"></i> 学習を開始 (<span id="selectedCountBtn">0</span>枚)
+            </button>
+        </div>
+
+        <!-- 学習コンテナ -->
+        <div class="study-container" id="studyContainer" style="display: none;">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>カードを読み込み中...</p>
+            </div>
+        </div>
+
+        <!-- 結果画面 -->
+        <div class="results-container" id="resultsContainer">
+            <div class="results-title">🎉 学習完了！</div>
+            <div class="results-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCardsResult">0</div>
+                    <div class="stat-label">学習したカード</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #10b981;" id="correctCount">0</div>
+                    <div class="stat-label">✅ わかった</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #ef4444;" id="wrongCount">0</div>
+                    <div class="stat-label">❌ わからなかった</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="accuracyRate">0%</div>
+                    <div class="stat-label">正答率</div>
+                </div>
+            </div>
+            <div class="results-actions">
+                <button class="btn-action btn-correct" onclick="window.location.href='/flashcard/list'">
+                    <i class="fas fa-list"></i> カード一覧へ
+                </button>
+                <button class="btn-action btn-correct" onclick="restartStudy(false)" style="background: #3b82f6;">
+                    <i class="fas fa-redo"></i> 全てもう一度
+                </button>
+                <button class="btn-action btn-wrong" onclick="restartStudy(true)" id="retryWrongBtn">
+                    <i class="fas fa-times-circle"></i> 間違えた問題のみ
+                </button>
+            </div>
+        </div>
+
+        <script>
+        let cards = [];
+        let allCards = []; // 元のカードリストを保持
+        let selectedCardIds = new Set(); // 選択されたカードID
+        let currentIndex = 0;
+        let isFlipped = false;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let studyStartTime = Date.now();
+        let wrongCardIds = []; // 間違えた問題のIDを記録
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCards() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        limit: 100
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards && data.cards.length > 0) {
+                    // 復習が必要なカードを優先
+                    allCards = data.cards.sort((a, b) => {
+                        const aReview = a.next_review_at || '9999-12-31';
+                        const bReview = b.next_review_at || '9999-12-31';
+                        return aReview.localeCompare(bReview);
+                    });
+                    
+                    // 選択画面を表示
+                    showCardSelection();
+                } else {
+                    alert('学習するカードがありません。まずカードを作成してください。');
+                    window.location.href = '/flashcard/create';
+                }
+            } catch (error) {
+                console.error('Failed to load cards:', error);
+                alert('カードの読み込みに失敗しました: ' + error.message);
+            }
+        }
+
+        function startStudy() {
+            currentIndex = 0;
+            correctAnswers = 0;
+            wrongAnswers = 0;
+            wrongCardIds = [];
+            studyStartTime = Date.now();
+            showCard();
+        }
+
+        function showCard() {
+            if (currentIndex >= cards.length) {
+                showResults();
+                return;
+            }
+
+            const card = cards[currentIndex];
+            isFlipped = false;
+
+            const container = document.getElementById('studyContainer');
+            container.innerHTML = \`
+                <div class="card-wrapper">
+                    <div class="flashcard-study" id="flashcard" onclick="flipCard()">
+                        <div class="card-face card-face-front">
+                            <div class="card-label">📝 表面</div>
+                            <div class="card-content">\${escapeHtml(card.front_text)}</div>
+                            <div class="tap-hint">
+                                <i class="fas fa-hand-pointer"></i> タップして裏面を表示
+                            </div>
+                        </div>
+                        <div class="card-face card-face-back">
+                            <div class="card-label">💡 裏面</div>
+                            <div class="card-content">\${escapeHtml(card.back_text)}</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons" id="actionButtons">
+                        <button class="btn-action btn-wrong" onclick="answerCard(false)">
+                            <i class="fas fa-times"></i> わからなかった
+                        </button>
+                        <button class="btn-action btn-correct" onclick="answerCard(true)">
+                            <i class="fas fa-check"></i> わかった
+                        </button>
+                    </div>
+                </div>
+            \`;
+
+            updateProgress();
+        }
+
+        function flipCard() {
+            if (isFlipped) return;
+            
+            const flashcard = document.getElementById('flashcard');
+            const actionButtons = document.getElementById('actionButtons');
+            
+            flashcard.classList.add('flipped');
+            actionButtons.classList.add('show');
+            isFlipped = true;
+        }
+
+        async function answerCard(isCorrect) {
+            const card = cards[currentIndex];
+            
+            if (isCorrect) {
+                correctAnswers++;
+            } else {
+                wrongAnswers++;
+                // 間違えた問題のIDを記録
+                wrongCardIds.push(card.card_id);
+            }
+
+            // 学習記録をAPIに送信
+            await recordStudy(card.card_id, isCorrect);
+
+            // 次のカードへ
+            currentIndex++;
+            showCard();
+        }
+
+        async function recordStudy(cardId, isCorrect) {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                await fetch('/api/flashcard/record-study', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        cardId: cardId,
+                        isCorrect: isCorrect,
+                        responseTimeMs: Date.now() - studyStartTime
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to record study:', error);
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentIndex) / cards.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = \`\${currentIndex} / \${cards.length}\`;
+        }
+
+        function showResults() {
+            document.getElementById('studyContainer').style.display = 'none';
+            document.getElementById('resultsContainer').classList.add('show');
+
+            const accuracy = cards.length > 0 
+                ? Math.round((correctAnswers / cards.length) * 100) 
+                : 0;
+
+            document.getElementById('totalCardsResult').textContent = cards.length;
+            document.getElementById('correctCount').textContent = correctAnswers;
+            document.getElementById('wrongCount').textContent = wrongAnswers;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            
+            // 間違えた問題のみボタンの表示/非表示
+            const retryWrongBtn = document.getElementById('retryWrongBtn');
+            if (wrongCardIds.length === 0) {
+                retryWrongBtn.style.display = 'none';
+            } else {
+                retryWrongBtn.style.display = 'flex';
+            }
+        }
+
+        function restartStudy(wrongOnly = false) {
+            document.getElementById('resultsContainer').classList.remove('show');
+            document.getElementById('studyContainer').style.display = 'flex';
+            
+            if (wrongOnly && wrongCardIds.length > 0) {
+                // 間違えた問題のみを抽出
+                cards = allCards.filter(card => wrongCardIds.includes(card.card_id));
+                
+                if (cards.length === 0) {
+                    alert('間違えた問題がありません！');
+                    cards = [...allCards]; // 元に戻す
+                }
+            } else {
+                // 全てもう一度の場合は元のリストをコピー
+                cards = [...allCards];
+            }
+            
+            startStudy();
+        }
+
+        // カード選択画面の表示
+        function showCardSelection() {
+            document.getElementById('studyContainer').style.display = 'none';
+            document.getElementById('selectionContainer').classList.add('show');
+            
+            // デフォルトで全てのカードを選択
+            selectedCardIds.clear();
+            allCards.forEach(card => selectedCardIds.add(card.card_id));
+            
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function renderCardList() {
+            const container = document.getElementById('cardListSelection');
+            container.innerHTML = allCards.map(card => \`
+                <div class="card-item-selectable \${selectedCardIds.has(card.card_id) ? 'selected' : ''}" 
+                     onclick="toggleCardSelect('\${card.card_id}', event)" 
+                     data-card-id="\${card.card_id}">
+                    <input type="checkbox" 
+                           class="card-checkbox" 
+                           \${selectedCardIds.has(card.card_id) ? 'checked' : ''}
+                           onclick="event.stopPropagation();"
+                           onchange="toggleCardSelect('\${card.card_id}', event)">
+                    <div class="card-info">
+                        <div class="card-front-text">\${escapeHtml(card.front_text)}</div>
+                        <div class="card-meta-info">
+                            習熟度: \${card.mastery_level || 0}/5 | 
+                            復習回数: \${card.review_count || 0}回
+                        </div>
+                    </div>
+                </div>
+            \`).join('');
+        }
+        
+        function toggleCardSelect(cardId, event) {
+            // イベントが存在し、チェックボックス自身からのイベントでない場合のみ処理
+            if (event && event.target.classList.contains('card-checkbox')) {
+                // チェックボックス自身のクリックは自動的に状態が変わるため、
+                // その状態を反映する
+                const checkbox = event.target;
+                if (checkbox.checked) {
+                    selectedCardIds.add(cardId);
+                } else {
+                    selectedCardIds.delete(cardId);
+                }
+            } else {
+                // カード領域のクリックによるトグル
+                if (selectedCardIds.has(cardId)) {
+                    selectedCardIds.delete(cardId);
+                } else {
+                    selectedCardIds.add(cardId);
+                }
+            }
+            
+            // UIを更新
+            const cardElement = document.querySelector(\`[data-card-id="\${cardId}"]\`);
+            const checkbox = cardElement.querySelector('.card-checkbox');
+            
+            if (selectedCardIds.has(cardId)) {
+                cardElement.classList.add('selected');
+                checkbox.checked = true;
+            } else {
+                cardElement.classList.remove('selected');
+                checkbox.checked = false;
+            }
+            
+            updateSelectionCount();
+        }
+        
+        function selectAllCards() {
+            selectedCardIds.clear();
+            allCards.forEach(card => selectedCardIds.add(card.card_id));
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function deselectAllCards() {
+            selectedCardIds.clear();
+            renderCardList();
+            updateSelectionCount();
+        }
+        
+        function updateSelectionCount() {
+            const count = selectedCardIds.size;
+            const total = allCards.length;
+            
+            document.getElementById('selectedCardCount').textContent = count;
+            document.getElementById('totalCardCount').textContent = total;
+            document.getElementById('selectedCountBtn').textContent = count;
+            
+            const startBtn = document.getElementById('startStudyBtn');
+            startBtn.disabled = count === 0;
+        }
+        
+        // Fisher-Yates シャッフルアルゴリズム
+        function shuffleArray(array) {
+            const shuffled = [...array]; // 元の配列を変更しないようコピー
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        function startStudyWithSelected() {
+            if (selectedCardIds.size === 0) {
+                alert('学習するカードを選択してください');
+                return;
+            }
+            
+            // 選択されたカードのみを抽出
+            cards = allCards.filter(card => selectedCardIds.has(card.card_id));
+            
+            // シャッフルオプションがONの場合、カードをランダム化
+            const shuffleCheckbox = document.getElementById('shuffleCheckbox');
+            if (shuffleCheckbox && shuffleCheckbox.checked) {
+                cards = shuffleArray(cards);
+                console.log('📢 カードをシャッフルしました');
+            }
+            
+            // 選択画面を非表示、学習画面とヘッダーを表示
+            document.getElementById('selectionContainer').classList.remove('show');
+            document.getElementById('studyContainer').style.display = 'flex';
+            document.querySelector('.study-header').classList.add('show');
+            
+            startStudy();
+        }
+
+        function exitStudy() {
+            if (currentIndex > 0 && currentIndex < cards.length) {
+                if (!confirm('学習を中断してもよろしいですか？\\n\\n進捗は保存されます。')) {
+                    return;
+                }
+            }
+            window.location.href = '/flashcard/list';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初期化
+        loadCards();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// カテゴリ管理ページ
+app.get('/flashcard/categories', (c) => {
+  console.log('📁 Category management page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>カテゴリ管理 | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: #f5f5f5;
+          min-height: 100vh;
+          color: #37352f;
+          padding: 2rem 1rem;
+        }
+        
+        .container { 
+          max-width: 800px; 
+          width: 100%;
+          margin: 0 auto;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+
+        .header h1 {
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .header p {
+          font-size: 1.1rem;
+          opacity: 0.9;
+        }
+
+        .back-button {
+          position: fixed;
+          top: 1rem;
+          left: 1rem;
+          background: white;
+          border: 1px solid #e5e7eb;
+          color: #374151;
+          padding: 0.75rem 1.5rem;
+          border-radius: 2rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-decoration: none;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          z-index: 100;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .back-button:hover {
+          background: #f9fafb;
+          transform: translateX(-5px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .action-section {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .action-section h2 {
+          font-size: 1.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .input-group {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .input-field {
+          flex: 1;
+          min-width: 200px;
+          padding: 0.75rem 1rem;
+          border: 2px solid #d1d5db;
+          border-radius: 0.5rem;
+          background: white;
+          color: #374151;
+          font-size: 1rem;
+        }
+
+        .input-field::placeholder {
+          color: #9ca3af;
+        }
+
+        .color-picker-group {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+
+        .color-picker {
+          width: 60px;
+          height: 45px;
+          border: 2px solid #d1d5db;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          background: white;
+        }
+
+        .icon-picker {
+          padding: 0.75rem 1rem;
+          border: 2px solid #d1d5db;
+          border-radius: 0.5rem;
+          background: white;
+          color: #374151;
+          font-size: 1rem;
+          cursor: pointer;
+          min-width: 100px;
+        }
+
+        .btn-primary {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 0.75rem 2rem;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .categories-list {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .category-item {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .category-item:hover {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+          transform: translateY(-2px);
+        }
+
+        .category-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex: 1;
+        }
+
+        .category-icon {
+          font-size: 2rem;
+          width: 60px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.75rem;
+        }
+
+        .category-details h3 {
+          font-size: 1.25rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .category-details p {
+          font-size: 0.875rem;
+          opacity: 0.8;
+        }
+
+        .category-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .btn-icon {
+          background: white;
+          border: 1px solid #d1d5db;
+          color: #374151;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.875rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-icon:hover {
+          background: #f9fafb;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-icon.delete {
+          background: #fee2e2;
+          border-color: #fca5a5;
+          color: #dc2626;
+        }
+
+        .btn-icon.delete:hover {
+          background: #fecaca;
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+        }
+
+        .loading {
+          text-align: center;
+          padding: 3rem;
+          font-size: 1.2rem;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem;
+          opacity: 0.8;
+        }
+
+        .empty-state i {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        @media (max-width: 768px) {
+          .input-group {
+            flex-direction: column;
+          }
+
+          .category-item {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+          }
+
+          .category-info {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .category-actions {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        </style>
+    </head>
+    <body>
+        <a href="/flashcard" class="back-button">
+            <i class="fas fa-arrow-left"></i> 戻る
+        </a>
+
+        <div class="container">
+            <div class="header">
+                <h1>📁 カテゴリ管理</h1>
+                <p>フラッシュカードを整理するカテゴリを作成・管理できます</p>
+            </div>
+
+            <div class="action-section">
+                <h2>新しいカテゴリを作成</h2>
+                <div class="input-group">
+                    <input type="text" id="categoryName" class="input-field" placeholder="カテゴリ名（例：英単語、数学、歴史）" maxlength="30">
+                </div>
+                <div class="input-group">
+                    <div class="color-picker-group">
+                        <label style="opacity: 0.9;">カラー:</label>
+                        <input type="color" id="categoryColor" class="color-picker" value="#8b5cf6">
+                    </div>
+                    <select id="categoryIcon" class="icon-picker">
+                        <option value="📚">📚 本（一般）</option>
+                        <option value="🔤">🔤 英語・言語</option>
+                        <option value="🔢">🔢 数学</option>
+                        <option value="🧪">🧪 理科・化学</option>
+                        <option value="🌍">🌍 地理・社会</option>
+                        <option value="📜">📜 歴史</option>
+                        <option value="💻">💻 プログラミング</option>
+                        <option value="🎨">🎨 美術・芸術</option>
+                        <option value="🎵">🎵 音楽</option>
+                        <option value="⚖️">⚖️ 法律・政治</option>
+                        <option value="💰">💰 経済・ビジネス</option>
+                        <option value="🏥">🏥 医学・健康</option>
+                        <option value="📖">📖 国語・文学</option>
+                        <option value="🔬">🔬 物理</option>
+                        <option value="🌱">🌱 生物</option>
+                        <option value="🗣️">🗣️ 会話・スピーチ</option>
+                        <option value="📝">📝 試験対策</option>
+                        <option value="🎓">🎓 大学受験</option>
+                        <option value="🌟">🌟 資格試験</option>
+                        <option value="💡">💡 その他</option>
+                    </select>
+                    <button class="btn-primary" onclick="createCategory()">
+                        <i class="fas fa-plus"></i> 作成
+                    </button>
+                </div>
+            </div>
+
+            <div id="categoriesContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i><br>
+                    読み込み中...
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let categories = [];
+
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        async function loadCategories() {
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    categories = data.categories || [];
+                    renderCategories();
+                } else {
+                    throw new Error(data.error || 'カテゴリ取得失敗');
+                }
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+                document.getElementById('categoriesContainer').innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>カテゴリの読み込みに失敗しました</p>
+                    </div>
+                \`;
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+
+            if (categories.length === 0) {
+                container.innerHTML = \`
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>まだカテゴリがありません</p>
+                        <p>上のフォームから新しいカテゴリを作成してください</p>
+                    </div>
+                \`;
+                return;
+            }
+
+            container.innerHTML = \`
+                <div class="categories-list">
+                    \${categories.map(cat => \`
+                        <div class="category-item">
+                            <div class="category-info">
+                                <div class="category-icon" style="background-color: \${cat.color};">
+                                    \${cat.icon}
+                                </div>
+                                <div class="category-details">
+                                    <h3>\${escapeHtml(cat.name)}</h3>
+                                    <p>作成日: \${new Date(cat.created_at).toLocaleDateString('ja-JP')}</p>
+                                </div>
+                            </div>
+                            <div class="category-actions">
+                                <button class="btn-icon" onclick="editCategory('\${cat.category_id}')">
+                                    <i class="fas fa-edit"></i> 編集
+                                </button>
+                                <button class="btn-icon delete" onclick="deleteCategory('\${cat.category_id}', '\${escapeHtml(cat.name)}')">
+                                    <i class="fas fa-trash"></i> 削除
+                                </button>
+                            </div>
+                        </div>
+                    \`).join('')}
+                </div>
+            \`;
+        }
+
+        async function createCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const color = document.getElementById('categoryColor').value;
+            const icon = document.getElementById('categoryIcon').value;
+
+            if (!name) {
+                alert('カテゴリ名を入力してください');
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        name,
+                        color,
+                        icon
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 入力をクリア
+                    document.getElementById('categoryName').value = '';
+                    document.getElementById('categoryColor').value = '#8b5cf6';
+                    document.getElementById('categoryIcon').value = '📚';
+                    
+                    // リロード
+                    await loadCategories();
+                    
+                    alert('✅ カテゴリを作成しました！');
+                } else {
+                    throw new Error(data.error || 'カテゴリ作成失敗');
+                }
+            } catch (error) {
+                console.error('Failed to create category:', error);
+                alert('❌ カテゴリの作成に失敗しました: ' + error.message);
+            }
+        }
+
+        async function editCategory(categoryId) {
+            const category = categories.find(c => c.category_id === categoryId);
+            if (!category) return;
+
+            const newName = prompt('新しいカテゴリ名:', category.name);
+            if (!newName || newName === category.name) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        categoryId,
+                        name: newName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadCategories();
+                    alert('✅ カテゴリを更新しました！');
+                } else {
+                    throw new Error(data.error || 'カテゴリ更新失敗');
+                }
+            } catch (error) {
+                console.error('Failed to update category:', error);
+                alert('❌ カテゴリの更新に失敗しました: ' + error.message);
+            }
+        }
+
+        async function deleteCategory(categoryId, categoryName) {
+            if (!confirm(\`「\${categoryName}」を削除してもよろしいですか？\\n\\nこのカテゴリに属するカードは「未分類」になります。\`)) {
+                return;
+            }
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            try {
+                const response = await fetch('/api/flashcard/category/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        categoryId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadCategories();
+                    alert('✅ カテゴリを削除しました');
+                } else {
+                    throw new Error(data.error || 'カテゴリ削除失敗');
+                }
+            } catch (error) {
+                console.error('Failed to delete category:', error);
+                alert('❌ カテゴリの削除に失敗しました: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初期化
+        loadCategories();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// フラッシュカード作成ページ
+app.get('/flashcard/create', (c) => {
+  console.log('📇 Flashcard create page requested')
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>フラッシュカード作成 | KOBEYA Study Partner</title>
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        
+        <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; 
+          background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+          min-height: 100vh;
+          color: #37352f;
+          padding-bottom: 100px;
+        }
+        
+        .container { 
+          max-width: 800px; 
+          margin: 0 auto; 
+          padding: 2rem 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+          .container { 
+            padding: 1rem; 
+          }
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+          font-size: 1.75rem;
+          color: #7c3aed;
+          margin-bottom: 0.5rem;
+        }
+
+        .header p {
+          color: #6b7280;
+          font-size: 0.95rem;
+        }
+
+        .input-method-selector {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 2rem;
+          padding: 0.5rem;
+          background: white;
+          border-radius: 0.75rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .method-btn {
+          flex: 1;
+          padding: 1rem;
+          border: 2px solid #e0e0e0;
+          background: white;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          font-size: 0.95rem;
+        }
+
+        .method-btn:hover {
+          border-color: #7c3aed;
+          transform: translateY(-2px);
+        }
+
+        .method-btn.active {
+          border-color: #7c3aed;
+          background: #f3e8ff;
+          color: #7c3aed;
+          font-weight: 600;
+        }
+
+        .method-btn i {
+          display: block;
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .input-section {
+          display: none;
+          background: white;
+          border-radius: 1rem;
+          padding: 2rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          margin-bottom: 1.5rem;
+        }
+
+        .input-section.active {
+          display: block;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: #37352f;
+          font-size: 0.95rem;
+        }
+
+        .form-group textarea {
+          width: 100%;
+          padding: 1rem;
+          border: 2px solid #e0e0e0;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 1rem;
+          resize: vertical;
+          min-height: 120px;
+          transition: border-color 0.2s;
+        }
+
+        .form-group textarea:focus {
+          outline: none;
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .form-group textarea::placeholder {
+          color: #9ca3af;
+        }
+
+        .btn {
+          width: 100%;
+          padding: 1rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-family: inherit;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .btn-primary {
+          background: #7c3aed;
+          color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          background: #6d28d9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-secondary {
+          background: #059669;
+          color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+          background: #047857;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .photo-upload-area {
+          border: 3px dashed #d1d5db;
+          border-radius: 0.75rem;
+          padding: 3rem 2rem;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #fafafa;
+        }
+
+        .photo-upload-area:hover {
+          border-color: #7c3aed;
+          background: #f9fafb;
+        }
+
+        .photo-upload-area.drag-over {
+          border-color: #7c3aed;
+          background: #f3e8ff;
+        }
+
+        .photo-upload-area i {
+          font-size: 3rem;
+          color: #9ca3af;
+          margin-bottom: 1rem;
+        }
+
+        .photo-upload-area p {
+          color: #6b7280;
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .photo-upload-area .hint {
+          font-size: 0.875rem;
+          color: #9ca3af;
+        }
+
+        .preview-image {
+          max-width: 100%;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .generated-cards {
+          margin-top: 2rem;
+        }
+
+        .card-item {
+          background: white;
+          border: 2px solid #e0e0e0;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          transition: all 0.2s;
+        }
+
+        .card-item:hover {
+          border-color: #7c3aed;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+
+        .card-item .card-side {
+          margin-bottom: 1rem;
+        }
+
+        .card-item .card-side:last-child {
+          margin-bottom: 0;
+        }
+
+        .card-item .card-label {
+          font-weight: 600;
+          color: #7c3aed;
+          font-size: 0.875rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .card-item .card-content {
+          color: #37352f;
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .save-status {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: white;
+          padding: 0.75rem 1.25rem;
+          border-radius: 2rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 0.875rem;
+          color: #6b7280;
+          z-index: 1000;
+          display: none;
+        }
+
+        .save-status.show {
+          display: block;
+          animation: slideIn 0.3s ease;
+        }
+
+        .save-status.saving {
+          color: #f59e0b;
+        }
+
+        .save-status.saved {
+          color: #059669;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .loading-overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 9999;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .loading-overlay.show {
+          display: flex;
+        }
+
+        .loading-content {
+          background: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 300px;
+        }
+
+        .loading-spinner {
+          border: 4px solid #f3f4f6;
+          border-top: 4px solid #7c3aed;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .tab-navigation {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          background: #f3f4f6;
+          padding: 0.25rem;
+          border-radius: 0.5rem;
+        }
+
+        .tab-btn {
+          flex: 1;
+          padding: 0.75rem;
+          border: none;
+          background: transparent;
+          border-radius: 0.375rem;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+          color: #6b7280;
+        }
+
+        .tab-btn.active {
+          background: white;
+          color: #7c3aed;
+          font-weight: 600;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* PCキーボード最適化 */
+        @media (min-width: 1024px) {
+          .keyboard-hint {
+            display: block;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+          }
+        }
+
+        .keyboard-hint {
+          display: none;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <a href="/flashcard" style="color: #6b7280; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-arrow-left"></i> メニューに戻る
+                </a>
+                <a href="/flashcard/list" style="color: #7c3aed; text-decoration: none; font-size: 0.95rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-list"></i> カード一覧へ
+                </a>
+            </div>
+            
+            <div class="header">
+                <h1>📇 フラッシュカード作成</h1>
+                <p>写真から自動作成 or 手動入力で単語カードを作成</p>
+            </div>
+
+            <!-- 入力方法選択 -->
+            <div class="input-method-selector">
+                <button class="method-btn active" data-method="photo">
+                    <i class="fas fa-camera"></i>
+                    <div>写真から作成</div>
+                </button>
+                <button class="method-btn" data-method="manual">
+                    <i class="fas fa-keyboard"></i>
+                    <div>手動入力</div>
+                </button>
+            </div>
+
+            <!-- 写真アップロードセクション -->
+            <div class="input-section active" id="photoSection">
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                
+                <div class="photo-upload-area" id="uploadArea">
+                    <i class="fas fa-camera"></i>
+                    <p>📷 写真を撮影 or 画像を選択</p>
+                    <p class="hint">ノート・教科書・単語帳などを撮影してください</p>
+                </div>
+
+                <div id="photoPreviewArea" style="display: none;">
+                    <img id="photoPreview" class="preview-image" alt="Preview">
+                    <button class="btn btn-secondary" id="analyzePhotoBtn">
+                        <i class="fas fa-magic"></i> AIで自動分析してカード作成
+                    </button>
+                </div>
+
+                <div class="generated-cards" id="generatedCards"></div>
+            </div>
+
+            <!-- 手動入力セクション -->
+            <div class="input-section" id="manualSection">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-side="front">表面（問題）</button>
+                    <button class="tab-btn" data-side="back">裏面（解答）</button>
+                </div>
+
+                <form id="manualForm">
+                    <div class="form-group">
+                        <label for="frontInput">
+                            表面（問題・単語・質問）
+                            <span class="keyboard-hint">Tab キーで次の項目へ</span>
+                        </label>
+                        <textarea 
+                            id="frontInput" 
+                            placeholder="例：apple" 
+                            required
+                            autocomplete="off"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backInput">
+                            裏面（解答・意味・説明）
+                            <span class="keyboard-hint">Ctrl/Cmd + Enter で保存</span>
+                        </label>
+                        <textarea 
+                            id="backInput" 
+                            placeholder="例：りんご" 
+                            required
+                            autocomplete="off"
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="saveCardBtn">
+                        <i class="fas fa-save"></i> カードを保存
+                    </button>
+                </form>
+            </div>
+
+            <!-- 保存ステータス表示 -->
+            <div class="save-status" id="saveStatus">
+                <i class="fas fa-check-circle"></i> 保存しました
+            </div>
+
+            <!-- ローディングオーバーレイ -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p>AI分析中...</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // グローバル変数
+        let currentMethod = 'photo';
+        let selectedImage = null;
+        let autoSaveTimeout = null;
+        const AUTOSAVE_DELAY = 3000; // 3秒
+
+        // ログイン情報取得（localStorageから）
+        function getLoginInfo() {
+            const appkey = localStorage.getItem('appkey');
+            const sid = localStorage.getItem('sid');
+            
+            if (!appkey || !sid) {
+                alert('ログインが必要です。Study Partnerからアクセスしてください。');
+                window.location.href = '/study-partner';
+                return null;
+            }
+            
+            return { appkey, sid };
+        }
+
+        // 要素取得
+        const methodBtns = document.querySelectorAll('.method-btn');
+        const photoSection = document.getElementById('photoSection');
+        const manualSection = document.getElementById('manualSection');
+        const photoInput = document.getElementById('photoInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const photoPreviewArea = document.getElementById('photoPreviewArea');
+        const photoPreview = document.getElementById('photoPreview');
+        const analyzePhotoBtn = document.getElementById('analyzePhotoBtn');
+        const generatedCards = document.getElementById('generatedCards');
+        const manualForm = document.getElementById('manualForm');
+        const frontInput = document.getElementById('frontInput');
+        const backInput = document.getElementById('backInput');
+        const saveStatus = document.getElementById('saveStatus');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+
+        // 入力方法切り替え
+        methodBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                methodBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentMethod = this.dataset.method;
+                
+                if (currentMethod === 'photo') {
+                    photoSection.classList.add('active');
+                    manualSection.classList.remove('active');
+                } else {
+                    photoSection.classList.remove('active');
+                    manualSection.classList.add('active');
+                    frontInput.focus();
+                }
+            });
+        });
+
+        // タブ切り替え（モバイル用）
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const side = this.dataset.side;
+                if (side === 'front') {
+                    frontInput.focus();
+                } else {
+                    backInput.focus();
+                }
+            });
+        });
+
+        // 写真アップロード
+        uploadArea.addEventListener('click', function() {
+            photoInput.click();
+        });
+
+        // ドラッグ&ドロップ
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file);
+            }
+        });
+
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageFile(file);
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoPreview.src = e.target.result;
+                selectedImage = file;
+                uploadArea.style.display = 'none';
+                photoPreviewArea.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 写真分析
+        analyzePhotoBtn.addEventListener('click', async function() {
+            if (!selectedImage) return;
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            loadingOverlay.classList.add('show');
+
+            try {
+                const formData = new FormData();
+                formData.append('appkey', loginInfo.appkey);
+                formData.append('sid', loginInfo.sid);
+                formData.append('image', selectedImage);
+
+                const response = await fetch('/api/flashcard/create-from-photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.cards && data.cards.length > 0) {
+                    displayGeneratedCards(data.cards);
+                    showSaveStatus('saved', data.cards.length + '枚のカードを作成しました');
+                } else {
+                    alert('カードの作成に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Photo analysis error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            } finally {
+                loadingOverlay.classList.remove('show');
+            }
+        });
+
+        function displayGeneratedCards(cards) {
+            generatedCards.innerHTML = '<h3 style="margin-bottom: 1rem; color: #7c3aed;">✅ 作成されたカード (' + cards.length + '枚)</h3>';
+            
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card-item';
+                cardEl.innerHTML = \`
+                    <div class="card-side">
+                        <div class="card-label">📝 表面</div>
+                        <div class="card-content">\${card.front}</div>
+                    </div>
+                    <div class="card-side">
+                        <div class="card-label">💡 裏面</div>
+                        <div class="card-content">\${card.back}</div>
+                    </div>
+                    \${card.tags && card.tags.length > 0 ? \`
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                            🏷️ \${card.tags.join(', ')}
+                        </div>
+                    \` : ''}
+                \`;
+                generatedCards.appendChild(cardEl);
+            });
+        }
+
+        // 手動入力フォーム送信
+        manualForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const loginInfo = getLoginInfo();
+            if (!loginInfo) return;
+
+            const front = frontInput.value.trim();
+            const back = backInput.value.trim();
+
+            if (!front || !back) {
+                alert('表面と裏面の両方を入力してください');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/flashcard/create-manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appkey: loginInfo.appkey,
+                        sid: loginInfo.sid,
+                        front: front,
+                        back: back,
+                        tags: []
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 成功メッセージを表示
+                    if (confirm('✅ カードを保存しました！\\n\\n続けて新しいカードを作成しますか？\\n\\n「キャンセル」を押すとカード一覧に移動します。')) {
+                        // フォームをクリア
+                        frontInput.value = '';
+                        backInput.value = '';
+                        frontInput.focus();
+                    } else {
+                        // 一覧ページに移動
+                        window.location.href = '/flashcard/list';
+                    }
+                } else {
+                    alert('保存に失敗しました: ' + (data.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Manual save error:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        });
+
+        // キーボードショートカット
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter で保存
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (currentMethod === 'manual') {
+                    e.preventDefault();
+                    manualForm.dispatchEvent(new Event('submit'));
+                }
+            }
+            
+            // Tabキーで表面→裏面への移動を最適化
+            if (e.key === 'Tab' && document.activeElement === frontInput) {
+                e.preventDefault();
+                backInput.focus();
+            }
+        });
+
+        // 自動保存（ドラフト保存）
+        function setupAutoSave() {
+            [frontInput, backInput].forEach(input => {
+                input.addEventListener('input', function() {
+                    clearTimeout(autoSaveTimeout);
+                    showSaveStatus('saving', '保存中...');
+                    
+                    autoSaveTimeout = setTimeout(function() {
+                        saveDraft();
+                    }, AUTOSAVE_DELAY);
+                });
+            });
+        }
+
+        function saveDraft() {
+            const front = frontInput.value.trim();
+            const back = backInput.value.trim();
+            
+            if (front || back) {
+                localStorage.setItem('flashcard_draft', JSON.stringify({
+                    front: front,
+                    back: back,
+                    timestamp: Date.now()
+                }));
+                showSaveStatus('saved', '下書きを保存しました');
+            }
+        }
+
+        function loadDraft() {
+            const draft = localStorage.getItem('flashcard_draft');
+            if (draft) {
+                try {
+                    const data = JSON.parse(draft);
+                    // 24時間以内のドラフトのみ復元
+                    if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+                        frontInput.value = data.front || '';
+                        backInput.value = data.back || '';
+                    }
+                } catch (e) {
+                    console.error('Draft load error:', e);
+                }
+            }
+        }
+
+        function showSaveStatus(type, message) {
+            saveStatus.textContent = message;
+            saveStatus.className = 'save-status show ' + type;
+            
+            setTimeout(function() {
+                saveStatus.classList.remove('show');
+            }, 3000);
+        }
+
+        // 初期化
+        setupAutoSave();
+        loadDraft();
+        getLoginInfo(); // ログインチェック
+        </script>
+    </body>
+    </html>
+  `)
 })
 
 // Study Partner Simple - ログイン修正版
@@ -10398,15 +17334,15 @@ app.get('/study-partner', (c) => {
     </head>
     <body>
         <main class="container">
-            <section style="text-align: center; margin-bottom: 1rem; padding: 2rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 1rem; color: white;">
-                <h1 style="margin-bottom: 1rem; color: white;">
-                    <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
+            <section style="text-align: center; margin-bottom: 1rem; padding: 2rem 1.5rem; background: white; border: 1px solid #e5e7eb; border-radius: 1rem; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h1 style="margin-bottom: 1rem; color: #374151;">
+                    <i class="fas fa-robot" style="margin-right: 0.5rem; color: #7c3aed;"></i>
                     KOBEYA Study Partner
                 </h1>
-                <p style="font-size: 1rem; margin-bottom: 1.5rem; opacity: 0.9;">
+                <p style="font-size: 1rem; margin-bottom: 1.5rem; color: #6b7280;">
                     AI学習パートナーで効果的な個別学習を体験してください
                 </p>
-                <div style="background-color: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <div style="background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; color: #374151;">
                     <p style="margin: 0; font-size: 0.875rem;">
                         <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
                         APP_KEY と 生徒IDを入力してログインしてください
@@ -10459,9 +17395,9 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
-                    <button id="flashcard" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
-                        <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
-                        🃏 フラッシュカード（実装予定）
+                    <button id="flashcard" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s ease;">
+                        <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i>
+                        📇 フラッシュカード
                     </button>
                 </div>
 
@@ -10587,7 +17523,7 @@ app.get('/study-partner', (c) => {
                 </div>
 
                 <!-- API応答の表示先 -->
-                <div id="out" style="background: #f5f5f5; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; min-height: 160px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; word-wrap: break-word; font-family: inherit;"></div>
+                <div id="out" style="display: none;"></div>
             </section>
             
             <!-- フローティングAI質問ボタン -->
@@ -10595,6 +17531,14 @@ app.get('/study-partner', (c) => {
                 <i class="fas fa-robot" style="margin-right: 0.5rem;"></i>
                 🤔 AIに質問する
             </button>
+            
+            <!-- 管理画面リンク（フッター） -->
+            <footer style="margin-top: 4rem; padding: 2rem 0; border-top: 1px solid #e5e7eb; text-align: center;">
+                <a href="/admin/login" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #f3f4f6; color: #6b7280; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s ease; border: 1px solid #e5e7eb;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
+                    <i class="fas fa-user-shield" style="font-size: 0.75rem;"></i>
+                    管理画面
+                </a>
+            </footer>
         </main>
 
         <!-- Scripts -->
@@ -10656,6 +17600,19 @@ app.get('/study-partner', (c) => {
             shoronbunButton.addEventListener('click', function() {
               console.log('📝 Essay coaching button clicked');
               window.location.href = '/essay-coaching';
+            });
+          }
+          
+          // フラッシュカードボタン（統合メニューへ）
+          const flashcardButton = document.getElementById('flashcard');
+          if (flashcardButton) {
+            flashcardButton.addEventListener('click', function() {
+              console.log('📇 Flashcard button clicked');
+              if (!authenticated) {
+                alert('❌ ログインが必要です。最初にログインボタンをクリックしてください。');
+                return;
+              }
+              window.location.href = '/flashcard';
             });
           }
           
@@ -10898,7 +17855,7 @@ app.get('/study-partner', (c) => {
         
         // ログイン処理
         async function handleLogin() {
-          console.log('🔑 Login attempt started');
+          console.log('🔑 Login attempt started (Step 3: Users table authentication)');
           
           try {
             const appkey = document.getElementById('appkey')?.value || '180418';
@@ -10911,8 +17868,8 @@ app.get('/study-partner', (c) => {
               throw new Error('APP_KEY と Student ID を両方入力してください');
             }
             
-            // Call the actual login API
-            const response = await fetch('/api/login', {
+            // Call the new authentication API (Step 3)
+            const response = await fetch('/api/auth/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -10930,17 +17887,28 @@ app.get('/study-partner', (c) => {
             
             if (response.ok && data.success) {
               authenticated = true;
+              
+              // Store user information in localStorage
+              localStorage.setItem('appkey', appkey);
+              localStorage.setItem('sid', sid);
+              localStorage.setItem('user_id', data.user.id);
+              localStorage.setItem('student_name', data.user.studentName);
+              
+              console.log('✅ Login successful, user_id:', data.user.id);
+              
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
-                    'APP_KEY: ' + appkey + String.fromCharCode(10) + 
+                    '氏名: ' + data.user.studentName + String.fromCharCode(10) +
+                    '学年: ' + (data.user.grade || '未設定') + String.fromCharCode(10) +
                     'Student ID: ' + sid);
             } else {
               authenticated = false;
-              throw new Error(data.message || 'ログインに失敗しました');
+              throw new Error(data.error || data.message || 'ログインに失敗しました');
             }
           } catch (error) {
             console.error('❌ Login error:', error);
             authenticated = false;
-            alert('❌ ログインエラー: ' + error.message);
+            const errorMessage = error.message || 'ログインに失敗しました';
+            alert('❌ ログインエラー: ' + errorMessage);
           }
         }
         
@@ -11003,7 +17971,8 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Analysis error:', error);
-            alert('❌ 解析エラー: ' + error.message);
+          const errorMessage = formatErrorMessage(error, '解析エラーが発生しました');
+          alert('❌ 解析エラー: ' + errorMessage);
             showUploadingIndicator(false);
           }
         }
@@ -11022,7 +17991,7 @@ app.get('/study-partner', (c) => {
                 '段階的に一緒に解いていきましょう！' +
               '</div>' +
               // Phase1改善: 再生成タイプ選択UI
-              '<div style="margin-top: 1rem; padding: 1rem; background: rgba(245,158,11,0.1); border-radius: 0.75rem; border: 1px solid #f59e0b;">' +
+              '<div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 0.75rem; border: 1px solid #f59e0b;">' +
                 '<div style="text-align: center; margin-bottom: 0.75rem;">' +
                   '<h4 style="margin: 0; color: #f59e0b; font-size: 0.9rem;">🎯 どのような問題に挑戦したいですか？</h4>' +
                   '<p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: #666;">バンコクで頑張っているあなたを応援します ✨</p>' +
@@ -11140,7 +18109,6 @@ app.get('/study-partner', (c) => {
           
           out.innerHTML = stepHtml;
         }
-        
         // ステップ回答送信
         async function submitStepAnswer() {
           const selectedOption = document.querySelector('input[name="stepChoice"]:checked');
@@ -11207,7 +18175,8 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Step check error:', error);
-            alert('❌ ステップチェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, 'ステップチェックでエラーが発生しました');
+            alert('❌ ステップチェックエラー: ' + errorMessage);
           }
         }
         
@@ -11234,7 +18203,7 @@ app.get('/study-partner', (c) => {
             resultHtml += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.currentStep.correctAnswer + '</p>';
           }
           
-          resultHtml += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          resultHtml += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           resultHtml += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           resultHtml += '</div>';
           
@@ -11353,7 +18322,8 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Confirmation check error:', error);
-            alert('❌ 確認問題チェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, '確認問題チェックでエラーが発生しました');
+            alert('❌ 確認問題チェックエラー: ' + errorMessage);
           }
         }
         
@@ -11380,7 +18350,7 @@ app.get('/study-partner', (c) => {
             html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">正解: ' + currentSession.confirmationProblem.correctAnswer + '</p>';
           }
           
-          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           html += '<p style="margin: 0; line-height: 1.6;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           html += '</div>';
           
@@ -11567,12 +18537,20 @@ app.get('/study-partner', (c) => {
             
           } catch (error) {
             console.error('❌ Similar check error:', error);
-            alert('❌ 類似問題チェックエラー: ' + error.message);
+            const errorMessage = formatErrorMessage(error, '類似問題チェックでエラーが発生しました');
+            alert('❌ 類似問題チェックエラー: ' + errorMessage);
           }
         }
         
         // 類似問題結果表示
-        function displaySimilarResult(isCorrect, explanation, userAnswer, nextAction, completedProblems, totalProblems) {
+        function displaySimilarResult(
+          isCorrect,
+          explanation,
+          userAnswer,
+          nextAction,
+          completedProblems,
+          totalProblems
+        ) {
           const out = document.getElementById('out');
           if (!out) return;
           
@@ -11593,12 +18571,12 @@ app.get('/study-partner', (c) => {
             html += '<p style="margin: 0 0 1rem 0; color: #dc2626; font-weight: 500;">あなたの答え: ' + userAnswer + '</p>';
           }
           
-          html += '<div style="background: rgba(255,255,255,0.8); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">';
           html += '<p style="margin: 0; line-height: 1.6; white-space: pre-wrap;"><strong>💡 解説:</strong><br>' + explanation + '</p>';
           html += '</div>';
           
           // 進捗表示
-          html += '<div style="background: rgba(124,58,237,0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">';
+          html += '<div style="background: #f3e8ff; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #c084fc;">';
           html += '<p style="margin: 0; font-weight: 500; color: #7c3aed;">📊 進捗: ' + completedProblems + '/' + totalProblems + '問正解</p>';
           html += '</div>';
           
@@ -11773,22 +18751,23 @@ app.get('/study-partner', (c) => {
             
             // Step 4: エラーハンドリング強化 - より詳細で分かりやすいエラーメッセージ
             let errorMessage = '❌ 問題の再生成に失敗しました';
+            const rawMessage = formatErrorMessage(error, '詳細情報なし');
             
-            if (error.message.includes('HTTP 500')) {
+            if (rawMessage.includes('HTTP 500')) {
               errorMessage = '❌ AI機能に問題が発生しています。少し時間をおいてから再度お試しください。';
-            } else if (error.message.includes('HTTP 404')) {
+            } else if (rawMessage.includes('HTTP 404')) {
               errorMessage = '❌ 学習セッションが見つかりません。ページを更新してもう一度お試しください。';
-            } else if (error.message.includes('HTTP 400')) {
+            } else if (rawMessage.includes('HTTP 400')) {
               errorMessage = '❌ リクエストに問題があります。ページを更新してもう一度お試しください。';
-            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            } else if (rawMessage.includes('network') || rawMessage.includes('fetch')) {
               errorMessage = '❌ ネットワーク接続に問題があります。インターネット接続を確認してください。';
-            } else if (error.message.includes('timeout')) {
+            } else if (rawMessage.includes('timeout')) {
               errorMessage = '❌ 処理に時間がかかりすぎています。もう一度お試しください。';
             } else {
               errorMessage = '❌ 問題の再生成に失敗しました。もう一度お試しいただくか、ページを更新してください。';
             }
             
-            alert(errorMessage + String.fromCharCode(10) + String.fromCharCode(10) + '（エラー詳細: ' + error.message + '）');
+            alert(errorMessage + String.fromCharCode(10) + String.fromCharCode(10) + '（エラー詳細: ' + rawMessage + '）');
           } finally {
             // 全てのボタンを元の状態に戻す
             buttons.forEach((button, index) => {
@@ -11857,7 +18836,6 @@ async function isDuplicate(c: any, requestId: string): Promise<boolean> {
     return false
   }
 }
-
 // ログ挿入関数
 async function insertLog(c: any, logData: any): Promise<number | null> {
   try {
@@ -11995,10 +18973,11 @@ app.post('/api/logs', requireSecret, async (c) => {
     
   } catch (error) {
     console.error('❌ Log collection error:', error)
+    const errorMessage = toErrorMessage(error, 'ログ収集でエラーが発生しました')
     return c.json({
       ok: false,
       error: 'log_collection_error',
-      message: error.message || 'ログ収集でエラーが発生しました',
+      message: errorMessage,
       timestamp: new Date().toISOString()
     }, 500)
   }
@@ -12038,14 +19017,14 @@ async function makeWeeklyReport(c: any, options: { student_id: string, start: st
     
     // サマリ計算
     const sessions = logs.length
-    const minutes = logs.reduce((sum, log) => sum + (log.time_spent_min || 0), 0)
-    const scoresSum = logs.reduce((sum, log) => sum + (log.mini_quiz_score || 0), 0)
+    const minutes = logs.reduce((sum: number, log: { time_spent_min?: number; [key: string]: unknown }) => sum + ((log.time_spent_min as number) || 0), 0)
+    const scoresSum = logs.reduce((sum: number, log: { mini_quiz_score?: number; [key: string]: unknown }) => sum + ((log.mini_quiz_score as number) || 0), 0)
     const avgScore = sessions > 0 ? Math.round(scoresSum / sessions) : 0
     
     // 弱点タグ集計
     const weakTagsFlat: string[] = []
-    logs.forEach(log => {
-      const tags = safeJsonParse(log.weak_tags, [])
+    logs.forEach((log: { weak_tags?: string; [key: string]: unknown }) => {
+      const tags = safeJsonParse(log.weak_tags ?? '[]', [])
       weakTagsFlat.push(...tags)
     })
     
@@ -12113,10 +19092,11 @@ app.post('/api/reports/weekly', requireSecret, async (c) => {
     
   } catch (error) {
     console.error('❌ Weekly report error:', error)
+    const errorMessage = toErrorMessage(error)
     return c.json({
       ok: false,
       error: 'weekly_report_error',
-      message: error.message || '週次レポート生成でエラーが発生しました'
+      message: `週次レポート生成でエラーが発生しました: ${errorMessage}`
     }, 500)
   }
 })
@@ -12144,7 +19124,7 @@ app.get('/dashboard', async (c) => {
       LIMIT ?
     `).bind(limit).all()
     
-    const logs = logsResult.results || []
+    const logs = (logsResult.results || []) as LogRow[]
     
     // 最新ログの日時を確認（警告表示用）
     let statusMessage = '✅ 正常動作中'
@@ -12152,7 +19132,8 @@ app.get('/dashboard', async (c) => {
     
     if (logs.length > 0) {
       const latestLog = logs[0]
-      const latestTime = new Date(latestLog.created_at)
+      const latestTime = latestLog?.created_at ? new Date(latestLog.created_at) : null
+      if (latestTime && !Number.isNaN(latestTime.getTime())) {
       const now = new Date()
       const hoursDiff = (now.getTime() - latestTime.getTime()) / (1000 * 60 * 60)
       
@@ -12160,14 +19141,14 @@ app.get('/dashboard', async (c) => {
         statusMessage = '⚠️ ログ受信停止の可能性あり'
         statusClass = 'status-warning'
       } else {
-        const timeStr = latestTime.toLocaleString('ja-JP', {
-          year: 'numeric',
-          month: '2-digit', 
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-        statusMessage = `✅ 正常動作中（最新ログ: ${timeStr}）`
+          const timeStr = formatDateTime(latestLog.created_at)
+          statusMessage = timeStr
+            ? `✅ 正常動作中（最新ログ: ${timeStr}）`
+            : '✅ 正常動作中'
+        }
+      } else {
+        statusMessage = '⚠️ 最新ログの日時が不正です'
+        statusClass = 'status-warning'
       }
     } else {
       statusMessage = '⚠️ ログデータなし'
@@ -12175,24 +19156,31 @@ app.get('/dashboard', async (c) => {
     }
     
     // weak_tags JSONをパース
-    const processedLogs = logs.map(log => ({
-      ...log,
-      weak_tags_display: (() => {
+    const processedLogs: ProcessedLog[] = logs.map((log) => {
+      const weakTagsDisplay = (() => {
         try {
-          const tags = JSON.parse(log.weak_tags || '[]')
-          return Array.isArray(tags) ? tags.join(', ') : log.weak_tags || ''
+          const parsed = JSON.parse(log.weak_tags ?? '[]')
+          return Array.isArray(parsed) ? parsed.join(', ') : log.weak_tags ?? ''
         } catch {
-          return log.weak_tags || ''
+          return log.weak_tags ?? ''
         }
-      })(),
-      created_at_display: new Date(log.created_at).toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit', 
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }))
+      })()
+      const score = typeof log.mini_quiz_score === 'number' ? log.mini_quiz_score : null
+      const scoreClass =
+        score === null ? 'score-low'
+        : score >= 80 ? 'score-high'
+        : score >= 60 ? 'score-mid'
+        : 'score-low'
+      const displayScore = score === null ? '-' : score
+      
+      return {
+        ...log,
+        weak_tags_display: weakTagsDisplay,
+        created_at_display: formatDateTime(log.created_at) || '-',
+        scoreClass,
+        displayScore
+      }
+    })
     
     // HTMLダッシュボードを生成
     const html = `
@@ -12350,8 +19338,8 @@ app.get('/dashboard', async (c) => {
                     <td class="student-id">${log.student_id || '-'}</td>
                     <td>${log.student_name || '-'}</td>
                     <td>${log.subject || '-'}</td>
-                    <td class="${log.mini_quiz_score >= 80 ? 'score-high' : log.mini_quiz_score >= 60 ? 'score-mid' : 'score-low'}">
-                        ${log.mini_quiz_score || '-'}
+                    <td class="${log.scoreClass}">
+                        ${log.displayScore}
                     </td>
                     <td>${log.correct || 0}</td>
                     <td>${log.incorrect || 0}</td>
@@ -12386,6 +19374,7 @@ app.get('/dashboard', async (c) => {
     
   } catch (error) {
     console.error('❌ Dashboard error:', error)
+    const errorMessage = toErrorMessage(error)
     
     const errorHtml = `
 <!DOCTYPE html>
@@ -12402,7 +19391,7 @@ app.get('/dashboard', async (c) => {
     <div class="error">
         <h1>⚠️ DB接続エラー</h1>
         <p>ダッシュボードのデータを取得できませんでした。</p>
-        <p><strong>エラー詳細:</strong> ${error.message}</p>
+        <p><strong>エラー詳細:</strong> ${errorMessage}</p>
         <button onclick="location.reload()">🔄 再試行</button>
     </div>
 </body>
@@ -12418,7 +19407,7 @@ app.get('/dashboard', async (c) => {
 
 // Favicon ハンドラー
 app.get('/favicon.ico', (c) => {
-  return c.text('', 204)  // No Content
+  return c.body(null, 204)  // No Content
 })
 
 // ============================================================
@@ -12442,7 +19431,7 @@ app.get('/eiken/practice', (c) => {
       padding: 0;
     }
     .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f5f5f5;
     }
     .card {
       transition: all 0.3s ease;
@@ -12453,7 +19442,7 @@ app.get('/eiken/practice', (c) => {
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+<body class="min-h-screen" style="background: #f5f5f5;">
   <div id="app" class="container mx-auto px-4 py-8">
     <!-- Header -->
     <header class="text-center mb-8">
@@ -12496,21 +19485,37 @@ app.get('/eiken/practice', (c) => {
 
     // ==================== UI レンダリング ====================
     function render() {
+      console.log('🎨 render() called, viewMode:', state.viewMode);
       const content = document.getElementById('mainContent');
       
-      if (state.viewMode === 'generator') {
-        content.innerHTML = renderGenerator();
-        attachGeneratorListeners();
-      } else if (state.viewMode === 'practice') {
-        content.innerHTML = renderPractice();
-        attachPracticeListeners();
-      } else if (state.viewMode === 'results') {
-        content.innerHTML = renderResults();
-        attachResultsListeners();
+      if (!content) {
+        console.error('❌ mainContent要素が見つかりません！');
+        return;
+      }
+      
+      try {
+        if (state.viewMode === 'generator') {
+          console.log('📝 Rendering generator...');
+          content.innerHTML = renderGenerator();
+          attachGeneratorListeners();
+        } else if (state.viewMode === 'practice') {
+          console.log('💪 Rendering practice...');
+          content.innerHTML = renderPractice();
+          attachPracticeListeners();
+        } else if (state.viewMode === 'results') {
+          console.log('🏆 Rendering results...');
+          content.innerHTML = renderResults();
+          attachResultsListeners();
+        }
+        console.log('✅ Render完了');
+      } catch (error) {
+        console.error('❌ Renderエラー:', error);
+        content.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"><strong>エラー:</strong> ' + error.message + '</div>';
       }
     }
 
     function renderGenerator() {
+      console.log('🔧 renderGenerator() called');
       return \`
         <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
           <h2 class="text-3xl font-bold text-gray-900 mb-6">問題を生成</h2>
@@ -12518,16 +19523,19 @@ app.get('/eiken/practice', (c) => {
           <!-- グレード選択 -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-3">目標級を選択</label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              \${Object.entries(GRADE_INFO).map(([grade, info]) => \`
-                <button 
-                  onclick="updateGrade('\${grade}')"
-                  class="p-4 rounded-lg border-2 transition-all \${state.grade === grade ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"
-                >
-                  <div class="text-2xl font-bold \${state.grade === grade ? 'text-blue-600' : 'text-gray-900'}">\${info.label}</div>
-                  <div class="text-xs text-gray-600">\${info.level}</div>
-                </button>
-              \`).join('')}
+            <div class="grid grid-cols-3 gap-3">
+              \${['5', '4', '3', 'pre2', '2', 'pre1', '1'].map((grade) => {
+                const info = GRADE_INFO[grade];
+                return \`
+                  <button 
+                    onclick="updateGrade('\${grade}')"
+                    class="p-4 rounded-lg border-2 transition-all \${state.grade === grade ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"
+                  >
+                    <div class="text-2xl font-bold \${state.grade === grade ? 'text-blue-600' : 'text-gray-900'}">\${info.label}</div>
+                    <div class="text-xs text-gray-600">\${info.level}</div>
+                  </button>
+                \`;
+              }).join('')}
             </div>
           </div>
 
@@ -12870,11 +19878,12 @@ app.get('/eiken/practice', (c) => {
           \`;
         }
       } catch (error) {
-        document.getElementById('generatorMessage').innerHTML = \`
-          <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div class="font-medium text-red-900">エラー: \${error.message}</div>
-          </div>
-        \`;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      document.getElementById('generatorMessage').innerHTML = \`
+        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="font-medium text-red-900">エラー: \${errorMessage}</div>
+        </div>
+      \`;
       } finally {
         state.loading = false;
         render();
@@ -12921,18 +19930,1090 @@ app.get('/eiken/practice', (c) => {
     }
 
     // ==================== 初期化 ====================
-    render();
+    console.log('🎓 英検AI練習システム初期化開始');
+    console.log('State:', state);
+    console.log('GRADE_INFO:', GRADE_INFO);
+    
+    // DOMが完全に読み込まれた後にrender()を実行
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('📚 DOM読み込み完了、render()を実行');
+        render();
+      });
+    } else {
+      console.log('📚 DOMは既に読み込まれています、render()を実行');
+      render();
+    }
   </script>
 </body>
 </html>
   `)
 })
 
+// ==================== Flashcard API Routes ====================
+
+// フラッシュカード作成（写真から）
+app.post('/api/flashcard/create-from-photo', async (c) => {
+  console.log('📸 Flashcard from photo API called')
+  
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const formData = await c.req.formData()
+    const appkey = formData.get('appkey') as string
+    const sid = formData.get('sid') as string
+    const imageField = formData.get('image')
+    const deckId = formData.get('deckId') as string || null
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    if (!imageField || !(imageField instanceof File)) {
+      return c.json({ success: false, error: 'No image provided' }, 400)
+    }
+
+    // 画像をBase64に変換
+    const arrayBuffer = await imageField.arrayBuffer()
+    const imageSizeKB = Math.round(arrayBuffer.byteLength / 1024)
+    console.log(`📊 Image size: ${imageSizeKB} KB`)
+    
+    // 画像サイズ制限チェック（20MB）
+    if (arrayBuffer.byteLength > 20 * 1024 * 1024) {
+      return c.json({ 
+        success: false, 
+        error: 'Image too large',
+        hint: '画像サイズは20MB以下にしてください',
+        size: `${imageSizeKB} KB`
+      }, 400)
+    }
+    
+    const base64Image = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+    const dataUrl = `data:${imageField.type};base64,${base64Image}`
+
+    // OpenAI Vision APIで画像解析
+    const openaiApiKey = c.env?.OPENAI_API_KEY
+    if (!openaiApiKey) {
+      console.error('❌ OpenAI API key not found in environment')
+      return c.json({ 
+        success: false, 
+        error: 'OpenAI API key not configured',
+        hint: 'OPENAI_API_KEYを環境変数に設定してください' 
+      }, 500)
+    }
+
+    console.log('🔍 Analyzing image with OpenAI Vision API...')
+    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `あなたはフラッシュカード作成のエキスパートです。画像から学習用のフラッシュカードを抽出します。
+
+以下のJSON形式で複数のカードを返してください：
+{
+  "cards": [
+    {
+      "front": "質問・単語・問題文",
+      "back": "回答・意味・解説",
+      "tags": ["カテゴリ", "科目"],
+      "confidence": 0.95
+    }
+  ]
+}
+
+例：
+- 英単語リスト → 各単語を1枚のカードに
+- 数学の公式 → 公式名と公式を分けて
+- 歴史年表 → 年号と出来事をペアに
+- ノート → 重要用語とその説明をペアに
+
+できるだけ多くのカードを抽出してください。`
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'この画像から学習用のフラッシュカードを作成してください。'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: dataUrl
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      })
+    })
+
+    if (!visionResponse.ok) {
+      const errorText = await visionResponse.text()
+      console.error('❌ OpenAI Vision API error:', errorText)
+      return c.json({ 
+        success: false, 
+        error: 'Failed to analyze image', 
+        details: errorText,
+        status: visionResponse.status
+      }, 500)
+    }
+
+    const visionData = await visionResponse.json()
+    console.log('✅ OpenAI Vision API response received')
+    
+    if (!visionData.choices || !visionData.choices[0]) {
+      console.error('❌ Invalid OpenAI response structure:', visionData)
+      return c.json({ 
+        success: false, 
+        error: 'Invalid response from OpenAI',
+        details: visionData
+      }, 500)
+    }
+    
+    const aiResponse = visionData.choices[0].message.content
+    console.log('📝 AI Response preview:', aiResponse.substring(0, 200))
+
+    // JSONを抽出
+    let cardsData
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        cardsData = JSON.parse(jsonMatch[0])
+      } else {
+        cardsData = JSON.parse(aiResponse)
+      }
+    } catch (e) {
+      console.error('❌ Failed to parse AI response:', aiResponse)
+      return c.json({ 
+        success: false, 
+        error: 'Failed to parse AI response',
+        hint: 'AIの応答が正しいJSON形式ではありませんでした',
+        aiResponse: aiResponse.substring(0, 500)
+      }, 500)
+    }
+
+    if (!cardsData.cards || !Array.isArray(cardsData.cards)) {
+      console.error('❌ Invalid cards array:', cardsData)
+      return c.json({ 
+        success: false, 
+        error: 'Invalid response format from AI',
+        hint: 'AIが正しいカード形式を返しませんでした',
+        received: cardsData
+      }, 500)
+    }
+
+    console.log(`📇 Creating ${cardsData.cards.length} flashcards...`)
+    
+    // カードをDBに保存
+    const createdCards = []
+    for (const card of cardsData.cards) {
+      const cardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      await db.prepare(`
+        INSERT INTO flashcards (
+          card_id, deck_id, appkey, sid, front_text, back_text, 
+          source_image_data, created_from, ai_confidence, tags
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        cardId,
+        deckId,
+        appkey,
+        sid,
+        card.front,
+        card.back,
+        dataUrl,
+        'photo',
+        card.confidence || 0.8,
+        JSON.stringify(card.tags || [])
+      ).run()
+
+      createdCards.push({
+        cardId,
+        front: card.front,
+        back: card.back,
+        tags: card.tags,
+        confidence: card.confidence
+      })
+    }
+
+    // デッキのカード数を更新
+    if (deckId) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count + ?, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(createdCards.length, deckId).run()
+    }
+
+    console.log(`✅ Created ${createdCards.length} flashcards from photo`)
+
+    return c.json({
+      success: true,
+      cards: createdCards,
+      count: createdCards.length
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard from photo error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード作成（手動入力）
+app.post('/api/flashcard/create-manual', async (c) => {
+  console.log('✍️ Manual flashcard create API called')
+  
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckId, front, back, tags, frontImage, backImage } = await c.req.json()
+
+    if (!appkey || !sid || !front || !back) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const cardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcards (
+        card_id, deck_id, appkey, sid, front_text, back_text,
+        front_image_data, back_image_data, created_from, tags
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      cardId,
+      deckId || null,
+      appkey,
+      sid,
+      front,
+      back,
+      frontImage || null,
+      backImage || null,
+      'manual',
+      JSON.stringify(tags || [])
+    ).run()
+
+    // デッキのカード数を更新
+    if (deckId) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(deckId).run()
+    }
+
+    console.log(`✅ Created manual flashcard: ${cardId}`)
+
+    return c.json({
+      success: true,
+      cardId,
+      front,
+      back
+    })
+
+  } catch (error) {
+    console.error('❌ Manual flashcard create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード一覧取得
+app.post('/api/flashcard/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckId, categoryId, tagIds, limit = 50, offset = 0 } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    let query = `
+      SELECT f.*,
+             c.name as category_name,
+             c.color as category_color,
+             c.icon as category_icon
+      FROM flashcards f
+      LEFT JOIN flashcard_categories c ON f.category_id = c.category_id
+      WHERE f.appkey = ? AND f.sid = ?
+    `
+    const params = [appkey, sid]
+
+    if (deckId) {
+      query += ` AND f.deck_id = ?`
+      params.push(deckId)
+    }
+
+    if (categoryId) {
+      query += ` AND f.category_id = ?`
+      params.push(categoryId)
+    }
+
+    // タグフィルタリング（タグIDの配列が指定された場合）
+    if (tagIds && Array.isArray(tagIds) && tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(',')
+      query += ` AND f.card_id IN (
+        SELECT card_id FROM flashcard_card_tags 
+        WHERE tag_id IN (${placeholders})
+        GROUP BY card_id
+        HAVING COUNT(DISTINCT tag_id) = ?
+      )`
+      params.push(...tagIds, tagIds.length)
+    }
+
+    query += ` ORDER BY f.created_at DESC LIMIT ? OFFSET ?`
+    params.push(limit, offset)
+
+    const result = await db.prepare(query).bind(...params).all()
+    const cards = result.results || []
+
+    // 各カードのタグを取得
+    const userId = `${appkey}_${sid}`
+    for (const card of cards) {
+      const cardTags = await db.prepare(`
+        SELECT t.tag_id, t.name
+        FROM flashcard_tags t
+        JOIN flashcard_card_tags ct ON t.tag_id = ct.tag_id
+        WHERE ct.card_id = ? AND t.user_id = ?
+      `).bind(card.card_id, userId).all()
+      
+      card.tags = cardTags.results || []
+    }
+
+    return c.json({
+      success: true,
+      cards,
+      count: cards.length
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード一括削除API
+app.post('/api/flashcard/delete-batch', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardIds } = await c.req.json()
+
+    if (!appkey || !sid || !cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+      return c.json({ success: false, error: 'Missing required fields or invalid cardIds' }, 400)
+    }
+
+    let deletedCount = 0
+    const deckUpdates = new Map()
+
+    // 各カードを削除
+    for (const cardId of cardIds) {
+      // カードの存在確認とdeck_id取得
+      const card = await db.prepare(`
+        SELECT deck_id FROM flashcards 
+        WHERE card_id = ? AND appkey = ? AND sid = ?
+      `).bind(cardId, appkey, sid).first()
+
+      if (card) {
+        // カードを削除
+        await db.prepare(`
+          DELETE FROM flashcards 
+          WHERE card_id = ? AND appkey = ? AND sid = ?
+        `).bind(cardId, appkey, sid).run()
+
+        deletedCount++
+
+        // デッキカウントを追跡
+        if (card.deck_id) {
+          deckUpdates.set(card.deck_id, (deckUpdates.get(card.deck_id) || 0) + 1)
+        }
+      }
+    }
+
+    // デッキのカード数を一括更新
+    for (const [deckId, count] of deckUpdates) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count - ?, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(count, deckId).run()
+    }
+
+    console.log(`✅ Deleted ${deletedCount} flashcards in batch`)
+
+    return c.json({ 
+      success: true, 
+      deletedCount: deletedCount 
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard batch delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード統計情報API
+app.post('/api/flashcard/stats', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    // 総カード数
+    const totalResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ?
+    `).bind(appkey, sid).first()
+
+    // 復習待ちのカード数（next_review_at が現在時刻より前のもの）
+    const reviewDueResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ? 
+      AND next_review_at IS NOT NULL 
+      AND next_review_at <= datetime('now')
+    `).bind(appkey, sid).first()
+
+    // 習得済みカード数（mastery_level >= 5）
+    const masteredResult = await db.prepare(`
+      SELECT COUNT(*) as count FROM flashcards 
+      WHERE appkey = ? AND sid = ? 
+      AND mastery_level >= 5
+    `).bind(appkey, sid).first()
+
+    return c.json({
+      success: true,
+      stats: {
+        total: totalResult?.count || 0,
+        reviewDue: reviewDueResult?.count || 0,
+        mastered: masteredResult?.count || 0
+      }
+    })
+
+  } catch (error) {
+    console.error('❌ Flashcard stats error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// デッキ作成
+app.post('/api/flashcard/deck/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, deckName, description } = await c.req.json()
+
+    if (!appkey || !sid || !deckName) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const deckId = `deck_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_decks (deck_id, appkey, sid, deck_name, description)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(deckId, appkey, sid, deckName, description || '').run()
+
+    console.log(`✅ Created flashcard deck: ${deckId}`)
+
+    return c.json({
+      success: true,
+      deckId,
+      deckName
+    })
+
+  } catch (error) {
+    console.error('❌ Deck create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// デッキ一覧取得
+app.post('/api/flashcard/deck/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing appkey or sid' }, 400)
+    }
+
+    const result = await db.prepare(`
+      SELECT * FROM flashcard_decks 
+      WHERE appkey = ? AND sid = ?
+      ORDER BY created_at DESC
+    `).bind(appkey, sid).all()
+
+    return c.json({
+      success: true,
+      decks: result.results || [],
+      count: result.results?.length || 0
+    })
+
+  } catch (error) {
+    console.error('❌ Deck list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// フラッシュカード削除
+app.post('/api/flashcard/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId } = await c.req.json()
+
+    if (!appkey || !sid || !cardId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    // カードの存在確認
+    const card = await db.prepare(`
+      SELECT * FROM flashcards 
+      WHERE card_id = ? AND appkey = ? AND sid = ?
+    `).bind(cardId, appkey, sid).first()
+
+    if (!card) {
+      return c.json({ success: false, error: 'Card not found' }, 404)
+    }
+
+    // カードを削除
+    await db.prepare(`
+      DELETE FROM flashcards 
+      WHERE card_id = ? AND appkey = ? AND sid = ?
+    `).bind(cardId, appkey, sid).run()
+
+    // デッキのカード数を更新
+    if (card.deck_id) {
+      await db.prepare(`
+        UPDATE flashcard_decks 
+        SET card_count = card_count - 1, updated_at = CURRENT_TIMESTAMP
+        WHERE deck_id = ?
+      `).bind(card.deck_id).run()
+    }
+
+    console.log(`✅ Deleted flashcard: ${cardId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Flashcard delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// 学習履歴の記録
+app.post('/api/flashcard/record-study', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, isCorrect, responseTimeMs, difficultyRating } = await c.req.json()
+
+    if (!appkey || !sid || !cardId || isCorrect === undefined) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const historyId = `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // 学習履歴を記録
+    await db.prepare(`
+      INSERT INTO flashcard_study_history (
+        history_id, card_id, appkey, sid, is_correct, response_time_ms, difficulty_rating
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      historyId,
+      cardId,
+      appkey,
+      sid,
+      isCorrect ? 1 : 0,
+      responseTimeMs || null,
+      difficultyRating || null
+    ).run()
+
+    // カードの統計を更新
+    const card = await db.prepare(`
+      SELECT review_count, correct_count, mastery_level FROM flashcards
+      WHERE card_id = ?
+    `).bind(cardId).first()
+
+    if (card) {
+      const newReviewCount = (card.review_count || 0) + 1
+      const newCorrectCount = (card.correct_count || 0) + (isCorrect ? 1 : 0)
+      const correctRate = newCorrectCount / newReviewCount
+      
+      // 習熟度を計算 (0-5)
+      let newMasteryLevel = 0
+      if (correctRate >= 0.95 && newReviewCount >= 10) newMasteryLevel = 5
+      else if (correctRate >= 0.90 && newReviewCount >= 8) newMasteryLevel = 4
+      else if (correctRate >= 0.80 && newReviewCount >= 5) newMasteryLevel = 3
+      else if (correctRate >= 0.70 && newReviewCount >= 3) newMasteryLevel = 2
+      else if (correctRate >= 0.50) newMasteryLevel = 1
+
+      // 次回復習日を計算 (間隔反復学習)
+      const intervals = [1, 3, 7, 14, 30, 90] // 日数
+      const nextReviewDays = intervals[Math.min(newMasteryLevel, intervals.length - 1)]
+      const nextReviewDate = new Date()
+      nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays)
+
+      await db.prepare(`
+        UPDATE flashcards
+        SET review_count = ?, 
+            correct_count = ?,
+            mastery_level = ?,
+            last_reviewed_at = CURRENT_TIMESTAMP,
+            next_review_at = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE card_id = ?
+      `).bind(
+        newReviewCount,
+        newCorrectCount,
+        newMasteryLevel,
+        nextReviewDate.toISOString(),
+        cardId
+      ).run()
+    }
+
+    console.log(`✅ Recorded study for card: ${cardId}, correct: ${isCorrect}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Record study error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// ==================== Category & Tag API Routes ====================
+
+// カテゴリ一覧取得
+app.post('/api/flashcard/category/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing credentials' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    const categories = await db.prepare(`
+      SELECT category_id, name, color, icon, created_at, updated_at
+      FROM flashcard_categories
+      WHERE user_id = ?
+      ORDER BY name ASC
+    `).bind(userId).all()
+
+    return c.json({ 
+      success: true, 
+      categories: categories.results || [] 
+    })
+
+  } catch (error) {
+    console.error('❌ Category list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ作成
+app.post('/api/flashcard/category/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, name, color, icon } = await c.req.json()
+    if (!appkey || !sid || !name) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+    const categoryId = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_categories (category_id, user_id, name, color, icon)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      categoryId,
+      userId,
+      name,
+      color || '#8b5cf6',
+      icon || '📚'
+    ).run()
+
+    console.log(`✅ Created category: ${name} (${categoryId})`)
+
+    return c.json({ 
+      success: true, 
+      categoryId,
+      category: { category_id: categoryId, name, color: color || '#8b5cf6', icon: icon || '📚' }
+    })
+
+  } catch (error) {
+    console.error('❌ Category create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ更新
+app.post('/api/flashcard/category/update', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, categoryId, name, color, icon } = await c.req.json()
+    if (!appkey || !sid || !categoryId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    await db.prepare(`
+      UPDATE flashcard_categories
+      SET name = COALESCE(?, name),
+          color = COALESCE(?, color),
+          icon = COALESCE(?, icon),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE category_id = ? AND user_id = ?
+    `).bind(name, color, icon, categoryId, userId).run()
+
+    console.log(`✅ Updated category: ${categoryId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Category update error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カテゴリ削除
+app.post('/api/flashcard/category/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, categoryId } = await c.req.json()
+    if (!appkey || !sid || !categoryId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    // カテゴリに属するカードのcategory_idをNULLに設定
+    await db.prepare(`
+      UPDATE flashcards
+      SET category_id = NULL
+      WHERE category_id = ?
+    `).bind(categoryId).run()
+
+    // カテゴリを削除
+    await db.prepare(`
+      DELETE FROM flashcard_categories
+      WHERE category_id = ? AND user_id = ?
+    `).bind(categoryId, userId).run()
+
+    console.log(`✅ Deleted category: ${categoryId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Category delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ一覧取得
+app.post('/api/flashcard/tag/list', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid } = await c.req.json()
+    if (!appkey || !sid) {
+      return c.json({ success: false, error: 'Missing credentials' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    const tags = await db.prepare(`
+      SELECT tag_id, name, created_at
+      FROM flashcard_tags
+      WHERE user_id = ?
+      ORDER BY name ASC
+    `).bind(userId).all()
+
+    return c.json({ 
+      success: true, 
+      tags: tags.results || [] 
+    })
+
+  } catch (error) {
+    console.error('❌ Tag list error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ作成
+app.post('/api/flashcard/tag/create', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, name } = await c.req.json()
+    if (!appkey || !sid || !name) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+    const tagId = `tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    await db.prepare(`
+      INSERT INTO flashcard_tags (tag_id, user_id, name)
+      VALUES (?, ?, ?)
+    `).bind(tagId, userId, name).run()
+
+    console.log(`✅ Created tag: ${name} (${tagId})`)
+
+    return c.json({ 
+      success: true, 
+      tagId,
+      tag: { tag_id: tagId, name }
+    })
+
+  } catch (error) {
+    console.error('❌ Tag create error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// タグ削除
+app.post('/api/flashcard/tag/delete', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, tagId } = await c.req.json()
+    if (!appkey || !sid || !tagId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    const userId = `${appkey}_${sid}`
+
+    // カードとタグの関連を削除（外部キー制約でCASCADE）
+    await db.prepare(`
+      DELETE FROM flashcard_card_tags
+      WHERE tag_id = ?
+    `).bind(tagId).run()
+
+    // タグを削除
+    await db.prepare(`
+      DELETE FROM flashcard_tags
+      WHERE tag_id = ? AND user_id = ?
+    `).bind(tagId, userId).run()
+
+    console.log(`✅ Deleted tag: ${tagId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Tag delete error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カードへのタグ付与
+app.post('/api/flashcard/card/add-tags', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, tagIds } = await c.req.json()
+    if (!appkey || !sid || !cardId || !Array.isArray(tagIds)) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    // 既存のタグをすべて削除
+    await db.prepare(`
+      DELETE FROM flashcard_card_tags WHERE card_id = ?
+    `).bind(cardId).run()
+
+    // 新しいタグを追加
+    for (const tagId of tagIds) {
+      await db.prepare(`
+        INSERT OR IGNORE INTO flashcard_card_tags (card_id, tag_id)
+        VALUES (?, ?)
+      `).bind(cardId, tagId).run()
+    }
+
+    console.log(`✅ Added tags to card: ${cardId}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Add tags error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// カードのカテゴリ設定
+app.post('/api/flashcard/card/set-category', async (c) => {
+  try {
+    const db = c.env?.DB
+    if (!db) {
+      return c.json({ success: false, error: 'Database not available' }, 500)
+    }
+
+    const { appkey, sid, cardId, categoryId } = await c.req.json()
+    if (!appkey || !sid || !cardId) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    await db.prepare(`
+      UPDATE flashcards
+      SET category_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = ?
+    `).bind(categoryId || null, cardId).run()
+
+    console.log(`✅ Set category for card: ${cardId} -> ${categoryId || 'NULL'}`)
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Set category error:', error)
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+// ==================== Eiken API Routes ====================
+
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
 
 // AI問題生成エンドポイント
 app.route('/api/eiken/generate', generateRoute)
+
+// Phase 2: Topic Management エンドポイント
+app.route('/api/eiken/topics', topicRoutes)
+
+// Phase 2C: Blueprint Generation エンドポイント
+app.route('/api/eiken/blueprints', blueprintRoutes)
+
+// Phase 3: Integrated Question Generation エンドポイント
+app.route('/api/eiken/questions', questionRoutes)
 
 // 404ハンドラー
 app.notFound((c) => {

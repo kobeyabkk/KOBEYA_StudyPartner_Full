@@ -64,7 +64,9 @@ export async function checkCopyrightSafety(
   const genEmbedding = await embeddingCache.getEmbedding(generatedText, env);
   let maxSimilarity = 0;
 
-  for (const originalText of originalTexts) {
+  // originalTexts が空の場合はスキップ
+  if (originalTexts && originalTexts.length > 0) {
+    for (const originalText of originalTexts) {
     const origEmbedding = await embeddingCache.getEmbedding(originalText, env);
     const similarity = cosineSimilarity(genEmbedding, origEmbedding);
     
@@ -76,6 +78,7 @@ export async function checkCopyrightSafety(
       violations.push(`High similarity detected: ${similarity.toFixed(3)}`);
     } else if (similarity > 0.75) {
       warnings.push(`Moderate similarity: ${similarity.toFixed(3)}`);
+    }
     }
   }
 

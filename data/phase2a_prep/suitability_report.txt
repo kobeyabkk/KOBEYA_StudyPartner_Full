@@ -1,0 +1,290 @@
+======================================================================
+Format Suitability Scores - Summary Report
+======================================================================
+
+Total Combinations: 175
+
+
+======================================================================
+Grade 5: 9 combinations
+======================================================================
+
+  conversation:
+    • daily life                → 1.00 (2 samples)
+    • greeting                  → 1.00 (2 samples)
+    • food                      → 0.90 (1 samples)
+    • self-introduction         → 0.90 (1 samples)
+
+  grammar_fill:
+    • school                    → 1.00 (2 samples)
+    • daily life                → 0.90 (1 samples)
+    • family                    → 0.90 (1 samples)
+    • food                      → 0.90 (1 samples)
+    • hobbies                   → 0.90 (1 samples)
+
+======================================================================
+Grade 4: 8 combinations
+======================================================================
+
+  conversation:
+    • daily life                → 1.20 (3 samples)
+    • family                    → 0.90 (1 samples)
+    • food                      → 0.90 (1 samples)
+    • school                    → 0.90 (1 samples)
+
+  grammar_fill:
+    • hobbies                   → 1.00 (2 samples)
+    • school                    → 1.00 (2 samples)
+    • daily life                → 0.90 (1 samples)
+    • family                    → 0.90 (1 samples)
+
+======================================================================
+Grade 3: 31 combinations
+======================================================================
+
+  conversation:
+    • club activities           → 0.90 (1 samples)
+    • daily life                → 0.90 (1 samples)
+    • school life               → 0.90 (1 samples)
+    • weekend                   → 0.90 (1 samples)
+
+  email_reply:
+    • daily life                → 1.00 (2 samples)
+    • school life               → 1.00 (2 samples)
+    • weekend                   → 1.00 (2 samples)
+    • club activities           → 0.90 (1 samples)
+    • hobbies                   → 0.90 (1 samples)
+
+  grammar_fill:
+    • school life               → 1.20 (3 samples)
+    • family                    → 0.90 (1 samples)
+    • future                    → 0.90 (1 samples)
+    • weekend                   → 0.90 (1 samples)
+
+  long_reading:
+    • school life               → 1.00 (2 samples)
+    • daily life                → 0.90 (1 samples)
+    • family                    → 0.90 (1 samples)
+    • travel                    → 0.90 (1 samples)
+    • weekend                   → 0.90 (1 samples)
+
+  picture_description:
+    • daily life                → 1.00 (2 samples)
+    • family                    → 0.90 (1 samples)
+    • hobbies                   → 0.90 (1 samples)
+    • school life               → 0.90 (1 samples)
+
+  q_and_a:
+    • school life               → 1.00 (2 samples)
+    • daily life                → 0.90 (1 samples)
+    • hobbies                   → 0.90 (1 samples)
+    • travel                    → 0.90 (1 samples)
+    • weekend                   → 0.90 (1 samples)
+
+  reading_aloud:
+    • school life               → 1.00 (2 samples)
+    • club activities           → 0.90 (1 samples)
+    • travel                    → 0.90 (1 samples)
+    • weekend                   → 0.90 (1 samples)
+
+======================================================================
+Grade pre2: 25 combinations
+======================================================================
+
+  grammar_fill:
+    • studying abroad           → 1.20 (3 samples)
+    • communication             → 1.00 (2 samples)
+    • community                 → 1.00 (2 samples)
+    • travel                    → 1.00 (2 samples)
+    • health                    → 0.90 (1 samples)
+
+  long_reading:
+    • community                 → 1.00 (2 samples)
+    • studying abroad           → 1.00 (2 samples)
+    • communication             → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+
+  picture_description:
+    • communication             → 1.00 (2 samples)
+    • community                 → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+    • studying abroad           → 0.90 (1 samples)
+
+  q_and_a:
+    • communication             → 1.00 (2 samples)
+    • studying abroad           → 1.00 (2 samples)
+    • community                 → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+
+  reading_aloud:
+    • communication             → 1.00 (2 samples)
+    • community                 → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+    • studying abroad           → 0.90 (1 samples)
+
+  short_opinion:
+    • communication             → 1.00 (2 samples)
+    • community                 → 1.00 (2 samples)
+    • health                    → 1.00 (2 samples)
+    • studying abroad           → 1.00 (2 samples)
+
+======================================================================
+Grade 2: 35 combinations
+======================================================================
+
+  essay:
+    • education                 → 1.00 (2 samples)
+    • environment               → 1.00 (2 samples)
+    • health                    → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  grammar_fill:
+    • education                 → 1.00 (2 samples)
+    • environment               → 1.00 (2 samples)
+    • technology                → 1.00 (2 samples)
+    • health                    → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+
+  long_reading:
+    • education                 → 1.20 (4 samples)
+    • environment               → 1.20 (4 samples)
+    • health                    → 1.20 (3 samples)
+    • science                   → 1.00 (2 samples)
+    • society                   → 1.00 (2 samples)
+    • technology                → 0.90 (1 samples)
+
+  opinion_speech:
+    • health                    → 1.20 (4 samples)
+    • society                   → 1.00 (2 samples)
+    • education                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  picture_description:
+    • technology                → 1.00 (2 samples)
+    • education                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+
+  q_and_a:
+    • technology                → 1.00 (2 samples)
+    • education                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+
+  reading_aloud:
+    • education                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • health                    → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+======================================================================
+Grade pre1: 31 combinations
+======================================================================
+
+  grammar_fill:
+    • AI / science              → 0.90 (1 samples)
+    • climate change            → 0.90 (1 samples)
+    • science                   → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+
+  long_reading:
+    • international issues      → 1.00 (2 samples)
+    • science                   → 1.00 (2 samples)
+    • society                   → 1.00 (2 samples)
+    • global health             → 0.90 (1 samples)
+
+  opinion_essay:
+    • AI / science              → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+
+  opinion_speech:
+    • global health             → 1.00 (2 samples)
+    • science                   → 1.00 (2 samples)
+    • AI / science              → 0.90 (1 samples)
+    • climate change            → 0.90 (1 samples)
+    • economics                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  q_and_a:
+    • climate change            → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  summary:
+    • AI / science              → 0.90 (1 samples)
+    • climate change            → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  writing_summary:
+    • climate change            → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+
+======================================================================
+Grade 1: 36 combinations
+======================================================================
+
+  grammar_fill:
+    • AI / science              → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • politics                  → 0.90 (1 samples)
+
+  long_reading:
+    • environment               → 1.00 (2 samples)
+    • politics                  → 1.00 (2 samples)
+    • science                   → 1.00 (2 samples)
+    • AI / science              → 0.90 (1 samples)
+    • economics                 → 0.90 (1 samples)
+    • education                 → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+    • society                   → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  opinion_essay:
+    • politics                  → 1.00 (2 samples)
+    • economics                 → 0.90 (1 samples)
+    • science                   → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  opinion_speech:
+    • AI / science              → 0.90 (1 samples)
+    • climate change            → 0.90 (1 samples)
+    • economics                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+    • politics                  → 0.90 (1 samples)
+    • science                   → 0.90 (1 samples)
+
+  q_and_a:
+    • climate change            → 0.90 (1 samples)
+    • economics                 → 0.90 (1 samples)
+    • environment               → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • technology                → 0.90 (1 samples)
+
+  writing_essay:
+    • AI / science              → 0.90 (1 samples)
+    • economics                 → 0.90 (1 samples)
+    • education                 → 0.90 (1 samples)
+    • global health             → 0.90 (1 samples)
+    • international issues      → 0.90 (1 samples)
+
+======================================================================
+Score Distribution:
+======================================================================
+  1.20: 7 combinations
+  1.00: 44 combinations
+  0.90: 124 combinations

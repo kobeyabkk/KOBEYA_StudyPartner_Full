@@ -55,7 +55,7 @@ export async function validateGeneratedQuestion(
     env.DB,
     request.grade,
     request.section
-  );
+  ) || []; // 万が一 undefined の場合は空配列を使用
   
   console.log(`📚 Comparing against ${existingQuestions.length} existing questions`);
   
@@ -68,13 +68,18 @@ export async function validateGeneratedQuestion(
     env
   );
   
-  violations.push(...embeddingResult.violations.map(v => ({
-    type: 'embedding' as const,
-    severity: 'critical' as const,
-    message: v
-  })));
+  // エラーハンドリング：violations と warnings が存在する場合のみ追加
+  if (embeddingResult.violations && embeddingResult.violations.length > 0) {
+    violations.push(...embeddingResult.violations.map(v => ({
+      type: 'embedding' as const,
+      severity: 'critical' as const,
+      message: v
+    })));
+  }
   
-  warnings.push(...embeddingResult.warnings);
+  if (embeddingResult.warnings && embeddingResult.warnings.length > 0) {
+    warnings.push(...embeddingResult.warnings);
+  }
   
   // 3. N-gram類似度チェック
   const ngramResults = await checkNGramSimilarity(
@@ -82,13 +87,21 @@ export async function validateGeneratedQuestion(
     existingQuestions
   );
   
-  violations.push(...ngramResults.violations);
-  warnings.push(...ngramResults.warnings);
+  if (ngramResults.violations && ngramResults.violations.length > 0) {
+    violations.push(...ngramResults.violations);
+  }
+  if (ngramResults.warnings && ngramResults.warnings.length > 0) {
+    warnings.push(...ngramResults.warnings);
+  }
   
   // 4. 完全フレーズマッチチェック
   const phraseResults = checkExactPhrases(fullText, existingQuestions);
-  violations.push(...phraseResults.violations);
-  warnings.push(...phraseResults.warnings);
+  if (phraseResults.violations && phraseResults.violations.length > 0) {
+    violations.push(...phraseResults.violations);
+  }
+  if (phraseResults.warnings && phraseResults.warnings.length > 0) {
+    warnings.push(...phraseResults.warnings);
+  }
   
   // 5. 総合スコア計算
   const overallScore = calculateOverallScore(
@@ -167,6 +180,11 @@ async function checkNGramSimilarity(
   const warnings: string[] = [];
   let maxSimilarity = 0;
   
+  // 既存テキストが空の場合は早期リターン
+  if (!existingTexts || existingTexts.length === 0) {
+    return { maxSimilarity, violations, warnings };
+  }
+  
   const genTrigrams = generateNGrams(generatedText, 3);
   const genBigrams = generateNGrams(generatedText, 2);
   
@@ -216,6 +234,11 @@ function checkExactPhrases(
   
   const violations: ValidationViolation[] = [];
   const warnings: string[] = [];
+  
+  // 既存テキストが空の場合は早期リターン
+  if (!existingTexts || existingTexts.length === 0) {
+    return { violations, warnings };
+  }
   
   // 5語以上の連続一致を検出
   const genWords = generatedText.toLowerCase().split(/\s+/);

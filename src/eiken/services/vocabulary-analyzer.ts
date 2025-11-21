@@ -50,7 +50,7 @@ export async function analyzeVocabularyLevel(
   
   // 各単語を原型（Lemma）に変換
   const lemmas: string[] = [];
-  tokens.forEach(token => {
+  tokens.forEach((token: string) => {
     // 動詞は不定詞形に、名詞は単数形に
     const verbForm = doc.match(token).verbs().toInfinitive().out('text');
     if (verbForm) {
@@ -156,7 +156,7 @@ export async function analyzeVocabularyLevel(
 /**
  * 英検級からCEFRレベルへの変換
  */
-function getTargetCEFR(grade: EikenGrade): string {
+export function getTargetCEFR(grade: EikenGrade): string {
   const mapping: Record<EikenGrade, string> = {
     '5': 'A1',
     '4': 'A1',

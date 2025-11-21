@@ -8,6 +8,11 @@
 import nlp from 'compromise';
 import type { EikenGrade } from '../src/eiken/types';
 
+type LexiconRow = {
+  word_lemma: string
+  grade_level: number | null
+}
+
 // Grade level mapping (same as in vocabulary-analyzer.ts)
 const GRADE_LEVEL_MAP: Record<EikenGrade, number> = {
   '5': 5,    // 5級
@@ -64,9 +69,11 @@ async function analyzeVocabularyLevel(
     WHERE word_lemma IN (${placeholders})
   `;
   
-  const result = await d1.prepare(query).bind(...uniqueLemmas).all();
-  const dbWords = new Map(
-    result.results.map((row: any) => [row.word_lemma, row.grade_level])
+  const queryResult = await d1.prepare(query).bind(...uniqueLemmas).all();
+  const dbWords = new Map<string, number>(
+    (queryResult.results as LexiconRow[])
+      .filter((row) => typeof row.grade_level === 'number')
+      .map((row) => [row.word_lemma, row.grade_level as number])
   );
   
   // Identify out-of-range words
@@ -74,7 +81,7 @@ async function analyzeVocabularyLevel(
   
   for (const lemma of lemmas) {
     const wordLevel = dbWords.get(lemma);
-    if (wordLevel !== undefined && wordLevel < targetLevel) {
+    if (typeof wordLevel === 'number' && wordLevel < targetLevel) {
       outOfRangeWords.push(lemma);
     }
   }
@@ -157,10 +164,13 @@ async function runTests() {
   const sqliteDB = new Database(dbPath, { readonly: true });
   
   // Verify database has data
-  const countResult = sqliteDB.prepare('SELECT COUNT(*) as count FROM eiken_vocabulary_lexicon').get();
-  console.log(`✅ Database loaded: ${countResult.count} vocabulary entries found\n`);
+  const countResult = sqliteDB
+    .prepare('SELECT COUNT(*) as count FROM eiken_vocabulary_lexicon')
+    .get() as { count: number | null };
+  const totalEntries = countResult?.count ?? 0;
+  console.log(`✅ Database loaded: ${totalEntries} vocabulary entries found\n`);
   
-  if (countResult.count === 0) {
+  if (totalEntries === 0) {
     console.log('❌ ERROR: Database is empty. Please run import first.\n');
     process.exit(1);
   }
