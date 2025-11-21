@@ -19523,16 +19523,19 @@ app.get('/eiken/practice', (c) => {
           <!-- グレード選択 -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-3">目標級を選択</label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              \${Object.entries(GRADE_INFO).map(([grade, info]) => \`
-                <button 
-                  onclick="updateGrade('\${grade}')"
-                  class="p-4 rounded-lg border-2 transition-all \${state.grade === grade ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"
-                >
-                  <div class="text-2xl font-bold \${state.grade === grade ? 'text-blue-600' : 'text-gray-900'}">\${info.label}</div>
-                  <div class="text-xs text-gray-600">\${info.level}</div>
-                </button>
-              \`).join('')}
+            <div class="grid grid-cols-3 gap-3">
+              \${['5', '4', '3', 'pre2', '2', 'pre1', '1'].map((grade) => {
+                const info = GRADE_INFO[grade];
+                return \`
+                  <button 
+                    onclick="updateGrade('\${grade}')"
+                    class="p-4 rounded-lg border-2 transition-all \${state.grade === grade ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"
+                  >
+                    <div class="text-2xl font-bold \${state.grade === grade ? 'text-blue-600' : 'text-gray-900'}">\${info.label}</div>
+                    <div class="text-xs text-gray-600">\${info.level}</div>
+                  </button>
+                \`;
+              }).join('')}
             </div>
           </div>
 
