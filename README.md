@@ -67,8 +67,16 @@
 - ✅ アップロード進行表示
 - ✅ 段階学習・類似問題インターフェース
 
+#### 🆕 英検対策機能（Phase 3 リリース）
+- ✅ **4形式の問題生成**: grammar_fill, opinion_speech, reading_aloud, essay
+- ✅ **語彙レベル検証**: CEFR準拠の語彙チェック（A1-C2）
+- ✅ **著作権検証**: 過去問類似度チェック
+- ✅ **トピック管理**: 61トピック（5級-1級）
+- ✅ **Blueprint システム**: AIプロンプト最適化
+- ✅ **全選択肢の語彙解説**: 正解・不正解全ての意味を表示
+- ⏳ **long_reading形式**: メンテナンス中（近日追加予定）
+
 #### 新機能プレースホルダー
-- ✅ 英検対策（実装予定）
 - ✅ 小論文対策（実装予定）
 - ✅ インター生用（実装予定）
 
@@ -85,11 +93,19 @@
 - ✅ `/api/logs` - 学習ログ記録（Webhook Secret認証）
 - ✅ `/api/logs/health` - ログシステムヘルスチェック
 - ✅ `/api/reports/weekly` - 週次レポート生成
+- ✅ `/api/eiken/questions/generate` - 英検問題生成（4形式対応）
+- ✅ `/api/eiken/questions/list` - 生成済み問題一覧
+- ✅ `/api/eiken/questions/:id` - 問題詳細取得
 
 #### データベーススキーマ（Cloudflare D1）
 - ✅ `logs` - 学習ログデータ
 - ✅ `students` - 生徒マスターデータ
 - ✅ `master_materials` - 教材マスターデータ
+- ✅ `eiken_generated_questions` - 英検生成問題
+- ✅ `eiken_vocabulary_lexicon` - 英検語彙データベース（10,000+語）
+- ✅ `eiken_topic_areas` - トピック管理（61トピック）
+- ✅ `eiken_topic_question_type_suitability` - 形式適性スコア
+- ✅ `eiken_topic_usage_history` - トピック使用履歴
 
 ## 🎨 デザインシステム
 
@@ -130,6 +146,33 @@
 | `/api/logs/health` | GET | なし | ログシステムヘルスチェック |
 | `/api/logs` | POST | Webhook Secret | 学習ログ記録 |
 | `/api/reports/weekly` | POST | Webhook Secret | 週次レポート生成 |
+
+### 🎓 英検対策API（Phase 3）
+| Path | Method | 説明 | 対応形式 |
+|------|--------|------|----------|
+| `/api/eiken/questions/generate` | POST | 問題生成 | grammar_fill, opinion_speech, reading_aloud, essay |
+| `/api/eiken/questions/list` | GET | 問題一覧 | 全形式 |
+| `/api/eiken/questions/:id` | GET | 問題詳細 | 全形式 |
+
+#### 問題生成リクエスト例
+```json
+{
+  "student_id": "12345",
+  "grade": "pre2",
+  "format": "grammar_fill",
+  "mode": "practice"
+}
+```
+
+#### 対応形式
+- ✅ `grammar_fill` - 文法穴埋め問題（4択）
+- ✅ `opinion_speech` - 意見スピーチ問題（模範解答付き）
+- ✅ `reading_aloud` - 音読問題（50-80語パッセージ）
+- ✅ `essay` - エッセイ問題（プロンプト+模範解答）
+- ⏳ `long_reading` - 長文読解問題（メンテナンス中）
+
+#### 利用可能グレード
+`5`, `4`, `3`, `pre2`, `2`, `pre1`, `1` (小文字)
 
 ## 🗄️ データ構造
 

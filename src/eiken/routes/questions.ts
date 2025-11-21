@@ -43,17 +43,36 @@ app.post('/generate', async (c) => {
     }
 
     // 有効な形式かチェック
-    const validFormats = ['grammar_fill', 'opinion_speech', 'reading_aloud', 'long_reading', 'essay'];
-    if (!validFormats.includes(body.format)) {
+    const availableFormats = ['grammar_fill', 'opinion_speech', 'reading_aloud', 'essay'];
+    const comingSoonFormats = ['long_reading'];
+    const allFormats = [...availableFormats, ...comingSoonFormats];
+    
+    if (!allFormats.includes(body.format)) {
       return c.json(
         {
           success: false,
           error: {
-            message: `Invalid format. Must be one of: ${validFormats.join(', ')}`,
+            message: `Invalid format. Must be one of: ${allFormats.join(', ')}`,
             code: 'VALIDATION_ERROR',
           },
         },
         400
+      );
+    }
+    
+    // long_reading は現在メンテナンス中
+    if (comingSoonFormats.includes(body.format)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: `Format '${body.format}' is currently under maintenance. Available formats: ${availableFormats.join(', ')}`,
+            code: 'FORMAT_UNAVAILABLE',
+            available_formats: availableFormats,
+            coming_soon_formats: comingSoonFormats,
+          },
+        },
+        503 // Service Unavailable
       );
     }
 
