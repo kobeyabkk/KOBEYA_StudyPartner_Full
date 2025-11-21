@@ -57,7 +57,8 @@ export default function GradeSelector({ value, onChange, disabled = false }: Gra
         目標級を選択
       </label>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* 左上から順に: 5級、4級、3級、準2級、2級、準1級、1級 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {grades.map((grade) => {
           const info = GRADE_INFO[grade];
           const isSelected = value === grade;
