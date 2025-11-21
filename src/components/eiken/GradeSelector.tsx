@@ -49,15 +49,17 @@ const GRADE_INFO: Record<EikenGrade, { label: string; level: string; description
 };
 
 export default function GradeSelector({ value, onChange, disabled = false }: GradeSelectorProps) {
+  // 表示順序: 5級 → 4級 → 3級 → 準2級 → 2級 → 準1級 → 1級
+  // （左上から右下に向かってこの順序で表示）
   const grades: EikenGrade[] = ['5', '4', '3', 'pre2', '2', 'pre1', '1'];
 
   return (
     <div className="space-y-4">
       <label className="block text-sm font-medium text-gray-700">
-        目標級を選択
+        目標級を選択 {/* v2.0 - 順序修正版 */}
       </label>
       
-      {/* 左上から順に: 5級、4級、3級、準2級、2級、準1級、1級 */}
+      {/* グリッドレイアウト: 左上から右へ、上から下へ自動配置 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {grades.map((grade) => {
           const info = GRADE_INFO[grade];
