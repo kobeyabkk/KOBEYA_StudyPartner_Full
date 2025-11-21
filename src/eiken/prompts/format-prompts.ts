@@ -333,6 +333,19 @@ Vocabulary Notes:
 **Format**:
 • "word/phrase" → 日本語での定義
 
+## 📖 VOCABULARY NOTES REQUIREMENT
+
+**IMPORTANT**: You MUST provide vocabulary notes for 5-8 key terms from your passage.
+- Select words that are important for understanding the passage
+- Choose words that appear in the passage and might be slightly challenging
+- Provide clear, simple Japanese definitions
+- Focus on content words (nouns, verbs, adjectives) rather than grammar words
+
+**Example vocabulary notes format**:
+• "smartphone" → スマートフォン、携帯電話
+• "worried" → 心配している
+• "outdoor" → 屋外の、外の
+
 ## 🎯 YOUR TASK
 
 Topic: "${topic.topic_label_en}" (${topic.topic_label_ja})
