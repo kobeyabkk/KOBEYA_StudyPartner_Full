@@ -155,26 +155,43 @@ export async function validateVocabulary(
     };
   }
   
-  // バッチでD1検索
+  // バッチでD1検索（D1のバインド変数制限対策: 100個ずつ処理）
   const violations: VocabularyViolation[] = [];
   let validWords = 0;
   
-  // SQLクエリを構築（IN句を使用）
-  const placeholders = wordsToCheck.map(() => '?').join(',');
-  const query = `
-    SELECT word_lemma as word, word_lemma as base_form, pos, cefr_level, grade_level as eiken_grade
-    FROM eiken_vocabulary_lexicon
-    WHERE word_lemma IN (${placeholders})
-  `;
-  
-  const stmt = db.prepare(query).bind(...wordsToCheck);
-  const result = await stmt.all<VocabularyEntry>();
+  // D1の安全なバインド変数制限（実際の制限より低めに設定）
+  const MAX_QUERY_PARAMS = 100;
   
   // 結果をMapに変換
   const wordMap = new Map<string, VocabularyEntry>();
-  if (result.results) {
-    for (const entry of result.results) {
-      wordMap.set(entry.word, entry);
+  
+  // 単語を100個ずつのバッチに分割
+  for (let i = 0; i < wordsToCheck.length; i += MAX_QUERY_PARAMS) {
+    const batch = wordsToCheck.slice(i, i + MAX_QUERY_PARAMS);
+    
+    console.log(`[VocabularyValidator] Processing batch ${Math.floor(i / MAX_QUERY_PARAMS) + 1}/${Math.ceil(wordsToCheck.length / MAX_QUERY_PARAMS)}: ${batch.length} words`);
+    
+    const placeholders = batch.map(() => '?').join(',');
+    const query = `
+      SELECT word_lemma as word, word_lemma as base_form, pos, cefr_level, grade_level as eiken_grade
+      FROM eiken_vocabulary_lexicon
+      WHERE word_lemma IN (${placeholders})
+    `;
+    
+    try {
+      const stmt = db.prepare(query).bind(...batch);
+      const result = await stmt.all<VocabularyEntry>();
+      
+      if (result.results) {
+        for (const entry of result.results) {
+          wordMap.set(entry.word, entry);
+        }
+      }
+      
+      console.log(`[VocabularyValidator] Batch ${Math.floor(i / MAX_QUERY_PARAMS) + 1} completed: found ${result.results?.length || 0} entries`);
+    } catch (error) {
+      console.error(`[VocabularyValidator] Error in batch ${Math.floor(i / MAX_QUERY_PARAMS) + 1}:`, error);
+      throw error;
     }
   }
   
@@ -300,16 +317,22 @@ export async function lookupWords(
     return new Map();
   }
   
-  const placeholders = unique.map(() => '?').join(',');
-  const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma IN (${placeholders})`;
-  
-  const stmt = db.prepare(query).bind(...unique);
-  const result = await stmt.all<VocabularyEntry>();
-  
+  // D1の安全なバインド変数制限（バッチ処理）
+  const MAX_QUERY_PARAMS = 100;
   const map = new Map<string, VocabularyEntry>();
-  if (result.results) {
-    for (const entry of result.results) {
-      map.set(entry.word_lemma, entry);
+  
+  for (let i = 0; i < unique.length; i += MAX_QUERY_PARAMS) {
+    const batch = unique.slice(i, i + MAX_QUERY_PARAMS);
+    const placeholders = batch.map(() => '?').join(',');
+    const query = `SELECT * FROM eiken_vocabulary_lexicon WHERE word_lemma IN (${placeholders})`;
+    
+    const stmt = db.prepare(query).bind(...batch);
+    const result = await stmt.all<VocabularyEntry>();
+    
+    if (result.results) {
+      for (const entry of result.results) {
+        map.set(entry.word_lemma, entry);
+      }
     }
   }
   
