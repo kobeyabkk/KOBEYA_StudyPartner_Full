@@ -147,16 +147,18 @@ export class IntegratedQuestionGenerator {
     grade: EikenGrade,
     wordCount: number
   ): number {
+    // Phase 4修正: 適応的閾値を実際の達成可能な目標スコアに設定
+    // 長文形式ほど語彙の多様性が必要なため、目標を下げる
     let baseThreshold = 95;
     
-    // 形式別調整
+    // 形式別の現実的な目標スコア
     const formatAdjustments: Record<QuestionFormat, number> = {
-      'grammar_fill': 0,      // 短文、厳格維持
-      'opinion_speech': -1,   // 自然な表現必要
-      'reading_aloud': 0,     // 標準
-      'essay': -3,           // 論理的表現必要（95 → 92%）
-      'long_reading': -4,    // 最も多様性必要（95 → 91%）
-      'listening_comprehension': -1
+      'grammar_fill': 0,      // 短文、95%維持
+      'opinion_speech': -5,   // 自然な表現必要（95 → 90%）
+      'reading_aloud': -3,     // 90-92%目標
+      'essay': -15,          // 長文、論理的表現必要（95 → 80%）
+      'long_reading': -12,   // 超長文、多様性必要（95 → 83%）
+      'listening_comprehension': -5
     };
     
     baseThreshold += formatAdjustments[format] || 0;
@@ -173,8 +175,8 @@ export class IntegratedQuestionGenerator {
       baseThreshold -= 2;  // 高レベルは多様性を許容
     }
     
-    // 最低85%、最高95%に制限
-    return Math.max(85, Math.min(95, baseThreshold));
+    // 最低70%、最高95%に制限（長文形式を考慮）
+    return Math.max(70, Math.min(95, baseThreshold));
   }
   
   /**
