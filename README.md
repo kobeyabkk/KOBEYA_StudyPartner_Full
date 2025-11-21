@@ -76,6 +76,13 @@
 - ✅ **全選択肢の語彙解説**: 正解・不正解全ての意味を表示
 - 🚧 **Coming Soon**: essay, long_reading（語彙レベル調整中）
 
+#### 🚀 英検対策機能（Phase 4 - Vocabulary Quality 向上中）
+- ✅ **VocabularyFailureTracker**: 動的禁止語学習システム
+- ✅ **Few-shot Examples**: Good/Bad対比による語彙制御
+- ✅ **Optimal Temperature**: 形式別LLMパラメータ調整（0.25-0.5）
+- ✅ **Adaptive Thresholds**: 形式・長さに応じた語彙検証基準
+- 🎯 **Target**: essay 64%→81%, long_reading 69%→85% (Phase 1)
+
 #### 新機能プレースホルダー
 - ✅ 小論文対策（実装予定）
 - ✅ インター生用（実装予定）
