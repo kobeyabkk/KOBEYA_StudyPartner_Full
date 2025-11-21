@@ -264,6 +264,12 @@ export interface PaginatedResponse<T> {
 export type ContextType = 'personal' | 'daily' | 'general' | 'social' | 'policy';
 export type QuestionFormat = 'grammar_fill' | 'conversation' | 'opinion_speech' | 'reading_aloud' | 'long_reading' | 'essay';
 
+// Vocabulary Notes for Student Support
+export interface VocabularyNote {
+  term: string;          // 英語の用語
+  definition: string;    // 日本語での定義
+}
+
 export interface TopicArea {
   id: number;
   grade: EikenGrade;
