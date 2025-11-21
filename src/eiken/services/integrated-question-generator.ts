@@ -123,9 +123,9 @@ export class IntegratedQuestionGenerator {
         reasoning: '長文なので最も厳格に制御'
       },
       'long_reading': {
-        temperature: 0.25,
-        top_p: 0.7,
-        reasoning: '超長文なので極めて厳格に'
+        temperature: 0.2,
+        top_p: 0.65,
+        reasoning: '超長文なので極めて厳格に（Phase 3改善: 0.25→0.2, top_p: 0.7→0.65）'
       },
       'listening_comprehension': {
         temperature: 0.4,
@@ -141,11 +141,13 @@ export class IntegratedQuestionGenerator {
    * 形式別の適応的語彙スコア閾値
    * 
    * 形式、級、文字数に応じて動的に調整
+   * Phase 4A: 注釈付き語彙の場合、閾値をさらに緩和
    */
   private getAdaptiveThreshold(
     format: QuestionFormat,
     grade: EikenGrade,
-    wordCount: number
+    wordCount: number,
+    hasVocabularyNotes: boolean = false
   ): number {
     // Phase 4修正: 適応的閾値を実際の達成可能な目標スコアに設定
     // 長文形式ほど語彙の多様性が必要なため、目標を下げる
@@ -162,6 +164,24 @@ export class IntegratedQuestionGenerator {
     };
     
     baseThreshold += formatAdjustments[format] || 0;
+    
+    // Phase 4A: 注釈付き語彙ボーナス（学習効果が高いため、より多様な語彙を許容）
+    if (hasVocabularyNotes) {
+      console.log(`[Threshold] Vocabulary notes detected - applying bonus adjustment`);
+      
+      // 形式別の注釈ボーナス（長文ほど大きなボーナス）
+      const glossaryBonus: Record<QuestionFormat, number> = {
+        'grammar_fill': -3,           // 80 → 77%（短文なので小さめ）
+        'opinion_speech': -5,         // 90 → 85%
+        'reading_aloud': -5,          // 92 → 87%
+        'essay': -10,                 // 80 → 70%（注釈で補える）
+        'long_reading': -8,           // 83 → 75%（注釈で補える）
+        'listening_comprehension': -5 // 90 → 85%
+      };
+      
+      baseThreshold += glossaryBonus[format] || -5;
+      console.log(`[Threshold] Applied ${glossaryBonus[format] || -5}% glossary bonus for ${format}`);
+    }
     
     // 文字数による調整（長いほど緩和）
     if (wordCount > 200) {
@@ -497,22 +517,35 @@ Always respond with valid JSON.`;
     // 英検級に対応するCEFRレベルを取得
     const targetCEFR = getTargetCEFR(grade);
     
-    // 適応的閾値を計算（形式と文字数を考慮）
+    // Phase 4A: vocabulary_notesの有無をチェック
+    const hasVocabularyNotes = !!(questionData.vocabulary_notes && 
+                                  Array.isArray(questionData.vocabulary_notes) && 
+                                  questionData.vocabulary_notes.length > 0);
+    
+    console.log(`[VocabValidation] Vocabulary notes present: ${hasVocabularyNotes} (count: ${questionData.vocabulary_notes?.length || 0})`);
+    
+    // 適応的閾値を計算（形式、文字数、注釈の有無を考慮）
     const wordCount = this.getWordCount(questionData);
     const adaptiveThreshold = format 
-      ? this.getAdaptiveThreshold(format, grade, wordCount)
+      ? this.getAdaptiveThreshold(format, grade, wordCount, hasVocabularyNotes)
       : 95; // デフォルト95%
     
-    console.log(`[VocabValidation] Adaptive threshold: ${adaptiveThreshold}% (format: ${format}, words: ${wordCount})`);
+    console.log(`[VocabValidation] Adaptive threshold: ${adaptiveThreshold}% (format: ${format}, words: ${wordCount}, glossary: ${hasVocabularyNotes})`);
     
     // max_violation_rate は (100 - threshold) / 100
     const maxViolationRate = (100 - adaptiveThreshold) / 100;
     
     // DB と CEFR レベルを正しく渡す
-    const validation = await validateVocabulary(textToValidate, this.db, {
-      target_level: targetCEFR as any,
-      max_violation_rate: maxViolationRate,
-    });
+    // Phase 4A: vocabulary_notesも渡して、語注付き語彙をバリデーションから除外
+    const validation = await validateVocabulary(
+      textToValidate, 
+      this.db, 
+      {
+        target_level: targetCEFR as any,
+        max_violation_rate: maxViolationRate,
+      },
+      questionData.vocabulary_notes || []
+    );
     
     const score = (validation.valid_words / validation.total_words) * 100 || 0;
     const passed = validation.valid && score >= adaptiveThreshold;
