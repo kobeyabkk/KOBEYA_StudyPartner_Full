@@ -61,7 +61,10 @@ app.post('/generate', async (c) => {
     }
     
     // essay と long_reading は現在メンテナンス中（語彙レベル調整が必要）
-    if (comingSoonFormats.includes(body.format)) {
+    // Phase 4テスト中は 'test_vocab_improvements' モードで有効化
+    const isTestMode = body.mode === 'test_vocab_improvements';
+    
+    if (comingSoonFormats.includes(body.format) && !isTestMode) {
       return c.json(
         {
           success: false,
@@ -71,10 +74,16 @@ app.post('/generate', async (c) => {
             reason: 'Vocabulary score below 95% threshold. Currently optimizing for appropriate difficulty level.',
             available_formats: availableFormats,
             coming_soon_formats: comingSoonFormats,
+            test_mode_hint: 'Use mode: "test_vocab_improvements" to test Phase 4 improvements',
           },
         },
         503 // Service Unavailable
       );
+    }
+    
+    // テストモードでのログ
+    if (isTestMode) {
+      console.log(`[TEST MODE] Allowing ${body.format} format for Phase 4 vocabulary testing`);
     }
 
     // OpenAI API Key チェック
