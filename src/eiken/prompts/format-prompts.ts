@@ -222,37 +222,116 @@ export function buildLongReadingPrompt(blueprint: Blueprint): string {
 ## 🎯 CRITICAL VOCABULARY REQUIREMENTS (PRIMARY GOAL FOR LONG PASSAGES)
 
 **TARGET LEVEL**: ${guidelines.vocabulary_level} ONLY
-**SUCCESS CRITERIA**: 90%+ of words must be within ${guidelines.vocabulary_level} (slightly relaxed for long passages)
-**FAILURE CONSEQUENCE**: If too many difficult words, passage will be REJECTED
+**SUCCESS CRITERIA**: 90%+ of words must be within ${guidelines.vocabulary_level}
+**FAILURE CONSEQUENCE**: If too many difficult words, passage will be REJECTED (aim for 85%+ minimum)
+
+**⚠️ Phase 3 WARNING**: Previous attempts scored 76.3% - this is TOO LOW and will be REJECTED.
+You MUST use simpler vocabulary throughout the entire passage. Every sentence matters!
 
 ## 🚫 FORBIDDEN WORDS (NEVER USE IN 200-300 WORD PASSAGES)
 
-**Academic Verbs**: facilitate, demonstrate, implement, establish, utilize, constitute, articulate
-**Abstract Adjectives**: sophisticated, comprehensive, substantial, considerable, prominent, profound, intricate
-**Formal Connectors**: furthermore, moreover, nevertheless, consequently, hence, whereas, thereby, notwithstanding
-**C1/C2 Words**: contemporary, predominantly, subsequently, ambiguous, endeavor, implications, stakeholders
+**Phase 3 Update**: Expanded forbidden words list for better vocabulary control
 
-## ✅ GOOD EXAMPLE (92% vocabulary score - FOLLOW THIS STYLE)
+**Academic Verbs (NEVER)**: 
+- facilitate, demonstrate, implement, establish, utilize, constitute, articulate
+- examine, analyze, evaluate, assess, investigate, emphasize, acknowledge
+- manifest, exemplify, elucidate, ascertain, discern, endeavor
+
+**Abstract Adjectives (NEVER)**: 
+- sophisticated, comprehensive, substantial, considerable, prominent, profound, intricate
+- significant, essential, crucial, fundamental, inevitable, remarkable
+- substantial, predominant, comprehensive, considerable
+
+**Formal Connectors (NEVER)**: 
+- furthermore, moreover, nevertheless, consequently, hence, whereas, thereby, notwithstanding
+- accordingly, thus, henceforth, thereafter, whereby
+
+**C1/C2 Words (NEVER)**: 
+- contemporary, predominantly, subsequently, ambiguous, endeavor, implications, stakeholders
+- adolescent (use "young people"), numerous (use "many"), acquire (use "get/learn")
+- proficiency (use "skill"), multilingual (use "speak many languages")
+- diminutive (use "small"), physiological (use "body"), ocular (use "eye")
+- disproportionate (use "too much"), precludes (use "stops/prevents")
+
+**Common Traps to Avoid**:
+- Don't use: "individuals" → Use: "people"
+- Don't use: "purchase" → Use: "buy"
+- Don't use: "commence" → Use: "start/begin"
+- Don't use: "terminate" → Use: "end/stop"
+- Don't use: "assist" → Use: "help"
+- Don't use: "obtain" → Use: "get"
+- Don't use: "require" → Use: "need"
+- Don't use: "sufficient" → Use: "enough"
+
+## ✅ GOOD EXAMPLE (92% vocabulary score - THIS IS YOUR TARGET QUALITY)
 
 ${LONG_READING_FEW_SHOT_EXAMPLES.good}
 
 **Why this works**:
 ${LONG_READING_FEW_SHOT_EXAMPLES.good_analysis}
 
-## ❌ BAD EXAMPLE (69% vocabulary score - DO NOT IMITATE)
+## ❌ BAD EXAMPLE (69% vocabulary score - THIS WILL BE REJECTED - DO NOT IMITATE)
 
 ${LONG_READING_FEW_SHOT_EXAMPLES.bad}
 
 **Problems identified**:
 ${LONG_READING_FEW_SHOT_EXAMPLES.bad_problems.map(p => `- ${p}`).join('\n')}
 
-## 📝 WRITING STRATEGY FOR LONG PASSAGES
+## 📝 WRITING STRATEGY FOR LONG PASSAGES (Phase 3 Enhanced)
 
-1. **Use short sentences** (12-18 words maximum)
-2. **Repeat key words**: Don't avoid repetition - clarity is more important than variety
-3. **Choose simple words**: today, people, many, important, use, help, need, want, think
-4. **Break paragraphs clearly**: One main idea per paragraph
-5. **Simple transitions**: First, Second, Also, But, However (not Nevertheless, Furthermore)
+**CRITICAL**: Every word counts in a 200-300 word passage. One difficult word can drop your score by 0.3-0.5%.
+
+1. **Use short sentences** (10-15 words maximum for long passages)
+   - Bad: "Contemporary adolescents demonstrate substantial engagement with mobile technology."
+   - Good: "Many young people today spend a lot of time using smartphones."
+
+2. **Repeat key words**: Don't avoid repetition - clarity is MORE important than variety
+   - It's OK to repeat "people", "important", "use" multiple times
+   - NEVER replace simple words with complex synonyms
+
+3. **Choose simple words FIRST** (A1-A2 level):
+   - Daily verbs: go, come, use, make, help, want, need, like, know, think, feel, see, hear
+   - Common nouns: people, time, day, way, thing, place, home, work, school, friend, family
+   - Basic adjectives: good, bad, new, old, big, small, important, difficult, easy, happy, sad
+
+4. **Break paragraphs clearly**: One main idea per paragraph (4-5 sentences each)
+
+5. **Simple transitions ONLY**: First, Second, Also, But, However, So, Then
+   - NEVER: Nevertheless, Furthermore, Moreover, Consequently, Thus
+
+6. **Self-check after EVERY sentence**: "Would a ${blueprint.grade} student know ALL these words?"
+   - If you have ANY doubt, use a simpler word!
+
+## 📖 VOCABULARY NOTES REQUIREMENT (Phase 4A Enhanced)
+
+**CRITICAL**: Vocabulary notes allow you to use richer vocabulary while maintaining accessibility!
+
+**Strategy**: You can now use up to 5-8 slightly higher-level words (B2) IF you provide notes
+- This makes your passage more natural and authentic
+- Students learn these words in context (highest learning effectiveness)
+- Matches real Eiken exam format (語注付き)
+
+**Guidelines**:
+1. **Use mostly A2-B1 vocabulary** (80-85% of words)
+2. **Add 5-8 B2 words WITH notes** (allows richer expression)
+3. **Focus on content words**: important nouns, key verbs, essential adjectives
+4. **Provide clear Japanese definitions**
+
+**Example - Good vocabulary selection with notes**:
+Passage: "Many young people today are concerned about climate change. They worry about the environment..."
+
+Vocabulary Notes:
+• "concerned" (B2) → 心配している、関心がある
+• "climate change" (B2) → 気候変動
+• "environment" (B2) → 環境
+
+**DON'T select**:
+❌ Function words (the, is, and, but)
+❌ Words students already know (go, come, big, small)
+❌ Words that are TOO difficult even with notes (C1/C2 words)
+
+**Format**:
+• "word/phrase" → 日本語での定義
 
 ## 🎯 YOUR TASK
 
@@ -271,13 +350,20 @@ ${instructions.prompt_template}
 - Number of questions: 3-4
 - Structure: Clear intro, 2-3 body paragraphs, simple conclusion
 
-## ✓ FINAL SELF-CHECK (before responding)
+## ✓ FINAL SELF-CHECK (Phase 3 Enhanced - MANDATORY before responding)
 
-□ Are 90%+ of my words at ${guidelines.vocabulary_level} level?
-□ Did I avoid all forbidden words listed above?
-□ Did I use short, clear sentences throughout?
-□ Is each paragraph focused on one main idea?
-□ Did I follow the GOOD example style, not the BAD example?
+**⚠️ CRITICAL**: Your passage MUST score 85%+ or it will be REJECTED. Check EVERY word!
+
+□ Are 90%+ of my words at ${guidelines.vocabulary_level} level? (Target: 85% minimum)
+□ Did I avoid ALL forbidden words listed above? (Zero tolerance)
+□ Did I use short, clear sentences (10-15 words)? (Every sentence counts)
+□ Is each paragraph focused on one main idea? (4-5 sentences each)
+□ Did I follow the GOOD example style (92%), not the BAD example (69%)?
+□ Did I check EVERY adjective, verb, and noun for complexity?
+□ Did I avoid ALL academic/formal vocabulary?
+□ Would a ${blueprint.grade} student understand EVERY word without a dictionary?
+
+**IF YOU ANSWERED "NO" OR "MAYBE" TO ANY QUESTION ABOVE, REWRITE THE PASSAGE!**
 
 ## 📤 Output Format (JSON)
 
@@ -295,18 +381,36 @@ ${instructions.prompt_template}
     }
   ],
   "vocabulary_notes": [
-    {"word": "term", "meaning_ja": "用語"}
+    {"term": "example term", "definition": "日本語での定義"},
+    {"term": "another term", "definition": "別の定義"}
   ],
   "vocabulary_self_check": "Confirm: I used only ${guidelines.vocabulary_level} vocabulary (yes/no)"
 }
 
-## Important Notes
+## Important Notes (Phase 3 Critical Requirements)
+
 - Passage should have clear structure (intro, body, conclusion)
 - Questions test different skills (main idea, details, inference)
 - All information needed to answer must be in the passage
 - Topic: ${topic.topic_label_en}
 - For each question, explanation MUST cover why the correct answer is right AND why each wrong choice is incorrect
-- **REMEMBER**: Simple, clear language for 200-300 words is HARD but ESSENTIAL. Complex vocabulary = REJECTED passage`;
+- **MUST include 5-8 vocabulary notes** for key terms that appear in the passage
+
+## 🚨 FINAL WARNING (Phase 3)
+
+**Previous attempts scored 76.3% - THIS IS TOO LOW!**
+
+Your passage will be AUTOMATICALLY REJECTED if:
+- Vocabulary score is below 85%
+- You use ANY word from the forbidden list
+- You use academic/formal language
+- Sentences are too long (>15 words)
+
+**SUCCESS FORMULA**:
+- Simple words (A1-A2) + Short sentences (10-15 words) + Clear structure = PASS
+- Complex words + Long sentences + Formal tone = FAIL
+
+**REMEMBER**: Writing simply for 200-300 words is HARD but ESSENTIAL. Complex vocabulary = REJECTED passage!`;
 }
 
 /**
@@ -352,6 +456,19 @@ ${ESSAY_FEW_SHOT_EXAMPLES.bad_problems.map(p => `- ${p}`).join('\n')}
 4. **Self-check**: Ask yourself "Would a ${blueprint.grade} student know this word?"
 5. **Simplify complex ideas**: Break down sophisticated concepts into simple language
 
+## 📖 VOCABULARY NOTES REQUIREMENT
+
+**IMPORTANT**: You MUST provide vocabulary notes for 3-5 key terms that appear in your essay prompt or sample essay.
+- Select words that are important for understanding the topic
+- Choose words that are at or just slightly above ${guidelines.vocabulary_level} level
+- Provide clear, simple Japanese definitions
+- Include terms that students might struggle with, but are necessary for this topic
+
+**Example vocabulary notes format**:
+• "renewable energy" → 再生可能エネルギー
+• "communicate" → コミュニケーションする、伝える
+• "opinion" → 意見
+
 ## 🎯 YOUR TASK
 
 Topic: "${topic.topic_label_en}" (${topic.topic_label_ja})
@@ -395,6 +512,10 @@ ${instructions.prompt_template}
   "sample_essay_ja": "模範解答の日本語訳",
   "useful_expressions": ["expression 1", "expression 2", "expression 3"],
   "common_mistakes": ["mistake to avoid 1", "mistake to avoid 2"],
+  "vocabulary_notes": [
+    {"term": "example term", "definition": "日本語での定義"},
+    {"term": "another term", "definition": "別の定義"}
+  ],
   "vocabulary_self_check": "Confirm: I used only ${guidelines.vocabulary_level} vocabulary (yes/no)"
 }
 
@@ -403,6 +524,7 @@ ${instructions.prompt_template}
 - Allow for different perspectives
 - Appropriate difficulty for ${blueprint.grade} level
 - Topic: ${topic.topic_label_en}
+- **MUST include 3-5 vocabulary notes** for key terms in the essay prompt or sample essay
 - **REMEMBER**: Simple vocabulary + clear structure = GOOD essay. Complex vocabulary = REJECTED essay`;
 }
 

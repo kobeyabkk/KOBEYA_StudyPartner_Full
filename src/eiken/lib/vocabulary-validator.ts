@@ -112,12 +112,22 @@ function determineSeverity(
 export async function validateVocabulary(
   text: string,
   db: D1Database,
-  config: Partial<ValidationConfig> = {}
+  config: Partial<ValidationConfig> = {},
+  vocabularyNotes: Array<{term?: string; word?: string; definition?: string}> = []
 ): Promise<ValidationResult> {
   const startTime = Date.now();
   
   // 設定をマージ
   const finalConfig: ValidationConfig = { ...DEFAULT_CONFIG, ...config };
+  
+  // Phase 4A: 語注付き語彙を抽出（これらの語彙はバリデーションから除外）
+  const glossaryWords = vocabularyNotes
+    .map(note => (note.term || note.word)?.toLowerCase())
+    .filter((word): word is string => !!word);
+  
+  if (glossaryWords.length > 0) {
+    console.log(`[VocabularyValidator] Detected ${glossaryWords.length} glossary words: ${glossaryWords.join(', ')}`);
+  }
   
   // 単語を抽出
   const extractedWords = extractWords(text);
@@ -136,9 +146,14 @@ export async function validateVocabulary(
   
   const wordsAfterProperNounFilter = Array.from(new Set(wordsWithOriginal.map(w => w.word)));
   
-  // 無視する単語を除外
+  // 無視する単語を除外（Phase 4A: 語注の単語も除外）
+  const ignoreWords = [...(finalConfig.ignore_words || []), ...glossaryWords];
   const wordsToCheck = wordsAfterProperNounFilter.filter(word => {
-    return !shouldIgnoreWord(word, finalConfig.ignore_words || []);
+    const shouldIgnore = shouldIgnoreWord(word, ignoreWords);
+    if (shouldIgnore && glossaryWords.includes(word)) {
+      console.log(`[VocabularyValidator] Skipping glossary word: ${word}`);
+    }
+    return !shouldIgnore;
   });
   
   if (wordsToCheck.length === 0) {
