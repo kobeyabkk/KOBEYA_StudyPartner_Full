@@ -18,6 +18,7 @@ import { selectModel, getModelSelectionReason } from '../utils/model-selector';
 import { validateVocabulary } from '../lib/vocabulary-validator';
 import { validateGeneratedQuestion } from './copyright-validator';
 import { getTargetCEFR } from './vocabulary-analyzer';
+import { VocabularyFailureTracker } from './vocabulary-tracker';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -74,6 +75,15 @@ export interface QuestionGenerationResult {
   error?: string;
 }
 
+/**
+ * LLM最適設定
+ */
+interface LLMConfig {
+  temperature: number;
+  top_p: number;
+  reasoning: string;
+}
+
 export class IntegratedQuestionGenerator {
   private db: D1Database;
   private blueprintGenerator: BlueprintGenerator;
@@ -83,6 +93,99 @@ export class IntegratedQuestionGenerator {
     this.db = db;
     this.blueprintGenerator = new BlueprintGenerator(db);
     this.openaiApiKey = openaiApiKey;
+  }
+
+  /**
+   * 形式別の最適なLLMパラメータ
+   * 
+   * 長文形式ほど低いtemperatureで語彙制御を強化
+   */
+  private getOptimalLLMConfig(format: QuestionFormat): LLMConfig {
+    const configs: Record<QuestionFormat, LLMConfig> = {
+      'grammar_fill': {
+        temperature: 0.5,
+        top_p: 0.9,
+        reasoning: '短文なので多様性とのバランス'
+      },
+      'opinion_speech': {
+        temperature: 0.4,
+        top_p: 0.85,
+        reasoning: '自然な表現必要だが制御優先'
+      },
+      'reading_aloud': {
+        temperature: 0.3,
+        top_p: 0.8,
+        reasoning: '語彙制御を最優先'
+      },
+      'essay': {
+        temperature: 0.3,
+        top_p: 0.75,
+        reasoning: '長文なので最も厳格に制御'
+      },
+      'long_reading': {
+        temperature: 0.25,
+        top_p: 0.7,
+        reasoning: '超長文なので極めて厳格に'
+      },
+      'listening_comprehension': {
+        temperature: 0.4,
+        top_p: 0.85,
+        reasoning: '自然な会話表現が必要'
+      }
+    };
+    
+    return configs[format] || configs['essay'];
+  }
+  
+  /**
+   * 形式別の適応的語彙スコア閾値
+   * 
+   * 形式、級、文字数に応じて動的に調整
+   */
+  private getAdaptiveThreshold(
+    format: QuestionFormat,
+    grade: EikenGrade,
+    wordCount: number
+  ): number {
+    let baseThreshold = 95;
+    
+    // 形式別調整
+    const formatAdjustments: Record<QuestionFormat, number> = {
+      'grammar_fill': 0,      // 短文、厳格維持
+      'opinion_speech': -1,   // 自然な表現必要
+      'reading_aloud': 0,     // 標準
+      'essay': -3,           // 論理的表現必要（95 → 92%）
+      'long_reading': -4,    // 最も多様性必要（95 → 91%）
+      'listening_comprehension': -1
+    };
+    
+    baseThreshold += formatAdjustments[format] || 0;
+    
+    // 文字数による調整（長いほど緩和）
+    if (wordCount > 200) {
+      baseThreshold -= 2;  // 200語超: さらに-2%
+    } else if (wordCount > 150) {
+      baseThreshold -= 1;  // 150語超: -1%
+    }
+    
+    // グレード別調整（高レベルほど許容）
+    if (grade === '1' || grade === 'pre1') {
+      baseThreshold -= 2;  // 高レベルは多様性を許容
+    }
+    
+    // 最低85%、最高95%に制限
+    return Math.max(85, Math.min(95, baseThreshold));
+  }
+  
+  /**
+   * 単語数カウント
+   */
+  private getWordCount(questionData: any): number {
+    const text = questionData.sample_essay 
+                 || questionData.passage 
+                 || questionData.question_text 
+                 || '';
+    return text.split(/\s+/).filter((w: string) => w.length > 0).length;
   }
 
   /**
@@ -137,10 +240,11 @@ export class IntegratedQuestionGenerator {
         // LLM呼び出し
         questionData = await this.callLLM(blueprint, selectedModel);
 
-        // 検証: 語彙レベル
+        // 検証: 語彙レベル（形式を渡して適応的閾値を使用）
         const vocabValidation = await this.validateVocabulary(
           questionData,
-          request.grade
+          request.grade,
+          request.format
         );
         vocabularyPassed = vocabValidation.passed;
         vocabularyScore = vocabValidation.score;
@@ -270,10 +374,46 @@ export class IntegratedQuestionGenerator {
   }
 
   /**
-   * LLM呼び出し
+   * LLM呼び出し（最適化版）
+   * 
+   * 形式別の最適パラメータと動的禁止語リストを使用
    */
-  private async callLLM(blueprint: Blueprint, model: string): Promise<any> {
-    const prompt = buildPromptForBlueprint(blueprint);
+  private async callLLM(
+    blueprint: Blueprint,
+    model: string,
+    additionalContext?: string
+  ): Promise<any> {
+    // 形式別の最適パラメータを取得
+    const llmConfig = this.getOptimalLLMConfig(blueprint.format);
+    
+    console.log(`[LLM] Using temperature=${llmConfig.temperature}, top_p=${llmConfig.top_p}`);
+    console.log(`[LLM] Reason: ${llmConfig.reasoning}`);
+    
+    // 動的禁止語リストを取得
+    const forbiddenWords = VocabularyFailureTracker.getForbiddenWords(blueprint.grade);
+    const recentViolations = VocabularyFailureTracker.getTopViolations(blueprint.grade, 15);
+    
+    console.log(`[LLM] Using ${forbiddenWords.length} forbidden words (${recentViolations.length} from recent failures)`);
+    
+    // ベースプロンプトを生成
+    const basePrompt = buildPromptForBlueprint(blueprint);
+    
+    // 追加の禁止語コンテキストを構築
+    const forbiddenWordsContext = recentViolations.length > 0
+      ? `\n\n## ⚠️ ADDITIONAL FORBIDDEN WORDS (from recent generation failures)\nThese words were used in previous attempts and caused vocabulary level violations:\n${recentViolations.join(', ')}\n\n**YOU MUST AVOID THESE WORDS!**`
+      : '';
+    
+    // 完全なプロンプト
+    const enhancedPrompt = `${basePrompt}${forbiddenWordsContext}${additionalContext || ''}`;
+    
+    // システムプロンプトに禁止語を含める
+    const systemContent = `You are a vocabulary-constrained English test creator for Eiken (英検) ${blueprint.grade} preparation.
+
+CRITICAL VOCABULARY CONSTRAINT: Use ONLY CEFR ${blueprint.guidelines.vocabulary_level} vocabulary.
+
+FORBIDDEN WORDS (NEVER use): ${forbiddenWords.slice(0, 30).join(', ')}
+
+Always respond with valid JSON.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -286,12 +426,13 @@ export class IntegratedQuestionGenerator {
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert English test creator for Eiken (英検) preparation. Always respond with valid JSON.' 
+            content: systemContent
           },
-          { role: 'user', content: prompt },
+          { role: 'user', content: enhancedPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
+        temperature: llmConfig.temperature,
+        top_p: llmConfig.top_p,
         max_tokens: 2000,
       }),
     });
@@ -308,12 +449,18 @@ export class IntegratedQuestionGenerator {
   }
 
   /**
-   * 語彙レベル検証
+   * 語彙レベル検証（適応的閾値対応版）
    */
   private async validateVocabulary(
     questionData: any,
-    grade: EikenGrade
-  ): Promise<{ passed: boolean; score: number }> {
+    grade: EikenGrade,
+    format?: QuestionFormat
+  ): Promise<{ 
+    passed: boolean; 
+    score: number; 
+    violations?: any[];
+    threshold?: number;
+  }> {
     // 問題テキストを抽出（形式によって異なる）
     let textToValidate = '';
     
@@ -348,10 +495,16 @@ export class IntegratedQuestionGenerator {
     // 英検級に対応するCEFRレベルを取得
     const targetCEFR = getTargetCEFR(grade);
     
-    // 級ごとの語彙バリデーション基準
-    // 英検1級: 30%まで許容（70%合格基準）- 高難度語彙のため基準を緩和
-    // その他: 25%まで許容（75%合格基準）
-    const maxViolationRate = grade === '1' ? 0.30 : 0.25;
+    // 適応的閾値を計算（形式と文字数を考慮）
+    const wordCount = this.getWordCount(questionData);
+    const adaptiveThreshold = format 
+      ? this.getAdaptiveThreshold(format, grade, wordCount)
+      : 95; // デフォルト95%
+    
+    console.log(`[VocabValidation] Adaptive threshold: ${adaptiveThreshold}% (format: ${format}, words: ${wordCount})`);
+    
+    // max_violation_rate は (100 - threshold) / 100
+    const maxViolationRate = (100 - adaptiveThreshold) / 100;
     
     // DB と CEFR レベルを正しく渡す
     const validation = await validateVocabulary(textToValidate, this.db, {
@@ -359,9 +512,28 @@ export class IntegratedQuestionGenerator {
       max_violation_rate: maxViolationRate,
     });
     
+    const score = (validation.valid_words / validation.total_words) * 100 || 0;
+    const passed = validation.valid && score >= adaptiveThreshold;
+    
+    console.log(`[VocabValidation] Score: ${Math.round(score)}%, Threshold: ${adaptiveThreshold}%, Passed: ${passed}`);
+    
+    // 失敗した場合、違反語を記録
+    if (!passed && validation.violations && validation.violations.length > 0) {
+      VocabularyFailureTracker.recordFailure(grade, validation.violations);
+      
+      // トップ違反語を表示
+      const topViolations = validation.violations
+        .slice(0, 5)
+        .map(v => `${v.word} (${v.actual_level})`)
+        .join(', ');
+      console.log(`[VocabValidation] Top violations: ${topViolations}`);
+    }
+    
     return {
-      passed: validation.valid,
-      score: (validation.valid_words / validation.total_words) * 100 || 0,
+      passed,
+      score,
+      violations: validation.violations,
+      threshold: adaptiveThreshold,
     };
   }
 
