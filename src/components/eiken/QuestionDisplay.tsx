@@ -34,6 +34,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const [startTime] = useState(Date.now());
   const [passageTranslations, setPassageTranslations] = useState<Map<string, PassageTranslation>>(new Map());
   const [translationStarted, setTranslationStarted] = useState(false);
+  const [prevPassage, setPrevPassage] = useState<string>(''); // 前の長文を記憶
 
   // 現在の問題の状態を取得
   const selectedAnswer = userAnswers.get(currentIndex) ?? null;
@@ -44,6 +45,19 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const answered = selectedAnswer !== null;
+
+  // 現在の長文を取得
+  const currentPassage = (currentQuestion as any).passage || '';
+  
+  // ユニークな長文のリストを作成し、現在の長文が何番目かを計算
+  const uniquePassages = Array.from(new Set(
+    questions
+      .filter(q => q.topic === 'long_reading' && (q as any).passage)
+      .map(q => (q as any).passage)
+  ));
+  const passageIndex = uniquePassages.indexOf(currentPassage);
+  const passageNumber = passageIndex >= 0 ? passageIndex + 1 : 1;
+  const totalPassages = uniquePassages.length;
 
   const handleAnswerSelect = (index: number) => {
     if (!canModifyAnswer) return; // 解説を見た後は変更不可
@@ -79,15 +93,25 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
+      const nextQuestion = questions[currentIndex + 1];
+      const nextPassage = (nextQuestion as any).passage || '';
+      // 長文が変わったら自動的に表示
+      if (nextPassage !== currentPassage) {
+        setShowPassage(true);
+      }
       setCurrentIndex(currentIndex + 1);
-      setShowPassage(true); // 次の問題では長文を表示
     }
   };
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
+      const prevQuestion = questions[currentIndex - 1];
+      const prevPassage = (prevQuestion as any).passage || '';
+      // 長文が変わったら自動的に表示
+      if (prevPassage !== currentPassage) {
+        setShowPassage(true);
+      }
       setCurrentIndex(currentIndex - 1);
-      setShowPassage(true); // 前の問題に戻ったら長文を表示
     }
   };
 
@@ -272,7 +296,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             >
               <span className="flex items-center gap-2">
                 <span className="text-xl">📖</span>
-                <span>{showPassage ? '長文を隠す' : '長文を表示'}</span>
+                <span>
+                  {showPassage ? '長文を隠す' : '長文を表示'}
+                  {totalPassages > 1 && ` (長文 ${passageNumber}/${totalPassages})`}
+                </span>
               </span>
               <span className={`transform transition-transform ${showPassage ? 'rotate-180' : ''}`}>
                 ▼
