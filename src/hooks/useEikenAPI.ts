@@ -156,12 +156,13 @@ export function useEikenGenerate() {
       }
 
       // Phase 3レスポンスを従来形式に変換 (後方互換性)
+      const generatedQuestions = phase3Data.data ? convertPhase3ToLegacyMulti(phase3Data.data.question) : [];
       const legacyFormat: GenerationResult = {
         success: true,
-        generated: phase3Data.data ? [convertPhase3ToLegacy(phase3Data.data.question)] : [],
+        generated: generatedQuestions,
         rejected: 0,
         totalAttempts: 1,
-        saved: 1,
+        saved: generatedQuestions.length,
       };
 
       // 元のPhase 3データも保持
@@ -189,7 +190,47 @@ export function useEikenGenerate() {
   };
 }
 
-// Phase 3レスポンスを従来形式に変換するヘルパー関数
+// Phase 3レスポンスを従来形式に変換（複数設問対応）
+function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion[] {
+  const questionData = question.question_data || {};
+  
+  // long_reading形式: questions配列がある場合
+  if (questionData.questions && Array.isArray(questionData.questions)) {
+    console.log('📚 Long reading format detected with', questionData.questions.length, 'sub-questions');
+    
+    return questionData.questions.map((q: any, index: number) => {
+      const choices = q.choices || [];
+      const correctAnswer = q.correct_answer;
+      
+      // 正解インデックスを計算（"C" → 2）
+      let correctAnswerIndex = 0;
+      if (typeof correctAnswer === 'string') {
+        // "C" や "A)" の形式に対応
+        const match = correctAnswer.match(/^([A-Z])/);
+        if (match) {
+          correctAnswerIndex = match[1].charCodeAt(0) - 'A'.charCodeAt(0);
+        }
+      }
+      
+      return {
+        questionNumber: index + 1,
+        questionText: q.question_text || '',
+        choices: choices.map((c: string) => c.replace(/^[A-Z]\)\s*/, '')), // "A) Math" → "Math"
+        correctAnswerIndex,
+        explanation: q.explanation || '',
+        difficulty: 0.6,
+        topic: question.format,
+        copyrightSafe: true,
+        copyrightScore: 95,
+      };
+    });
+  }
+  
+  // 単一設問形式（grammar_fill, essayなど）
+  return [convertPhase3ToLegacy(question)];
+}
+
+// Phase 3レスポンスを従来形式に変換するヘルパー関数（単一設問用）
 function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
   // question_dataから実際のデータを取得
   const questionData = question.question_data || {};
