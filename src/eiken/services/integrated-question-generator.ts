@@ -19,6 +19,7 @@ import { validateVocabulary } from '../lib/vocabulary-validator';
 import { validateGeneratedQuestion } from './copyright-validator';
 import { getTargetCEFR } from './vocabulary-analyzer';
 import { VocabularyFailureTracker } from './vocabulary-tracker';
+import { validateGrammarComplexity } from '../config/grammar-constraints';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -262,7 +263,15 @@ export class IntegratedQuestionGenerator {
         // LLM呼び出し
         questionData = await this.callLLM(blueprint, selectedModel);
 
-        // 検証: 語彙レベル（形式を渡して適応的閾値を使用）
+        // 検証1: 文法複雑さ（Phase 4B）
+        const grammarValidation = this.validateGrammar(questionData, request.grade);
+        if (!grammarValidation.passed) {
+          console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
+          console.log(`[Grammar Rejection] Violations: ${grammarValidation.violations.join(', ')}`);
+          continue;
+        }
+
+        // 検証2: 語彙レベル（形式を渡して適応的閾値を使用）
         const vocabValidation = await this.validateVocabulary(
           questionData,
           request.grade,
@@ -276,7 +285,7 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
-        // 検証: 著作権
+        // 検証3: 著作権
         const copyrightValidation = await this.validateCopyright(
           questionData,
           request.grade
@@ -289,7 +298,7 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
-        // 両方パス！
+        // 全検証パス！
         console.log(`[Validation Passed] All checks passed on attempt ${attempts}`);
         break;
 
@@ -941,5 +950,48 @@ Always respond with valid JSON.`;
         new Date().toISOString()
       )
       .run();
+  }
+
+  /**
+   * Phase 4B: 文法複雑さの検証
+   * 
+   * 級別の文法制約に違反していないかチェック
+   */
+  private validateGrammar(
+    questionData: any,
+    grade: EikenGrade
+  ): { passed: boolean; violations: string[] } {
+    const textToValidate: string[] = [];
+
+    // 検証対象のテキストを収集
+    if (questionData.question_text) {
+      textToValidate.push(questionData.question_text);
+    }
+    if (questionData.passage) {
+      textToValidate.push(questionData.passage);
+    }
+    if (questionData.choices && Array.isArray(questionData.choices)) {
+      textToValidate.push(...questionData.choices);
+    }
+    if (questionData.questions && Array.isArray(questionData.questions)) {
+      for (const q of questionData.questions) {
+        if (q.question_text) {
+          textToValidate.push(q.question_text);
+        }
+        if (q.choices && Array.isArray(q.choices)) {
+          textToValidate.push(...q.choices);
+        }
+      }
+    }
+
+    // 全テキストを結合して検証
+    const fullText = textToValidate.join(' ');
+    const result = validateGrammarComplexity(fullText, grade);
+
+    if (!result.passed) {
+      console.log(`[Grammar Validation] Grade ${grade} violations found:`, result.violations);
+    }
+
+    return result;
   }
 }
