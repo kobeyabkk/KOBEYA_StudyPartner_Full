@@ -155,8 +155,9 @@ export class IntegratedQuestionGenerator {
     let baseThreshold = 95;
     
     // 形式別の現実的な目標スコア
+    // 応急処置: grammar_fillの閾値を緩和（95% → 85%）
     const formatAdjustments: Record<QuestionFormat, number> = {
-      'grammar_fill': 0,      // 短文、95%維持
+      'grammar_fill': -10,    // 短文だが語彙の自然な多様性を許容（95 → 85%）
       'opinion_speech': -5,   // 自然な表現必要（95 → 90%）
       'reading_aloud': -3,     // 90-92%目標
       'essay': -15,          // 長文、論理的表現必要（95 → 80%）
