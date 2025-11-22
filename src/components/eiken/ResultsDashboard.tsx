@@ -2,9 +2,13 @@
  * 英検練習結果ダッシュボード
  */
 
+import { useState } from 'react';
+
 interface AnswerResult {
   question: {
     questionText: string;
+    passage?: string; // 長文読解の原文
+    passageJa?: string; // 長文読解の翻訳
     choices: string[];
     correctAnswerIndex: number;
     explanation: string;
@@ -69,6 +73,7 @@ export default function ResultsDashboard({ results, onReset }: ResultsDashboardP
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* \u30b3\u30f3\u30dd\u30fc\u30cd\u30f3\u30c8\u306f\u4e0b\u90e8\u3067\u5b9a\u7fa9 */}
       {/* ヘッダー */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">練習結果</h1>
@@ -183,55 +188,20 @@ export default function ResultsDashboard({ results, onReset }: ResultsDashboardP
         </div>
       </div>
 
+      {/* 長文読解のパッセージ表示 */}
+      {results.some(r => r.question.topic === 'long_reading' && r.question.passage) && (
+        <LongReadingPassages results={results} />
+      )}
+
       {/* 問題詳細レビュー */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <span>📝</span>
-          問題レビュー
+          問題レビュー（全問題の解説）
         </h3>
         <div className="space-y-4">
           {results.map((result, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg border-2 ${
-                result.correct ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 text-2xl">
-                  {result.correct ? '✅' : '❌'}
-                </span>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 mb-2">
-                    Q{index + 1}: {result.question.questionText}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">あなたの解答: </span>
-                      <span className={result.correct ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
-                        {result.question.choices[result.userAnswer]}
-                      </span>
-                    </div>
-                    {!result.correct && (
-                      <div>
-                        <span className="text-gray-600">正解: </span>
-                        <span className="text-green-700 font-medium">
-                          {result.question.choices[result.question.correctAnswerIndex]}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {!result.correct && (
-                    <div className="mt-2 p-3 bg-white rounded border border-gray-200">
-                      <div className="text-sm text-gray-700">
-                        <span className="font-medium">解説: </span>
-                        {result.question.explanation}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <QuestionReviewCard key={index} result={result} index={index} />
           ))}
         </div>
       </div>
@@ -244,6 +214,156 @@ export default function ResultsDashboard({ results, onReset }: ResultsDashboardP
         >
           新しい問題に挑戦
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 長文読解のパッセージ表示コンポーネント
+ */
+function LongReadingPassages({ results }: { results: AnswerResult[] }) {
+  // ユニークなパッセージを抽出
+  const uniquePassages = new Map<string, { passage: string; passageJa?: string }>();
+  results.forEach(r => {
+    if (r.question.topic === 'long_reading' && r.question.passage) {
+      const passage = r.question.passage;
+      if (!uniquePassages.has(passage)) {
+        uniquePassages.set(passage, {
+          passage,
+          passageJa: r.question.passageJa,
+        });
+      }
+    }
+  });
+
+  if (uniquePassages.size === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <span>📖</span>
+        長文パッセージ
+      </h3>
+      <div className="space-y-6">
+        {Array.from(uniquePassages.entries()).map(([key, data], idx) => (
+          <PassageCard key={idx} passage={data.passage} passageJa={data.passageJa} index={idx} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 個別パッセージカード
+ */
+function PassageCard({ passage, passageJa, index }: { passage: string; passageJa?: string; index: number }) {
+  const [showTranslation, setShowTranslation] = useState(false);
+
+  return (
+    <div className="p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-bold text-gray-900">
+          Passage {index + 1}
+        </h4>
+        {passageJa && (
+          <button
+            onClick={() => setShowTranslation(!showTranslation)}
+            className="px-4 py-2 rounded-lg font-medium bg-purple-600 text-white hover:bg-purple-700 transition-all text-sm"
+          >
+            {showTranslation ? '英語を表示' : '日本語訳を表示'}
+          </button>
+        )}
+      </div>
+
+      {/* 英語原文 */}
+      {!showTranslation && (
+        <div className="prose prose-sm max-w-none">
+          <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+            {passage}
+          </p>
+        </div>
+      )}
+
+      {/* 日本語訳 */}
+      {showTranslation && passageJa && (
+        <div className="prose prose-sm max-w-none">
+          <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+            {passageJa}
+          </p>
+        </div>
+      )}
+
+      {!passageJa && showTranslation && (
+        <div className="text-gray-500 italic">
+          翻訳を生成中です...
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 問題レビューカード（解説を常に表示）
+ */
+function QuestionReviewCard({ result, index }: { result: AnswerResult; index: number }) {
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  return (
+    <div
+      className={`p-4 rounded-lg border-2 ${
+        result.correct ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex-shrink-0 text-2xl">
+          {result.correct ? '✅' : '❌'}
+        </span>
+        <div className="flex-1">
+          <div className="font-medium text-gray-900 mb-2">
+            Q{index + 1}: {result.question.questionText}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-2">
+            <div>
+              <span className="text-gray-600">あなたの解答: </span>
+              <span className={result.correct ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
+                {result.question.choices[result.userAnswer]}
+              </span>
+            </div>
+            {!result.correct && (
+              <div>
+                <span className="text-gray-600">正解: </span>
+                <span className="text-green-700 font-medium">
+                  {result.question.choices[result.question.correctAnswerIndex]}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* 解説アコーディオン（全問題で表示） */}
+          <div className="mt-2">
+            <button
+              onClick={() => setShowExplanation(!showExplanation)}
+              className="w-full px-4 py-2 rounded-lg font-medium bg-white border-2 border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-all text-sm text-left flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <span>📚</span>
+                <span>解説を{showExplanation ? '隠す' : '見る'}</span>
+              </span>
+              <span className={`transform transition-transform ${showExplanation ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {showExplanation && (
+              <div className="mt-2 p-3 bg-white rounded border border-gray-200">
+                <div className="text-sm text-gray-700">
+                  {result.question.explanation}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

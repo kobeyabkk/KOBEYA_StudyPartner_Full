@@ -74,6 +74,8 @@ export interface Phase3GenerationResult {
 export interface GeneratedQuestion {
   questionNumber: number;
   questionText: string;
+  passage?: string; // long_reading形式の場合に使用
+  passageJa?: string; // long_reading形式の問題文の日本語訳
   choices: string[];
   correctAnswerIndex: number;
   explanation: string;
@@ -126,47 +128,81 @@ export function useEikenGenerate() {
     setResult(null);
 
     try {
-      // Phase 3 APIを使用
-      const phase3Request: Phase3QuestionGenerationRequest = {
-        student_id: 'web_user_' + Date.now(),  // 仮のuser ID
-        grade: request.grade,
-        format: request.format as any,  // UIからの format を使用
-        count: request.count,
-        difficulty_preference: 'adaptive',
-        difficulty_level: request.difficulty || 0.6,
-        topic_hints: request.topicHints,
-      };
+      const requestedQuestionCount = request.count || 1;
+      
+      // long_reading形式の場合、必要なパッセージ数を計算
+      // 平均3.5問/パッセージと仮定
+      const isLongReading = request.format === 'long_reading';
+      const passageCount = isLongReading 
+        ? Math.ceil(requestedQuestionCount / 3.5) // 5問 → 2パッセージ, 10問 → 3パッセージ
+        : requestedQuestionCount;
+      
+      console.log(`📊 Generating ${isLongReading ? passageCount + ' passages for ~' + requestedQuestionCount + ' questions' : requestedQuestionCount + ' questions'}...`);
+      
+      const allGeneratedQuestions: GeneratedQuestion[] = [];
+      let totalAttempts = 0;
+      let rejected = 0;
+      
+      // 複数問題を順次生成
+      for (let i = 0; i < passageCount; i++) {
+        console.log(`\n🔄 Generating ${isLongReading ? 'passage' : 'question'} ${i + 1}/${passageCount}...`);
+        
+        // Phase 3 APIリクエスト（1問ずつ）
+        const phase3Request: Phase3QuestionGenerationRequest = {
+          student_id: 'web_user_' + Date.now(),
+          grade: request.grade,
+          format: request.format as any,
+          count: 1, // API側は1問ずつ生成
+          difficulty_preference: 'adaptive',
+          difficulty_level: request.difficulty || 0.6,
+          topic_hints: request.topicHints,
+        };
 
-      console.log('📡 Sending Phase 3 API request:', phase3Request);
-      const response = await fetch('/api/eiken/questions/generate', {  // Phase 3 API
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(phase3Request),
-      });
+        const response = await fetch('/api/eiken/questions/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(phase3Request),
+        });
 
-      console.log('📥 API response status:', response.status, response.ok);
-      const phase3Data: Phase3GenerationResult = await response.json();
-      console.log('📦 Phase 3 API response data:', phase3Data);
-      console.log('🔎 Question object structure:', JSON.stringify(phase3Data.data?.question, null, 2));
+        const phase3Data: Phase3GenerationResult = await response.json();
+        
+        if (!response.ok || !phase3Data.success) {
+          console.warn(`⚠️ Question ${i + 1} generation failed:`, phase3Data.error?.message);
+          rejected++;
+          totalAttempts++;
+          continue; // 次の問題へ
+        }
 
-      if (!response.ok || !phase3Data.success) {
-        throw new Error(phase3Data.error?.message || `HTTP error! status: ${response.status}`);
+        // 変換して追加
+        const convertedQuestions = phase3Data.data ? convertPhase3ToLegacyMulti(phase3Data.data.question) : [];
+        allGeneratedQuestions.push(...convertedQuestions);
+        totalAttempts++;
+        
+        console.log(`✅ ${isLongReading ? 'Passage' : 'Question'} ${i + 1}/${passageCount} generated successfully (${allGeneratedQuestions.length} total questions)`);
+        
+        // long_readingで要求数に達したら打ち切り
+        if (isLongReading && allGeneratedQuestions.length >= requestedQuestionCount) {
+          console.log(`✅ Reached requested question count (${requestedQuestionCount}), stopping generation`);
+          break;
+        }
+        
+        // API rate limit対策（最後の問題以外は少し待機）
+        if (i < passageCount - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      // Phase 3レスポンスを従来形式に変換 (後方互換性)
-      const generatedQuestions = phase3Data.data ? convertPhase3ToLegacyMulti(phase3Data.data.question) : [];
+      console.log(`\n📊 Generation complete: ${allGeneratedQuestions.length} succeeded, ${rejected} rejected`);
+
       const legacyFormat: GenerationResult = {
         success: true,
-        generated: generatedQuestions,
-        rejected: 0,
-        totalAttempts: 1,
-        saved: generatedQuestions.length,
+        generated: allGeneratedQuestions,
+        rejected,
+        totalAttempts,
+        saved: allGeneratedQuestions.length,
       };
-
-      // 元のPhase 3データも保持
-      (legacyFormat as any).phase3Data = phase3Data.data;
 
       setResult(legacyFormat);
       console.log('💾 Result stored in state:', legacyFormat);
@@ -198,6 +234,10 @@ function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion
   if (questionData.questions && Array.isArray(questionData.questions)) {
     console.log('📚 Long reading format detected with', questionData.questions.length, 'sub-questions');
     
+    // パッセージと翻訳を取得
+    const passage = questionData.passage || '';
+    const passageJa = questionData.passage_ja || ''; // 日本語訳を取得
+    
     return questionData.questions.map((q: any, index: number) => {
       const choices = q.choices || [];
       const correctAnswer = q.correct_answer;
@@ -215,6 +255,8 @@ function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion
       return {
         questionNumber: index + 1,
         questionText: q.question_text || '',
+        passage: passage, // 各設問にパッセージを含める
+        passageJa: passageJa, // 各設問に翻訳も含める
         choices: choices.map((c: string) => c.replace(/^[A-Z]\)\s*/, '')), // "A) Math" → "Math"
         correctAnswerIndex,
         explanation: q.explanation || '',
@@ -222,7 +264,7 @@ function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion
         topic: question.format,
         copyrightSafe: true,
         copyrightScore: 95,
-      };
+      } as GeneratedQuestion;
     });
   }
   
@@ -237,7 +279,14 @@ function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
   
   // 選択肢の取得（複数の可能性に対応）
   let choices: string[] = [];
-  if (questionData.choices) {
+  
+  // grammar_fill形式: distractors + correct_answer から choices を構築
+  if (questionData.distractors && questionData.correct_answer) {
+    const allChoices = [...questionData.distractors, questionData.correct_answer];
+    // シャッフルして表示順をランダム化
+    choices = allChoices.sort(() => Math.random() - 0.5);
+    console.log('🔀 Built choices from distractors + correct_answer:', choices);
+  } else if (questionData.choices) {
     choices = Array.isArray(questionData.choices) ? questionData.choices : [];
   } else if (question.choices_json) {
     choices = JSON.parse(question.choices_json);

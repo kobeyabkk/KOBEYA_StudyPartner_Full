@@ -36,6 +36,7 @@ import generateRoute from './eiken/routes/generate'
 import topicRoutes from './eiken/routes/topic-routes'
 import blueprintRoutes from './eiken/routes/blueprint-routes'
 import questionRoutes from './eiken/routes/questions'  // Phase 3
+import translateRoute from './eiken/routes/translate'  // Translation API
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
@@ -20483,6 +20484,9 @@ app.route('/api/eiken/blueprints', blueprintRoutes)
 
 // Phase 3: Integrated Question Generation エンドポイント
 app.route('/api/eiken/questions', questionRoutes)
+
+// Translation API エンドポイント
+app.route('/api/eiken/translate', translateRoute)
 
 // 404ハンドラー
 app.notFound((c) => {

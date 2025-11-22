@@ -26,15 +26,32 @@ const TOPIC_SUGGESTIONS = [
 export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGeneratorProps) {
   const [grade, setGrade] = useState<EikenGrade>('pre1');
   const [format, setFormat] = useState('grammar_fill');  // Phase 3: format instead of section
+  // 長文読解はデフォルト3パッセージ、他は5問
   const [count, setCount] = useState(5);
   const [difficulty, setDifficulty] = useState(0.6);
+  
+  // format変更時にcountを適切な値にリセット
+  const handleFormatChange = (newFormat: string) => {
+    setFormat(newFormat);
+    if (newFormat === 'long_reading') {
+      setCount(Math.min(count, 3)); // 長文は最大3パッセージに制限
+    }
+  };
   const [topicHints, setTopicHints] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState('');
 
   const { loading, error, result, generateQuestions } = useEikenGenerate();
+  const [progressMessage, setProgressMessage] = useState('');
+  const [estimatedTime, setEstimatedTime] = useState(0);
 
   const handleGenerate = async () => {
     console.log('🔴 handleGenerate CALLED!');
+    
+    // 推定時間を計算
+    const timePerQuestion = format === 'long_reading' ? 12 : format === 'essay' ? 8 : 4;
+    const estimated = Math.ceil(count * timePerQuestion);
+    setEstimatedTime(estimated);
+    setProgressMessage(`問題を生成中... (推定時間: 約${estimated}秒)`)
     
     try {
       console.log('🎯 Generating questions with:', { grade, format, count, difficulty });
@@ -128,6 +145,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
           <label className="block text-sm font-medium text-gray-700 mb-2">
             生成する問題数: <span className="text-blue-600 font-bold">{count}問</span>
           </label>
+          {format === 'long_reading' && (
+            <p className="text-xs text-gray-500 mb-2">
+              💡 長文読解：約{Math.ceil(count / 3.5)}パッセージを生成します（各パッセージに3-4問）
+            </p>
+          )}
           <input
             type="range"
             min="1"
@@ -237,12 +259,19 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
           `}
         >
           {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              問題を生成中...
+            <span className="flex flex-col items-center justify-center gap-3">
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                問題を生成中...
+              </div>
+              {estimatedTime > 0 && (
+                <span className="text-sm opacity-90">
+                  推定時間: 約{estimatedTime}秒 | {count}問生成中
+                </span>
+              )}
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">

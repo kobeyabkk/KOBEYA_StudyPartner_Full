@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * 英検問題表示・解答コンポーネント
@@ -17,19 +17,29 @@ interface AnswerResult {
   timeSpent: number;
 }
 
+interface PassageTranslation {
+  passage: string;
+  translation: string;
+  loading: boolean;
+  error?: string;
+}
+
 export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false); // 解答済みフラグ
+  const [showExplanation, setShowExplanation] = useState(false); // アコーディオン表示フラグ
   const [results, setResults] = useState<AnswerResult[]>([]);
   const [startTime] = useState(Date.now());
+  const [passageTranslations, setPassageTranslations] = useState<Map<string, PassageTranslation>>(new Map());
+  const [translationStarted, setTranslationStarted] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const answered = selectedAnswer !== null;
 
   const handleAnswerSelect = (index: number) => {
-    if (showExplanation) return; // 既に解答済みの場合は変更不可
+    if (isSubmitted) return; // 既に解答済みの場合は変更不可
     setSelectedAnswer(index);
   };
 
@@ -47,31 +57,53 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     };
 
     setResults([...results, newResult]);
-    setShowExplanation(true);
+    setIsSubmitted(true); // 解答済みにする（解説は非表示のまま）
   };
 
   const handleNext = () => {
     if (isLastQuestion) {
-      // 全問題完了
+      // 全問題完了 - 翻訳データも一緒に渡す
       if (onComplete) {
-        onComplete([...results]);
+        // resultsに翻訳データを追加
+        const resultsWithTranslations = results.map(r => {
+          const q = r.question as any;
+          if (q.passage && passageTranslations.has(q.passage)) {
+            const translationData = passageTranslations.get(q.passage);
+            return {
+              ...r,
+              question: {
+                ...r.question,
+                passageJa: translationData?.translation || '',
+              },
+            };
+          }
+          return r;
+        });
+        onComplete(resultsWithTranslations);
       }
     } else {
       // 次の問題へ
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer(null);
+      setIsSubmitted(false);
       setShowExplanation(false);
     }
   };
 
+  // 解説の表示/非表示を切り替え
+  const toggleExplanation = () => {
+    setShowExplanation(!showExplanation);
+  };
+
   const getChoiceColor = (index: number) => {
+    // 解説を見るボタンを押すまでは色を表示しない
     if (!showExplanation) {
       return selectedAnswer === index 
         ? 'border-blue-500 bg-blue-50' 
         : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50';
     }
 
-    // 解答表示時
+    // 解説表示時のみ正解/不正解の色を表示
     if (index === currentQuestion.correctAnswerIndex) {
       return 'border-green-500 bg-green-50'; // 正解
     }
@@ -91,6 +123,78 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       return <span className="text-red-600 text-xl">✗</span>;
     }
     return null;
+  };
+
+  // バックグラウンド翻訳の開始
+  useEffect(() => {
+    // 最初の問題を開始したら、長文読解の翻訳を開始
+    if (currentIndex === 0 && !translationStarted && questions.length > 0) {
+      setTranslationStarted(true);
+      startBackgroundTranslations();
+    }
+  }, [currentIndex, translationStarted, questions]);
+
+  const startBackgroundTranslations = async () => {
+    // long_reading形式の問題から、ユニークなpassageを抽出
+    const uniquePassages = new Map<string, string>();
+    questions.forEach((q) => {
+      if (q.topic === 'long_reading' && (q as any).passage) {
+        const passage = (q as any).passage;
+        if (!uniquePassages.has(passage) && !passageTranslations.has(passage)) {
+          uniquePassages.set(passage, passage);
+        }
+      }
+    });
+
+    console.log(`🌍 Starting background translation for ${uniquePassages.size} passages...`);
+
+    // 各パッセージを翻訳
+    for (const [key, passage] of uniquePassages.entries()) {
+      // ローディング状態をセット
+      setPassageTranslations(prev => new Map(prev).set(key, {
+        passage,
+        translation: '',
+        loading: true,
+      }));
+
+      try {
+        // OpenAI APIで翻訳
+        const response = await fetch('/api/eiken/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: passage }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Translation failed');
+        }
+
+        const data = await response.json();
+        const translation = data.translation || '';
+
+        console.log(`✅ Translation completed for passage (${passage.substring(0, 50)}...)`);
+
+        // 翻訳結果をセット
+        setPassageTranslations(prev => new Map(prev).set(key, {
+          passage,
+          translation,
+          loading: false,
+        }));
+      } catch (error) {
+        console.error('❌ Translation error:', error);
+        setPassageTranslations(prev => new Map(prev).set(key, {
+          passage,
+          translation: '',
+          loading: false,
+          error: '翻訳に失敗しました',
+        }));
+      }
+
+      // Rate limit対策（次の翻訳まで少し待機）
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    console.log('🌍 All translations completed!');
   };
 
   const correctCount = results.filter((r: AnswerResult) => r.correct).length;
@@ -118,6 +222,21 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
       {/* 問題カード */}
       <div className="bg-white rounded-xl shadow-lg p-8">
+        {/* 長文パッセージ（long_reading形式の場合） */}
+        {currentQuestion.topic === 'long_reading' && (currentQuestion as any).passage && (
+          <div className="mb-8 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">📖</span>
+              <h3 className="text-lg font-bold text-gray-900">Reading Passage</h3>
+            </div>
+            <div className="prose prose-sm max-w-none">
+              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                {(currentQuestion as any).passage}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* 問題文 */}
         <div className="mb-6">
           <div className="flex items-start gap-3 mb-4">
@@ -149,18 +268,18 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             <button
               key={index}
               onClick={() => handleAnswerSelect(index)}
-              disabled={showExplanation}
+              disabled={isSubmitted}
               className={`
                 w-full p-4 rounded-lg border-2 text-left transition-all
                 flex items-center justify-between
                 ${getChoiceColor(index)}
-                ${showExplanation ? 'cursor-default' : 'cursor-pointer'}
+                ${isSubmitted ? 'cursor-default' : 'cursor-pointer'}
               `}
             >
               <div className="flex items-center gap-3 flex-1">
                 <span className={`
                   flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold
-                  ${selectedAnswer === index && !showExplanation ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
+                  ${selectedAnswer === index && !isSubmitted ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
                   ${showExplanation && index === currentQuestion.correctAnswerIndex ? 'bg-green-500 text-white' : ''}
                   ${showExplanation && selectedAnswer === index && index !== currentQuestion.correctAnswerIndex ? 'bg-red-500 text-white' : ''}
                 `}>
@@ -173,9 +292,9 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           ))}
         </div>
 
-        {/* 解説表示 */}
-        {showExplanation && (
-          <div className={`p-4 rounded-lg border-2 ${
+        {/* 解説表示（アコーディオン） */}
+        {isSubmitted && showExplanation && (
+          <div className={`p-4 rounded-lg border-2 mt-4 ${
             selectedAnswer === currentQuestion.correctAnswerIndex
               ? 'bg-green-50 border-green-200'
               : 'bg-red-50 border-red-200'
@@ -202,7 +321,8 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
         {/* アクションボタン */}
         <div className="flex gap-3 mt-6">
-          {!showExplanation ? (
+          {!isSubmitted ? (
+            // 解答前：解答するボタンのみ
             <button
               onClick={handleSubmit}
               disabled={!answered}
@@ -217,12 +337,21 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               解答する
             </button>
           ) : (
-            <button
-              onClick={handleNext}
-              className="flex-1 py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
-            >
-              {isLastQuestion ? '結果を見る' : '次の問題へ'}
-            </button>
+            // 解答後：結果を見る + 次の問題 の2つのボタン
+            <>
+              <button
+                onClick={toggleExplanation}
+                className="flex-1 py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                {showExplanation ? '解説を隠す' : '結果を見る'}
+              </button>
+              <button
+                onClick={handleNext}
+                className="flex-1 py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                {isLastQuestion ? '全ての結果を見る' : '次の問題'}
+              </button>
+            </>
           )}
         </div>
       </div>

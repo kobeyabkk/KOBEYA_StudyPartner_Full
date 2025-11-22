@@ -110,8 +110,7 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
   "correct_answer": "the correct form",
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
-  "explanation": "Why this is correct (in English). Include meanings of ALL choices.",
-  "explanation_ja": "なぜこれが正解か（日本語で）。全ての選択肢の語彙の意味を含めること。",
+  "explanation": "なぜこれが正解か（日本語で詳しく説明）。全ての選択肢の意味と文法的な理由を含めること。",
   "translation_ja": "問題文の日本語訳",
   "vocabulary_meanings": {
     "correct_answer": "meaning in Japanese",
@@ -120,6 +119,11 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
     "distractor_3": "meaning in Japanese"
   }
 }
+
+## IMPORTANT: explanation field MUST be in JAPANESE
+- Write the explanation in Japanese (日本語)
+- Explain the grammar point clearly for Japanese learners
+- Include the meaning and reason for each choice
 
 ## Important Notes
 - ONE blank per sentence only
@@ -163,9 +167,12 @@ ${instructions.prompt_template}
   "sample_answer_ja": "模範解答の日本語訳",
   "key_points": ["point 1", "point 2", "point 3"],
   "useful_expressions": ["expression 1", "expression 2"],
-  "explanation": "What makes a good answer for this question",
-  "explanation_ja": "良い回答のポイント（日本語で）"
+  "explanation": "良い回答のポイント（日本語で詳しく説明）"
 }
+
+## IMPORTANT: explanation field MUST be in JAPANESE
+- Write the explanation in Japanese (日本語)
+- Explain what makes a good answer for Japanese learners
 
 ## Important Notes
 - The question should allow multiple viewpoints
@@ -397,8 +404,7 @@ ${instructions.prompt_template}
       "question_text": "What is the main idea?",
       "choices": ["A) option 1", "B) option 2", "C) option 3", "D) option 4"],
       "correct_answer": "A",
-      "explanation": "Why A is correct. Explain why other choices are wrong.",
-      "explanation_ja": "なぜAが正解か。他の選択肢が不正解である理由も説明すること。"
+      "explanation": "なぜAが正解か（日本語で詳しく説明）。他の選択肢が不正解である理由も日本語で説明すること。"
     }
   ],
   "vocabulary_notes": [
@@ -414,6 +420,7 @@ ${instructions.prompt_template}
 - Questions test different skills (main idea, details, inference)
 - All information needed to answer must be in the passage
 - Topic: ${topic.topic_label_en}
+- **CRITICAL**: explanation field MUST be in JAPANESE (日本語)
 - For each question, explanation MUST cover why the correct answer is right AND why each wrong choice is incorrect
 - **MUST include 5-8 vocabulary notes** for key terms that appear in the passage
 
