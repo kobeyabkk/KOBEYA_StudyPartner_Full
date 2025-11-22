@@ -26,21 +26,28 @@ interface PassageTranslation {
 
 export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false); // 解答済みフラグ
-  const [showExplanation, setShowExplanation] = useState(false); // アコーディオン表示フラグ
+  const [userAnswers, setUserAnswers] = useState<Map<number, number>>(new Map()); // 各問題の解答を保存
+  const [submittedQuestions, setSubmittedQuestions] = useState<Set<number>>(new Set()); // 解答済み問題
+  const [viewedExplanations, setViewedExplanations] = useState<Set<number>>(new Set()); // 解説を見た問題
+  const [showPassage, setShowPassage] = useState(true); // 長文表示フラグ
   const [results, setResults] = useState<AnswerResult[]>([]);
   const [startTime] = useState(Date.now());
   const [passageTranslations, setPassageTranslations] = useState<Map<string, PassageTranslation>>(new Map());
   const [translationStarted, setTranslationStarted] = useState(false);
+
+  // 現在の問題の状態を取得
+  const selectedAnswer = userAnswers.get(currentIndex) ?? null;
+  const isSubmitted = submittedQuestions.has(currentIndex);
+  const showExplanation = viewedExplanations.has(currentIndex);
+  const canModifyAnswer = !showExplanation; // 解説を見ていなければ修正可能
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const answered = selectedAnswer !== null;
 
   const handleAnswerSelect = (index: number) => {
-    if (isSubmitted) return; // 既に解答済みの場合は変更不可
-    setSelectedAnswer(index);
+    if (!canModifyAnswer) return; // 解説を見た後は変更不可
+    setUserAnswers(new Map(userAnswers).set(currentIndex, index));
   };
 
   const handleSubmit = () => {
@@ -56,43 +63,72 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       timeSpent,
     };
 
-    setResults([...results, newResult]);
-    setIsSubmitted(true); // 解答済みにする（解説は非表示のまま）
+    // resultsを更新（既存の結果を上書き）
+    const newResults = [...results];
+    const existingIndex = newResults.findIndex(r => r.question === currentQuestion);
+    if (existingIndex >= 0) {
+      newResults[existingIndex] = newResult;
+    } else {
+      newResults.push(newResult);
+    }
+    setResults(newResults);
+    
+    // 解答済みフラグを立てる（解説は非表示のまま）
+    setSubmittedQuestions(new Set(submittedQuestions).add(currentIndex));
   };
 
   const handleNext = () => {
-    if (isLastQuestion) {
-      // 全問題完了 - 翻訳データも一緒に渡す
-      if (onComplete) {
-        // resultsに翻訳データを追加
-        const resultsWithTranslations = results.map(r => {
-          const q = r.question as any;
-          if (q.passage && passageTranslations.has(q.passage)) {
-            const translationData = passageTranslations.get(q.passage);
-            return {
-              ...r,
-              question: {
-                ...r.question,
-                passageJa: translationData?.translation || '',
-              },
-            };
-          }
-          return r;
-        });
-        onComplete(resultsWithTranslations);
-      }
-    } else {
-      // 次の問題へ
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setSelectedAnswer(null);
-      setIsSubmitted(false);
-      setShowExplanation(false);
+      setShowPassage(true); // 次の問題では長文を表示
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setShowPassage(true); // 前の問題に戻ったら長文を表示
+    }
+  };
+
+  const handleComplete = () => {
+    // 全問題完了 - 翻訳データも一緒に渡す
+    if (onComplete) {
+      // resultsに翻訳データを追加
+      const resultsWithTranslations = results.map(r => {
+        const q = r.question as any;
+        if (q.passage && passageTranslations.has(q.passage)) {
+          const translationData = passageTranslations.get(q.passage);
+          return {
+            ...r,
+            question: {
+              ...r.question,
+              passageJa: translationData?.translation || '',
+            },
+          };
+        }
+        return r;
+      });
+      onComplete(resultsWithTranslations);
     }
   };
 
   // 解説の表示/非表示を切り替え
   const toggleExplanation = () => {
-    setShowExplanation(!showExplanation);
+    if (viewedExplanations.has(currentIndex)) {
+      // 既に見ている場合は非表示に
+      const newSet = new Set(viewedExplanations);
+      newSet.delete(currentIndex);
+      setViewedExplanations(newSet);
+    } else {
+      // 初めて見る場合は表示し、以降修正不可にする
+      setViewedExplanations(new Set(viewedExplanations).add(currentIndex));
+    }
+  };
+
+  // 長文表示の切り替え
+  const togglePassage = () => {
+    setShowPassage(!showPassage);
   };
 
   const getChoiceColor = (index: number) => {
@@ -202,38 +238,86 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* プログレスバー */}
+      {/* ナビゲーションと進捗バー */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
+        {/* ナビゲーションボタン */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              currentIndex === 0
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            ← 前の問題
+          </button>
+          
+          <span className="text-lg font-bold text-gray-900">
             問題 {currentIndex + 1} / {questions.length}
           </span>
-          <span className="text-sm text-gray-600">
-            正答率: {accuracy}% ({correctCount}/{results.length})
-          </span>
+          
+          <button
+            onClick={handleNext}
+            disabled={currentIndex === questions.length - 1}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              currentIndex === questions.length - 1
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            次の問題 →
+          </button>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
+
+        {/* 進捗バー */}
+        <div className="mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-600">
+              解答済み: {submittedQuestions.size} / {questions.length}
+            </span>
+            <span className="text-sm text-gray-600">
+              正答率: {accuracy}% ({correctCount}/{results.length})
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${(submittedQuestions.size / questions.length) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {/* 問題カード */}
       <div className="bg-white rounded-xl shadow-lg p-8">
-        {/* 長文パッセージ（long_reading形式の場合） */}
+        {/* 長文表示ボタン（long_reading形式の場合） */}
         {currentQuestion.topic === 'long_reading' && (currentQuestion as any).passage && (
-          <div className="mb-8 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">📖</span>
-              <h3 className="text-lg font-bold text-gray-900">Reading Passage</h3>
-            </div>
-            <div className="prose prose-sm max-w-none">
-              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {(currentQuestion as any).passage}
-              </p>
-            </div>
+          <div className="mb-6">
+            <button
+              onClick={togglePassage}
+              className="w-full px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-xl">📖</span>
+                <span>{showPassage ? '長文を隠す' : '長文を表示'}</span>
+              </span>
+              <span className={`transform transition-transform ${showPassage ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+            
+            {/* 長文パッセージ */}
+            {showPassage && (
+              <div className="mt-4 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {(currentQuestion as any).passage}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -268,18 +352,18 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             <button
               key={index}
               onClick={() => handleAnswerSelect(index)}
-              disabled={isSubmitted}
+              disabled={!canModifyAnswer}
               className={`
                 w-full p-4 rounded-lg border-2 text-left transition-all
                 flex items-center justify-between
                 ${getChoiceColor(index)}
-                ${isSubmitted ? 'cursor-default' : 'cursor-pointer'}
+                ${!canModifyAnswer ? 'cursor-default opacity-75' : 'cursor-pointer'}
               `}
             >
               <div className="flex items-center gap-3 flex-1">
                 <span className={`
                   flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold
-                  ${selectedAnswer === index && !isSubmitted ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
+                  ${selectedAnswer === index && !showExplanation ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}
                   ${showExplanation && index === currentQuestion.correctAnswerIndex ? 'bg-green-500 text-white' : ''}
                   ${showExplanation && selectedAnswer === index && index !== currentQuestion.correctAnswerIndex ? 'bg-red-500 text-white' : ''}
                 `}>
@@ -320,15 +404,15 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
         )}
 
         {/* アクションボタン */}
-        <div className="flex gap-3 mt-6">
+        <div className="space-y-3 mt-6">
           {!isSubmitted ? (
             // 解答前：解答するボタンのみ
             <button
               onClick={handleSubmit}
-              disabled={!answered}
+              disabled={selectedAnswer === null}
               className={`
-                flex-1 py-3 px-6 rounded-lg font-bold transition-all
-                ${answered
+                w-full py-3 px-6 rounded-lg font-bold transition-all
+                ${selectedAnswer !== null
                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }
@@ -337,21 +421,23 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               解答する
             </button>
           ) : (
-            // 解答後：結果を見る + 次の問題 の2つのボタン
-            <>
-              <button
-                onClick={toggleExplanation}
-                className="flex-1 py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
-              >
-                {showExplanation ? '解説を隠す' : '結果を見る'}
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
-              >
-                {isLastQuestion ? '全ての結果を見る' : '次の問題'}
-              </button>
-            </>
+            // 解答後：結果を見るボタン
+            <button
+              onClick={toggleExplanation}
+              className="w-full py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
+            >
+              {showExplanation ? '解説を隠す' : '結果を見る'}
+            </button>
+          )}
+          
+          {/* 全ての問題を解答済みの場合、結果確認ボタンを表示 */}
+          {submittedQuestions.size === questions.length && (
+            <button
+              onClick={handleComplete}
+              className="w-full py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all"
+            >
+              全ての結果を見る
+            </button>
           )}
         </div>
       </div>
