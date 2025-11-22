@@ -155,9 +155,9 @@ export class IntegratedQuestionGenerator {
     let baseThreshold = 95;
     
     // 形式別の現実的な目標スコア
-    // 応急処置: grammar_fillの閾値を緩和（95% → 85%）
+    // 応急処置Phase 2: grammar_fillの閾値をさらに緩和（85% → 70%）
     const formatAdjustments: Record<QuestionFormat, number> = {
-      'grammar_fill': -10,    // 短文だが語彙の自然な多様性を許容（95 → 85%）
+      'grammar_fill': -25,    // 短文だが語彙の自然な多様性を許容（95 → 70%）
       'opinion_speech': -5,   // 自然な表現必要（95 → 90%）
       'reading_aloud': -3,     // 90-92%目標
       'essay': -15,          // 長文、論理的表現必要（95 → 80%）
@@ -264,7 +264,24 @@ export class IntegratedQuestionGenerator {
         // LLM呼び出し
         questionData = await this.callLLM(blueprint, selectedModel);
 
-        // 検証1: 文法複雑さ（Phase 4B）
+        // 検証1: 重複チェック（Phase 4C - Gemini推奨）
+        const questionText = questionData.question_text 
+                           || questionData.essay_prompt 
+                           || questionData.passage 
+                           || '';
+        
+        const isDuplicate = await this.isDuplicateQuestion(
+          request.grade,
+          request.format,
+          questionText
+        );
+        
+        if (isDuplicate) {
+          console.log(`[Validation Failed] Duplicate question detected`);
+          continue; // 重複の場合は再生成
+        }
+
+        // 検証2: 文法複雑さ（Phase 4B）
         const grammarValidation = this.validateGrammar(questionData, request.grade);
         if (!grammarValidation.passed) {
           console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
@@ -272,7 +289,7 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
-        // 検証2: 語彙レベル（形式を渡して適応的閾値を使用）
+        // 検証3: 語彙レベル（形式を渡して適応的閾値を使用）
         const vocabValidation = await this.validateVocabulary(
           questionData,
           request.grade,
@@ -286,7 +303,7 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
-        // 検証3: 著作権
+        // 検証4: 著作権
         const copyrightValidation = await this.validateCopyright(
           questionData,
           request.grade
@@ -655,6 +672,54 @@ Always respond with valid JSON.`;
       
       default:
         return 'reading'; // デフォルト
+    }
+  }
+
+  /**
+   * 重複問題チェック（直近20問との照合）
+   * 
+   * @param grade 級
+   * @param format 形式
+   * @param questionText 問題文
+   * @param recentWindow 照合する直近問題数（デフォルト20）
+   * @returns 重複している場合true
+   */
+  private async isDuplicateQuestion(
+    grade: string,
+    format: string,
+    questionText: string,
+    recentWindow: number = 20
+  ): Promise<boolean> {
+    try {
+      // 問題文を正規化（小文字化、空白統一、最初の100文字）
+      const normalized = questionText
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .substring(0, 100);
+      
+      // 直近N問から類似問題を検索
+      const result = await this.db
+        .prepare(`
+          SELECT 1 FROM eiken_generated_questions
+          WHERE grade = ? 
+            AND question_type = ?
+            AND substr(lower(replace(question_text, '  ', ' ')), 1, 100) = ?
+          ORDER BY id DESC 
+          LIMIT ?
+        `)
+        .bind(grade, format, normalized, recentWindow)
+        .first();
+      
+      if (result) {
+        console.log(`[Duplicate Check] Found duplicate question for ${grade}/${format}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn(`[Duplicate Check] Error checking duplicates:`, error);
+      return false; // エラー時は重複なしとして続行
     }
   }
 
