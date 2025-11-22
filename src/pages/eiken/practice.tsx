@@ -1,8 +1,8 @@
+import { useState } from 'react';
+
 /**
  * 英検練習メインページ
  */
-
-import { useState } from 'react';
 import QuestionGenerator from '../../components/eiken/QuestionGenerator';
 import QuestionDisplay from '../../components/eiken/QuestionDisplay';
 import ResultsDashboard from '../../components/eiken/ResultsDashboard';
