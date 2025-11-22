@@ -190,13 +190,38 @@ export function useEikenGenerate() {
 // Phase 3レスポンスを従来形式に変換するヘルパー関数
 function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
   const choices = question.choices_json ? JSON.parse(question.choices_json) : [];
-  const correctAnswerIndex = choices.indexOf(question.correct_answer);
+  
+  // デバッグログ
+  console.log('🔍 Converting Phase 3 question:', {
+    question_text: question.question_text,
+    choices,
+    correct_answer: question.correct_answer,
+    choices_json: question.choices_json
+  });
+  
+  // correct_answerがインデックス（数値）か文字列かを判定
+  let correctAnswerIndex: number;
+  if (typeof question.correct_answer === 'number') {
+    correctAnswerIndex = question.correct_answer;
+  } else if (typeof question.correct_answer === 'string') {
+    // 文字列の場合、選択肢から検索
+    correctAnswerIndex = choices.indexOf(question.correct_answer);
+    if (correctAnswerIndex === -1) {
+      // 見つからない場合、数値として解釈を試みる
+      const parsed = parseInt(question.correct_answer, 10);
+      correctAnswerIndex = isNaN(parsed) ? 0 : parsed;
+    }
+  } else {
+    correctAnswerIndex = 0;
+  }
+  
+  console.log('✅ Converted correctAnswerIndex:', correctAnswerIndex);
 
   return {
     questionNumber: 1,
     questionText: question.question_text,
     choices,
-    correctAnswerIndex: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
+    correctAnswerIndex,
     explanation: question.explanation || '',
     difficulty: 0.6,
     topic: question.format,
