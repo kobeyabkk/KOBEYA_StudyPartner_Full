@@ -4,11 +4,11 @@ import adapter from '@hono/vite-dev-server/cloudflare'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  publicDir: "public", // public ディレクトリを静的アセットとして使用
+  publicDir: "public",
   plugins: [
     build({
-      minify: false, // 開発時はminifyを無効化
-      entry: 'src/index.tsx' // 本番ビルドのエントリーポイントを明示
+      minify: false,
+      entry: 'src/index.tsx'
     }),
     devServer({
       adapter,
