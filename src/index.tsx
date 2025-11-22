@@ -19415,23 +19415,8 @@ app.get('/favicon.ico', (c) => {
 // ============================================================
 
 // 英検練習ページ（React CSR版）
-app.get('/eiken/practice', (c) => {
-  return c.html(
-    `<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>英検AI練習システム | KOBEYA Study Partner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/client.tsx"></script>
-  </body>
-</html>`
-  );
-})
+// Note: /eiken/practice は public/eiken/practice.html を使用（Viteが処理）
+// Honoルートは定義しない（Viteの静的ファイルサーブに任せる）
 
 
 // ==================== Flashcard API Routes ====================
