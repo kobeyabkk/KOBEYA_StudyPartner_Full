@@ -31,9 +31,14 @@ if (clientFiles.length === 0) {
   process.exit(1);
 }
 
-// 最初のclientファイルを使用（通常は1つのみ）
-const clientFile = clientFiles[0];
-console.log(`✅ Found client bundle: ${clientFile}`);
+// 最新のclientファイルを使用（mtime順でソート）
+const clientFilesWithStats = clientFiles.map(f => ({
+  name: f,
+  mtime: fs.statSync(path.join(assetsDir, f)).mtime
+}));
+clientFilesWithStats.sort((a, b) => b.mtime - a.mtime);
+const clientFile = clientFilesWithStats[0].name;
+console.log(`✅ Found client bundle: ${clientFile} (latest of ${clientFiles.length} files)`);
 
 // HTMLを読み込んで書き換え
 if (!fs.existsSync(htmlPath)) {
