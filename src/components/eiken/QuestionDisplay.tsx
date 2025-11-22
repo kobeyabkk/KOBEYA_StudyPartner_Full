@@ -238,42 +238,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* ナビゲーションと進捗バー */}
+      {/* 進捗バー */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        {/* ナビゲーションボタン */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              currentIndex === 0
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
-          >
-            ← 前の問題
-          </button>
-          
+        <div className="flex items-center justify-between mb-2">
           <span className="text-lg font-bold text-gray-900">
             問題 {currentIndex + 1} / {questions.length}
           </span>
-          
-          <button
-            onClick={handleNext}
-            disabled={currentIndex === questions.length - 1}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              currentIndex === questions.length - 1
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
-          >
-            次の問題 →
-          </button>
-        </div>
-
-        {/* 進捗バー */}
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
               解答済み: {submittedQuestions.size} / {questions.length}
             </span>
@@ -281,12 +252,12 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               正答率: {accuracy}% ({correctCount}/{results.length})
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${(submittedQuestions.size / questions.length) * 100}%` }}
-            />
-          </div>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3">
+          <div
+            className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+            style={{ width: `${(submittedQuestions.size / questions.length) * 100}%` }}
+          />
         </div>
       </div>
 
@@ -403,32 +374,58 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           </div>
         )}
 
-        {/* アクションボタン */}
+        {/* アクションボタン（下部：前の問題、解答/解説、次の問題） */}
         <div className="space-y-3 mt-6">
-          {!isSubmitted ? (
-            // 解答前：解答するボタンのみ
+          {/* ナビゲーションと解答ボタン */}
+          <div className="flex gap-3">
+            {/* 前の問題 */}
             <button
-              onClick={handleSubmit}
-              disabled={selectedAnswer === null}
-              className={`
-                w-full py-3 px-6 rounded-lg font-bold transition-all
-                ${selectedAnswer !== null
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }
-              `}
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                currentIndex === 0
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-600 text-white hover:bg-gray-700 shadow-lg hover:shadow-xl'
+              }`}
             >
-              解答する
+              ← 前の問題
             </button>
-          ) : (
-            // 解答後：結果を見るボタン
+            
+            {/* 解答または解説ボタン */}
+            {!isSubmitted ? (
+              <button
+                onClick={handleSubmit}
+                disabled={selectedAnswer === null}
+                className={`flex-[2] py-3 px-6 rounded-lg font-bold transition-all ${
+                  selectedAnswer !== null
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                解答する
+              </button>
+            ) : (
+              <button
+                onClick={toggleExplanation}
+                className="flex-[2] py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                {showExplanation ? '解説を隠す' : '結果を見る'}
+              </button>
+            )}
+            
+            {/* 次の問題 */}
             <button
-              onClick={toggleExplanation}
-              className="w-full py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
+              onClick={handleNext}
+              disabled={currentIndex === questions.length - 1}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                currentIndex === questions.length - 1
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-600 text-white hover:bg-gray-700 shadow-lg hover:shadow-xl'
+              }`}
             >
-              {showExplanation ? '解説を隠す' : '結果を見る'}
+              次の問題 →
             </button>
-          )}
+          </div>
           
           {/* 全ての問題を解答済みの場合、結果確認ボタンを表示 */}
           {submittedQuestions.size === questions.length && (
