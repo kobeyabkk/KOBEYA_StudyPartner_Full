@@ -7,28 +7,6 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   publicDir: "public",
   plugins: [
-<<<<<<< HEAD
-    // Reactプラグインを最初に配置（クライアントサイドのReactファイルに適用）
-    react({
-      // JSX ランタイムの設定（自動的にReactのJSXランタイムを使用）
-      jsxRuntime: 'automatic',
-      // クライアントサイドのReactファイルのみに適用
-      include: [
-        /src\/client\.tsx$/,
-        /src\/pages\/.*\.tsx$/,
-        /src\/components\/.*\.tsx$/,
-        /src\/hooks\/.*\.tsx?$/,
-      ],
-      // Honoのサーバーサイドファイルは除外
-      exclude: [
-        /src\/index\.tsx$/,
-        /src\/renderer\.tsx$/,
-        /src\/worker\.ts$/,
-        /src\/eiken\/.*\.tsx?$/,
-      ],
-    }),
-    // Honoのビルドプラグイン（サーバーサイド用・APIルート用）
-=======
     // React プラグインを最初に配置（重要）
     react({
       // クライアントサイドのみに適用
@@ -36,7 +14,6 @@ export default defineConfig({
       jsxRuntime: 'automatic'
     }),
     // Hono ビルドプラグイン（サーバーサイドのみ）
->>>>>>> origin/genspark_ai_developer
     build({
       minify: false,
       entry: 'src/index.tsx',
@@ -50,10 +27,6 @@ export default defineConfig({
     }),
     devServer({
       adapter,
-<<<<<<< HEAD
-      entry: 'src/index.tsx'
-    }),
-=======
       entry: 'src/index.tsx',
       // クライアントサイドファイルを除外
       exclude: [
@@ -63,7 +36,6 @@ export default defineConfig({
         '**/src/hooks/**'
       ]
     })
->>>>>>> origin/genspark_ai_developer
   ],
   resolve: {
     alias: {
