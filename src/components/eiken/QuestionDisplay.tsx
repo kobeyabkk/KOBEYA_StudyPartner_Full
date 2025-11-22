@@ -1,8 +1,8 @@
+import { useState } from 'react';
+
 /**
  * 英検問題表示・解答コンポーネント
  */
-
-import { useState } from 'react';
 import type { GeneratedQuestion } from '../../hooks/useEikenAPI';
 
 interface QuestionDisplayProps {

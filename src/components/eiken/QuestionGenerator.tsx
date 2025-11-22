@@ -1,8 +1,8 @@
+import { useState } from 'react';
+
 /**
  * 英検問題生成UIコンポーネント
  */
-
-import { useState } from 'react';
 import type { EikenGrade, QuestionType } from '../../eiken/types';
 import { useEikenGenerate } from '../../hooks/useEikenAPI';
 import GradeSelector from './GradeSelector';
@@ -11,10 +11,11 @@ interface QuestionGeneratorProps {
   onQuestionsGenerated?: (questions: any[]) => void;
 }
 
-const SECTION_OPTIONS = [
-  { value: 'vocabulary', label: '語彙問題', icon: '📚' },
-  { value: 'grammar', label: '文法問題', icon: '✍️' },
-  { value: 'reading', label: '読解問題', icon: '📖' },
+// Phase 3 API対応: 英検の正式な問題形式
+const FORMAT_OPTIONS = [
+  { value: 'grammar_fill', label: '短文の語句空所補充', icon: '📚', description: '語彙・文法問題' },
+  { value: 'long_reading', label: '長文読解', icon: '📖', description: '内容一致選択' },
+  { value: 'essay', label: 'ライティング (意見論述)', icon: '✍️', description: 'エッセイ形式' },
 ];
 
 const TOPIC_SUGGESTIONS = [
@@ -24,7 +25,7 @@ const TOPIC_SUGGESTIONS = [
 
 export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGeneratorProps) {
   const [grade, setGrade] = useState<EikenGrade>('pre1');
-  const [section, setSection] = useState('vocabulary');
+  const [format, setFormat] = useState('grammar_fill');  // Phase 3: format instead of section
   const [count, setCount] = useState(5);
   const [difficulty, setDifficulty] = useState(0.6);
   const [topicHints, setTopicHints] = useState<string[]>([]);
@@ -34,14 +35,12 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
 
   const handleGenerate = async () => {
     console.log('🔴 handleGenerate CALLED!');
-    alert('ボタンがクリックされました！');
     
     try {
-      console.log('🎯 Generating questions with:', { grade, section, count, difficulty });
+      console.log('🎯 Generating questions with:', { grade, format, count, difficulty });
       const data = await generateQuestions({
         grade,
-        section,
-        questionType: section as QuestionType,
+        format,  // Phase 3: use format instead of section
         count,
         difficulty,
         topicHints: topicHints.length > 0 ? topicHints : undefined,
@@ -90,20 +89,20 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
         {/* グレード選択 */}
         <GradeSelector value={grade} onChange={setGrade} disabled={loading} />
 
-        {/* セクション選択 */}
+        {/* 問題フォーマット選択 (Phase 3対応) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            問題タイプを選択
+            問題タイプを選択 <span className="text-xs text-purple-600 ml-2">✨ Phase 3 API - 英検一次試験対応</span>
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {SECTION_OPTIONS.map((option) => (
+            {FORMAT_OPTIONS.map((option) => (
               <button
                 key={option.value}
-                onClick={() => setSection(option.value)}
+                onClick={() => setFormat(option.value)}
                 disabled={loading}
                 className={`
                   p-4 rounded-lg border-2 transition-all
-                  ${section === option.value
+                  ${format === option.value
                     ? 'border-green-500 bg-green-50 shadow-md'
                     : 'border-gray-200 bg-white hover:border-green-300'
                   }
@@ -112,8 +111,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
               >
                 <div className="text-center">
                   <div className="text-3xl mb-2">{option.icon}</div>
-                  <div className={`font-medium ${section === option.value ? 'text-green-700' : 'text-gray-900'}`}>
+                  <div className={`font-medium text-sm ${format === option.value ? 'text-green-700' : 'text-gray-900'}`}>
                     {option.label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {option.description}
                   </div>
                 </div>
               </button>

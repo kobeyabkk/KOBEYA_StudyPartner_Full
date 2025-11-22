@@ -1,8 +1,8 @@
+import { useState } from 'react';
+
 /**
  * 英検練習メインページ
  */
-
-import { useState } from 'react';
 import QuestionGenerator from '../../components/eiken/QuestionGenerator';
 import QuestionDisplay from '../../components/eiken/QuestionDisplay';
 import ResultsDashboard from '../../components/eiken/ResultsDashboard';
@@ -22,9 +22,16 @@ export default function EikenPracticePage() {
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [results, setResults] = useState<AnswerResult[]>([]);
 
+  // デバッグ: 状態変化を監視
+  console.log('🔄 Component render - viewMode:', viewMode, 'questions:', questions.length);
+
   const handleQuestionsGenerated = (generatedQuestions: GeneratedQuestion[]) => {
+    console.log('📥 handleQuestionsGenerated called with:', generatedQuestions);
+    console.log('📊 Questions count:', generatedQuestions.length);
+    console.log('📝 First question:', generatedQuestions[0]);
     setQuestions(generatedQuestions);
     setViewMode('practice');
+    console.log('🎬 View mode changed to: practice');
   };
 
   const handlePracticeComplete = (practiceResults: AnswerResult[]) => {

@@ -9,16 +9,68 @@ import type { EikenGrade, QuestionType } from '../eiken/types';
 
 // ==================== 型定義 ====================
 
+// Phase 3 API対応: 新しいリクエスト型
+export interface Phase3QuestionGenerationRequest {
+  student_id: string;
+  grade: EikenGrade;
+  format: 'grammar_fill' | 'long_reading' | 'essay' | 'opinion_speech' | 'reading_aloud';
+  count: number;
+  difficulty_preference?: 'adaptive' | 'fixed';
+  difficulty_level?: number;
+  topic_hints?: string[];
+  based_on_analysis_id?: number;
+}
+
+// 後方互換性のために保持
 export interface QuestionGenerationRequest {
   grade: EikenGrade;
-  section: string;
-  questionType: QuestionType;
+  format?: string;  // Phase 3
+  section?: string;  // 従来API
+  questionType?: QuestionType;  // 従来API
   count: number;
   difficulty?: number;
   topicHints?: string[];
   basedOnAnalysisId?: number;
 }
 
+// Phase 3 APIレスポンス型
+export interface Phase3Question {
+  id?: number;
+  format: string;
+  grade: string;
+  question_data: any;  // 実際の問題データはここに入っている
+  question_text?: string;
+  choices_json?: string;
+  correct_answer?: string;
+  explanation?: string;
+  vocabulary_notes_json?: string;  // Phase 4A: 語彙notes
+  created_at?: string;
+}
+
+export interface Phase3GenerationResult {
+  success: boolean;
+  data?: {
+    question: Phase3Question;
+    blueprint?: any;
+    topic_selection?: any;
+    validation?: {
+      vocabulary_coverage: number;
+      text_profile: any;
+      threshold_used: number;  // Phase 4A: 使用された閉値
+      notes_added?: number;     // Phase 4A: 追加された語注数
+    };
+    metadata?: {
+      generated_at: string;
+      llm_model: string;
+    };
+  };
+  error?: {
+    message: string;
+    code: string;
+  };
+}
+
+// 従来APIレスポンス型 (後方互換性)
 export interface GeneratedQuestion {
   questionNumber: number;
   questionText: string;
@@ -31,6 +83,7 @@ export interface GeneratedQuestion {
   copyrightScore: number;
 }
 
+// 従来APIレスポンス型 (後方互換性)
 export interface GenerationResult {
   success: boolean;
   generated: GeneratedQuestion[];
@@ -73,26 +126,51 @@ export function useEikenGenerate() {
     setResult(null);
 
     try {
-      console.log('📡 Sending API request:', request);
-      const response = await fetch('/api/eiken/generate', {
+      // Phase 3 APIを使用
+      const phase3Request: Phase3QuestionGenerationRequest = {
+        student_id: 'web_user_' + Date.now(),  // 仮のuser ID
+        grade: request.grade,
+        format: request.format as any,  // UIからの format を使用
+        count: request.count,
+        difficulty_preference: 'adaptive',
+        difficulty_level: request.difficulty || 0.6,
+        topic_hints: request.topicHints,
+      };
+
+      console.log('📡 Sending Phase 3 API request:', phase3Request);
+      const response = await fetch('/api/eiken/questions/generate', {  // Phase 3 API
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(phase3Request),
       });
 
       console.log('📥 API response status:', response.status, response.ok);
-      const data = await response.json();
-      console.log('📦 API response data:', data);
+      const phase3Data: Phase3GenerationResult = await response.json();
+      console.log('📦 Phase 3 API response data:', phase3Data);
+      console.log('🔎 Question object structure:', JSON.stringify(phase3Data.data?.question, null, 2));
 
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      if (!response.ok || !phase3Data.success) {
+        throw new Error(phase3Data.error?.message || `HTTP error! status: ${response.status}`);
       }
 
-      setResult(data);
-      console.log('💾 Result stored in state:', data);
-      return data;
+      // Phase 3レスポンスを従来形式に変換 (後方互換性)
+      const generatedQuestions = phase3Data.data ? convertPhase3ToLegacyMulti(phase3Data.data.question) : [];
+      const legacyFormat: GenerationResult = {
+        success: true,
+        generated: generatedQuestions,
+        rejected: 0,
+        totalAttempts: 1,
+        saved: generatedQuestions.length,
+      };
+
+      // 元のPhase 3データも保持
+      (legacyFormat as any).phase3Data = phase3Data.data;
+
+      setResult(legacyFormat);
+      console.log('💾 Result stored in state:', legacyFormat);
+      return legacyFormat;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('💥 API Error:', errorMessage, err);
@@ -109,6 +187,111 @@ export function useEikenGenerate() {
     error,
     result,
     generateQuestions,
+  };
+}
+
+// Phase 3レスポンスを従来形式に変換（複数設問対応）
+function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion[] {
+  const questionData = question.question_data || {};
+  
+  // long_reading形式: questions配列がある場合
+  if (questionData.questions && Array.isArray(questionData.questions)) {
+    console.log('📚 Long reading format detected with', questionData.questions.length, 'sub-questions');
+    
+    return questionData.questions.map((q: any, index: number) => {
+      const choices = q.choices || [];
+      const correctAnswer = q.correct_answer;
+      
+      // 正解インデックスを計算（"C" → 2）
+      let correctAnswerIndex = 0;
+      if (typeof correctAnswer === 'string') {
+        // "C" や "A)" の形式に対応
+        const match = correctAnswer.match(/^([A-Z])/);
+        if (match) {
+          correctAnswerIndex = match[1].charCodeAt(0) - 'A'.charCodeAt(0);
+        }
+      }
+      
+      return {
+        questionNumber: index + 1,
+        questionText: q.question_text || '',
+        choices: choices.map((c: string) => c.replace(/^[A-Z]\)\s*/, '')), // "A) Math" → "Math"
+        correctAnswerIndex,
+        explanation: q.explanation || '',
+        difficulty: 0.6,
+        topic: question.format,
+        copyrightSafe: true,
+        copyrightScore: 95,
+      };
+    });
+  }
+  
+  // 単一設問形式（grammar_fill, essayなど）
+  return [convertPhase3ToLegacy(question)];
+}
+
+// Phase 3レスポンスを従来形式に変換するヘルパー関数（単一設問用）
+function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
+  // question_dataから実際のデータを取得
+  const questionData = question.question_data || {};
+  
+  // 選択肢の取得（複数の可能性に対応）
+  let choices: string[] = [];
+  if (questionData.choices) {
+    choices = Array.isArray(questionData.choices) ? questionData.choices : [];
+  } else if (question.choices_json) {
+    choices = JSON.parse(question.choices_json);
+  }
+  
+  // 問題文の取得
+  const questionText = questionData.question_text || 
+                      questionData.passage || 
+                      question.question_text || 
+                      '';
+  
+  // 正解の取得
+  const correctAnswer = questionData.correct_answer || question.correct_answer;
+  
+  // 解説の取得
+  const explanation = questionData.explanation || question.explanation || '';
+  
+  // デバッグログ
+  console.log('🔍 Converting Phase 3 question:', {
+    raw_question: question,
+    questionData,
+    questionText,
+    choices,
+    correctAnswer
+  });
+  
+  // correct_answerがインデックス（数値）か文字列かを判定
+  let correctAnswerIndex: number;
+  if (typeof correctAnswer === 'number') {
+    correctAnswerIndex = correctAnswer;
+  } else if (typeof correctAnswer === 'string') {
+    // 文字列の場合、選択肢から検索
+    correctAnswerIndex = choices.indexOf(correctAnswer);
+    if (correctAnswerIndex === -1) {
+      // 見つからない場合、数値として解釈を試みる
+      const parsed = parseInt(correctAnswer, 10);
+      correctAnswerIndex = isNaN(parsed) ? 0 : parsed;
+    }
+  } else {
+    correctAnswerIndex = 0;
+  }
+  
+  console.log('✅ Converted correctAnswerIndex:', correctAnswerIndex);
+
+  return {
+    questionNumber: 1,
+    questionText,
+    choices,
+    correctAnswerIndex,
+    explanation,
+    difficulty: 0.6,
+    topic: question.format,
+    copyrightSafe: true,
+    copyrightScore: 95,
   };
 }
 

@@ -1,7 +1,4 @@
-/**
- * 英検グレード選択コンポーネント
- */
-
+import React from 'react';
 import type { EikenGrade } from '../../eiken/types';
 
 interface GradeSelectorProps {

@@ -3,9 +3,11 @@
  * 
  * 5つの問題形式それぞれに最適化されたプロンプトテンプレート
  * Phase 4: Few-shot Examples with Good/Bad comparison for vocabulary quality
+ * Phase 4B: Grammar complexity constraints per grade level
  */
 
 import type { Blueprint, EikenGrade } from '../types';
+import { getGrammarPromptInstructions } from '../config/grammar-constraints';
 
 // ====================
 // Few-shot Examples for Vocabulary Control
@@ -78,6 +80,7 @@ Additionally, disproportionate smartphone engagement diminishes opportunities fo
  */
 export function buildGrammarFillPrompt(blueprint: Blueprint): string {
   const { topic, guidelines, instructions } = blueprint;
+  const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
   
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
 
@@ -94,6 +97,8 @@ ${instructions.prompt_template}
 - CEFR Level: ${guidelines.vocabulary_level}
 - Use only words appropriate for ${blueprint.grade} level
 - Sentence length: ${guidelines.sentence_length.target} words (±3)
+
+${grammarInstructions}
 
 ## Grammar Focus
 Target one of these grammar patterns:
@@ -216,8 +221,11 @@ ${instructions.prompt_template}
  */
 export function buildLongReadingPrompt(blueprint: Blueprint): string {
   const { topic, guidelines, instructions } = blueprint;
+  const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
   
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
+
+${grammarInstructions}
 
 ## 🎯 CRITICAL VOCABULARY REQUIREMENTS (PRIMARY GOAL FOR LONG PASSAGES)
 
