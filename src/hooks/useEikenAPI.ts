@@ -35,15 +35,16 @@ export interface QuestionGenerationRequest {
 
 // Phase 3 APIレスポンス型
 export interface Phase3Question {
-  id: number;
+  id?: number;
   format: string;
   grade: string;
-  question_text: string;
+  question_data: any;  // 実際の問題データはここに入っている
+  question_text?: string;
   choices_json?: string;
   correct_answer?: string;
   explanation?: string;
   vocabulary_notes_json?: string;  // Phase 4A: 語彙notes
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Phase3GenerationResult {
@@ -148,6 +149,7 @@ export function useEikenGenerate() {
       console.log('📥 API response status:', response.status, response.ok);
       const phase3Data: Phase3GenerationResult = await response.json();
       console.log('📦 Phase 3 API response data:', phase3Data);
+      console.log('🔎 Question object structure:', JSON.stringify(phase3Data.data?.question, null, 2));
 
       if (!response.ok || !phase3Data.success) {
         throw new Error(phase3Data.error?.message || `HTTP error! status: ${response.status}`);
@@ -189,26 +191,48 @@ export function useEikenGenerate() {
 
 // Phase 3レスポンスを従来形式に変換するヘルパー関数
 function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
-  const choices = question.choices_json ? JSON.parse(question.choices_json) : [];
+  // question_dataから実際のデータを取得
+  const questionData = question.question_data || {};
+  
+  // 選択肢の取得（複数の可能性に対応）
+  let choices: string[] = [];
+  if (questionData.choices) {
+    choices = Array.isArray(questionData.choices) ? questionData.choices : [];
+  } else if (question.choices_json) {
+    choices = JSON.parse(question.choices_json);
+  }
+  
+  // 問題文の取得
+  const questionText = questionData.question_text || 
+                      questionData.passage || 
+                      question.question_text || 
+                      '';
+  
+  // 正解の取得
+  const correctAnswer = questionData.correct_answer || question.correct_answer;
+  
+  // 解説の取得
+  const explanation = questionData.explanation || question.explanation || '';
   
   // デバッグログ
   console.log('🔍 Converting Phase 3 question:', {
-    question_text: question.question_text,
+    raw_question: question,
+    questionData,
+    questionText,
     choices,
-    correct_answer: question.correct_answer,
-    choices_json: question.choices_json
+    correctAnswer
   });
   
   // correct_answerがインデックス（数値）か文字列かを判定
   let correctAnswerIndex: number;
-  if (typeof question.correct_answer === 'number') {
-    correctAnswerIndex = question.correct_answer;
-  } else if (typeof question.correct_answer === 'string') {
+  if (typeof correctAnswer === 'number') {
+    correctAnswerIndex = correctAnswer;
+  } else if (typeof correctAnswer === 'string') {
     // 文字列の場合、選択肢から検索
-    correctAnswerIndex = choices.indexOf(question.correct_answer);
+    correctAnswerIndex = choices.indexOf(correctAnswer);
     if (correctAnswerIndex === -1) {
       // 見つからない場合、数値として解釈を試みる
-      const parsed = parseInt(question.correct_answer, 10);
+      const parsed = parseInt(correctAnswer, 10);
       correctAnswerIndex = isNaN(parsed) ? 0 : parsed;
     }
   } else {
@@ -219,10 +243,10 @@ function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
 
   return {
     questionNumber: 1,
-    questionText: question.question_text,
+    questionText,
     choices,
     correctAnswerIndex,
-    explanation: question.explanation || '',
+    explanation,
     difficulty: 0.6,
     topic: question.format,
     copyrightSafe: true,
