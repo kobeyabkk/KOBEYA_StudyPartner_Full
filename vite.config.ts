@@ -7,14 +7,34 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   publicDir: "public",
   plugins: [
-    react(), // React JSX変換を有効化
+    // React プラグインを最初に配置（重要）
+    react({
+      // クライアントサイドのみに適用
+      include: ['**/src/client.tsx', '**/src/pages/**/*.tsx', '**/src/components/**/*.tsx', '**/src/hooks/**/*.ts'],
+      jsxRuntime: 'automatic'
+    }),
+    // Hono ビルドプラグイン（サーバーサイドのみ）
     build({
       minify: false,
-      entry: 'src/index.tsx'
+      entry: 'src/index.tsx',
+      // クライアントサイドファイルを除外
+      exclude: [
+        '**/src/client.tsx',
+        '**/src/pages/**',
+        '**/src/components/**',
+        '**/src/hooks/**'
+      ]
     }),
     devServer({
       adapter,
-      entry: 'src/index.tsx'
+      entry: 'src/index.tsx',
+      // クライアントサイドファイルを除外
+      exclude: [
+        '**/src/client.tsx',
+        '**/src/pages/**',
+        '**/src/components/**',
+        '**/src/hooks/**'
+      ]
     })
   ],
   server: {
@@ -23,5 +43,9 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist'
+  },
+  // 最適化設定
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom']
   }
 })
