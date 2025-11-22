@@ -7,6 +7,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   publicDir: "public",
   plugins: [
+<<<<<<< HEAD
     // Reactプラグインを最初に配置（クライアントサイドのReactファイルに適用）
     react({
       // JSX ランタイムの設定（自動的にReactのJSXランタイムを使用）
@@ -27,14 +28,42 @@ export default defineConfig({
       ],
     }),
     // Honoのビルドプラグイン（サーバーサイド用・APIルート用）
+=======
+    // React プラグインを最初に配置（重要）
+    react({
+      // クライアントサイドのみに適用
+      include: ['**/src/client.tsx', '**/src/pages/**/*.tsx', '**/src/components/**/*.tsx', '**/src/hooks/**/*.ts'],
+      jsxRuntime: 'automatic'
+    }),
+    // Hono ビルドプラグイン（サーバーサイドのみ）
+>>>>>>> origin/genspark_ai_developer
     build({
       minify: false,
-      entry: 'src/index.tsx'
+      entry: 'src/index.tsx',
+      // クライアントサイドファイルを除外
+      exclude: [
+        '**/src/client.tsx',
+        '**/src/pages/**',
+        '**/src/components/**',
+        '**/src/hooks/**'
+      ]
     }),
     devServer({
       adapter,
+<<<<<<< HEAD
       entry: 'src/index.tsx'
     }),
+=======
+      entry: 'src/index.tsx',
+      // クライアントサイドファイルを除外
+      exclude: [
+        '**/src/client.tsx',
+        '**/src/pages/**',
+        '**/src/components/**',
+        '**/src/hooks/**'
+      ]
+    })
+>>>>>>> origin/genspark_ai_developer
   ],
   resolve: {
     alias: {
@@ -50,7 +79,12 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173
+    port: 5173,
+    // サンドボックスホストからのアクセスを許可
+    allowedHosts: [
+      '.sandbox.novita.ai',
+      'localhost'
+    ]
   },
   build: {
     outDir: 'dist'
