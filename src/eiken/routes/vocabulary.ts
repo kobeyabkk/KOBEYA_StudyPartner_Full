@@ -1,476 +1,404 @@
 /**
- * 語彙バリデーションAPIルート
+ * Phase 4A: Vocabulary API Routes
+ * 
+ * RESTful API endpoints for vocabulary learning system
  */
 
 import { Hono } from 'hono';
-import type { EikenEnv } from '../types';
-import type { ValidationConfig, VocabularyViolation } from '../types/vocabulary';
-import { validateVocabularyWithCache, validateBatch } from '../lib/vocabulary-validator-cached';
-import { lookupWordWithCache, getCacheStats, clearAllCache } from '../lib/vocabulary-cache';
-import { getVocabularyCount } from '../lib/vocabulary-validator';
-import { rewriteQuestion, rewriteQuestions, getRewriteStatistics, type RewriteOptions } from '../services/vocabulary-rewriter';
+import { cors } from 'hono/cors';
+import type { Context } from 'hono';
+import { VocabularyService } from '../services/vocabulary-service';
+import { UserProgressService } from '../services/user-progress-service';
+import { ReviewScheduleService } from '../services/review-schedule-service';
+import { SM2Algorithm } from '../services/sm2-algorithm';
+import type {
+  AddVocabularyRequest,
+  SubmitReviewRequest,
+  TodayReviewResponse,
+  EikenGrade
+} from '../types/vocabulary';
 
-const app = new Hono<{ Bindings: EikenEnv }>();
+interface Env {
+  DB: D1Database;
+  KV: KVNamespace;
+}
 
-// ====================
-// 単語検索API
-// ====================
+const app = new Hono<{ Bindings: Env }>();
 
-/**
- * GET /api/eiken/vocabulary/lookup/:word
- * 単語を検索して語彙情報を返す
- */
-app.get('/lookup/:word', async (c) => {
-  const word = c.req.param('word');
-  
-  if (!word) {
-    return c.json({ error: 'Word parameter is required' }, 400);
-  }
-  
+// CORS middleware
+app.use('*', cors());
+
+// ============================================================================
+// GET /api/vocabulary/word/:wordId
+// Get vocabulary word details by ID
+// ============================================================================
+app.get('/word/:wordId', async (c: Context<{ Bindings: Env }>) => {
   try {
-    const entry = await lookupWordWithCache(word, c.env.DB, c.env.KV);
+    const wordId = parseInt(c.req.param('wordId'));
     
-    if (!entry) {
-      return c.json({
-        found: false,
-        word,
-        message: 'Word not found in vocabulary database',
-      }, 404);
+    if (isNaN(wordId)) {
+      return c.json({ error: 'Invalid word ID' }, 400);
     }
     
-    return c.json({
-      found: true,
-      entry,
-    });
-  } catch (error) {
-    console.error('Lookup error:', error);
-    return c.json({
-      error: 'Failed to lookup word',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// バリデーションAPI
-// ====================
-
-/**
- * POST /api/eiken/vocabulary/validate
- * テキストの語彙レベルを検証
- */
-app.post('/validate', async (c) => {
-  try {
-    const body = await c.req.json<{
-      text: string;
-      config?: Partial<ValidationConfig>;
-    }>();
+    const vocabularyService = new VocabularyService(c.env.DB);
+    const word = await vocabularyService.getById(wordId);
     
-    if (!body.text) {
-      return c.json({ error: 'Text is required' }, 400);
+    if (!word) {
+      return c.json({ error: 'Word not found' }, 404);
     }
     
-    const result = await validateVocabularyWithCache(
-      body.text,
-      c.env.DB,
-      c.env.KV,
-      body.config || {}
-    );
-    
-    return c.json(result);
+    return c.json({ word });
   } catch (error) {
-    console.error('Validation error:', error);
-    return c.json({
-      error: 'Failed to validate vocabulary',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
+    console.error('Error getting word:', error);
+    return c.json({ error: 'Failed to get word' }, 500);
   }
 });
 
-/**
- * POST /api/eiken/vocabulary/validate/batch
- * 複数のテキストを一括検証
- */
-app.post('/validate/batch', async (c) => {
+// ============================================================================
+// GET /api/vocabulary/search
+// Search vocabulary words
+// Query params: q, cefrLevel, eikenGrade, minDifficulty, maxDifficulty, page, pageSize
+// ============================================================================
+app.get('/search', async (c: Context<{ Bindings: Env }>) => {
   try {
-    const body = await c.req.json<{
-      texts: string[];
-      config?: Partial<ValidationConfig>;
-    }>();
+    const query = c.req.query('q') || '';
+    const cefrLevel = c.req.query('cefrLevel');
+    const eikenGrade = c.req.query('eikenGrade');
+    const minDifficulty = c.req.query('minDifficulty');
+    const maxDifficulty = c.req.query('maxDifficulty');
+    const page = parseInt(c.req.query('page') || '1');
+    const pageSize = parseInt(c.req.query('pageSize') || '20');
     
-    if (!body.texts || !Array.isArray(body.texts)) {
-      return c.json({ error: 'Texts array is required' }, 400);
-    }
-    
-    if (body.texts.length > 100) {
-      return c.json({ error: 'Maximum 100 texts per batch' }, 400);
-    }
-    
-    const result = await validateBatch(
-      body.texts,
-      c.env.DB,
-      c.env.KV,
-      body.config || {}
-    );
-    
-    return c.json(result);
-  } catch (error) {
-    console.error('Batch validation error:', error);
-    return c.json({
-      error: 'Failed to validate batch',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// 統計API
-// ====================
-
-/**
- * GET /api/eiken/vocabulary/stats
- * 語彙データベースの統計を取得
- */
-app.get('/stats', async (c) => {
-  try {
-    const levels = ['A1', 'A2', 'B1', 'B2'] as const;
-    
-    const counts = await Promise.all(
-      levels.map(async (level) => ({
-        level,
-        count: await getVocabularyCount(level, c.env.DB),
-      }))
-    );
-    
-    const total = counts.reduce((sum, item) => sum + item.count, 0);
-    
-    return c.json({
-      total,
-      by_level: Object.fromEntries(counts.map(item => [item.level, item.count])),
-      cache: getCacheStats(),
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
-    return c.json({
-      error: 'Failed to get statistics',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-/**
- * GET /api/eiken/vocabulary/cache/stats
- * キャッシュ統計を取得
- */
-app.get('/cache/stats', async (c) => {
-  try {
-    const stats = getCacheStats();
-    return c.json(stats);
-  } catch (error) {
-    console.error('Cache stats error:', error);
-    return c.json({
-      error: 'Failed to get cache statistics',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-/**
- * DELETE /api/eiken/vocabulary/cache
- * キャッシュをクリア（開発/テスト用）
- */
-app.delete('/cache', async (c) => {
-  try {
-    await clearAllCache(c.env.KV);
-    
-    return c.json({
-      success: true,
-      message: 'Cache cleared successfully',
-    });
-  } catch (error) {
-    console.error('Cache clear error:', error);
-    return c.json({
-      error: 'Failed to clear cache',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// デバッグAPI (Day 1)
-// ====================
-
-/**
- * GET /api/eiken/vocabulary/debug/sql/:word
- * SQLクエリを直接テスト
- */
-app.get('/debug/sql/:word', async (c) => {
-  const word = c.req.param('word');
-  
-  try {
-    const query = `
-      SELECT 
-        word_lemma,
-        MIN(
-          CASE cefr_level
-            WHEN 'A1' THEN '1_A1'
-            WHEN 'A2' THEN '2_A2'
-            WHEN 'B1' THEN '3_B1'
-            WHEN 'B2' THEN '4_B2'
-            WHEN 'C1' THEN '5_C1'
-            WHEN 'C2' THEN '6_C2'
-            ELSE '9_ZZ'
-          END
-        ) as min_level_prefixed
-      FROM eiken_vocabulary_lexicon 
-      WHERE word_lemma = ?
-      GROUP BY word_lemma
-    `;
-    
-    const stmt = c.env.DB.prepare(query).bind(word.toLowerCase());
-    const result = await stmt.first();
-    
-    return c.json({
-      query_word: word,
-      sql_result: result,
-      parsed_level: result ? (result.min_level_prefixed as string).split('_')[1] : null,
-    });
-  } catch (error) {
-    return c.json({
-      error: 'SQL test failed',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// 自動リライトAPI
-// ====================
-
-/**
- * POST /api/eiken/vocabulary/rewrite
- * 語彙違反を自動修正
- */
-app.post('/rewrite', async (c) => {
-  try {
-    const body = await c.req.json<{
-      question: string;
-      choices: string[];
-      violations: VocabularyViolation[];
-      target_level: string;
-      options?: RewriteOptions;
-    }>();
-    
-    if (!body.question || !body.choices || !body.violations || !body.target_level) {
-      return c.json({ 
-        error: 'Missing required fields: question, choices, violations, target_level' 
-      }, 400);
-    }
-    
-    const result = await rewriteQuestion(
-      body.question,
-      body.choices,
-      body.violations,
-      body.target_level,
-      c.env,
-      body.options || {}
-    );
-    
-    return c.json(result);
-    
-  } catch (error) {
-    console.error('Rewrite error:', error);
-    return c.json({
-      success: false,
-      error: 'Failed to rewrite question',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-/**
- * POST /api/eiken/vocabulary/rewrite/batch
- * 複数の問題を一括リライト
- */
-app.post('/rewrite/batch', async (c) => {
-  try {
-    const body = await c.req.json<{
-      questions: Array<{
-        question: string;
-        choices: string[];
-        violations: VocabularyViolation[];
-      }>;
-      target_level: string;
-      options?: RewriteOptions;
-    }>();
-    
-    if (!body.questions || !Array.isArray(body.questions) || !body.target_level) {
-      return c.json({ 
-        error: 'Missing required fields: questions array, target_level' 
-      }, 400);
-    }
-    
-    if (body.questions.length > 20) {
-      return c.json({ error: 'Maximum 20 questions per batch' }, 400);
-    }
-    
-    const results = await rewriteQuestions(
-      body.questions,
-      body.target_level,
-      c.env,
-      body.options || {}
-    );
-    
-    const statistics = getRewriteStatistics(results);
-    
-    return c.json({
-      results,
-      statistics,
-    });
-    
-  } catch (error) {
-    console.error('Batch rewrite error:', error);
-    return c.json({
-      error: 'Failed to rewrite batch',
-      details: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// ヘルスチェック
-// ====================
-
-/**
- * GET /api/eiken/vocabulary/health
- * ヘルスチェックエンドポイント
- */
-app.get('/health', async (c) => {
-  try {
-    // D1接続テスト
-    const dbTest = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM eiken_vocabulary_lexicon LIMIT 1'
-    ).first<{ count: number }>();
-    
-    return c.json({
-      status: 'healthy',
-      database: dbTest ? 'connected' : 'disconnected',
-      vocabulary_entries: dbTest?.count || 0,
-      cache: getCacheStats(),
-    });
-  } catch (error) {
-    console.error('Health check error:', error);
-    return c.json({
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : String(error),
-    }, 500);
-  }
-});
-
-// ====================
-// デバッグエンドポイント
-// ====================
-
-/**
- * GET /api/eiken/vocabulary/debug/env
- * 環境変数の確認（開発/デバッグ用）
- */
-app.get('/debug/env', async (c) => {
-  try {
-    const hasOpenAI = !!c.env.OPENAI_API_KEY;
-    const keyLength = c.env.OPENAI_API_KEY?.length || 0;
-    const keyPrefix = c.env.OPENAI_API_KEY?.substring(0, 10) || 'missing';
-    
-    return c.json({
-      openai: {
-        configured: hasOpenAI,
-        key_length: keyLength,
-        key_prefix: keyPrefix,
-        key_suffix: hasOpenAI ? '...' + c.env.OPENAI_API_KEY?.substring(c.env.OPENAI_API_KEY.length - 4) : 'N/A'
+    const vocabularyService = new VocabularyService(c.env.DB);
+    const results = await vocabularyService.search(
+      query,
+      {
+        cefrLevel: cefrLevel as any,
+        eikenGrade: eikenGrade as any,
+        minDifficulty: minDifficulty ? parseFloat(minDifficulty) : undefined,
+        maxDifficulty: maxDifficulty ? parseFloat(maxDifficulty) : undefined
       },
-      database: {
-        configured: !!c.env.DB,
-        type: 'D1Database'
-      },
-      kv: {
-        configured: !!c.env.KV,
-        type: 'KVNamespace'
-      },
-      environment: 'production'
-    });
+      page,
+      pageSize
+    );
+    
+    return c.json(results);
   } catch (error) {
-    console.error('Debug endpoint error:', error);
-    return c.json({
-      error: error instanceof Error ? error.message : String(error),
-    }, 500);
+    console.error('Error searching vocabulary:', error);
+    return c.json({ error: 'Failed to search vocabulary' }, 500);
   }
 });
 
-/**
- * POST /api/eiken/vocabulary/debug/openai-test
- * OpenAI API接続テスト
- */
-app.post('/debug/openai-test', async (c) => {
+// ============================================================================
+// POST /api/vocabulary/add
+// Add word to user's vocabulary notebook
+// Body: { userId, wordId, sourceContext? }
+// ============================================================================
+app.post('/add', async (c: Context<{ Bindings: Env }>) => {
   try {
-    const openaiApiKey = c.env.OPENAI_API_KEY;
+    const body = await c.req.json<AddVocabularyRequest>();
     
-    if (!openaiApiKey) {
-      return c.json({
-        success: false,
-        error: 'OpenAI API key not configured',
-        has_key: false
-      }, 400);
+    if (!body.userId || !body.wordId) {
+      return c.json({ error: 'Missing required fields' }, 400);
     }
     
-    // Simple test request to OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: 'Say "test successful" if you can read this.' }
-        ],
-        max_tokens: 20,
-        temperature: 0
-      })
+    const progressService = new UserProgressService(c.env.DB);
+    const progressId = await progressService.addWord(
+      body.userId,
+      body.wordId,
+      body.sourceContext
+    );
+    
+    // Get the created progress
+    const progress = await progressService.getProgress(body.userId, body.wordId);
+    
+    return c.json({ 
+      success: true, 
+      progressId,
+      progress 
+    });
+  } catch (error) {
+    console.error('Error adding vocabulary:', error);
+    return c.json({ error: 'Failed to add vocabulary' }, 500);
+  }
+});
+
+// ============================================================================
+// GET /api/vocabulary/progress/:userId
+// Get user's vocabulary progress
+// Query params: status, minMasteryLevel, maxMasteryLevel
+// ============================================================================
+app.get('/progress/:userId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    const status = c.req.query('status');
+    const minMasteryLevel = c.req.query('minMasteryLevel');
+    const maxMasteryLevel = c.req.query('maxMasteryLevel');
+    
+    const progressService = new UserProgressService(c.env.DB);
+    const progress = await progressService.getAllProgress(userId, {
+      status: status as any,
+      minMasteryLevel: minMasteryLevel ? parseInt(minMasteryLevel) : undefined,
+      maxMasteryLevel: maxMasteryLevel ? parseInt(maxMasteryLevel) : undefined
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      return c.json({
-        success: false,
-        error: `OpenAI API error: ${response.status}`,
-        details: errorText,
-        has_key: true,
-        status_code: response.status
-      }, 500);
-    }
+    // Get word details for each progress entry
+    const vocabularyService = new VocabularyService(c.env.DB);
+    const wordIds = progress.map(p => p.wordId);
+    const words = await vocabularyService.getByIds(wordIds);
     
-    const data = await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-      usage?: { total_tokens: number };
+    // Create a map for quick lookup
+    const wordMap = new Map(words.map(w => [w.id, w]));
+    
+    // Combine progress with word details
+    const combined = progress.map(p => ({
+      progress: p,
+      word: wordMap.get(p.wordId)
+    }));
+    
+    return c.json({ items: combined });
+  } catch (error) {
+    console.error('Error getting progress:', error);
+    return c.json({ error: 'Failed to get progress' }, 500);
+  }
+});
+
+// ============================================================================
+// GET /api/vocabulary/review/today/:userId
+// Get today's review schedule
+// ============================================================================
+app.get('/review/today/:userId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    
+    const progressService = new UserProgressService(c.env.DB);
+    const reviewScheduleService = new ReviewScheduleService(c.env.DB);
+    const vocabularyService = new VocabularyService(c.env.DB);
+    
+    // Get due words
+    const dueProgress = await progressService.getDueWords(userId);
+    
+    // Get word details
+    const wordIds = dueProgress.map(p => p.wordId);
+    const words = await vocabularyService.getByIds(wordIds);
+    const wordMap = new Map(words.map(w => [w.id, w]));
+    
+    // Combine
+    const dueWords = dueProgress.map(p => ({
+      word: wordMap.get(p.wordId)!,
+      progress: p
+    }));
+    
+    // Get summary
+    const summary = await reviewScheduleService.getTodaySummary(userId);
+    
+    const response: TodayReviewResponse = {
+      summary,
+      dueWords,
+      newWords: [] // TODO: Implement new word recommendations
     };
     
+    return c.json(response);
+  } catch (error) {
+    console.error('Error getting today review:', error);
+    return c.json({ error: 'Failed to get today review' }, 500);
+  }
+});
+
+// ============================================================================
+// POST /api/vocabulary/review/submit
+// Submit review result
+// Body: { userId, wordId, quality, responseTimeMs? }
+// ============================================================================
+app.post('/review/submit', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const body = await c.req.json<SubmitReviewRequest>();
+    
+    if (!body.userId || !body.wordId || body.quality === undefined) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+    
+    if (body.quality < 0 || body.quality > 5) {
+      return c.json({ error: 'Quality must be between 0 and 5' }, 400);
+    }
+    
+    // Get user's age/grade for age multiplier
+    // TODO: Get from user profile
+    const ageMultiplier = SM2Algorithm.getAgeMultiplier(undefined, 'grade-3' as EikenGrade);
+    
+    // Get exam date for exam multiplier
+    // TODO: Get from user profile
+    const examMultiplier = SM2Algorithm.getExamDrivenMultiplier(undefined);
+    
+    const progressService = new UserProgressService(c.env.DB);
+    const updatedProgress = await progressService.submitReview(
+      body.userId,
+      body.wordId,
+      {
+        quality: body.quality,
+        responseTimeMs: body.responseTimeMs
+      },
+      ageMultiplier,
+      examMultiplier
+    );
+    
     return c.json({
       success: true,
-      response: data.choices[0].message.content,
-      usage: data.usage,
-      has_key: true,
-      message: 'OpenAI API connection successful'
+      progress: updatedProgress
     });
-    
   } catch (error) {
-    console.error('OpenAI test error:', error);
+    console.error('Error submitting review:', error);
+    return c.json({ error: 'Failed to submit review' }, 500);
+  }
+});
+
+// ============================================================================
+// GET /api/vocabulary/statistics/:userId
+// Get learning statistics
+// ============================================================================
+app.get('/statistics/:userId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    
+    const progressService = new UserProgressService(c.env.DB);
+    const reviewScheduleService = new ReviewScheduleService(c.env.DB);
+    
+    const stats = await progressService.getStatistics(userId);
+    const streakData = await reviewScheduleService.getStreakData(userId);
+    
     return c.json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      has_key: !!c.env.OPENAI_API_KEY
-    }, 500);
+      ...stats,
+      ...streakData
+    });
+  } catch (error) {
+    console.error('Error getting statistics:', error);
+    return c.json({ error: 'Failed to get statistics' }, 500);
+  }
+});
+
+// ============================================================================
+// PUT /api/vocabulary/note/:userId/:wordId
+// Update user note for a word
+// Body: { note }
+// ============================================================================
+app.put('/note/:userId/:wordId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    const wordId = parseInt(c.req.param('wordId'));
+    const body = await c.req.json<{ note: string }>();
+    
+    if (isNaN(wordId)) {
+      return c.json({ error: 'Invalid word ID' }, 400);
+    }
+    
+    const progressService = new UserProgressService(c.env.DB);
+    await progressService.updateNote(userId, wordId, body.note);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error updating note:', error);
+    return c.json({ error: 'Failed to update note' }, 500);
+  }
+});
+
+// ============================================================================
+// PUT /api/vocabulary/mnemonic/:userId/:wordId
+// Update mnemonic for a word
+// Body: { mnemonic }
+// ============================================================================
+app.put('/mnemonic/:userId/:wordId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    const wordId = parseInt(c.req.param('wordId'));
+    const body = await c.req.json<{ mnemonic: string }>();
+    
+    if (isNaN(wordId)) {
+      return c.json({ error: 'Invalid word ID' }, 400);
+    }
+    
+    const progressService = new UserProgressService(c.env.DB);
+    await progressService.updateMnemonic(userId, wordId, body.mnemonic);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error updating mnemonic:', error);
+    return c.json({ error: 'Failed to update mnemonic' }, 500);
+  }
+});
+
+// ============================================================================
+// POST /api/vocabulary/archive/:userId/:wordId
+// Archive a word
+// ============================================================================
+app.post('/archive/:userId/:wordId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    const wordId = parseInt(c.req.param('wordId'));
+    
+    if (isNaN(wordId)) {
+      return c.json({ error: 'Invalid word ID' }, 400);
+    }
+    
+    const progressService = new UserProgressService(c.env.DB);
+    await progressService.archiveWord(userId, wordId);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error archiving word:', error);
+    return c.json({ error: 'Failed to archive word' }, 500);
+  }
+});
+
+// ============================================================================
+// POST /api/vocabulary/unarchive/:userId/:wordId
+// Unarchive a word
+// ============================================================================
+app.post('/unarchive/:userId/:wordId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    const wordId = parseInt(c.req.param('wordId'));
+    
+    if (isNaN(wordId)) {
+      return c.json({ error: 'Invalid word ID' }, 400);
+    }
+    
+    const progressService = new UserProgressService(c.env.DB);
+    await progressService.unarchiveWord(userId, wordId);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error unarchiving word:', error);
+    return c.json({ error: 'Failed to unarchive word' }, 500);
+  }
+});
+
+// ============================================================================
+// GET /api/vocabulary/mastered/:userId
+// Get mastered words
+// ============================================================================
+app.get('/mastered/:userId', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const userId = c.req.param('userId');
+    
+    const progressService = new UserProgressService(c.env.DB);
+    const vocabularyService = new VocabularyService(c.env.DB);
+    
+    const masteredProgress = await progressService.getMasteredWords(userId);
+    
+    // Get word details
+    const wordIds = masteredProgress.map(p => p.wordId);
+    const words = await vocabularyService.getByIds(wordIds);
+    const wordMap = new Map(words.map(w => [w.id, w]));
+    
+    const items = masteredProgress.map(p => ({
+      progress: p,
+      word: wordMap.get(p.wordId)
+    }));
+    
+    return c.json({ items });
+  } catch (error) {
+    console.error('Error getting mastered words:', error);
+    return c.json({ error: 'Failed to get mastered words' }, 500);
   }
 });
 
