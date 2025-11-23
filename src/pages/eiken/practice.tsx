@@ -95,6 +95,12 @@ export default function EikenPracticePage() {
             >
               📊 結果
             </button>
+            <a
+              href="/vocabulary/notebook"
+              className="px-6 py-2 rounded-md font-medium transition-all text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              📚 語彙ノート
+            </a>
           </div>
         </div>
 
