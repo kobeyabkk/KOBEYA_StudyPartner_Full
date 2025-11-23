@@ -58,6 +58,16 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const passageIndex = uniquePassages.indexOf(currentPassage);
   const passageNumber = passageIndex >= 0 ? passageIndex + 1 : 1;
   const totalPassages = uniquePassages.length;
+  
+  // デバッグログ
+  console.log('🔍 Passage Debug:', {
+    currentIndex,
+    totalPassages,
+    passageNumber,
+    uniquePassagesCount: uniquePassages.length,
+    currentPassageLength: currentPassage.length,
+    allPassagesLengths: uniquePassages.map(p => p.length)
+  });
 
   const handleAnswerSelect = (index: number) => {
     if (!canModifyAnswer) return; // 解説を見た後は変更不可
@@ -298,7 +308,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 <span className="text-xl">📖</span>
                 <span>
                   {showPassage ? '長文を隠す' : '長文を表示'}
-                  {totalPassages > 1 && ` (長文 ${passageNumber}/${totalPassages})`}
+                  {totalPassages > 1 ? ` (長文 ${passageNumber}/${totalPassages})` : ''}
                 </span>
               </span>
               <span className={`transform transition-transform ${showPassage ? 'rotate-180' : ''}`}>
