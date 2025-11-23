@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
  * 英検問題表示・解答コンポーネント
  */
 import type { GeneratedQuestion } from '../../hooks/useEikenAPI';
+import { AnnotatedText } from '../../utils/vocabulary-annotator';
 
 interface QuestionDisplayProps {
   questions: GeneratedQuestion[];
@@ -321,7 +322,16 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               <div className="mt-4 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
                 <div className="prose prose-sm max-w-none">
                   <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {(currentQuestion as any).passage}
+                    <AnnotatedText 
+                      text={(currentQuestion as any).passage}
+                      config={{
+                        enabled: true,
+                        minDifficultyScore: 40,
+                        displayMode: 'hover',
+                        showKatakana: false,
+                        userId: 'user-123' // TODO: Get from auth context
+                      }}
+                    />
                   </p>
                 </div>
               </div>
@@ -336,7 +346,16 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               Q
             </span>
             <h3 className="text-xl font-medium text-gray-900 leading-relaxed">
-              {currentQuestion.questionText}
+              <AnnotatedText 
+                text={currentQuestion.questionText}
+                config={{
+                  enabled: true,
+                  minDifficultyScore: 40,
+                  displayMode: 'hover',
+                  showKatakana: false,
+                  userId: 'user-123' // TODO: Get from auth context
+                }}
+              />
             </h3>
           </div>
 
@@ -377,7 +396,18 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 `}>
                   {index + 1}
                 </span>
-                <span className="text-gray-900 font-medium">{choice}</span>
+                <span className="text-gray-900 font-medium">
+                  <AnnotatedText 
+                    text={choice}
+                    config={{
+                      enabled: true,
+                      minDifficultyScore: 40,
+                      displayMode: 'hover',
+                      showKatakana: false,
+                      userId: 'user-123'
+                    }}
+                  />
+                </span>
               </div>
               {getChoiceIcon(index)}
             </button>
