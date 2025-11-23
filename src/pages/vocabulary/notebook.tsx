@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import type {
   UserVocabularyProgress,
   VocabularyMaster,
@@ -197,12 +198,12 @@ export default function VocabularyNotebookPage() {
                 学習中の単語を管理・復習しましょう
               </p>
             </div>
-            <a
-              href="/eiken/practice"
+            <Link
+              to="/eiken/practice"
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               ← 問題練習に戻る
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -384,12 +385,12 @@ export default function VocabularyNotebookPage() {
                 : '問題練習で新しい単語を学習しましょう'}
             </p>
             {!searchQuery && statusFilter === 'all' && masteryFilter === 'all' && (
-              <a
-                href="/eiken/practice"
+              <Link
+                to="/eiken/practice"
                 className="mt-4 inline-block px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 問題練習を始める
-              </a>
+              </Link>
             )}
           </div>
         ) : (

@@ -112,6 +112,16 @@ export interface GeneratedQuestion {
   difficulty_score: number;
   vocab_band?: string;
   
+  // Phase 4B: Vocabulary annotations
+  vocabulary_notes?: Array<{
+    word: string;
+    pos: string;
+    definition_ja: string;
+    cefr_level?: string;
+    difficulty_score: number;
+    word_id?: number;
+  }>;
+  
   // AI生成情報
   model: string;
   temperature?: number;

@@ -20,6 +20,7 @@ import { validateGeneratedQuestion } from './copyright-validator';
 import { getTargetCEFR } from './vocabulary-analyzer';
 import { VocabularyFailureTracker } from './vocabulary-tracker';
 import { validateGrammarComplexity } from '../config/grammar-constraints';
+import { VocabularyAnnotator } from './vocabulary-annotator';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -348,6 +349,40 @@ export class IntegratedQuestionGenerator {
         },
         error: 'Failed to generate valid question after maximum attempts',
       };
+    }
+
+    // Step 3.5: 語彙アノテーションを生成（Phase 4B）
+    try {
+      const annotator = new VocabularyAnnotator(this.db);
+      
+      // テキストを抽出（形式によって異なる）
+      let textToAnnotate = '';
+      if (questionData.passage) {
+        textToAnnotate = questionData.passage;
+      } else if (questionData.question_text) {
+        textToAnnotate = questionData.question_text;
+      } else if (questionData.essay_prompt) {
+        textToAnnotate = questionData.essay_prompt;
+      }
+      
+      if (textToAnnotate) {
+        console.log('[Vocabulary Annotation] Generating annotations for text...');
+        const vocabularyNotes = await annotator.generateAnnotations(textToAnnotate, {
+          minDifficultyScore: 40,
+          maxAnnotations: 10,
+          excludeKatakana: true
+        });
+        
+        if (vocabularyNotes.length > 0) {
+          questionData.vocabulary_notes = vocabularyNotes;
+          console.log(`[Vocabulary Annotation] Generated ${vocabularyNotes.length} annotations`);
+        } else {
+          console.log('[Vocabulary Annotation] No difficult words found');
+        }
+      }
+    } catch (error) {
+      console.error('[Vocabulary Annotation Error]', error);
+      // アノテーション生成失敗は致命的エラーではない
     }
 
     // Step 4: データベースに保存（production と practice の両方で保存）
