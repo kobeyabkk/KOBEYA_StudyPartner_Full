@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * 英検練習メインページ
@@ -95,12 +96,12 @@ export default function EikenPracticePage() {
             >
               📊 結果
             </button>
-            <a
-              href="/vocabulary/notebook"
+            <Link
+              to="/vocabulary/notebook"
               className="px-6 py-2 rounded-md font-medium transition-all text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             >
               📚 語彙ノート
-            </a>
+            </Link>
           </div>
         </div>
 
