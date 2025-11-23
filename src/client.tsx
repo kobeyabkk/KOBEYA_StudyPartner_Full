@@ -6,6 +6,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import EikenPracticePage from './pages/eiken/practice';
+import VocabularyNotebookPage from './pages/vocabulary/notebook';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/eiken/practice" replace />} />
         <Route path="/eiken/practice" element={<EikenPracticePage />} />
+        <Route path="/vocabulary/notebook" element={<VocabularyNotebookPage />} />
       </Routes>
     </BrowserRouter>
   );
