@@ -91,6 +91,14 @@ export default function EikenPracticePage() {
     console.log('📥 handleQuestionsGenerated called with:', generatedQuestions);
     console.log('📊 Questions count:', generatedQuestions.length);
     console.log('📝 First question:', generatedQuestions[0]);
+    
+    // Clear previous question display progress when new questions are generated
+    localStorage.removeItem('eiken_current_question_index');
+    localStorage.removeItem('eiken_user_answers');
+    localStorage.removeItem('eiken_submitted_questions');
+    localStorage.removeItem('eiken_viewed_explanations');
+    console.log('🗑️ Cleared previous question progress');
+    
     setQuestions(generatedQuestions);
     setViewMode('practice');
     console.log('🎬 View mode changed to: practice');
@@ -105,10 +113,14 @@ export default function EikenPracticePage() {
     setQuestions([]);
     setResults([]);
     setViewMode('generator');
-    // Clear localStorage
+    // Clear localStorage - including question display progress
     localStorage.removeItem('eiken_practice_questions');
     localStorage.removeItem('eiken_practice_results');
     localStorage.removeItem('eiken_practice_viewMode');
+    localStorage.removeItem('eiken_current_question_index');
+    localStorage.removeItem('eiken_user_answers');
+    localStorage.removeItem('eiken_submitted_questions');
+    localStorage.removeItem('eiken_viewed_explanations');
     console.log('🗑️ Cleared practice state from localStorage');
   };
 

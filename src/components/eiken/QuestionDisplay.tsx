@@ -27,10 +27,37 @@ interface PassageTranslation {
 }
 
 export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<Map<number, number>>(new Map()); // 各問題の解答を保存
-  const [submittedQuestions, setSubmittedQuestions] = useState<Set<number>>(new Set()); // 解答済み問題
-  const [viewedExplanations, setViewedExplanations] = useState<Set<number>>(new Set()); // 解説を見た問題
+  // Load saved progress from localStorage
+  const loadSavedProgress = () => {
+    try {
+      const savedIndex = localStorage.getItem('eiken_current_question_index');
+      const savedAnswers = localStorage.getItem('eiken_user_answers');
+      const savedSubmitted = localStorage.getItem('eiken_submitted_questions');
+      const savedViewed = localStorage.getItem('eiken_viewed_explanations');
+      
+      return {
+        currentIndex: savedIndex ? parseInt(savedIndex, 10) : 0,
+        userAnswers: savedAnswers ? new Map(JSON.parse(savedAnswers)) : new Map(),
+        submittedQuestions: savedSubmitted ? new Set(JSON.parse(savedSubmitted)) : new Set(),
+        viewedExplanations: savedViewed ? new Set(JSON.parse(savedViewed)) : new Set(),
+      };
+    } catch (error) {
+      console.error('Failed to load progress from localStorage:', error);
+      return {
+        currentIndex: 0,
+        userAnswers: new Map(),
+        submittedQuestions: new Set(),
+        viewedExplanations: new Set(),
+      };
+    }
+  };
+
+  const savedProgress = loadSavedProgress();
+  
+  const [currentIndex, setCurrentIndex] = useState(savedProgress.currentIndex);
+  const [userAnswers, setUserAnswers] = useState<Map<number, number>>(savedProgress.userAnswers); // 各問題の解答を保存
+  const [submittedQuestions, setSubmittedQuestions] = useState<Set<number>>(savedProgress.submittedQuestions); // 解答済み問題
+  const [viewedExplanations, setViewedExplanations] = useState<Set<number>>(savedProgress.viewedExplanations); // 解説を見た問題
   const [showPassage, setShowPassage] = useState(true); // 長文表示フラグ
   const [results, setResults] = useState<AnswerResult[]>([]);
   const [startTime] = useState(Date.now());
@@ -38,8 +65,23 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const [translationStarted, setTranslationStarted] = useState(false);
   const [prevPassage, setPrevPassage] = useState<string>(''); // 前の長文を記憶
   
+  console.log('📂 Loaded progress - index:', currentIndex, 'answers:', userAnswers.size, 'submitted:', submittedQuestions.size);
+  
   // Phase 4B: Vocabulary annotation state
   const [selectedVocabNote, setSelectedVocabNote] = useState<any | null>(null);
+
+  // Save progress to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('eiken_current_question_index', currentIndex.toString());
+      localStorage.setItem('eiken_user_answers', JSON.stringify(Array.from(userAnswers.entries())));
+      localStorage.setItem('eiken_submitted_questions', JSON.stringify(Array.from(submittedQuestions)));
+      localStorage.setItem('eiken_viewed_explanations', JSON.stringify(Array.from(viewedExplanations)));
+      console.log('💾 Saved progress - index:', currentIndex, 'answers:', userAnswers.size);
+    } catch (error) {
+      console.error('Failed to save progress to localStorage:', error);
+    }
+  }, [currentIndex, userAnswers, submittedQuestions, viewedExplanations]);
 
   // 現在の問題の状態を取得
   const selectedAnswer = userAnswers.get(currentIndex) ?? null;
