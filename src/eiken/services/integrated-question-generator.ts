@@ -214,6 +214,40 @@ export class IntegratedQuestionGenerator {
   }
 
   /**
+   * Phase 4B: vocabulary_meanings から用語を抽出
+   * LLMが生成する用語集（glossary）から語彙を取り出す
+   * 
+   * 形式:
+   * - Array: [{"term": "word", "definition": "意味"}, ...]
+   * - Object: {"word1": "meaning", "word2": "meaning", ...}
+   */
+  private extractGlossaryTerms(vocabularyMeanings: any): Array<{word: string; pos?: string; definition_ja?: string}> {
+    if (!vocabularyMeanings) return [];
+    
+    if (Array.isArray(vocabularyMeanings)) {
+      // Array format: [{"term": "...", "definition": "..."}, ...]
+      return vocabularyMeanings
+        .filter(item => item && typeof item === 'object' && item.term)
+        .map(item => ({
+          word: item.term,
+          pos: undefined,
+          definition_ja: item.definition
+        }));
+    } else if (typeof vocabularyMeanings === 'object') {
+      // Object format: {"word1": "meaning", "word2": "meaning"}
+      return Object.entries(vocabularyMeanings)
+        .filter(([key, val]) => key && typeof val === 'string')
+        .map(([word, definition]) => ({
+          word,
+          pos: undefined,
+          definition_ja: definition as string
+        }));
+    }
+    
+    return [];
+  }
+
+  /**
    * メイン: 問題生成パイプライン
    */
   async generateQuestion(
@@ -579,26 +613,33 @@ Always respond with valid JSON.`;
     // 英検級に対応するCEFRレベルを取得
     const targetCEFR = getTargetCEFR(grade);
     
-    // Phase 4A: vocabulary_notesの有無をチェック
-    const hasVocabularyNotes = !!(questionData.vocabulary_notes && 
-                                  Array.isArray(questionData.vocabulary_notes) && 
-                                  questionData.vocabulary_notes.length > 0);
+    // Phase 4B: vocabulary_meanings (LLM glossary) と vocabulary_notes (VocabularyAnnotator) を区別
+    // vocabulary_meaningsは用語集（LLMが生成）、vocabulary_notesは難しい単語のアノテーション（DBから取得）
+    const hasVocabularyMeanings = !!(questionData.vocabulary_meanings && 
+                                     (Array.isArray(questionData.vocabulary_meanings) && questionData.vocabulary_meanings.length > 0 ||
+                                      typeof questionData.vocabulary_meanings === 'object' && Object.keys(questionData.vocabulary_meanings).length > 0));
+    const vocabularyMeaningsCount = Array.isArray(questionData.vocabulary_meanings) 
+      ? questionData.vocabulary_meanings.length 
+      : (typeof questionData.vocabulary_meanings === 'object' ? Object.keys(questionData.vocabulary_meanings).length : 0);
     
-    console.log(`[VocabValidation] Vocabulary notes present: ${hasVocabularyNotes} (count: ${questionData.vocabulary_notes?.length || 0})`);
+    console.log(`[VocabValidation] Vocabulary meanings (glossary) present: ${hasVocabularyMeanings} (count: ${vocabularyMeaningsCount})`);
+    console.log(`[VocabValidation] Vocabulary notes (annotations) present: ${!!(questionData.vocabulary_notes?.length)} (count: ${questionData.vocabulary_notes?.length || 0})`);
     
     // 適応的閾値を計算（形式、文字数、注釈の有無を考慮）
     const wordCount = this.getWordCount(questionData);
     const adaptiveThreshold = format 
-      ? this.getAdaptiveThreshold(format, grade, wordCount, hasVocabularyNotes)
+      ? this.getAdaptiveThreshold(format, grade, wordCount, hasVocabularyMeanings)
       : 95; // デフォルト95%
     
-    console.log(`[VocabValidation] Adaptive threshold: ${adaptiveThreshold}% (format: ${format}, words: ${wordCount}, glossary: ${hasVocabularyNotes})`);
+    console.log(`[VocabValidation] Adaptive threshold: ${adaptiveThreshold}% (format: ${format}, words: ${wordCount}, glossary: ${hasVocabularyMeanings})`);
     
     // max_violation_rate は (100 - threshold) / 100
     const maxViolationRate = (100 - adaptiveThreshold) / 100;
     
     // DB と CEFR レベルを正しく渡す
-    // Phase 4A: vocabulary_notesも渡して、語注付き語彙をバリデーションから除外
+    // Phase 4B: vocabulary_meanings (用語集) をバリデーションから除外
+    // vocabulary_notesはVocabularyAnnotatorが後で生成するので、ここでは使わない
+    const glossaryTerms = this.extractGlossaryTerms(questionData.vocabulary_meanings);
     const validation = await validateVocabulary(
       textToValidate, 
       this.db, 
@@ -606,7 +647,7 @@ Always respond with valid JSON.`;
         target_level: targetCEFR as any,
         max_violation_rate: maxViolationRate,
       },
-      questionData.vocabulary_notes || []
+      glossaryTerms
     );
     
     const score = (validation.valid_words / validation.total_words) * 100 || 0;

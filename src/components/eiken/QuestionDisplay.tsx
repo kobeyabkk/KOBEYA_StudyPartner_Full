@@ -50,6 +50,14 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const answered = selectedAnswer !== null;
+  
+  // Debug: Check if vocabulary_notes exists
+  useEffect(() => {
+    console.log('🔍 [DEBUG] Current question:', currentQuestion);
+    console.log('🔍 [DEBUG] vocabulary_notes:', (currentQuestion as any).vocabulary_notes);
+    console.log('🔍 [DEBUG] vocabulary_notes type:', typeof (currentQuestion as any).vocabulary_notes);
+    console.log('🔍 [DEBUG] vocabulary_notes length:', (currentQuestion as any).vocabulary_notes?.length);
+  }, [currentQuestion]);
 
   // 現在の長文を取得
   const currentPassage = (currentQuestion as any).passage || '';
@@ -194,7 +202,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           // Check if this word is in vocabulary notes
           const normalizedWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
           const note = vocabularyNotes.find(n => 
-            n.word.toLowerCase() === normalizedWord
+            n && n.word && n.word.toLowerCase() === normalizedWord
           );
           
           if (note) {

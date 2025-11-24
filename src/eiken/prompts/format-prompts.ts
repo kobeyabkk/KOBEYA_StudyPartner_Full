@@ -407,7 +407,7 @@ ${instructions.prompt_template}
       "explanation": "なぜAが正解か（日本語で詳しく説明）。他の選択肢が不正解である理由も日本語で説明すること。"
     }
   ],
-  "vocabulary_notes": [
+  "vocabulary_meanings": [
     {"term": "example term", "definition": "日本語での定義"},
     {"term": "another term", "definition": "別の定義"}
   ],
@@ -540,7 +540,7 @@ ${instructions.prompt_template}
   "sample_essay_ja": "模範解答の日本語訳",
   "useful_expressions": ["expression 1", "expression 2", "expression 3"],
   "common_mistakes": ["mistake to avoid 1", "mistake to avoid 2"],
-  "vocabulary_notes": [
+  "vocabulary_meanings": [
     {"term": "example term", "definition": "日本語での定義"},
     {"term": "another term", "definition": "別の定義"}
   ],
