@@ -65,8 +65,9 @@ app.post('/add', async (c) => {
     }
 
     // Get word details
+    // Note: eiken_vocabulary_lexicon uses ROWID as primary key
     const word = await db
-      .prepare('SELECT * FROM eiken_vocabulary_lexicon WHERE id = ?')
+      .prepare('SELECT ROWID as id, * FROM eiken_vocabulary_lexicon WHERE ROWID = ?')
       .bind(word_id)
       .first();
 
