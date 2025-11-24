@@ -163,21 +163,31 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   // Phase 4B: Add vocabulary to notebook
   const handleAddToNotebook = async (wordId: number) => {
     try {
+      console.log('🔵 Attempting to add word:', wordId);
+      const requestBody = {
+        user_id: 'user-123', // TODO: Get from auth context
+        word_id: wordId,
+        source_context: {
+          question_id: currentQuestion.id?.toString(),
+          question_type: currentQuestion.topic,
+        }
+      };
+      console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+      
       const response = await fetch('/api/vocabulary/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: 'user-123', // TODO: Get from auth context
-          word_id: wordId,
-          source_context: {
-            question_id: currentQuestion.id?.toString(),
-            question_type: currentQuestion.topic,
-          }
-        }),
+        body: JSON.stringify(requestBody),
       });
       
+      console.log('📥 Response status:', response.status, response.statusText);
+      
+      // Try to get response body even if error
+      const responseData = await response.json();
+      console.log('📥 Response data:', JSON.stringify(responseData, null, 2));
+      
       if (!response.ok) {
-        throw new Error('Failed to add to notebook');
+        throw new Error(`Failed to add to notebook: ${JSON.stringify(responseData)}`);
       }
       
       console.log('✅ Word added to vocabulary notebook');
