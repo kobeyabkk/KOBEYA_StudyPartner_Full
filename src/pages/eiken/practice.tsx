@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 /**
  * 英検練習メインページ
@@ -19,9 +19,21 @@ interface AnswerResult {
 }
 
 export default function EikenPracticePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>('generator');
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [results, setResults] = useState<AnswerResult[]>([]);
+
+  // Restore viewMode from URL parameter when returning from vocabulary notebook
+  useEffect(() => {
+    const mode = searchParams.get('mode') as ViewMode;
+    if (mode && (mode === 'generator' || mode === 'practice' || mode === 'results')) {
+      setViewMode(mode);
+      // Clear the parameter after reading it
+      searchParams.delete('mode');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // デバッグ: 状態変化を監視
   console.log('🔄 Component render - viewMode:', viewMode, 'questions:', questions.length);
@@ -97,7 +109,7 @@ export default function EikenPracticePage() {
               📊 結果
             </button>
             <Link
-              to="/vocabulary/notebook"
+              to={`/vocabulary/notebook?returnTo=${viewMode}`}
               className="px-6 py-2 rounded-md font-medium transition-all text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             >
               📚 語彙ノート

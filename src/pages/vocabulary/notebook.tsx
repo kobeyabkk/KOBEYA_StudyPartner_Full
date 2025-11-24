@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type {
   UserVocabularyProgress,
   VocabularyMaster,
@@ -30,6 +30,9 @@ interface VocabularyItem {
 }
 
 export default function VocabularyNotebookPage() {
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || 'generator'; // Default to generator if not specified
+  
   const [items, setItems] = useState<VocabularyItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<VocabularyItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,10 +202,10 @@ export default function VocabularyNotebookPage() {
               </p>
             </div>
             <Link
-              to="/eiken/practice"
+              to={`/eiken/practice?mode=${returnTo}`}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
-              ← 問題練習に戻る
+              ← {returnTo === 'practice' ? '問題練習に戻る' : '問題生成に戻る'}
             </Link>
           </div>
         </div>
