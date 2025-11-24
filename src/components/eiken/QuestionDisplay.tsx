@@ -27,37 +27,42 @@ interface PassageTranslation {
 }
 
 export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
-  // Load saved progress from localStorage
-  const loadSavedProgress = () => {
+  // Load saved progress from localStorage (only once on mount)
+  const [currentIndex, setCurrentIndex] = useState(() => {
     try {
-      const savedIndex = localStorage.getItem('eiken_current_question_index');
-      const savedAnswers = localStorage.getItem('eiken_user_answers');
-      const savedSubmitted = localStorage.getItem('eiken_submitted_questions');
-      const savedViewed = localStorage.getItem('eiken_viewed_explanations');
-      
-      return {
-        currentIndex: savedIndex ? parseInt(savedIndex, 10) : 0,
-        userAnswers: savedAnswers ? new Map(JSON.parse(savedAnswers)) : new Map(),
-        submittedQuestions: savedSubmitted ? new Set(JSON.parse(savedSubmitted)) : new Set(),
-        viewedExplanations: savedViewed ? new Set(JSON.parse(savedViewed)) : new Set(),
-      };
-    } catch (error) {
-      console.error('Failed to load progress from localStorage:', error);
-      return {
-        currentIndex: 0,
-        userAnswers: new Map(),
-        submittedQuestions: new Set(),
-        viewedExplanations: new Set(),
-      };
+      const saved = localStorage.getItem('eiken_current_question_index');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
     }
-  };
-
-  const savedProgress = loadSavedProgress();
+  });
   
-  const [currentIndex, setCurrentIndex] = useState(savedProgress.currentIndex);
-  const [userAnswers, setUserAnswers] = useState<Map<number, number>>(savedProgress.userAnswers); // 各問題の解答を保存
-  const [submittedQuestions, setSubmittedQuestions] = useState<Set<number>>(savedProgress.submittedQuestions); // 解答済み問題
-  const [viewedExplanations, setViewedExplanations] = useState<Set<number>>(savedProgress.viewedExplanations); // 解説を見た問題
+  const [userAnswers, setUserAnswers] = useState<Map<number, number>>(() => {
+    try {
+      const saved = localStorage.getItem('eiken_user_answers');
+      return saved ? new Map(JSON.parse(saved)) : new Map();
+    } catch {
+      return new Map();
+    }
+  });
+  
+  const [submittedQuestions, setSubmittedQuestions] = useState<Set<number>>(() => {
+    try {
+      const saved = localStorage.getItem('eiken_submitted_questions');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  
+  const [viewedExplanations, setViewedExplanations] = useState<Set<number>>(() => {
+    try {
+      const saved = localStorage.getItem('eiken_viewed_explanations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [showPassage, setShowPassage] = useState(true); // 長文表示フラグ
   const [results, setResults] = useState<AnswerResult[]>([]);
   const [startTime] = useState(Date.now());
