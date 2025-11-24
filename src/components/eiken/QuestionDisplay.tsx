@@ -444,9 +444,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
       {/* 問題カード */}
       <div className="bg-white rounded-xl shadow-lg p-8">
-        {/* 長文表示ボタン（long_reading形式の場合） */}
-        {currentQuestion.topic === 'long_reading' && (currentQuestion as any).passage && (
-          <div className="mb-6">
+        {/* コントロールボタン群 */}
+        <div className="mb-6 space-y-3">
+          {/* 長文表示ボタン（long_reading形式の場合） */}
+          {currentQuestion.topic === 'long_reading' && (currentQuestion as any).passage && (
             <button
               onClick={togglePassage}
               className="w-full px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-between"
@@ -462,11 +463,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 ▼
               </span>
             </button>
-            
-            {/* 語彙マーカー表示切り替えボタン */}
+          )}
+          
+          {/* 語彙マーカー表示切り替えボタン */}
+          {(currentQuestion as any).vocabulary_notes && (currentQuestion as any).vocabulary_notes.length > 0 && (
             <button
               onClick={() => setShowVocabularyMarkers(!showVocabularyMarkers)}
-              className="w-full px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-between mt-3"
+              className="w-full px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-between"
             >
               <span className="flex items-center gap-2">
                 <span className="text-xl">📚</span>
@@ -478,20 +481,20 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 {showVocabularyMarkers ? '👁️' : '🚫'}
               </span>
             </button>
-            
-            {/* 長文パッセージ */}
-            {showPassage && (
-              <div className="mt-4 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
-                <div className="prose prose-sm max-w-none">
-                  <div className="text-gray-800 leading-relaxed">
-                    {renderTextWithAnnotations(
-                      (currentQuestion as any).passage,
-                      (currentQuestion as any).vocabulary_notes
-                    )}
-                  </div>
-                </div>
+          )}
+        </div>
+        
+        {/* 長文パッセージ */}
+        {currentQuestion.topic === 'long_reading' && (currentQuestion as any).passage && showPassage && (
+          <div className="mt-4 p-6 bg-gray-50 rounded-lg border-2 border-gray-200 mb-6">
+            <div className="prose prose-sm max-w-none">
+              <div className="text-gray-800 leading-relaxed">
+                {renderTextWithAnnotations(
+                  (currentQuestion as any).passage,
+                  (currentQuestion as any).vocabulary_notes
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
