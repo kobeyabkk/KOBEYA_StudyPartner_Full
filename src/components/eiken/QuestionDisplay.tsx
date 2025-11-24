@@ -74,6 +74,25 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   
   // Phase 4B: Vocabulary annotation state
   const [selectedVocabNote, setSelectedVocabNote] = useState<any | null>(null);
+  
+  // Vocabulary markers visibility toggle (default: true = shown)
+  const [showVocabularyMarkers, setShowVocabularyMarkers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eiken_show_vocabulary_markers');
+      return saved !== null ? saved === 'true' : true; // Default to true if not set
+    } catch {
+      return true;
+    }
+  });
+  
+  // Save vocabulary markers preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('eiken_show_vocabulary_markers', showVocabularyMarkers.toString());
+    } catch (error) {
+      console.error('Failed to save vocabulary markers preference:', error);
+    }
+  }, [showVocabularyMarkers]);
 
   // Save progress to localStorage whenever it changes
   useEffect(() => {
@@ -246,7 +265,8 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   
   // Phase 4B: Render text with vocabulary annotations
   const renderTextWithAnnotations = (text: string, vocabularyNotes?: any[]) => {
-    if (!vocabularyNotes || vocabularyNotes.length === 0) {
+    // If markers are hidden or no vocabulary notes, show plain text
+    if (!showVocabularyMarkers || !vocabularyNotes || vocabularyNotes.length === 0) {
       return <p className="whitespace-pre-wrap">{text}</p>;
     }
     
@@ -440,6 +460,22 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               </span>
               <span className={`transform transition-transform ${showPassage ? 'rotate-180' : ''}`}>
                 ▼
+              </span>
+            </button>
+            
+            {/* 語彙マーカー表示切り替えボタン */}
+            <button
+              onClick={() => setShowVocabularyMarkers(!showVocabularyMarkers)}
+              className="w-full px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-between mt-3"
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-xl">📚</span>
+                <span>
+                  {showVocabularyMarkers ? '語彙マーカーを隠す' : '語彙マーカーを表示'}
+                </span>
+              </span>
+              <span className={`transform transition-transform ${showVocabularyMarkers ? '' : 'rotate-180'}`}>
+                {showVocabularyMarkers ? '👁️' : '🚫'}
               </span>
             </button>
             
