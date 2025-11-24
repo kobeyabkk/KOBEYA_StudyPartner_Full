@@ -24,16 +24,65 @@ export default function EikenPracticePage() {
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [results, setResults] = useState<AnswerResult[]>([]);
 
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedQuestions = localStorage.getItem('eiken_practice_questions');
+      const savedResults = localStorage.getItem('eiken_practice_results');
+      const savedViewMode = localStorage.getItem('eiken_practice_viewMode');
+      
+      if (savedQuestions) {
+        const parsed = JSON.parse(savedQuestions);
+        setQuestions(parsed);
+        console.log('📂 Restored questions from localStorage:', parsed.length);
+      }
+      
+      if (savedResults) {
+        const parsed = JSON.parse(savedResults);
+        setResults(parsed);
+        console.log('📂 Restored results from localStorage:', parsed.length);
+      }
+      
+      if (savedViewMode && (savedViewMode === 'generator' || savedViewMode === 'practice' || savedViewMode === 'results')) {
+        setViewMode(savedViewMode as ViewMode);
+        console.log('📂 Restored viewMode from localStorage:', savedViewMode);
+      }
+    } catch (error) {
+      console.error('Failed to restore state from localStorage:', error);
+    }
+  }, []);
+
   // Restore viewMode from URL parameter when returning from vocabulary notebook
   useEffect(() => {
     const mode = searchParams.get('mode') as ViewMode;
     if (mode && (mode === 'generator' || mode === 'practice' || mode === 'results')) {
       setViewMode(mode);
+      console.log('🔗 Restored viewMode from URL:', mode);
       // Clear the parameter after reading it
       searchParams.delete('mode');
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (questions.length > 0) {
+        localStorage.setItem('eiken_practice_questions', JSON.stringify(questions));
+        console.log('💾 Saved questions to localStorage:', questions.length);
+      }
+      
+      if (results.length > 0) {
+        localStorage.setItem('eiken_practice_results', JSON.stringify(results));
+        console.log('💾 Saved results to localStorage:', results.length);
+      }
+      
+      localStorage.setItem('eiken_practice_viewMode', viewMode);
+      console.log('💾 Saved viewMode to localStorage:', viewMode);
+    } catch (error) {
+      console.error('Failed to save state to localStorage:', error);
+    }
+  }, [questions, results, viewMode]);
 
   // デバッグ: 状態変化を監視
   console.log('🔄 Component render - viewMode:', viewMode, 'questions:', questions.length);
@@ -56,6 +105,11 @@ export default function EikenPracticePage() {
     setQuestions([]);
     setResults([]);
     setViewMode('generator');
+    // Clear localStorage
+    localStorage.removeItem('eiken_practice_questions');
+    localStorage.removeItem('eiken_practice_results');
+    localStorage.removeItem('eiken_practice_viewMode');
+    console.log('🗑️ Cleared practice state from localStorage');
   };
 
   return (
