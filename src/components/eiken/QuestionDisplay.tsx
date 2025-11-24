@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
  */
 import type { GeneratedQuestion } from '../../hooks/useEikenAPI';
 import { AnnotatedText } from '../../utils/vocabulary-annotator';
+import VocabularyPopup from './VocabularyPopup';
 
 interface QuestionDisplayProps {
   questions: GeneratedQuestion[];
@@ -36,6 +37,9 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const [passageTranslations, setPassageTranslations] = useState<Map<string, PassageTranslation>>(new Map());
   const [translationStarted, setTranslationStarted] = useState(false);
   const [prevPassage, setPrevPassage] = useState<string>(''); // 前の長文を記憶
+  
+  // Phase 4B: Vocabulary annotation state
+  const [selectedVocabNote, setSelectedVocabNote] = useState<any | null>(null);
 
   // 現在の問題の状態を取得
   const selectedAnswer = userAnswers.get(currentIndex) ?? null;
@@ -146,6 +150,71 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       });
       onComplete(resultsWithTranslations);
     }
+  };
+  
+  // Phase 4B: Add vocabulary to notebook
+  const handleAddToNotebook = async (wordId: number) => {
+    try {
+      const response = await fetch('/api/vocabulary/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: 'user-123', // TODO: Get from auth context
+          word_id: wordId,
+          source_context: {
+            question_id: currentQuestion.id?.toString(),
+            question_type: currentQuestion.topic,
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to add to notebook');
+      }
+      
+      console.log('✅ Word added to vocabulary notebook');
+    } catch (error) {
+      console.error('❌ Failed to add word to notebook:', error);
+      throw error;
+    }
+  };
+  
+  // Phase 4B: Render text with vocabulary annotations
+  const renderTextWithAnnotations = (text: string, vocabularyNotes?: any[]) => {
+    if (!vocabularyNotes || vocabularyNotes.length === 0) {
+      return <p className="whitespace-pre-wrap">{text}</p>;
+    }
+    
+    // Split text into words and annotate difficult ones
+    const words = text.split(/(\s+|[.,!?;:])/);
+    
+    return (
+      <p className="whitespace-pre-wrap">
+        {words.map((word, index) => {
+          // Check if this word is in vocabulary notes
+          const normalizedWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
+          const note = vocabularyNotes.find(n => 
+            n.word.toLowerCase() === normalizedWord
+          );
+          
+          if (note) {
+            return (
+              <span
+                key={index}
+                onClick={() => setSelectedVocabNote(note)}
+                className="inline-flex items-center cursor-pointer underline decoration-dotted decoration-blue-500 hover:decoration-solid hover:bg-blue-50 transition-colors"
+                title="クリックして語彙詳細を表示"
+              >
+                {word}
+                <span className="ml-1 text-blue-500">📚</span>
+              </span>
+            );
+          }
+          
+          return <span key={index}>{word}</span>;
+        })}
+      </p>
+    );
   };
 
   // 解説の表示/非表示を切り替え
@@ -321,18 +390,12 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             {showPassage && (
               <div className="mt-4 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    <AnnotatedText 
-                      text={(currentQuestion as any).passage}
-                      config={{
-                        enabled: true,
-                        minDifficultyScore: 40,
-                        displayMode: 'hover',
-                        showKatakana: false,
-                        userId: 'user-123' // TODO: Get from auth context
-                      }}
-                    />
-                  </p>
+                  <div className="text-gray-800 leading-relaxed">
+                    {renderTextWithAnnotations(
+                      (currentQuestion as any).passage,
+                      (currentQuestion as any).vocabulary_notes
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -346,16 +409,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               Q
             </span>
             <h3 className="text-xl font-medium text-gray-900 leading-relaxed">
-              <AnnotatedText 
-                text={currentQuestion.questionText}
-                config={{
-                  enabled: true,
-                  minDifficultyScore: 40,
-                  displayMode: 'hover',
-                  showKatakana: false,
-                  userId: 'user-123' // TODO: Get from auth context
-                }}
-              />
+              {renderTextWithAnnotations(
+                currentQuestion.questionText,
+                (currentQuestion as any).vocabulary_notes
+              )}
             </h3>
           </div>
 
@@ -505,6 +562,15 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           )}
         </div>
       </div>
+      
+      {/* Phase 4B: Vocabulary Popup */}
+      {selectedVocabNote && (
+        <VocabularyPopup
+          note={selectedVocabNote}
+          onAddToNotebook={handleAddToNotebook}
+          onClose={() => setSelectedVocabNote(null)}
+        />
+      )}
     </div>
   );
 }
