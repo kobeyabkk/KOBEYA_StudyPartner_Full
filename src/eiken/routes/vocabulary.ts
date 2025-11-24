@@ -190,18 +190,19 @@ app.get('/progress/:user_id', async (c) => {
     const db = c.env.DB;
 
     // Get user's vocabulary progress with word details
+    // Note: Database uses word_lemma (not headword) and pos (not pos_tags)
     const result = await db
       .prepare(
         `SELECT 
           uvp.*,
-          vm.word,
-          vm.pos,
-          vm.definition_en,
-          vm.definition_ja,
+          vm.word_lemma as word,
+          vm.pos as pos,
+          '' as definition_en,
+          '' as definition_ja,
           vm.cefr_level,
-          vm.final_difficulty_score
+          50 as final_difficulty_score
         FROM user_vocabulary_progress uvp
-        JOIN eiken_vocabulary_lexicon vm ON uvp.word_id = vm.id
+        JOIN eiken_vocabulary_lexicon vm ON uvp.word_id = ROWID
         WHERE uvp.user_id = ?
         ORDER BY uvp.created_at DESC`
       )

@@ -264,6 +264,7 @@ function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion
         topic: question.format,
         copyrightSafe: true,
         copyrightScore: 95,
+        vocabulary_notes: questionData.vocabulary_notes || [], // Phase 4B: vocabulary annotations
       } as GeneratedQuestion;
     });
   }
@@ -341,6 +342,7 @@ function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
     topic: question.format,
     copyrightSafe: true,
     copyrightScore: 95,
+    vocabulary_notes: questionData.vocabulary_notes || [], // Phase 4B: vocabulary annotations
   };
 }
 

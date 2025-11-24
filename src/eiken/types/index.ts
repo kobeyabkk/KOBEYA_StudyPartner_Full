@@ -112,7 +112,14 @@ export interface GeneratedQuestion {
   difficulty_score: number;
   vocab_band?: string;
   
-  // Phase 4B: Vocabulary annotations
+  // Phase 4B: Vocabulary features
+  // vocabulary_meanings: LLM-generated glossary (用語集) for students
+  vocabulary_meanings?: Array<{
+    term: string;
+    definition: string;
+  }> | Record<string, string>;
+  
+  // vocabulary_notes: VocabularyAnnotator-generated annotations (難しい単語)
   vocabulary_notes?: Array<{
     word: string;
     pos: string;
