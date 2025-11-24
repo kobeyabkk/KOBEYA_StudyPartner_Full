@@ -159,10 +159,15 @@ app.post('/add', async (c) => {
 
   } catch (error) {
     console.error('[Vocabulary Add Error]', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return c.json(
       {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined,
       },
       500
     );
@@ -203,7 +208,7 @@ app.get('/progress/:user_id', async (c) => {
           vm.cefr_level,
           50 as final_difficulty_score
         FROM user_vocabulary_progress uvp
-        JOIN eiken_vocabulary_lexicon vm ON uvp.word_id = ROWID
+        JOIN eiken_vocabulary_lexicon vm ON uvp.word_id = vm.ROWID
         WHERE uvp.user_id = ?
         ORDER BY uvp.created_at DESC`
       )
