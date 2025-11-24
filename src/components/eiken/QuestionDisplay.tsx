@@ -402,9 +402,6 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     console.log('🌍 All translations completed!');
   };
 
-  const correctCount = results.filter((r: AnswerResult) => r.correct).length;
-  const accuracy = results.length > 0 ? Math.round((correctCount / results.length) * 100) : 0;
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* 進捗バー */}
@@ -413,14 +410,9 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           <span className="text-lg font-bold text-gray-900">
             問題 {currentIndex + 1} / {questions.length}
           </span>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              解答済み: {submittedQuestions.size} / {questions.length}
-            </span>
-            <span className="text-sm text-gray-600">
-              正答率: {accuracy}% ({correctCount}/{results.length})
-            </span>
-          </div>
+          <span className="text-sm text-gray-600">
+            解答済み: {submittedQuestions.size} / {questions.length}
+          </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div
