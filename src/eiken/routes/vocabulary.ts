@@ -145,7 +145,7 @@ app.post('/add', async (c) => {
           last_study_date = ?,
           updated_at = ?`
       )
-      .bind(now, now, now, now, now)
+      .bind(user_id, now, now, now, now, now)
       .run();
 
     console.log(`✅ Added word ${word_id} to ${user_id}'s vocabulary notebook`);
