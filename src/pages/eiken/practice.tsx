@@ -7,6 +7,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import QuestionGenerator from '../../components/eiken/QuestionGenerator';
 import QuestionDisplay from '../../components/eiken/QuestionDisplay';
 import ResultsDashboard from '../../components/eiken/ResultsDashboard';
+import FloatingChat from '../../components/ai-chat/FloatingChat';
 import type { GeneratedQuestion } from '../../hooks/useEikenAPI';
 
 type ViewMode = 'generator' | 'practice' | 'results';
@@ -257,22 +258,6 @@ export default function EikenPracticePage() {
               height: 1.5rem !important;
             }
           }
-          .chat-header {
-            cursor: move;
-            user-select: none;
-          }
-          .resize-handle {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 20px;
-            height: 20px;
-            cursor: nwse-resize;
-            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
-          }
-          .resize-handle:hover {
-            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.2) 50%);
-          }
         `}</style>
         
         {/* フローティングAIチャットボタン */}
@@ -302,50 +287,14 @@ export default function EikenPracticePage() {
 
         {/* フローティングAIチャットウィンドウ */}
         {isChatOpen && (
-          <div
-            className="fixed z-50 bg-white rounded-lg shadow-2xl flex flex-col"
-            style={{
-              left: `${chatPosition.x}px`,
-              top: `${chatPosition.y}px`,
-              width: `${chatSize.width}px`,
-              height: `${chatSize.height}px`,
-            }}
-          >
-            {/* ヘッダー */}
-            <div
-              className="chat-header bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between"
-              onMouseDown={handleChatDragStart}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                <span className="font-medium">AI学習サポート</span>
-              </div>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="hover:bg-white/20 rounded p-1 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* iframe コンテンツ */}
-            <div className="flex-1 relative">
-              <iframe
-                src="/ai-chat/eiken-help"
-                className="w-full h-full border-0"
-                title="AI学習サポート"
-              />
-              {/* リサイズハンドル */}
-              <div
-                className="resize-handle"
-                onMouseDown={handleResizeStart}
-              />
-            </div>
-          </div>
+          <FloatingChat
+            sessionId="eiken-help"
+            onClose={() => setIsChatOpen(false)}
+            position={chatPosition}
+            size={chatSize}
+            onDragStart={handleChatDragStart}
+            onResizeStart={handleResizeStart}
+          />
         )}
 
         {/* ヘッダー */}
