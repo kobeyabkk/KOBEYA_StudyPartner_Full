@@ -362,19 +362,38 @@ DIVERSITY REQUIREMENTS (重要 - 多様性の確保):
    - Feature different characters: students, workers, families, friends, professionals
    - Include various activities: learning, working, playing, traveling, creating
 
-EXPLANATION QUALITY REQUIREMENTS:
-The explanation_ja field is CRITICAL for student learning. It must:
+EXPLANATION QUALITY REQUIREMENTS (最重要 - 生徒の離脱を防ぐ):
+⚠️ WARNING: Poor explanations cause students to quit. This is CRITICAL for student retention!
+
+The explanation_ja field is THE MOST IMPORTANT part. You MUST:
 1. Explain WHY the correct answer is right (grammar rule, usage pattern, meaning)
-2. Explain WHY each wrong answer is incorrect (specific grammar errors or contextual mismatch)
+2. Explain WHY EACH INDIVIDUAL wrong answer is incorrect (with Japanese translation of each choice)
 3. Provide learning points or tips to remember
-4. Use 4-6 complete sentences in clear, educational Japanese
+4. MINIMUM 6-8 complete sentences in clear, educational Japanese for middle school students
 5. Be detailed enough that a student can understand the concept completely
 
-GOOD EXAMPLE of explanation_ja:
-"正解はBの「Using group work」です。パッセージでは、学校が教育を改善するためにグループワークを使用していると述べています。Aの「Increasing homework」（宿題を増やす）は言及されていません。Cの「Hiring more teachers」（教師を増やす）も述べられていません。Dの「Building new facilities」（新しい施設を建設する）も該当しません。グループワークは協働学習を促進し、生徒の理解を深める効果的な方法として紹介されています。"
+MANDATORY STRUCTURE for explanation_ja:
+1. State the correct answer with its Japanese translation
+2. Explain WHY it's correct based on the passage/context
+3. For EACH wrong answer (A, B, D): Provide Japanese translation + reason why it's wrong
+4. Add a learning tip or summary
 
-BAD EXAMPLE (too brief):
-"パッセージでは、学校が教育を改善するためにグループワークを使用していると述べています。A、C、Dは言及されていません。"
+GOOD EXAMPLE of explanation_ja:
+"正解はCの「Using renewable energy」（再生可能エネルギーを使う）です。パッセージの最初の段落で、「One way to do this is by using renewable energy」と述べています。再生可能エネルギーは環境を助ける方法として明確に説明されています。
+
+Aの「Using more plastic」（プラスチックをもっと使う）は間違いです。パッセージでは逆に「using less plastic」（プラスチックを減らす）と書かれています。プラスチックは環境に悪いです。
+
+Bの「Building more roads」（道路をもっと作る）は言及されていません。道路建設は環境問題の解決方法として書かれていないため不正解です。
+
+Dの「Cutting down trees」（木を切る）も間違いです。パッセージでは「conserving forests」（森を守る）が重要だと述べています。木を切ることは環境に悪影響を与えます。
+
+環境を守るには、再生可能エネルギー、リサイクル、自然保護が大切だと覚えましょう。"
+
+BAD EXAMPLE (too brief - NEVER DO THIS):
+"Cが正解です。文章では再生可能エネルギーの使用が環境を助ける方法として挙げられています。他の選択肢は環境に悪影響を与えるため不正解です。"
+❌ This is TOO SHORT and will cause students to quit!
+❌ No translations of choices!
+❌ No specific reasons for each wrong answer!
 
 Return JSON format:
 {
@@ -382,7 +401,7 @@ Return JSON format:
   "choices": ["option1", "option2", "option3", "option4"],
   "correct_answer_index": 0-3,
   "explanation": "Detailed explanation in English (3-5 sentences explaining why the correct answer is right and why others are wrong)",
-  "explanation_ja": "詳細な日本語解説（4-6文で、正解の理由と不正解の選択肢がなぜ間違っているかを丁寧に説明。学習者が完全に理解できるように、文法ルールや使い方のポイントも含める）",
+  "explanation_ja": "詳細な日本語解説（MINIMUM 6-8文）。必ず以下の構成で書くこと：\n1. 正解の選択肢とその日本語訳を述べる\n2. なぜそれが正解かを詳しく説明\n3. 不正解A: 英語の選択肢の日本語訳 + なぜ間違いか\n4. 不正解B: 英語の選択肢の日本語訳 + なぜ間違いか\n5. 不正解D（またはC）: 英語の選択肢の日本語訳 + なぜ間違いか\n6. 学習ポイントやまとめ\n\n⚠️ 各選択肢の日本語訳は必須！ 全ての不正解の理由を個別に説明すること！",
   "translation_ja": "問題文の日本語訳",
   "difficulty": 0.0-1.0,
   "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
@@ -551,17 +570,32 @@ Example formats:
 - "If I ( ) more money, I would buy a new car." (conditional)
 - "The book ( ) by many students." (passive voice)
 
-EXPLANATION REQUIREMENTS (VERY IMPORTANT):
-Your explanation_ja must be DETAILED and EDUCATIONAL:
-- Minimum 4-6 complete sentences
-- Explain the grammar rule being tested
-- Explain why the correct answer follows this rule
-- Explain specifically why EACH wrong answer violates the grammar rule
-- Include learning tips if relevant
-- Use clear, educational Japanese that helps students understand
+EXPLANATION REQUIREMENTS (最重要 - 生徒の離脱を防ぐ):
+⚠️ CRITICAL: Poor explanations cause students to quit!
+
+Your explanation_ja MUST be COMPREHENSIVE and include:
+- MINIMUM 6-8 complete sentences (not 4-6!)
+- Each wrong answer MUST have its own dedicated explanation
+- Each choice MUST include Japanese translation in parentheses
+
+MANDATORY STRUCTURE:
+1. State correct answer with Japanese translation: "正解はAの「has been」です。"
+2. Explain the grammar rule in detail
+3. For EACH wrong answer (B, C, D):
+   - Provide Japanese translation: "Bの「was」（過去形）は..."
+   - Explain specifically why it's grammatically wrong
+4. Add learning tip or summary
 
 GOOD EXAMPLE explanation_ja:
-"正解はAの「has been」です。この文では現在完了形（have/has + 過去分詞）が必要です。「three times this year」という表現は、今年という期間がまだ継続中であることを示しており、現在完了形を使用します。Bの「was」は過去形で、現在とのつながりを表現できません。Cの「is going」は未来の予定を表す形で、すでに完了した行動には使えません。Dの「will be」は単純未来形で、過去から現在までの経験を表現できません。現在完了形は「過去の行動が現在に影響を与えている」場合に使用することを覚えておきましょう。"
+"正解はAの「has been」です。この文では現在完了形（have/has + 過去分詞）が必要です。「three times this year」という表現は、今年という期間がまだ継続中であることを示しており、現在完了形を使用します。
+
+Bの「was」（過去形）は間違いです。過去形は現在とのつながりを表現できないため、「今年3回」という現在まで続く期間には使えません。
+
+Cの「is going」（未来進行形）は不正解です。これは未来の予定を表す形で、すでに完了した行動（3回行ったこと）には使用できません。
+
+Dの「will be」（未来形）も間違いです。単純未来形は、過去から現在までの経験を表現することができません。
+
+現在完了形は「過去の行動が現在に影響を与えている」「経験」を表す時に使うことを覚えておきましょう。"
 
 Create an ORIGINAL question that tests grammar skills for this level.`;
   }
@@ -586,16 +620,32 @@ DIVERSITY REQUIREMENTS (CRITICAL):
 Create an ORIGINAL question that tests the appropriate skills for this level.
 Ensure the question is completely unique and does not resemble existing test questions.
 
-EXPLANATION REQUIREMENTS (VERY IMPORTANT):
-Your explanation_ja must be DETAILED and EDUCATIONAL:
-- Minimum 4-6 complete sentences
-- Explain why the correct answer is right (meaning, context fit, usage)
-- Explain specifically why EACH wrong answer is incorrect
-- Include the meaning of key words if relevant
-- Use clear, educational Japanese that helps students understand completely
+EXPLANATION REQUIREMENTS (最重要 - 生徒の離脱を防ぐ):
+⚠️ CRITICAL: Poor explanations cause students to quit! This is THE MOST IMPORTANT part!
+
+Your explanation_ja MUST be COMPREHENSIVE and include:
+- MINIMUM 6-8 complete sentences (not 4-6!)
+- Each wrong answer MUST have its own dedicated explanation with Japanese translation
+- ALL choices MUST include Japanese translation in parentheses
+
+MANDATORY STRUCTURE:
+1. State correct answer with Japanese translation: "正解はBの「persistent」（粘り強い）です。"
+2. Explain why it's correct based on context/meaning
+3. For EACH wrong answer (A, C, D):
+   - Provide Japanese translation: "Aの「temporary」（一時的な）は..."
+   - Explain specifically why it doesn't fit the context
+4. Add vocabulary learning tip or summary
 
 GOOD EXAMPLE explanation_ja for vocabulary:
-"正解はBの「persistent」（粘り強い）です。この文脈では、困難にもかかわらず努力を続ける人物の性格を表現しています。Aの「temporary」（一時的な）は持続性がないため不適切です。Cの「aggressive」（攻撃的な）は努力の質を表す言葉として文脈に合いません。Dの「hesitant」（ためらいがちな）は逆の意味で、努力を続ける姿勢とは矛盾します。「persistent」は「あきらめずに続ける」という前向きな性質を表す重要な単語です。"`;
+"正解はBの「persistent」（粘り強い）です。この文脈では、困難にもかかわらず努力を続ける人物の性格を表現しています。「persistent」は「諦めずに続ける」という意味で、文の内容にぴったり合います。
+
+Aの「temporary」（一時的な）は間違いです。「一時的」という意味は、持続性がないことを表すため、努力を続ける人物の性格とは逆の意味になります。
+
+Cの「aggressive」（攻撃的な）は不正解です。「攻撃的」は努力の質を表す適切な言葉ではなく、文脈にも合いません。努力と攻撃性は関係がありません。
+
+Dの「hesitant」（ためらいがちな）も間違いです。「ためらう」は逆の意味で、努力を続ける姿勢とは完全に矛盾します。迷っている人は努力を続けられません。
+
+「persistent」は「粘り強い、あきらめない」という前向きな性質を表す重要な単語です。努力を続ける人を褒める時によく使われます。"`;
 }
 }
 
