@@ -6,6 +6,7 @@
 
 import { Hono } from 'hono';
 import type { D1Database } from '@cloudflare/workers-types';
+import { VocabularyDefinitionGenerator } from '../services/vocabulary-definition-generator';
 
 type Bindings = {
   OPENAI_API_KEY: string;
@@ -330,6 +331,150 @@ app.get('/statistics/:user_id', async (c) => {
       {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/vocabulary/define
+ * 
+ * Generate or retrieve definition for a word
+ */
+app.post('/define', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { word, pos, cefr_level } = body;
+
+    // Validation
+    if (!word || !pos) {
+      return c.json(
+        {
+          success: false,
+          error: 'Missing required fields: word, pos',
+        },
+        400
+      );
+    }
+
+    // Check if database and OpenAI API key are available
+    if (!c.env.DB || !c.env.OPENAI_API_KEY) {
+      return c.json(
+        {
+          success: false,
+          error: 'Service not properly configured',
+        },
+        500
+      );
+    }
+
+    const generator = new VocabularyDefinitionGenerator(c.env.DB, c.env.OPENAI_API_KEY);
+
+    // Get or generate definition
+    const definition = await generator.getOrGenerateDefinition(
+      word,
+      pos,
+      cefr_level || 'B1'
+    );
+
+    console.log(`✅ Definition retrieved/generated for: ${word}`);
+
+    return c.json({
+      success: true,
+      definition,
+    });
+
+  } catch (error) {
+    console.error('[Vocabulary Define Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate definition',
+        fallback: {
+          definition_ja: '定義準備中...',
+          definition_en: 'Definition pending...',
+        },
+      },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/vocabulary/define/batch
+ * 
+ * Generate definitions for multiple words
+ */
+app.post('/define/batch', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { words } = body;
+
+    // Validation
+    if (!words || !Array.isArray(words) || words.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: 'Missing required field: words (array)',
+        },
+        400
+      );
+    }
+
+    // Check if database and OpenAI API key are available
+    if (!c.env.DB || !c.env.OPENAI_API_KEY) {
+      return c.json(
+        {
+          success: false,
+          error: 'Service not properly configured',
+        },
+        500
+      );
+    }
+
+    const generator = new VocabularyDefinitionGenerator(c.env.DB, c.env.OPENAI_API_KEY);
+
+    // Process each word
+    const results = [];
+    for (const wordInfo of words) {
+      try {
+        const definition = await generator.getOrGenerateDefinition(
+          wordInfo.word,
+          wordInfo.pos,
+          wordInfo.cefr_level || 'B1'
+        );
+        results.push({
+          success: true,
+          word: wordInfo.word,
+          definition,
+        });
+      } catch (error) {
+        console.error(`Failed to process word ${wordInfo.word}:`, error);
+        results.push({
+          success: false,
+          word: wordInfo.word,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    console.log(`✅ Batch processing completed: ${results.length} words`);
+
+    return c.json({
+      success: true,
+      results,
+      total: words.length,
+      succeeded: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
+    });
+
+  } catch (error) {
+    console.error('[Vocabulary Batch Define Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to process batch',
       },
       500
     );
