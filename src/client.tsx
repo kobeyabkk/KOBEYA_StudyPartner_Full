@@ -12,7 +12,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/eiken/practice" replace />} />
         <Route path="/eiken/practice" element={<EikenPracticePage />} />
         <Route path="/vocabulary/notebook" element={<VocabularyNotebookPage />} />
       </Routes>
