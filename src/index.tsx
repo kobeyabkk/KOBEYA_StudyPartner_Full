@@ -8203,7 +8203,7 @@ app.get('/international-student/:sessionId', (c) => {
         
         function confirmCrop() {
             if (!cropper) {
-                alert('クロップ機能が正しく初期化されていません。\nCrop function not properly initialized.');
+                alert('クロップ機能が正しく初期化されていません。' + String.fromCharCode(10) + 'Crop function not properly initialized.');
                 return;
             }
             
@@ -8217,7 +8217,7 @@ app.get('/international-student/:sessionId', (c) => {
                 });
                 
                 if (!canvas) {
-                    alert('画像の切り取りに失敗しました。\nFailed to crop image.');
+                    alert('画像の切り取りに失敗しました。' + String.fromCharCode(10) + 'Failed to crop image.');
                     return;
                 }
                 
@@ -8236,7 +8236,7 @@ app.get('/international-student/:sessionId', (c) => {
                 
             } catch (error) {
                 console.error('Error during crop:', error);
-                alert('画像の処理中にエラーが発生しました。\nError processing image.');
+                alert('画像の処理中にエラーが発生しました。' + String.fromCharCode(10) + 'Error processing image.');
             }
         }
         
