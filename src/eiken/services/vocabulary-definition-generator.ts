@@ -48,7 +48,7 @@ export class VocabularyDefinitionGenerator {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful English-Japanese dictionary assistant for Japanese middle school students (中学生) preparing for the Eiken exam. Your definitions must use SIMPLE, EASY-TO-UNDERSTAND Japanese that 12-15 year old students can comprehend. CRITICAL REQUIREMENTS: (1) ALWAYS include katakana reading in parentheses at the start of definition_ja (e.g., "環境（かんきょう）とは..."), (2) ALWAYS provide both example_en and example_ja - they are mandatory, not optional. Avoid difficult vocabulary, complex kanji, or academic terms. Write as if explaining to a younger sibling using everyday words.',
+              content: 'You are a helpful English-Japanese dictionary assistant for Japanese middle school students (中学生) preparing for the Eiken exam. Your definitions must use SIMPLE, EASY-TO-UNDERSTAND Japanese that 12-15 year old students can comprehend. CRITICAL REQUIREMENTS: (1) ALWAYS start definition_ja with the ENGLISH word pronunciation in KATAKANA (e.g., "プロフィットとは、利益のこと。" for "profit", "エンバイロメントとは、環境のこと。" for "environment"). This helps students pronounce the English word confidently. (2) ALWAYS provide both example_en and example_ja - they are mandatory, not optional. Avoid difficult vocabulary, complex kanji, or academic terms. Write as if explaining to a younger sibling using everyday words.',
             },
             {
               role: 'user',
@@ -199,12 +199,14 @@ Please provide the response in the following JSON format:
 }
 
 CRITICAL REQUIREMENTS (必須事項):
-1. KATAKANA READING (カタカナ読み) - MANDATORY
-   - START definition_ja with the main Japanese word in KATAKANA in parentheses
-   - Format: "環境（かんきょう）とは、..." 
-   - Format: "重要（じゅうよう）な..." 
-   - ALWAYS include katakana reading for the key Japanese word(s)
-   - This helps students learn proper pronunciation
+1. ENGLISH PRONUNCIATION IN KATAKANA (英語の読み方をカタカナで) - MANDATORY
+   - START definition_ja with the ENGLISH word's pronunciation in KATAKANA
+   - Format: "プロフィットとは、利益のこと。..." (for "profit")
+   - Format: "ベネフィットとは、利益を得ること。..." (for "benefit")
+   - Format: "エンバイロメントとは、環境のこと。..." (for "environment")
+   - Format: "インポータントとは、大切なこと。..." (for "important")
+   - This helps students feel confident about pronunciation
+   - Use natural Japanese katakana that approximates the English sound
 
 2. EXAMPLE SENTENCES - MANDATORY
    - example_en and example_ja are REQUIRED, not optional
@@ -226,14 +228,15 @@ Technical guidelines:
 - Keep definitions simple and appropriate for ${cefrLevel} level learners
 - Focus on the most common usage of the word
 
-GOOD EXAMPLES of definition_ja with katakana:
-✅ "環境（かんきょう）とは、私たちの周りにある自然のことです。空気や水、植物や動物などが含まれます。"
-✅ "重要（じゅうよう）な、とても大事なこと。"
-✅ "挑戦（ちょうせん）すること、難しいことに頑張ってやってみること。"
+GOOD EXAMPLES of definition_ja with ENGLISH pronunciation in katakana:
+✅ "プロフィットとは、利益のこと。会社がすべての費用を払った後に残るお金のことです。プロフィットは「儲け」で、ベネフィットは「満足」や「便益」です。" (for "profit")
+✅ "ベネフィットとは、利益（りえき）を得ること。何かから良いことや助けを得ることです。プロフィットは「儲け」で、ベネフィットは「満足」や「便益」です。" (for "benefit")
+✅ "エンバイロメントとは、環境（かんきょう）のこと。私たちの周りにある自然や物のことです。" (for "environment")
+✅ "インポータントとは、大切なこと。とても必要で重要（じゅうよう）なことです。" (for "important")
 
-BAD EXAMPLES (missing katakana):
-❌ "環境とは、私たちの周りにある自然のことです。" (No katakana!)
-❌ "とても大事なこと。" (No Japanese word with katakana!)
+BAD EXAMPLES (missing English katakana pronunciation):
+❌ "利益のこと。会社がすべての費用を払った後に残るお金のことです。" (No English pronunciation!)
+❌ "環境のこと。私たちの周りにある自然や物のことです。" (No English pronunciation!)
 
 Respond with ONLY the JSON object, no additional text.`;
   }
