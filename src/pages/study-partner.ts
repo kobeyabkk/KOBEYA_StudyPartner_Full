@@ -687,11 +687,11 @@ export function renderStudyPartnerPage(c: Context) {
                     </button>
                 </div>
 
-                <!-- 新機能プレースホルダーボタン -->
+                <!-- 機能ボタン -->
                 <div style="margin-bottom: 1rem;">
-                    <button id="eikenTaisaku" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
+                    <button id="eikenTaisaku" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #2563eb; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s;">
                         <i class="fas fa-graduation-cap" style="margin-right: 0.5rem;"></i>
-                        📚 英検対策（実装予定）
+                        📚 英検対策
                     </button>
                 </div>
 
@@ -699,13 +699,6 @@ export function renderStudyPartnerPage(c: Context) {
                     <button id="shoronbunTaisaku" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #7c3aed; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s;">
                         <i class="fas fa-pen-fancy" style="margin-right: 0.5rem;"></i>
                         📝 小論文対策
-                    </button>
-                </div>
-
-                <div style="margin-bottom: 1rem;">
-                    <button id="flashcard" disabled style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #9ca3af; color: white; font-weight: 500; border: none; cursor: not-allowed; min-height: 56px; font-size: 16px; opacity: 0.7;">
-                        <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
-                        🃏 フラッシュカード（実装予定）
                     </button>
                 </div>
 
@@ -832,9 +825,6 @@ export function renderStudyPartnerPage(c: Context) {
                         </div>
                     </div>
                 </div>
-
-                <!-- API応答の表示先 -->
-                <div id="out" style="background: #f5f5f5; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; min-height: 160px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; word-wrap: break-word; font-family: inherit;"></div>
             </section>
             
             <!-- フローティングAI質問ボタン -->
@@ -913,6 +903,15 @@ export function renderStudyPartnerPage(c: Context) {
             aiQuestionMainButton.addEventListener('click', function() {
               console.log('🤖 Main AI question button clicked');
               openAIChatDirect();
+            });
+          }
+          
+          // 英検対策ボタン
+          const eikenButton = document.getElementById('eikenTaisaku');
+          if (eikenButton) {
+            eikenButton.addEventListener('click', function() {
+              console.log('📚 Eiken practice button clicked');
+              window.location.href = '/eiken/practice';
             });
           }
           

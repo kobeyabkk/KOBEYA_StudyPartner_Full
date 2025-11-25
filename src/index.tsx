@@ -8051,8 +8051,8 @@ app.get('/international-student/:sessionId', (c) => {
                     </button>
                 </div>
                 
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageSelect(event)">
-                <input type="file" id="fileInput" accept="image/*" onchange="handleImageSelect(event)">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment">
+                <input type="file" id="fileInput" accept="image/*">
                 
                 <input type="text" class="message-input" id="messageInput" placeholder="質問を入力 / Enter your question..." onkeypress="if(event.key==='Enter') sendMessage()">
                 
@@ -8119,6 +8119,17 @@ app.get('/international-student/:sessionId', (c) => {
                     ]
                 });
             }
+        }
+        
+        // Event listeners for file inputs
+        const cameraInput = document.getElementById('cameraInput');
+        const fileInput = document.getElementById('fileInput');
+        
+        if (cameraInput) {
+            cameraInput.addEventListener('change', handleImageSelect);
+        }
+        if (fileInput) {
+            fileInput.addEventListener('change', handleImageSelect);
         }
         
         // Event listeners for crop buttons
