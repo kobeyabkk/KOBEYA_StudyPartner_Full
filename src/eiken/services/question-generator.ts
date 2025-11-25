@@ -233,7 +233,7 @@ async function generateSingleQuestion(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.8, // 創造性重視
-      max_tokens: 1000
+      max_tokens: 2000  // 詳細な解説のために増量
     })
   });
   
@@ -346,13 +346,27 @@ ${sectionGuidance}
 
 IMPORTANT: Create questions with ORIGINAL content. Do not copy or closely imitate existing test materials.
 
+EXPLANATION QUALITY REQUIREMENTS:
+The explanation_ja field is CRITICAL for student learning. It must:
+1. Explain WHY the correct answer is right (grammar rule, usage pattern, meaning)
+2. Explain WHY each wrong answer is incorrect (specific grammar errors or contextual mismatch)
+3. Provide learning points or tips to remember
+4. Use 4-6 complete sentences in clear, educational Japanese
+5. Be detailed enough that a student can understand the concept completely
+
+GOOD EXAMPLE of explanation_ja:
+"正解はBの「Using group work」です。パッセージでは、学校が教育を改善するためにグループワークを使用していると述べています。Aの「Increasing homework」（宿題を増やす）は言及されていません。Cの「Hiring more teachers」（教師を増やす）も述べられていません。Dの「Building new facilities」（新しい施設を建設する）も該当しません。グループワークは協働学習を促進し、生徒の理解を深める効果的な方法として紹介されています。"
+
+BAD EXAMPLE (too brief):
+"パッセージでは、学校が教育を改善するためにグループワークを使用していると述べています。A、C、Dは言及されていません。"
+
 Return JSON format:
 {
   "question_text": "Complete sentence with ( ) blank",
   "choices": ["option1", "option2", "option3", "option4"],
   "correct_answer_index": 0-3,
-  "explanation": "Why this answer is correct (in English)",
-  "explanation_ja": "正解の理由を日本語で簡潔に説明",
+  "explanation": "Detailed explanation in English (3-5 sentences explaining why the correct answer is right and why others are wrong)",
+  "explanation_ja": "詳細な日本語解説（4-6文で、正解の理由と不正解の選択肢がなぜ間違っているかを丁寧に説明。学習者が完全に理解できるように、文法ルールや使い方のポイントも含める）",
   "translation_ja": "問題文の日本語訳",
   "difficulty": 0.0-1.0,
   "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
@@ -463,6 +477,18 @@ Example formats:
 - "If I ( ) more money, I would buy a new car." (conditional)
 - "The book ( ) by many students." (passive voice)
 
+EXPLANATION REQUIREMENTS (VERY IMPORTANT):
+Your explanation_ja must be DETAILED and EDUCATIONAL:
+- Minimum 4-6 complete sentences
+- Explain the grammar rule being tested
+- Explain why the correct answer follows this rule
+- Explain specifically why EACH wrong answer violates the grammar rule
+- Include learning tips if relevant
+- Use clear, educational Japanese that helps students understand
+
+GOOD EXAMPLE explanation_ja:
+"正解はAの「has been」です。この文では現在完了形（have/has + 過去分詞）が必要です。「three times this year」という表現は、今年という期間がまだ継続中であることを示しており、現在完了形を使用します。Bの「was」は過去形で、現在とのつながりを表現できません。Cの「is going」は未来の予定を表す形で、すでに完了した行動には使えません。Dの「will be」は単純未来形で、過去から現在までの経験を表現できません。現在完了形は「過去の行動が現在に影響を与えている」場合に使用することを覚えておきましょう。"
+
 Create an ORIGINAL question that tests grammar skills for this level.`;
   }
   
@@ -472,7 +498,19 @@ Section: ${request.section}
 Difficulty: ${difficultyDesc}${hints}
 
 Create an ORIGINAL question that tests the appropriate skills for this level.
-Ensure the question is completely unique and does not resemble existing test questions.`;
+Ensure the question is completely unique and does not resemble existing test questions.
+
+EXPLANATION REQUIREMENTS (VERY IMPORTANT):
+Your explanation_ja must be DETAILED and EDUCATIONAL:
+- Minimum 4-6 complete sentences
+- Explain why the correct answer is right (meaning, context fit, usage)
+- Explain specifically why EACH wrong answer is incorrect
+- Include the meaning of key words if relevant
+- Use clear, educational Japanese that helps students understand completely
+
+GOOD EXAMPLE explanation_ja for vocabulary:
+"正解はBの「persistent」（粘り強い）です。この文脈では、困難にもかかわらず努力を続ける人物の性格を表現しています。Aの「temporary」（一時的な）は持続性がないため不適切です。Cの「aggressive」（攻撃的な）は努力の質を表す言葉として文脈に合いません。Dの「hesitant」（ためらいがちな）は逆の意味で、努力を続ける姿勢とは矛盾します。「persistent」は「あきらめずに続ける」という前向きな性質を表す重要な単語です。"`;
+}
 }
 
 /**
