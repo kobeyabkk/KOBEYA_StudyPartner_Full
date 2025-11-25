@@ -31,10 +31,15 @@ export default function EikenPracticePage() {
       const savedResults = localStorage.getItem('eiken_practice_results');
       const savedViewMode = localStorage.getItem('eiken_practice_viewMode');
       
+      let questionsRestored = false;
+      
       if (savedQuestions) {
         const parsed = JSON.parse(savedQuestions);
-        setQuestions(parsed);
-        console.log('📂 Restored questions from localStorage:', parsed.length);
+        if (parsed && parsed.length > 0) {
+          setQuestions(parsed);
+          questionsRestored = true;
+          console.log('📂 Restored questions from localStorage:', parsed.length);
+        }
       }
       
       if (savedResults) {
@@ -43,12 +48,23 @@ export default function EikenPracticePage() {
         console.log('📂 Restored results from localStorage:', parsed.length);
       }
       
+      // Only restore viewMode if we have questions (except for 'generator' mode)
       if (savedViewMode && (savedViewMode === 'generator' || savedViewMode === 'practice' || savedViewMode === 'results')) {
-        setViewMode(savedViewMode as ViewMode);
-        console.log('📂 Restored viewMode from localStorage:', savedViewMode);
+        if (savedViewMode === 'generator' || questionsRestored) {
+          setViewMode(savedViewMode as ViewMode);
+          console.log('📂 Restored viewMode from localStorage:', savedViewMode);
+        } else {
+          // If viewMode is practice/results but no questions, reset to generator
+          console.log('⚠️ ViewMode was', savedViewMode, 'but no questions found, resetting to generator');
+          setViewMode('generator');
+          // Clear invalid state
+          localStorage.removeItem('eiken_practice_viewMode');
+        }
       }
     } catch (error) {
       console.error('Failed to restore state from localStorage:', error);
+      // On error, ensure we're in generator mode
+      setViewMode('generator');
     }
   }, []);
 
