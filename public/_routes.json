@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "include": ["/api/*"],
+  "include": ["/api/*", "/study-partner", "/study-partner-simple", "/", "/admin/*", "/ai-chat/*", "/ai-chat-v2/*", "/essay-coaching*", "/flashcard*", "/dashboard"],
   "exclude": ["/assets/*", "/eiken/*", "/*.html", "/robots.txt", "/sitemap.xml", "/static/*"]
 }
