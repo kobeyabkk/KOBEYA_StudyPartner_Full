@@ -6057,7 +6057,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json() as AiChatApiResponse;
+                const result = await response.json();
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();
@@ -6149,7 +6149,7 @@ app.get('/ai-chat/:sessionId', (c) => {
                     })
                 });
                 
-                const result = await response.json() as AiChatApiResponse;
+                const result = await response.json();
                 
                 // 思考中メッセージを削除
                 thinkingMessage.remove();

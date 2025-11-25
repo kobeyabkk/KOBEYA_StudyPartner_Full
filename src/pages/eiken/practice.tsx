@@ -23,6 +23,14 @@ export default function EikenPracticePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('generator');
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [results, setResults] = useState<AnswerResult[]>([]);
+  
+  // AIチャットフローティングウィンドウの状態
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatSize, setChatSize] = useState({ width: 400, height: 600 });
+  const [chatPosition, setChatPosition] = useState({ x: window.innerWidth - 420, y: 80 });
+  const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // Load saved state from localStorage on mount
   useEffect(() => {
@@ -140,6 +148,87 @@ export default function EikenPracticePage() {
     console.log('🗑️ Cleared practice state from localStorage');
   };
 
+  // Study Partnerに戻る際にlocalStorageをクリア
+  const handleBackToStudyPartner = () => {
+    // 英検練習の状態をすべてクリア
+    localStorage.removeItem('eiken_practice_questions');
+    localStorage.removeItem('eiken_practice_results');
+    localStorage.removeItem('eiken_practice_viewMode');
+    localStorage.removeItem('eiken_current_question_index');
+    localStorage.removeItem('eiken_user_answers');
+    localStorage.removeItem('eiken_submitted_questions');
+    localStorage.removeItem('eiken_viewed_explanations');
+    console.log('🔄 Cleared all Eiken practice data before returning to Study Partner');
+    // ページ遷移
+    window.location.href = '/study-partner';
+  };
+
+  // AIチャットのドラッグ処理
+  const handleChatDragStart = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).classList.contains('chat-header')) {
+      setIsDragging(true);
+      setDragOffset({
+        x: e.clientX - chatPosition.x,
+        y: e.clientY - chatPosition.y
+      });
+    }
+  };
+
+  const handleChatDrag = (e: MouseEvent) => {
+    if (isDragging) {
+      setChatPosition({
+        x: Math.max(0, Math.min(window.innerWidth - chatSize.width, e.clientX - dragOffset.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragOffset.y))
+      });
+    }
+  };
+
+  const handleChatDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  // AIチャットのリサイズ処理
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  };
+
+  const handleResize = (e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = Math.max(300, Math.min(800, e.clientX - chatPosition.x));
+      const newHeight = Math.max(400, Math.min(window.innerHeight - chatPosition.y - 20, e.clientY - chatPosition.y));
+      setChatSize({ width: newWidth, height: newHeight });
+    }
+  };
+
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+  };
+
+  // イベントリスナーの登録
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleChatDrag);
+      window.addEventListener('mouseup', handleChatDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleChatDrag);
+        window.removeEventListener('mouseup', handleChatDragEnd);
+      };
+    }
+  }, [isDragging, dragOffset, chatSize.width]);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResize);
+      window.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleResize);
+        window.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, chatPosition]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8">
       <div className="container mx-auto px-4">
@@ -168,44 +257,110 @@ export default function EikenPracticePage() {
               height: 1.5rem !important;
             }
           }
+          .chat-header {
+            cursor: move;
+            user-select: none;
+          }
+          .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
+          }
+          .resize-handle:hover {
+            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.2) 50%);
+          }
         `}</style>
-        <a
-          href="/ai-chat/eiken-help"
-          className="ai-chat-button fixed bottom-6 right-6 z-50 group"
-          style={{
-            width: '56px',
-            height: '56px'
-          }}
-        >
-          <div className="w-full h-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110">
-            {/* アイコン */}
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-          </div>
-          
-          {/* ホバー時のテキストラベル (デスクトップのみ) */}
-          <div className="hidden md:block absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="bg-gray-900 text-white text-sm font-medium px-3 py-2 rounded-lg whitespace-nowrap shadow-lg">
-              AIに質問する
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+        
+        {/* フローティングAIチャットボタン */}
+        {!isChatOpen && (
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="ai-chat-button fixed bottom-6 right-6 z-50 group"
+            style={{
+              width: '56px',
+              height: '56px'
+            }}
+          >
+            <div className="w-full h-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            
+            <div className="hidden md:block absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+              <div className="bg-gray-900 text-white text-sm font-medium px-3 py-2 rounded-lg whitespace-nowrap shadow-lg">
+                AIに質問する
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+              </div>
+            </div>
+          </button>
+        )}
+
+        {/* フローティングAIチャットウィンドウ */}
+        {isChatOpen && (
+          <div
+            className="fixed z-50 bg-white rounded-lg shadow-2xl flex flex-col"
+            style={{
+              left: `${chatPosition.x}px`,
+              top: `${chatPosition.y}px`,
+              width: `${chatSize.width}px`,
+              height: `${chatSize.height}px`,
+            }}
+          >
+            {/* ヘッダー */}
+            <div
+              className="chat-header bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between"
+              onMouseDown={handleChatDragStart}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <span className="font-medium">AI学習サポート</span>
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="hover:bg-white/20 rounded p-1 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* iframe コンテンツ */}
+            <div className="flex-1 relative">
+              <iframe
+                src="/ai-chat/eiken-help"
+                className="w-full h-full border-0"
+                title="AI学習サポート"
+              />
+              {/* リサイズハンドル */}
+              <div
+                className="resize-handle"
+                onMouseDown={handleResizeStart}
+              />
             </div>
           </div>
-        </a>
+        )}
 
         {/* ヘッダー */}
         <header className="text-center mb-8 relative">
           {/* 戻るボタン */}
           <div className="absolute left-0 top-0">
-            <a
-              href="/study-partner"
+            <button
+              onClick={handleBackToStudyPartner}
               className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               <span className="font-medium">Study Partnerに戻る</span>
-            </a>
+            </button>
           </div>
           
           <h1 className="text-5xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
