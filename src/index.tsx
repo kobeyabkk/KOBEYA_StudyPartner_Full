@@ -8085,8 +8085,8 @@ app.get('/international-student/:sessionId', (c) => {
             
             if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
                 // Parse bilingual content
-                const japaneseMatch = content.match(/【日本語】([\\s\\S]*?)(?=【English】|$)/);
-                const englishMatch = content.match(/【English】([\\s\\S]*?)$/);
+                const japaneseMatch = content.match(new RegExp('【日本語】([\\s\\S]*?)(?=【English】|$)'));
+                const englishMatch = content.match(new RegExp('【English】([\\s\\S]*?)$'));
                 
                 const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
                 const englishText = englishMatch ? englishMatch[1].trim() : '';

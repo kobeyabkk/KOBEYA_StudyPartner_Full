@@ -703,6 +703,13 @@ export function renderStudyPartnerPage(c: Context) {
                 </div>
 
                 <div style="margin-bottom: 1rem;">
+                    <button id="flashcardBtn" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background-color: #f59e0b; color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.2s;">
+                        <i class="fas fa-clone" style="margin-right: 0.5rem;"></i>
+                        🃏 フラッシュカード
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
                     <button id="interSeiYou" style="width: 100%; border-radius: 0.5rem; padding: 1rem; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 500; border: none; cursor: pointer; min-height: 56px; font-size: 16px; transition: all 0.3s;">
                         <i class="fas fa-globe" style="margin-right: 0.5rem;"></i>
                         🌍 インター生用（Bilingual Learning）
@@ -921,6 +928,15 @@ export function renderStudyPartnerPage(c: Context) {
             shoronbunButton.addEventListener('click', function() {
               console.log('📝 Essay coaching button clicked');
               window.location.href = '/essay-coaching';
+            });
+          }
+          
+          // フラッシュカードボタン
+          const flashcardButton = document.getElementById('flashcardBtn');
+          if (flashcardButton) {
+            flashcardButton.addEventListener('click', function() {
+              console.log('🃏 Flashcard button clicked');
+              window.location.href = '/flashcard/list';
             });
           }
           
