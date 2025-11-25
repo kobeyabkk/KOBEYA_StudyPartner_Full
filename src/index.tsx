@@ -19377,6 +19377,40 @@ app.route('/api/eiken/questions', questionRoutes)
 // Translation API エンドポイント
 app.route('/api/eiken/translate', translateRoute)
 
+// 問題報告API
+app.post('/api/eiken/report-problem', async (c) => {
+  try {
+    const { question, questionIndex, reportedAt, userAgent } = await c.req.json()
+    console.log('📋 Problem reported:', { questionIndex, reportedAt })
+    
+    const db = c.env?.DB
+    
+    if (db) {
+      // データベースに問題報告を記録
+      await db.prepare(`
+        INSERT INTO eiken_problem_reports (question_data, question_index, reported_at, user_agent)
+        VALUES (?, ?, ?, ?)
+      `).bind(
+        JSON.stringify(question),
+        questionIndex,
+        reportedAt,
+        userAgent
+      ).run()
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: '問題を報告しました。ご協力ありがとうございます。' 
+    })
+  } catch (error) {
+    console.error('❌ Failed to record problem report:', error)
+    return c.json({ 
+      success: false, 
+      message: '報告の記録に失敗しました' 
+    }, 500)
+  }
+})
+
 // Phase 4A: Vocabulary System エンドポイント
 app.route('/api/vocabulary', vocabularyRoute)
 

@@ -70,6 +70,16 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const [translationStarted, setTranslationStarted] = useState(false);
   const [prevPassage, setPrevPassage] = useState<string>(''); // 前の長文を記憶
   
+  // 問題報告機能
+  const [reportedQuestions, setReportedQuestions] = useState<Set<number>>(() => {
+    try {
+      const saved = localStorage.getItem('eiken_reported_questions');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  
   console.log('📂 Loaded progress - index:', currentIndex, 'answers:', userAnswers.size, 'submitted:', submittedQuestions.size);
   
   // Phase 4B: Vocabulary annotation state
@@ -93,6 +103,15 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       console.error('Failed to save vocabulary markers preference:', error);
     }
   }, [showVocabularyMarkers]);
+
+  // Save reported questions to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('eiken_reported_questions', JSON.stringify(Array.from(reportedQuestions)));
+    } catch (error) {
+      console.error('Failed to save reported questions:', error);
+    }
+  }, [reportedQuestions]);
 
   // Save progress to localStorage whenever it changes
   useEffect(() => {
@@ -201,6 +220,46 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
         setShowPassage(true);
       }
       setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const handleReportProblem = async () => {
+    const currentQuestion = questions[currentIndex];
+    const confirmReport = confirm(
+      '問題に不備がありますか？\n\n' +
+      '報告すると、この問題は記録され、今後の改善に活用されます。\n' +
+      'また、次の問題にスキップします。'
+    );
+    
+    if (!confirmReport) return;
+    
+    try {
+      // 問題を報告済みとしてマーク
+      const newReported = new Set(reportedQuestions);
+      newReported.add(currentIndex);
+      setReportedQuestions(newReported);
+      
+      // サーバーに問題報告を送信
+      await fetch('/api/eiken/report-problem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: currentQuestion,
+          questionIndex: currentIndex,
+          reportedAt: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        })
+      });
+      
+      alert('✅ 問題を報告しました。ご協力ありがとうございます。');
+      
+      // 次の問題に進む
+      if (currentIndex < questions.length - 1) {
+        handleNext();
+      }
+    } catch (error) {
+      console.error('Failed to report problem:', error);
+      alert('❌ 報告の送信に失敗しました。オフラインで記録されました。');
     }
   };
 
@@ -644,6 +703,25 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               }`}
             >
               次の問題 →
+            </button>
+          </div>
+          
+          {/* 問題報告ボタン */}
+          <div className="mt-4">
+            <button
+              onClick={handleReportProblem}
+              disabled={reportedQuestions.has(currentIndex)}
+              className={`w-full py-2 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                reportedQuestions.has(currentIndex)
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 hover:border-red-300'
+              }`}
+              title="問題に不備がある場合は報告してください"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              {reportedQuestions.has(currentIndex) ? '報告済み' : '問題を報告'}
             </button>
           </div>
           
