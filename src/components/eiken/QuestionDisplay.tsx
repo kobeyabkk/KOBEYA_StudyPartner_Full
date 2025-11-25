@@ -75,13 +75,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   // Phase 4B: Vocabulary annotation state
   const [selectedVocabNote, setSelectedVocabNote] = useState<any | null>(null);
   
-  // Vocabulary markers visibility toggle (default: true = shown)
+  // Vocabulary markers visibility toggle (default: false = hidden)
   const [showVocabularyMarkers, setShowVocabularyMarkers] = useState(() => {
     try {
       const saved = localStorage.getItem('eiken_show_vocabulary_markers');
-      return saved !== null ? saved === 'true' : true; // Default to true if not set
+      return saved !== null ? saved === 'true' : false; // Default to false (hidden) if not set
     } catch {
-      return true;
+      return false;
     }
   });
   
