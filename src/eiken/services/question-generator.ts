@@ -232,7 +232,7 @@ async function generateSingleQuestion(
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8, // 創造性重視
+      temperature: 0.9, // より高い創造性で多様性を確保
       max_tokens: 2000  // 詳細な解説のために増量
     })
   });
@@ -346,6 +346,22 @@ ${sectionGuidance}
 
 IMPORTANT: Create questions with ORIGINAL content. Do not copy or closely imitate existing test materials.
 
+DIVERSITY REQUIREMENTS (重要 - 多様性の確保):
+1. VOCABULARY DIVERSITY - Avoid overused words
+   - Common overused words to AVOID: environment, important, benefit, crucial, significant, essential, necessary, understand, problem, solution
+   - Use FRESH, less common but equally appropriate vocabulary
+   - Explore varied vocabulary domains: technology, arts, sports, culture, daily life, science, entertainment
+   
+2. TOPIC DIVERSITY - Explore different themes
+   - Rotate between topics: technology innovations, cultural events, sports activities, artistic pursuits, travel experiences, culinary culture, entertainment industry, scientific discoveries, historical events, natural phenomena
+   - Avoid repeatedly using education, environment, or health topics
+   - Use creative and interesting contexts that engage students
+   
+3. SCENARIO DIVERSITY - Vary the contexts
+   - Use different settings: workplace, school, home, outdoors, social gatherings, online, travel
+   - Feature different characters: students, workers, families, friends, professionals
+   - Include various activities: learning, working, playing, traveling, creating
+
 EXPLANATION QUALITY REQUIREMENTS:
 The explanation_ja field is CRITICAL for student learning. It must:
 1. Explain WHY the correct answer is right (grammar rule, usage pattern, meaning)
@@ -371,6 +387,54 @@ Return JSON format:
   "difficulty": 0.0-1.0,
   "topic": "category name (e.g., 'present perfect', 'conditionals', 'passive voice')"
 }`;
+}
+
+/**
+ * 多様なトピックプール（語彙問題用）
+ */
+const diverseTopicPool = [
+  // Technology & Innovation
+  'smartphone applications', 'artificial intelligence', 'virtual reality', 
+  'social media trends', 'online gaming', 'streaming services',
+  
+  // Arts & Culture
+  'music festivals', 'art exhibitions', 'theater performances', 
+  'traditional crafts', 'photography', 'dance styles',
+  
+  // Sports & Recreation
+  'team sports', 'individual sports', 'outdoor activities', 
+  'fitness trends', 'Olympic events', 'adventure sports',
+  
+  // Food & Culinary
+  'cooking techniques', 'international cuisine', 'food trends',
+  'restaurant experiences', 'baking', 'dietary choices',
+  
+  // Travel & Adventure
+  'tourist attractions', 'cultural experiences', 'travel planning',
+  'accommodation types', 'transportation methods', 'local customs',
+  
+  // Entertainment
+  'movie genres', 'television shows', 'video games',
+  'amusement parks', 'concerts', 'festivals',
+  
+  // Science & Nature
+  'weather phenomena', 'animal behavior', 'plant life',
+  'scientific experiments', 'space exploration', 'natural disasters',
+  
+  // Daily Life & Society
+  'shopping habits', 'fashion trends', 'home improvement',
+  'family gatherings', 'friendship activities', 'community events',
+  
+  // Work & Career
+  'job interviews', 'workplace communication', 'professional development',
+  'business meetings', 'remote work', 'career planning'
+];
+
+/**
+ * ランダムなトピックを選択
+ */
+function selectRandomTopic(): string {
+  return diverseTopicPool[Math.floor(Math.random() * diverseTopicPool.length)];
 }
 
 /**
@@ -453,11 +517,21 @@ function buildUserPrompt(request: QuestionGenerationRequest): string {
   if (request.section === 'grammar') {
     const grammarTopics = grammarTopicsByGrade[request.grade] || [];
     const topicList = grammarTopics.join(', ');
+    const suggestedTopic = selectRandomTopic();
     
     return `Generate a GRAMMAR question for Eiken Grade ${request.grade}.
 
 GRAMMAR FOCUS for this level:
 ${topicList}
+
+SUGGESTED TOPIC CONTEXT: ${suggestedTopic}
+(Use this as inspiration for a fresh, interesting context. Feel free to adapt creatively.)
+
+DIVERSITY REQUIREMENTS (CRITICAL):
+- USE interesting, varied contexts (technology, sports, arts, food, travel, entertainment, etc.)
+- AVOID typical education/environment/health themes if possible
+- CREATE engaging scenarios that students can relate to
+- Make the sentence INTERESTING and FUN, not just grammatically correct
 
 Requirements:
 - Create a fill-in-the-blank sentence with ( ) 
@@ -493,9 +567,21 @@ Create an ORIGINAL question that tests grammar skills for this level.`;
   }
   
   // 語彙問題用のプロンプト（既存）
+  const suggestedTopic = selectRandomTopic();
+  
   return `Generate a ${request.questionType} question for Eiken Grade ${request.grade}.
 Section: ${request.section}
 Difficulty: ${difficultyDesc}${hints}
+
+SUGGESTED TOPIC CONTEXT: ${suggestedTopic}
+(Use this as inspiration for a fresh, interesting context. Feel free to adapt creatively.)
+
+DIVERSITY REQUIREMENTS (CRITICAL):
+- AVOID overused vocabulary: environment, important, benefit, crucial, significant, understand, problem, solution
+- USE fresh, interesting vocabulary appropriate for the level
+- CREATE engaging scenarios from daily life, hobbies, or interesting situations
+- VARY the context from typical education/health/environment themes
+- Make the question FUN and INTERESTING for students
 
 Create an ORIGINAL question that tests the appropriate skills for this level.
 Ensure the question is completely unique and does not resemble existing test questions.
