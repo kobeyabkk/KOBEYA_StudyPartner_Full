@@ -143,6 +143,56 @@ export default function EikenPracticePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8">
       <div className="container mx-auto px-4">
+        {/* フローティングAIチャットボタン */}
+        <style>{`
+          @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+          }
+          .ai-chat-button {
+            animation: pulse-subtle 3s ease-in-out infinite;
+          }
+          .ai-chat-button:hover {
+            animation: none;
+          }
+          /* スマホでさらに小さく */
+          @media (max-width: 640px) {
+            .ai-chat-button {
+              width: 48px !important;
+              height: 48px !important;
+              bottom: 1rem !important;
+              right: 1rem !important;
+            }
+            .ai-chat-button svg {
+              width: 1.5rem !important;
+              height: 1.5rem !important;
+            }
+          }
+        `}</style>
+        <a
+          href="/ai-chat/eiken-help"
+          className="ai-chat-button fixed bottom-6 right-6 z-50 group"
+          style={{
+            width: '56px',
+            height: '56px'
+          }}
+        >
+          <div className="w-full h-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110">
+            {/* アイコン */}
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </div>
+          
+          {/* ホバー時のテキストラベル (デスクトップのみ) */}
+          <div className="hidden md:block absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="bg-gray-900 text-white text-sm font-medium px-3 py-2 rounded-lg whitespace-nowrap shadow-lg">
+              AIに質問する
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+            </div>
+          </div>
+        </a>
+
         {/* ヘッダー */}
         <header className="text-center mb-8 relative">
           {/* 戻るボタン */}
