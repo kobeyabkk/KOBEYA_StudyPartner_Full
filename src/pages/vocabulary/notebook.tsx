@@ -20,6 +20,7 @@ import type {
 import { VocabularyDifficultyScorer } from '../../eiken/services/vocabulary-difficulty';
 import { SM2Algorithm } from '../../eiken/services/sm2-algorithm';
 import VocabularyReviewModal, { type ReviewItem } from '../../components/eiken/VocabularyReviewModal';
+import VocabularyPopup from '../../components/eiken/VocabularyPopup';
 
 // Mock user ID - TODO: Get from auth context
 const MOCK_USER_ID = 'user-123';
@@ -430,6 +431,7 @@ interface VocabularyCardProps {
 }
 
 function VocabularyCard({ item, onUpdate, onReview }: VocabularyCardProps) {
+  const [showDetails, setShowDetails] = useState(false);
   const { word, progress } = item;
   
   const difficultyColor = VocabularyDifficultyScorer.getDifficultyColor(word.finalDifficultyScore);
@@ -535,10 +537,29 @@ function VocabularyCard({ item, onUpdate, onReview }: VocabularyCardProps) {
             復習する
           </button>
         )}
-        <button className="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 transition-colors">
+        <button 
+          onClick={() => setShowDetails(true)}
+          className="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 transition-colors"
+        >
           詳細
         </button>
       </div>
+
+      {/* Details Popup */}
+      {showDetails && (
+        <VocabularyPopup
+          note={{
+            word: word.word,
+            pos: word.pos,
+            definition_ja: word.definitionJa,
+            definition_en: word.definitionEn,
+            cefr_level: word.cefrLevel,
+            difficulty_score: word.finalDifficultyScore,
+            word_id: word.id,
+          }}
+          onClose={() => setShowDetails(false)}
+        />
+      )}
     </div>
   );
 }

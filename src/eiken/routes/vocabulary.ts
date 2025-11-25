@@ -204,10 +204,10 @@ app.get('/progress/:user_id', async (c) => {
           uvp.*,
           vm.word_lemma as word,
           vm.pos as pos,
-          '' as definition_en,
-          '' as definition_ja,
+          vm.definition_en,
+          vm.definition_ja,
           vm.cefr_level,
-          50 as final_difficulty_score
+          vm.final_difficulty_score
         FROM user_vocabulary_progress uvp
         JOIN eiken_vocabulary_lexicon vm ON uvp.word_id = vm.ROWID
         WHERE uvp.user_id = ?
