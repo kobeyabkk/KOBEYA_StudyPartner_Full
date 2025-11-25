@@ -217,9 +217,10 @@ export function renderStudyPartnerPage(c: Context) {
         }
         
         a.admin-button:hover {
-          background: linear-gradient(135deg, #991b1b, #7f1d1d);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+          background: #d1d5db;
+          color: #374151;
+          opacity: 0.8;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         @media (max-width: 768px) {
@@ -233,8 +234,8 @@ export function renderStudyPartnerPage(c: Context) {
           a.admin-button {
             bottom: 0.5rem;
             left: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
           }
         }
         
@@ -854,9 +855,9 @@ export function renderStudyPartnerPage(c: Context) {
             </button>
             
             <!-- 管理画面ボタン -->
-            <a href="/admin/login" class="admin-button" style="position: fixed; bottom: 1rem; left: 1rem; background: linear-gradient(135deg, #dc2626, #991b1b); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 500; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; z-index: 1000;">
-                <i class="fas fa-user-shield"></i>
-                <span>管理画面</span>
+            <a href="/admin/login" class="admin-button" style="position: fixed; bottom: 1rem; left: 1rem; background: #e5e7eb; color: #6b7280; padding: 0.5rem 1rem; border-radius: 0.375rem; text-decoration: none; font-weight: 400; font-size: 0.875rem; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); transition: all 0.2s; display: flex; align-items: center; gap: 0.375rem; z-index: 1000; opacity: 0.6;">
+                <i class="fas fa-cog" style="font-size: 0.875rem;"></i>
+                <span>管理</span>
             </a>
         </main>
 
@@ -1225,7 +1226,7 @@ export function renderStudyPartnerPage(c: Context) {
             }
             
             // Call the actual login API
-            const response = await fetch('/api/login', {
+            const response = await fetch('/api/auth/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1243,12 +1244,19 @@ export function renderStudyPartnerPage(c: Context) {
             
             if (response.ok && data.success) {
               authenticated = true;
+              // ログイン情報をlocalStorageに保存
+              localStorage.setItem('study_partner_auth', JSON.stringify({
+                appkey: appkey,
+                sid: sid,
+                studentName: data.user?.studentName || sid,
+                loginTime: new Date().toISOString()
+              }));
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
                     'APP_KEY: ' + appkey + String.fromCharCode(10) + 
                     'Student ID: ' + sid);
             } else {
               authenticated = false;
-              throw new Error(data.message || 'ログインに失敗しました');
+              throw new Error(data.error || data.message || 'ログインに失敗しました');
             }
           } catch (error) {
             console.error('❌ Login error:', error);
