@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node -v && npm -v",
-    "build": "vite build --config vite.client.config.ts && vite build && cp -r public/* dist/ && node scripts/update-eiken-html.mjs",
+    "build": "vite build --config vite.client.config.ts && vite build && cp -r public/* dist/ && node scripts/update-eiken-html.mjs && rm -f dist/index.html",
     "postbuild": "test -d dist && test -f dist/_worker.js && test -d dist/assets || (echo '❌ Build output missing' && exit 1)",
     "preview": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "dev:sandbox": "wrangler pages dev dist --d1=kobeya-logs-db --local --ip 0.0.0.0 --port 3000",
