@@ -48,7 +48,7 @@ export class VocabularyDefinitionGenerator {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful English-Japanese dictionary assistant for Japanese middle school students (中学生) preparing for the Eiken exam. Your definitions must use SIMPLE, EASY-TO-UNDERSTAND Japanese that 12-15 year old students can comprehend. Avoid difficult vocabulary, complex kanji, or academic terms. Write as if explaining to a younger sibling using everyday words.',
+              content: 'You are a helpful English-Japanese dictionary assistant for Japanese middle school students (中学生) preparing for the Eiken exam. Your definitions must use SIMPLE, EASY-TO-UNDERSTAND Japanese that 12-15 year old students can comprehend. CRITICAL REQUIREMENTS: (1) ALWAYS include katakana reading in parentheses at the start of definition_ja (e.g., "環境（かんきょう）とは..."), (2) ALWAYS provide both example_en and example_ja - they are mandatory, not optional. Avoid difficult vocabulary, complex kanji, or academic terms. Write as if explaining to a younger sibling using everyday words.',
             },
             {
               role: 'user',
@@ -198,6 +198,20 @@ Please provide the response in the following JSON format:
   "example_ja": "例文の日本語訳（やさしい日本語で）"
 }
 
+CRITICAL REQUIREMENTS (必須事項):
+1. KATAKANA READING (カタカナ読み) - MANDATORY
+   - START definition_ja with the main Japanese word in KATAKANA in parentheses
+   - Format: "環境（かんきょう）とは、..." 
+   - Format: "重要（じゅうよう）な..." 
+   - ALWAYS include katakana reading for the key Japanese word(s)
+   - This helps students learn proper pronunciation
+
+2. EXAMPLE SENTENCES - MANDATORY
+   - example_en and example_ja are REQUIRED, not optional
+   - ALWAYS provide both English example and Japanese translation
+   - Make examples relevant to daily life or Eiken exam contexts
+   - Use simple, natural language in examples
+
 IMPORTANT GUIDELINES for Japanese definitions:
 - Use SIMPLE Japanese vocabulary that middle school students (12-15 years old) can understand
 - Avoid difficult kanji or academic terms
@@ -210,8 +224,16 @@ IMPORTANT GUIDELINES for Japanese definitions:
 
 Technical guidelines:
 - Keep definitions simple and appropriate for ${cefrLevel} level learners
-- Example sentences should be practical and relevant to daily life or Eiken exam contexts
 - Focus on the most common usage of the word
+
+GOOD EXAMPLES of definition_ja with katakana:
+✅ "環境（かんきょう）とは、私たちの周りにある自然のことです。空気や水、植物や動物などが含まれます。"
+✅ "重要（じゅうよう）な、とても大事なこと。"
+✅ "挑戦（ちょうせん）すること、難しいことに頑張ってやってみること。"
+
+BAD EXAMPLES (missing katakana):
+❌ "環境とは、私たちの周りにある自然のことです。" (No katakana!)
+❌ "とても大事なこと。" (No Japanese word with katakana!)
 
 Respond with ONLY the JSON object, no additional text.`;
   }
