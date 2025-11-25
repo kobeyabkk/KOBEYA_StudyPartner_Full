@@ -7869,6 +7869,124 @@ app.get('/international-student/:sessionId', (c) => {
         .back-button:hover {
             background: rgba(255, 255, 255, 0.3);
         }
+        
+        /* Crop area styles */
+        .crop-area {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            border: 2px solid #10b981;
+        }
+        
+        .crop-area img {
+            max-width: 100%;
+            display: block;
+        }
+        
+        .crop-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+        
+        .crop-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .crop-btn.confirm {
+            background: #10b981;
+            color: white;
+        }
+        
+        .crop-btn.confirm:hover {
+            background: #059669;
+        }
+        
+        .crop-btn.cancel {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .crop-btn.cancel:hover {
+            background: #dc2626;
+        }
+        
+        /* Cropper.js handle sizes */
+        .cropper-point {
+            width: 12px !important;
+            height: 12px !important;
+            opacity: 0.95 !important;
+        }
+        
+        .cropper-point:hover {
+            opacity: 1 !important;
+            transform: scale(1.2);
+        }
+        
+        .cropper-point.point-nw,
+        .cropper-point.point-ne,
+        .cropper-point.point-sw,
+        .cropper-point.point-se {
+            background-color: #10b981 !important;
+            border-radius: 50%;
+        }
+        
+        .cropper-point.point-n,
+        .cropper-point.point-s,
+        .cropper-point.point-e,
+        .cropper-point.point-w {
+            background-color: #059669 !important;
+            border-radius: 2px;
+        }
+        
+        .cropper-crop-box {
+            border: 2px solid #10b981 !important;
+        }
+        
+        .cropper-view-box {
+            outline: 2px solid #10b981 !important;
+        }
+        
+        .image-preview-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .preview-btn {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .preview-btn.start-crop {
+            background: #10b981;
+            color: white;
+        }
+        
+        .preview-btn.start-crop:hover {
+            background: #059669;
+        }
+        
+        .preview-btn.remove {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .preview-btn.remove:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -7897,11 +8015,30 @@ app.get('/international-student/:sessionId', (c) => {
         </div>
         
         <div class="chat-input-container">
+            <!-- Image preview area -->
             <div id="imagePreview" class="image-preview" style="display: none;">
                 <img id="previewImage" src="" alt="Preview">
-                <button class="remove-image-btn" onclick="removeImage()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="image-preview-actions">
+                    <button class="preview-btn start-crop" id="startCropBtn">
+                        <i class="fas fa-crop"></i> クロップ / Crop
+                    </button>
+                    <button class="preview-btn remove" onclick="removeImage()">
+                        <i class="fas fa-times"></i> 削除 / Remove
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Crop area -->
+            <div id="cropArea" class="crop-area" style="display: none;">
+                <img id="cropImage" src="" alt="Crop">
+                <div class="crop-actions">
+                    <button class="crop-btn confirm" id="confirmCropBtn">
+                        <i class="fas fa-check"></i> 確定 / Confirm
+                    </button>
+                    <button class="crop-btn cancel" id="cancelCropBtn">
+                        <i class="fas fa-times"></i> キャンセル / Cancel
+                    </button>
+                </div>
             </div>
             
             <div class="input-row">
@@ -7929,12 +8066,18 @@ app.get('/international-student/:sessionId', (c) => {
     <script>
         const SESSION_ID = '${sessionId}';
         let currentImageData = null;
+        let cropper = null;
         
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const imagePreview = document.getElementById('imagePreview');
         const previewImage = document.getElementById('previewImage');
+        const cropArea = document.getElementById('cropArea');
+        const cropImage = document.getElementById('cropImage');
+        const startCropBtn = document.getElementById('startCropBtn');
+        const confirmCropBtn = document.getElementById('confirmCropBtn');
+        const cancelCropBtn = document.getElementById('cancelCropBtn');
         
         function addMessage(content, type) {
             const messageDiv = document.createElement('div');
@@ -7978,24 +8121,139 @@ app.get('/international-student/:sessionId', (c) => {
             }
         }
         
+        // Event listeners for crop buttons
+        if (startCropBtn) {
+            startCropBtn.addEventListener('click', startCrop);
+        }
+        if (confirmCropBtn) {
+            confirmCropBtn.addEventListener('click', confirmCrop);
+        }
+        if (cancelCropBtn) {
+            cancelCropBtn.addEventListener('click', cancelCrop);
+        }
+        
         function handleImageSelect(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    currentImageData = e.target.result;
                     previewImage.src = e.target.result;
-                    imagePreview.style.display = 'block';
+                    previewImage.onload = function() {
+                        imagePreview.style.display = 'block';
+                        cropArea.style.display = 'none';
+                        
+                        // Auto-start crop after 800ms
+                        setTimeout(() => {
+                            startCrop();
+                        }, 800);
+                    };
                 };
                 reader.readAsDataURL(file);
+            }
+        }
+        
+        function startCrop() {
+            if (!previewImage.src) {
+                console.error('No image source for crop');
+                return;
+            }
+            
+            console.log('✂️ Starting crop');
+            
+            cropImage.src = previewImage.src;
+            imagePreview.style.display = 'none';
+            cropArea.style.display = 'block';
+            
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            // Initialize Cropper.js
+            setTimeout(() => {
+                if (window.Cropper && cropImage) {
+                    cropper = new window.Cropper(cropImage, {
+                        aspectRatio: NaN, // Free aspect ratio
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.95,
+                        responsive: true,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        ready: function() {
+                            console.log('✂️ Cropper initialized');
+                        }
+                    });
+                }
+            }, 100);
+        }
+        
+        function confirmCrop() {
+            if (!cropper) {
+                alert('クロップ機能が正しく初期化されていません。\nCrop function not properly initialized.');
+                return;
+            }
+            
+            console.log('✂️ Confirming crop');
+            
+            try {
+                const canvas = cropper.getCroppedCanvas({
+                    maxWidth: 768,
+                    maxHeight: 768,
+                    imageSmoothingQuality: 'high'
+                });
+                
+                if (!canvas) {
+                    alert('画像の切り取りに失敗しました。\nFailed to crop image.');
+                    return;
+                }
+                
+                currentImageData = canvas.toDataURL('image/jpeg', 0.95);
+                console.log('✂️ Crop completed, image data length:', currentImageData.length);
+                
+                // Update preview
+                previewImage.src = currentImageData;
+                cropArea.style.display = 'none';
+                imagePreview.style.display = 'block';
+                
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                
+            } catch (error) {
+                console.error('Error during crop:', error);
+                alert('画像の処理中にエラーが発生しました。\nError processing image.');
+            }
+        }
+        
+        function cancelCrop() {
+            console.log('❌ Canceling crop');
+            
+            cropArea.style.display = 'none';
+            imagePreview.style.display = 'block';
+            
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
             }
         }
         
         function removeImage() {
             currentImageData = null;
             imagePreview.style.display = 'none';
+            cropArea.style.display = 'none';
             document.getElementById('cameraInput').value = '';
             document.getElementById('fileInput').value = '';
+            
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
         }
         
         async function sendMessage() {
