@@ -8081,7 +8081,7 @@ app.get('/international-student/:sessionId', (c) => {
         
         function addMessage(content, type) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = \`message \${type}\`;
+            messageDiv.className = 'message ' + type;
             
             if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
                 // Parse bilingual content
@@ -8091,18 +8091,16 @@ app.get('/international-student/:sessionId', (c) => {
                 const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
                 const englishText = englishMatch ? englishMatch[1].trim() : '';
                 
-                messageDiv.innerHTML = \`
-                    <div class="bilingual-content">
-                        <div class="japanese-section">
-                            <div class="section-label">🇯🇵 日本語</div>
-                            <div>\${japaneseText.replace(/\\n/g, '<br>')}</div>
-                        </div>
-                        <div class="english-section">
-                            <div class="section-label">🇺🇸 English</div>
-                            <div>\${englishText.replace(/\\n/g, '<br>')}</div>
-                        </div>
-                    </div>
-                \`;
+                messageDiv.innerHTML = '<div class="bilingual-content">' +
+                    '<div class="japanese-section">' +
+                    '<div class="section-label">🇯🇵 日本語</div>' +
+                    '<div>' + japaneseText.replace(/\n/g, '<br>') + '</div>' +
+                    '</div>' +
+                    '<div class="english-section">' +
+                    '<div class="section-label">🇺🇸 English</div>' +
+                    '<div>' + englishText.replace(/\n/g, '<br>') + '</div>' +
+                    '</div>' +
+                    '</div>';
             } else {
                 messageDiv.textContent = content;
             }
