@@ -8094,11 +8094,11 @@ app.get('/international-student/:sessionId', (c) => {
                 messageDiv.innerHTML = '<div class="bilingual-content">' +
                     '<div class="japanese-section">' +
                     '<div class="section-label">🇯🇵 日本語</div>' +
-                    '<div>' + japaneseText.replace(/\n/g, '<br>') + '</div>' +
+                    '<div>' + japaneseText.replace(new RegExp('\\n', 'g'), '<br>') + '</div>' +
                     '</div>' +
                     '<div class="english-section">' +
                     '<div class="section-label">🇺🇸 English</div>' +
-                    '<div>' + englishText.replace(/\n/g, '<br>') + '</div>' +
+                    '<div>' + englishText.replace(new RegExp('\\n', 'g'), '<br>') + '</div>' +
                     '</div>' +
                     '</div>';
             } else {
