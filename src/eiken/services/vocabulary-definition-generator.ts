@@ -48,7 +48,7 @@ export class VocabularyDefinitionGenerator {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful English-Japanese dictionary assistant for Japanese learners preparing for the Eiken exam. Provide clear, concise definitions suitable for the learner\'s level.',
+              content: 'You are a helpful English-Japanese dictionary assistant for Japanese middle school students (中学生) preparing for the Eiken exam. Your definitions must use SIMPLE, EASY-TO-UNDERSTAND Japanese that 12-15 year old students can comprehend. Avoid difficult vocabulary, complex kanji, or academic terms. Write as if explaining to a younger sibling using everyday words.',
             },
             {
               role: 'user',
@@ -187,18 +187,30 @@ export class VocabularyDefinitionGenerator {
   private buildPrompt(word: string, pos: string, cefrLevel: string): string {
     return `Generate a dictionary definition for the English word "${word}" (part of speech: ${pos}, CEFR level: ${cefrLevel}).
 
+TARGET AUDIENCE: Japanese middle school students (中学生)
+LANGUAGE LEVEL: Use simple, easy-to-understand Japanese that middle school students can understand
+
 Please provide the response in the following JSON format:
 {
   "definition_en": "Clear, concise English definition (1-2 sentences)",
-  "definition_ja": "日本語の定義（1-2文、学習者に分かりやすく）",
+  "definition_ja": "中学生でも分かる簡単な日本語での定義（1-2文、やさしい言葉で）",
   "example_en": "A natural example sentence using the word",
-  "example_ja": "例文の日本語訳"
+  "example_ja": "例文の日本語訳（やさしい日本語で）"
 }
 
-Guidelines:
+IMPORTANT GUIDELINES for Japanese definitions:
+- Use SIMPLE Japanese vocabulary that middle school students (12-15 years old) can understand
+- Avoid difficult kanji or academic terms
+- Use everyday words and expressions
+- Keep sentences short and clear
+- Example: Instead of "身体的な損傷" use "体のけが"
+- Example: Instead of "否定的な影響" use "悪い影響"
+- Example: Instead of "継続中である" use "まだ続いている"
+- Write as if explaining to a younger sibling
+
+Technical guidelines:
 - Keep definitions simple and appropriate for ${cefrLevel} level learners
-- Japanese definition should be clear and use appropriate kanji with furigana where helpful
-- Example sentences should be practical and relevant to Eiken exam contexts
+- Example sentences should be practical and relevant to daily life or Eiken exam contexts
 - Focus on the most common usage of the word
 
 Respond with ONLY the JSON object, no additional text.`;

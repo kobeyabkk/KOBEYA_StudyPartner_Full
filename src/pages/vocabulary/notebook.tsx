@@ -20,7 +20,6 @@ import type {
 import { VocabularyDifficultyScorer } from '../../eiken/services/vocabulary-difficulty';
 import { SM2Algorithm } from '../../eiken/services/sm2-algorithm';
 import VocabularyReviewModal, { type ReviewItem } from '../../components/eiken/VocabularyReviewModal';
-import VocabularyPopup from '../../components/eiken/VocabularyPopup';
 
 // Mock user ID - TODO: Get from auth context
 const MOCK_USER_ID = 'user-123';
@@ -431,7 +430,6 @@ interface VocabularyCardProps {
 }
 
 function VocabularyCard({ item, onUpdate, onReview }: VocabularyCardProps) {
-  const [showDetails, setShowDetails] = useState(false);
   const { word, progress } = item;
   
   const difficultyColor = VocabularyDifficultyScorer.getDifficultyColor(word.finalDifficultyScore);
@@ -528,37 +526,15 @@ function VocabularyCard({ item, onUpdate, onReview }: VocabularyCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
-        {isDue && (
+      {isDue && (
+        <div className="flex gap-2">
           <button 
             onClick={() => onReview(item)}
-            className="flex-1 px-3 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
+            className="w-full px-3 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
           >
             復習する
           </button>
-        )}
-        <button 
-          onClick={() => setShowDetails(true)}
-          className="px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 transition-colors"
-        >
-          詳細
-        </button>
-      </div>
-
-      {/* Details Popup */}
-      {showDetails && (
-        <VocabularyPopup
-          note={{
-            word: word.word,
-            pos: word.pos,
-            definition_ja: word.definitionJa,
-            definition_en: word.definitionEn,
-            cefr_level: word.cefrLevel,
-            difficulty_score: word.finalDifficultyScore,
-            word_id: word.id,
-          }}
-          onClose={() => setShowDetails(false)}
-        />
+        </div>
       )}
     </div>
   );
