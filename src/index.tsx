@@ -8056,7 +8056,7 @@ app.get('/international-student/:sessionId', (c) => {
                 <input type="file" id="cameraInput" accept="image/*" capture="environment">
                 <input type="file" id="fileInput" accept="image/*">
                 
-                <input type="text" class="message-input" id="messageInput" placeholder="質問を入力 / Enter your question..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <input type="text" class="message-input" id="messageInput" placeholder="質問を入力 / Enter your question...">
                 
                 <button class="send-btn" id="sendButton" onclick="sendMessage()">
                     <i class="fas fa-paper-plane"></i>

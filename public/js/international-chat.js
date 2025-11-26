@@ -372,6 +372,17 @@
         fileInput.addEventListener('change', handleImageSelect);
     }
     
+    // Handle Enter key press with IME support (Japanese input)
+    // isComposing flag prevents sending during IME conversion (漢字変換中)
+    if (messageInput) {
+        messageInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.isComposing) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+    
     // Event listeners for crop buttons
     if (startCropBtn) {
         startCropBtn.addEventListener('click', startCrop);
