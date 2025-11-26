@@ -10333,3 +10333,31 @@ app.post('/api/flashcard/record-study', async (c) => {
       const newCorrectCount = (card.correct_count || 0) + (isCorrect ? 1 : 0)
       const correctRate = newCorrectCount / newReviewCount
       
+
+// International Student Chat Route
+app.route('/international-student', internationalStudentRoute)
+
+// Essay Coaching Routes
+app.route('/essay-coaching', essayCoachingRoute)
+app.route('/essay-coaching', essayCoachingSessionRoute)  // Session route
+
+// Flashcard Routes
+app.route('/flashcard', flashcardRoute)
+
+// AI Chat Routes
+app.route('/ai-chat', aiChatRoute)
+app.route('/ai-chat-v2', aiChatV2Route)
+
+// Dashboard Route
+app.route('/dashboard', dashboardRoute)
+
+// Admin Routes
+app.route('/admin', adminRoute)
+
+// 404ハンドラー
+app.notFound((c) => {
+  return c.text('404 Not Found', 404)
+})
+
+// Export the app as default
+export default app
