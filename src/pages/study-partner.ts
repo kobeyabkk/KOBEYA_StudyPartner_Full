@@ -1251,6 +1251,8 @@ export function renderStudyPartnerPage(c: Context) {
                 studentName: data.user?.studentName || sid,
                 loginTime: new Date().toISOString()
               }));
+              // ログイン状態変更イベントを発火
+              window.dispatchEvent(new Event('loginStatusChanged'));
               alert('✅ ログイン成功!' + String.fromCharCode(10) + 
                     'APP_KEY: ' + appkey + String.fromCharCode(10) + 
                     'Student ID: ' + sid);
@@ -2239,6 +2241,47 @@ export function renderStudyPartnerPage(c: Context) {
         }
 
         console.log('✅ Study Partner JavaScript loaded successfully');
+        </script>
+
+        <!-- ログイン状態インジケーター -->
+        <div id="login-status-indicator" style="position: fixed; top: 1rem; right: 1rem; z-index: 40;"></div>
+
+        <script>
+        (function() {
+          function updateLoginStatus() {
+            const indicator = document.getElementById('login-status-indicator');
+            if (!indicator) return;
+            
+            try {
+              const authData = localStorage.getItem('study_partner_auth');
+              const isLoggedIn = !!authData;
+              let studentName = 'ゲスト';
+              
+              if (authData) {
+                const parsed = JSON.parse(authData);
+                studentName = parsed.studentName || '生徒';
+              }
+              
+              const bgColor = isLoggedIn ? 'bg-green-50' : 'bg-gray-50';
+              const textColor = isLoggedIn ? 'text-green-700' : 'text-gray-500';
+              const borderColor = isLoggedIn ? 'border-green-200' : 'border-gray-200';
+              const dotColor = isLoggedIn ? 'bg-green-500' : 'bg-gray-400';
+              const title = isLoggedIn ? studentName + 'さんとしてログイン中' : 'ログインしていません';
+              
+              indicator.innerHTML = '<div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ' + bgColor + ' ' + textColor + ' border ' + borderColor + '" title="' + title + '"><div class="w-2 h-2 rounded-full ' + dotColor + '"></div><span class="hidden sm:inline font-medium">' + studentName + '</span></div>';
+            } catch (error) {
+              console.error('Failed to read login status:', error);
+            }
+          }
+          
+          updateLoginStatus();
+          window.addEventListener('storage', function(e) {
+            if (e.key === 'study_partner_auth') {
+              updateLoginStatus();
+            }
+          });
+          window.addEventListener('loginStatusChanged', updateLoginStatus);
+        })();
         </script>
     </body>
     </html>
