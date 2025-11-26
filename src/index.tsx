@@ -7878,10 +7878,13 @@ app.get('/international-student/:sessionId', (c) => {
             background: #f8fafc;
             border-radius: 0.5rem;
             border: 2px solid #10b981;
+            max-height: 60vh;
+            overflow-y: auto;
         }
         
         .crop-area img {
             max-width: 100%;
+            max-height: 50vh;
             display: block;
         }
         
@@ -14958,6 +14961,18 @@ app.get('/flashcard/list', (c) => {
         let selectedCards = new Set();
 
         function getLoginInfo() {
+            // 新しいログインシステムをチェック
+            const authData = localStorage.getItem('study_partner_auth');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return { appkey: parsed.appkey, sid: parsed.sid };
+                } catch (e) {
+                    console.error('Failed to parse auth data:', e);
+                }
+            }
+            
+            // 古いシステムもチェック（後方互換性）
             const appkey = localStorage.getItem('appkey');
             const sid = localStorage.getItem('sid');
             
@@ -15516,6 +15531,18 @@ app.get('/flashcard', (c) => {
         <script>
         // ログイン情報取得
         function getLoginInfo() {
+            // 新しいログインシステムをチェック
+            const authData = localStorage.getItem('study_partner_auth');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return { appkey: parsed.appkey, sid: parsed.sid };
+                } catch (e) {
+                    console.error('Failed to parse auth data:', e);
+                }
+            }
+            
+            // 古いシステムもチェック（後方互換性）
             const appkey = localStorage.getItem('appkey');
             const sid = localStorage.getItem('sid');
             
@@ -17537,6 +17564,18 @@ app.get('/flashcard/create', (c) => {
 
         // ログイン情報取得（localStorageから）
         function getLoginInfo() {
+            // 新しいログインシステムをチェック
+            const authData = localStorage.getItem('study_partner_auth');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return { appkey: parsed.appkey, sid: parsed.sid };
+                } catch (e) {
+                    console.error('Failed to parse auth data:', e);
+                }
+            }
+            
+            // 古いシステムもチェック（後方互換性）
             const appkey = localStorage.getItem('appkey');
             const sid = localStorage.getItem('sid');
             
