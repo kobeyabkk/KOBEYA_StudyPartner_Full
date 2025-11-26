@@ -8150,8 +8150,8 @@ app.get('/international-student/:sessionId', (c) => {
             
             if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
                 // Parse bilingual content
-                const japaneseMatch = content.match(new RegExp('【日本語】([\\s\\S]*?)(?=【English】|$)'));
-                const englishMatch = content.match(new RegExp('【English】([\\s\\S]*?)$'));
+                const japaneseMatch = content.match(/【日本語】([\s\S]*?)(?=【English】|$)/);
+                const englishMatch = content.match(/【English】([\s\S]*?)$/);
                 
                 const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
                 const englishText = englishMatch ? englishMatch[1].trim() : '';
@@ -8159,16 +8159,16 @@ app.get('/international-student/:sessionId', (c) => {
                 messageDiv.innerHTML = '<div class="bilingual-content">' +
                     '<div class="japanese-section">' +
                     '<div class="section-label">🇯🇵 日本語</div>' +
-                    '<div>' + japaneseText.replace(new RegExp('\\n', 'g'), '<br>') + '</div>' +
+                    '<div>' + japaneseText.replace(/\n/g, '<br>') + '</div>' +
                     '</div>' +
                     '<div class="english-section">' +
                     '<div class="section-label">🇺🇸 English</div>' +
-                    '<div>' + englishText.replace(new RegExp('\\n', 'g'), '<br>') + '</div>' +
+                    '<div>' + englishText.replace(/\n/g, '<br>') + '</div>' +
                     '</div>' +
                     '</div>';
             } else {
                 // Use innerHTML to preserve formatting and allow math rendering
-                const formattedContent = content.replace(/\\n/g, '<br>');
+                const formattedContent = content.replace(/\n/g, '<br>');
                 messageDiv.innerHTML = '<div class="message-content">' + formattedContent + '</div>';
             }
             
@@ -8396,20 +8396,32 @@ app.get('/international-student/:sessionId', (c) => {
                     body: formData
                 });
                 
+                if (!response.ok) {
+                    console.error('❌ HTTP Error:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    loadingDiv.remove();
+                    addMessage('サーバーエラーが発生しました: ' + response.status, 'ai');
+                    return;
+                }
+                
                 const data = await response.json();
                 console.log('📩 Received response:', data);
                 
                 loadingDiv.remove();
                 
                 if (data.ok) {
+                    console.log('✅ Success! Adding AI message:', data.answer.substring(0, 100) + '...');
                     addMessage(data.answer, 'ai');
                 } else {
+                    console.error('❌ API returned error:', data.message);
                     addMessage('エラーが発生しました: ' + (data.message || 'Unknown error'), 'ai');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Exception occurred:', error);
+                console.error('Error details:', error.stack);
                 loadingDiv.remove();
-                addMessage('通信エラーが発生しました', 'ai');
+                addMessage('通信エラーが発生しました: ' + error.message, 'ai');
             } finally {
                 sendButton.disabled = false;
                 messageInput.focus();
