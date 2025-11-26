@@ -834,7 +834,11 @@ app.get('/api/health', (c) => {
   console.log('🏥 Health check response:', response)
   return c.json(response, 200)
 })
-// データベースマイグレーションエンドポイント
+
+// ログインAPI（最小限追加）
+app.post('/api/login', async (c) => {
+  try {
+    const { appkey, sid } = await c.req.json()
     console.log('🔑 Login attempt:', { appkey, sid })
     
     const validAppKeys = ['KOBEYA2024', '180418']
