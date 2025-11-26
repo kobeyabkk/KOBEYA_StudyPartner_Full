@@ -7999,23 +7999,12 @@ app.get('/international-student/:sessionId', (c) => {
             <button class="back-button" onclick="window.location.href='/study-partner'">
                 <i class="fas fa-arrow-left"></i> 戻る
             </button>
-            <h1><i class="fas fa-globe"></i> Bilingual Learning Support</h1>
-            <p>バイリンガル学習サポート - 日本語と英語で解説</p>
+            <h1 id="chatTitle"><i class="fas fa-robot"></i> AIに質問</h1>
+            <p id="chatSubtitle">質問や問題を送ってください</p>
         </div>
         
         <div class="chat-messages" id="chatMessages">
-            <div class="message ai">
-                <div class="bilingual-content">
-                    <div class="japanese-section">
-                        <div class="section-label">🇯🇵 日本語</div>
-                        <p>こんにちは！バイリンガル学習サポートです。質問や問題の画像を送ってください。日本語と英語の両方で詳しく解説します。</p>
-                    </div>
-                    <div class="english-section">
-                        <div class="section-label">🇺🇸 English</div>
-                        <p>Hello! Welcome to Bilingual Learning Support. Please send your questions or images of problems. I will provide detailed explanations in both Japanese and English.</p>
-                    </div>
-                </div>
-            </div>
+            <!-- Initial message will be set by JavaScript based on session ID -->
         </div>
         
         <div class="chat-input-container">
@@ -8082,6 +8071,34 @@ app.get('/international-student/:sessionId', (c) => {
         const startCropBtn = document.getElementById('startCropBtn');
         const confirmCropBtn = document.getElementById('confirmCropBtn');
         const cancelCropBtn = document.getElementById('cancelCropBtn');
+        
+        // Set initial welcome message based on session ID prefix
+        function setInitialMessage() {
+            // Check if this is an international student session (starts with 'intl_')
+            const isInternational = SESSION_ID.startsWith('intl_');
+            
+            const chatTitle = document.getElementById('chatTitle');
+            const chatSubtitle = document.getElementById('chatSubtitle');
+            
+            if (isInternational) {
+                // Update header for international students
+                chatTitle.innerHTML = '<i class="fas fa-globe"></i> Bilingual Learning Support';
+                chatSubtitle.textContent = 'バイリンガル学習サポート - 日本語と英語で解説';
+                
+                // Bilingual welcome message for international students
+                chatMessages.innerHTML = '<div class="message ai"><div class="bilingual-content"><div class="japanese-section"><div class="section-label">🇯🇵 日本語</div><p>こんにちは！バイリンガル学習サポートです。質問や問題の画像を送ってください。日本語と英語の両方で詳しく解説します。</p></div><div class="english-section"><div class="section-label">🇺🇸 English</div><p>Hello! Welcome to Bilingual Learning Support. Please send your questions or images of problems. I will provide detailed explanations in both Japanese and English.</p></div></div></div>';
+            } else {
+                // Keep standard header for other pages
+                chatTitle.innerHTML = '<i class="fas fa-robot"></i> AIに質問';
+                chatSubtitle.textContent = '質問や問題を送ってください';
+                
+                // Standard Japanese welcome message for other pages
+                chatMessages.innerHTML = '<div class="message ai"><div class="message-content"><h3>AIに質問</h3><p>こんにちは！質問や問題の画像を送ってください。詳しく解説します。</p></div></div>';
+            }
+        }
+        
+        // Set initial message
+        setInitialMessage();
         
         // Load conversation history on page load
         async function loadConversationHistory() {
@@ -8335,7 +8352,21 @@ app.get('/international-student/:sessionId', (c) => {
                 }
                 formData.append('sessionId', SESSION_ID);
                 formData.append('message', message);
-                formData.append('contextType', 'international');
+                
+                // Determine context type based on session ID prefix
+                let contextType = 'general';
+                if (SESSION_ID.startsWith('intl_')) {
+                    contextType = 'international';
+                } else if (SESSION_ID.startsWith('eiken_') || SESSION_ID.includes('eiken-ai-help')) {
+                    contextType = 'eiken';
+                } else if (SESSION_ID.startsWith('essay_') || SESSION_ID.includes('essay-ai-help')) {
+                    contextType = 'essay';
+                } else if (SESSION_ID.startsWith('flashcard_') || SESSION_ID.includes('flashcard-ai-help')) {
+                    contextType = 'flashcard';
+                }
+                
+                formData.append('contextType', contextType);
+                console.log('🤖 Sending message with contextType:', contextType);
                 
                 const response = await fetch('/api/unified-ai-chat', {
                     method: 'POST',
@@ -8343,6 +8374,7 @@ app.get('/international-student/:sessionId', (c) => {
                 });
                 
                 const data = await response.json();
+                console.log('📩 Received response:', data);
                 
                 loadingDiv.remove();
                 
