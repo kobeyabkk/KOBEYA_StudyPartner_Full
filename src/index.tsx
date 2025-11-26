@@ -8175,21 +8175,13 @@ app.get('/international-student/:sessionId', (c) => {
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            // Render math if present (support multiple LaTeX delimiters)
+            // Render math if present (support $$ and $ delimiters only)
             if (window.renderMathInElement && type === 'ai') {
                 try {
-                    var backslash = String.fromCharCode(92);
-                    var leftBracket = backslash + backslash + '[';
-                    var rightBracket = backslash + backslash + ']';
-                    var leftParen = backslash + backslash + '(';
-                    var rightParen = backslash + backslash + ')';
-                    
                     renderMathInElement(messageDiv, {
                         delimiters: [
-                            {left: leftBracket, right: rightBracket, display: true},   // Display math: \\[...\\]
-                            {left: leftParen, right: rightParen, display: false},      // Inline math: \\(...\\)
-                            {left: '$$', right: '$$', display: true},                  // Display math: $$...$$
-                            {left: '$', right: '$', display: false}                    // Inline math: $...$
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
                         ],
                         throwOnError: false,
                         strict: false
