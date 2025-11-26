@@ -40,6 +40,7 @@ import blueprintRoutes from './eiken/routes/blueprint-routes'
 import questionRoutes from './eiken/routes/questions'  // Phase 3
 import translateRoute from './eiken/routes/translate'  // Translation API
 import vocabularyRoute from './eiken/routes/vocabulary'  // Phase 4A: Vocabulary System
+import unifiedAIChatRoute from './api/unified-ai-chat'  // Unified AI Chat System
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
@@ -7617,7 +7618,7 @@ app.get('/international-student/:sessionId', (c) => {
         
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: #f9fafb;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -15216,6 +15217,47 @@ app.get('/flashcard/list', (c) => {
         // 初期化
         loadCards();
         </script>
+
+        <!-- ログイン状態インジケーター -->
+        <div id="login-status-indicator" style="position: fixed; top: 1rem; right: 1rem; z-index: 40;"></div>
+
+        <script>
+        (function() {
+          function updateLoginStatus() {
+            const indicator = document.getElementById('login-status-indicator');
+            if (!indicator) return;
+            
+            try {
+              const authData = localStorage.getItem('study_partner_auth');
+              const isLoggedIn = !!authData;
+              let studentName = 'ゲスト';
+              
+              if (authData) {
+                const parsed = JSON.parse(authData);
+                studentName = parsed.studentName || '生徒';
+              }
+              
+              const bgColor = isLoggedIn ? '#f0fdf4' : '#f9fafb';
+              const textColor = isLoggedIn ? '#15803d' : '#6b7280';
+              const borderColor = isLoggedIn ? '#bbf7d0' : '#e5e7eb';
+              const dotColor = isLoggedIn ? '#22c55e' : '#9ca3af';
+              const title = isLoggedIn ? studentName + 'さんとしてログイン中' : 'ログインしていません';
+              
+              indicator.innerHTML = '<div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; background-color: ' + bgColor + '; color: ' + textColor + '; border: 1px solid ' + borderColor + ';" title="' + title + '"><div style="width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: ' + dotColor + ';"></div><span style="font-weight: 500;">' + studentName + '</span></div>';
+            } catch (error) {
+              console.error('Failed to read login status:', error);
+            }
+          }
+          
+          updateLoginStatus();
+          window.addEventListener('storage', function(e) {
+            if (e.key === 'study_partner_auth') {
+              updateLoginStatus();
+            }
+          });
+          window.addEventListener('loginStatusChanged', updateLoginStatus);
+        })();
+        </script>
     </body>
     </html>
   `)
@@ -19499,6 +19541,9 @@ app.route('/api/eiken/questions', questionRoutes)
 
 // Translation API エンドポイント
 app.route('/api/eiken/translate', translateRoute)
+
+// Unified AI Chat System エンドポイント
+app.route('/api/unified-ai-chat', unifiedAIChatRoute)
 
 // 問題報告API
 app.post('/api/eiken/report-problem', async (c) => {
