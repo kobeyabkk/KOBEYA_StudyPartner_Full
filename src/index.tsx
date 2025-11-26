@@ -47,6 +47,12 @@ import essayCoachingSessionRoute from './routes/essay-coaching-session'  // Essa
 import authAPI from './api/routes/auth'  // Auth API Routes
 import essayAPI from './api/routes/essay'  // Essay API Routes
 import aiAPI from './api/routes/ai'  // AI API Routes
+import flashcardRoute from './routes/flashcard'  // Flashcard Routes
+import aiChatRoute from './routes/ai-chat'  // AI Chat Route
+import aiChatV2Route from './routes/ai-chat-v2'  // AI Chat V2 Route
+import dashboardRoute from './routes/dashboard'  // Dashboard Route
+import adminRoute from './routes/admin'  // Admin Routes
+import adminAPI from './api/routes/admin'  // Admin API Routes
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
