@@ -6715,31 +6715,3 @@ app.notFound((c) => {
 
 // Export the app as default
 export default app
-
-// International Student Chat Route
-app.route('/international-student', internationalStudentRoute)
-
-// Essay Coaching Routes
-app.route('/essay-coaching', essayCoachingRoute)
-app.route('/essay-coaching', essayCoachingSessionRoute)  // Session route
-
-// Flashcard Routes
-app.route('/flashcard', flashcardRoute)
-
-// AI Chat Routes
-app.route('/ai-chat', aiChatRoute)
-app.route('/ai-chat-v2', aiChatV2Route)
-
-// Dashboard Route
-app.route('/dashboard', dashboardRoute)
-
-// Admin Routes
-app.route('/admin', adminRoute)
-
-// 404ハンドラー
-app.notFound((c) => {
-  return c.text('404 Not Found', 404)
-})
-
-// Export the app as default
-export default app
