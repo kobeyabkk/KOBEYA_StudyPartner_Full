@@ -9198,7 +9198,7 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .container {
-          max-width: 900px;
+          max-width: 1200px;
           margin: 0 auto;
           background: white;
           border-radius: 1rem;
@@ -9313,8 +9313,8 @@ app.get('/essay-coaching/session/:sessionId', async (c) => {
         }
         
         .messages {
-          min-height: 300px;
-          max-height: 500px;
+          min-height: 400px;
+          max-height: 70vh;
           overflow-y: auto;
           margin-bottom: 1rem;
         }
