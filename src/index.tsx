@@ -8352,13 +8352,13 @@ app.get('/international-student/:sessionId', (c) => {
             studentName = parsed.studentName || '生徒';
           }
           
-          const bgColor = isLoggedIn ? 'bg-green-50' : 'bg-gray-50';
-          const textColor = isLoggedIn ? 'text-green-700' : 'text-gray-500';
-          const borderColor = isLoggedIn ? 'border-green-200' : 'border-gray-200';
-          const dotColor = isLoggedIn ? 'bg-green-500' : 'bg-gray-400';
+          const bgColor = isLoggedIn ? '#f0fdf4' : '#f9fafb';
+          const textColor = isLoggedIn ? '#15803d' : '#6b7280';
+          const borderColor = isLoggedIn ? '#bbf7d0' : '#e5e7eb';
+          const dotColor = isLoggedIn ? '#22c55e' : '#9ca3af';
           const title = isLoggedIn ? studentName + 'さんとしてログイン中' : 'ログインしていません';
           
-          indicator.innerHTML = '<div class=\"inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ' + bgColor + ' ' + textColor + ' border ' + borderColor + '\" title=\"' + title + '\"><div class=\"w-2 h-2 rounded-full ' + dotColor + '\"></div><span class=\"hidden sm:inline font-medium\">' + studentName + '</span></div>';
+          indicator.innerHTML = '<div style=\"display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; background-color: ' + bgColor + '; color: ' + textColor + '; border: 1px solid ' + borderColor + ';\" title=\"' + title + '\"><div style=\"width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: ' + dotColor + ';\"></div><span style=\"font-weight: 500;\">' + studentName + '</span></div>';
         } catch (error) {
           console.error('Failed to read login status:', error);
         }
@@ -9069,13 +9069,13 @@ app.get('/essay-coaching', (c) => {
                 studentName = parsed.studentName || '生徒';
               }
               
-              const bgColor = isLoggedIn ? 'bg-green-50' : 'bg-gray-50';
-              const textColor = isLoggedIn ? 'text-green-700' : 'text-gray-500';
-              const borderColor = isLoggedIn ? 'border-green-200' : 'border-gray-200';
-              const dotColor = isLoggedIn ? 'bg-green-500' : 'bg-gray-400';
+              const bgColor = isLoggedIn ? '#f0fdf4' : '#f9fafb';
+              const textColor = isLoggedIn ? '#15803d' : '#6b7280';
+              const borderColor = isLoggedIn ? '#bbf7d0' : '#e5e7eb';
+              const dotColor = isLoggedIn ? '#22c55e' : '#9ca3af';
               const title = isLoggedIn ? studentName + 'さんとしてログイン中' : 'ログインしていません';
               
-              indicator.innerHTML = '<div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ' + bgColor + ' ' + textColor + ' border ' + borderColor + '" title="' + title + '"><div class="w-2 h-2 rounded-full ' + dotColor + '"></div><span class="hidden sm:inline font-medium">' + studentName + '</span></div>';
+              indicator.innerHTML = '<div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; background-color: ' + bgColor + '; color: ' + textColor + '; border: 1px solid ' + borderColor + ';" title="' + title + '"><div style="width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: ' + dotColor + ';"></div><span style="font-weight: 500;">' + studentName + '</span></div>';
             } catch (error) {
               console.error('Failed to read login status:', error);
             }
@@ -14523,13 +14523,13 @@ app.get('/admin/users/:id', (c) => {
           studentName = parsed.studentName || '生徒';
         }
         
-        const bgColor = isLoggedIn ? 'bg-green-50' : 'bg-gray-50';
-        const textColor = isLoggedIn ? 'text-green-700' : 'text-gray-500';
-        const borderColor = isLoggedIn ? 'border-green-200' : 'border-gray-200';
-        const dotColor = isLoggedIn ? 'bg-green-500' : 'bg-gray-400';
+        const bgColor = isLoggedIn ? '#f0fdf4' : '#f9fafb';
+        const textColor = isLoggedIn ? '#15803d' : '#6b7280';
+        const borderColor = isLoggedIn ? '#bbf7d0' : '#e5e7eb';
+        const dotColor = isLoggedIn ? '#22c55e' : '#9ca3af';
         const title = isLoggedIn ? studentName + 'さんとしてログイン中' : 'ログインしていません';
         
-        indicator.innerHTML = '<div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ' + bgColor + ' ' + textColor + ' border ' + borderColor + '" title="' + title + '"><div class="w-2 h-2 rounded-full ' + dotColor + '"></div><span class="hidden sm:inline font-medium">' + studentName + '</span></div>';
+        indicator.innerHTML = '<div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; background-color: ' + bgColor + '; color: ' + textColor + '; border: 1px solid ' + borderColor + ';" title="' + title + '"><div style="width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: ' + dotColor + ';"></div><span style="font-weight: 500;">' + studentName + '</span></div>';
       } catch (error) {
         console.error('Failed to read login status:', error);
       }
