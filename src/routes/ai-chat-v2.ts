@@ -829,5 +829,28 @@ router.get('/admin/reset-password', (c) => {
           body: JSON.stringify({ email })
         });
         
+        const data = await response.json();
+        
+        if (data.success) {
+          successMessage.textContent = data.message || 'パスワードリセットメールを送信しました。';
+          successMessage.style.display = 'block';
+          resetForm.reset();
+        } else {
+          errorMessage.textContent = data.error || 'エラーが発生しました。';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        errorMessage.textContent = 'エラーが発生しました。もう一度お試しください。';
+        errorMessage.style.display = 'block';
+      } finally {
+        resetBtn.disabled = false;
+        resetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+      }
+    });
+  </script>
+</body>
+</html>
+  `)
+})
 
 export default router
