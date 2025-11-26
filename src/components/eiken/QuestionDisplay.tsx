@@ -27,6 +27,27 @@ interface PassageTranslation {
 }
 
 export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
+  // ログイン状態の取得
+  const [loginStatus, setLoginStatus] = useState<{
+    isLoggedIn: boolean;
+    studentName?: string;
+  }>({ isLoggedIn: false });
+
+  useEffect(() => {
+    try {
+      const authData = localStorage.getItem('study_partner_auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        setLoginStatus({
+          isLoggedIn: true,
+          studentName: parsed.studentName || '生徒',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to read login status:', error);
+    }
+  }, []);
+
   // Load saved progress from localStorage (only once on mount)
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
@@ -483,6 +504,33 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* ログイン状態インジケーター */}
+      <div className="flex justify-end">
+        <div
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+            loginStatus.isLoggedIn
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-gray-50 text-gray-500 border border-gray-200'
+          }`}
+          title={
+            loginStatus.isLoggedIn
+              ? `${loginStatus.studentName}さんとしてログイン中`
+              : 'ログインしていません'
+          }
+        >
+          <div
+            className={`w-2 h-2 rounded-full ${
+              loginStatus.isLoggedIn ? 'bg-green-500' : 'bg-gray-400'
+            }`}
+          />
+          <span className="hidden sm:inline font-medium">
+            {loginStatus.isLoggedIn
+              ? loginStatus.studentName
+              : 'ゲスト'}
+          </span>
+        </div>
+      </div>
+
       {/* 進捗バー */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-2">
@@ -721,7 +769,11 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              {reportedQuestions.has(currentIndex) ? '報告済み' : '問題を報告'}
+              <span className="text-center">
+                {reportedQuestions.has(currentIndex) 
+                  ? '報告済み' 
+                  : '問題を報告（修正の必要な問題などが出たらここを押す）'}
+              </span>
             </button>
           </div>
           
