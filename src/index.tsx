@@ -8175,21 +8175,14 @@ app.get('/international-student/:sessionId', (c) => {
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            // Render math if present (support $$ and $ delimiters only)
-            if (window.renderMathInElement && type === 'ai') {
-                try {
-                    renderMathInElement(messageDiv, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false,
-                        strict: false
-                    });
-                } catch (error) {
-                    console.error('KaTeX rendering error:', error);
-                }
-            }
+            // Math rendering temporarily disabled to avoid escaping issues
+            // TODO: Move to external JavaScript file
+            // if (window.renderMathInElement && type === 'ai') {
+            //     renderMathInElement(messageDiv, {
+            //         delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+            //         throwOnError: false
+            //     });
+            // }
         }
         
         // Event listeners for file inputs
