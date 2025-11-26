@@ -7,7 +7,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import QuestionGenerator from '../../components/eiken/QuestionGenerator';
 import QuestionDisplay from '../../components/eiken/QuestionDisplay';
 import ResultsDashboard from '../../components/eiken/ResultsDashboard';
-import FloatingChat from '../../components/ai-chat/FloatingChat';
+import UnifiedAIChat from '../../components/ai-chat/UnifiedAIChat';
 import type { GeneratedQuestion } from '../../hooks/useEikenAPI';
 
 type ViewMode = 'generator' | 'practice' | 'results';
@@ -308,8 +308,9 @@ export default function EikenPracticePage() {
 
         {/* フローティングAIチャットウィンドウ */}
         {isChatOpen && (
-          <FloatingChat
-            sessionId="eiken-help"
+          <UnifiedAIChat
+            sessionId={`eiken-${loginStatus.studentName || 'guest'}-${Date.now()}`}
+            contextType="eiken"
             onClose={() => setIsChatOpen(false)}
             position={chatPosition}
             size={chatSize}
