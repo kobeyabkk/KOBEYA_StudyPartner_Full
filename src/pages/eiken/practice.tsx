@@ -32,6 +32,27 @@ export default function EikenPracticePage() {
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // ログイン状態の取得
+  const [loginStatus, setLoginStatus] = useState<{
+    isLoggedIn: boolean;
+    studentName?: string;
+  }>({ isLoggedIn: false });
+
+  useEffect(() => {
+    try {
+      const authData = localStorage.getItem('study_partner_auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        setLoginStatus({
+          isLoggedIn: true,
+          studentName: parsed.studentName || '生徒',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to read login status:', error);
+    }
+  }, []);
 
   // Load saved state from localStorage on mount
   useEffect(() => {
@@ -310,6 +331,33 @@ export default function EikenPracticePage() {
               </svg>
               <span className="font-medium">Study Partnerに戻る</span>
             </button>
+          </div>
+
+          {/* ログイン状態インジケーター */}
+          <div className="absolute right-0 top-0">
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                loginStatus.isLoggedIn
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-gray-50 text-gray-500 border border-gray-200'
+              }`}
+              title={
+                loginStatus.isLoggedIn
+                  ? `${loginStatus.studentName}さんとしてログイン中`
+                  : 'ログインしていません'
+              }
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  loginStatus.isLoggedIn ? 'bg-green-500' : 'bg-gray-400'
+                }`}
+              />
+              <span className="hidden sm:inline font-medium">
+                {loginStatus.isLoggedIn
+                  ? loginStatus.studentName
+                  : 'ゲスト'}
+              </span>
+            </div>
           </div>
           
           <h1 className="text-5xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
