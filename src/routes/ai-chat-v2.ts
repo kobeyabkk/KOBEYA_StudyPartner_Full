@@ -9,6 +9,33 @@ type Bindings = {
 
 const router = new Hono<{ Bindings: Bindings }>()
 
+// 品質チェック関数（再生成コンテンツの品質を評価）
+function checkRegeneratedContentQuality(originalSession: any, regeneratedContent: any): {
+  score: number
+  issues: string[]
+  passed: boolean
+} {
+  let score = 1.0
+  const issues: string[] = []
+  
+  // 1. 基本的な構造チェック
+  if (!regeneratedContent.analysis || !regeneratedContent.steps) {
+    score -= 0.5
+    issues.push('missing_required_fields')
+  }
+  
+  // 2. ステップ数の妥当性チェック
+  if (regeneratedContent.steps && regeneratedContent.steps.length < 2) {
+    score -= 0.2
+    issues.push('insufficient_steps')
+  }
+  
+  // 3. 定義の明確性チェック
+  if (regeneratedContent.analysis && regeneratedContent.analysis.length < 50) {
+    score -= 0.2
+    issues.push('definition_problem')
+  }
+  
   // 4. 教科一致性チェック
   if (originalSession.analysis && regeneratedContent.subject) {
     const originalSubject = extractSubjectFromAnalysis(originalSession.analysis)
