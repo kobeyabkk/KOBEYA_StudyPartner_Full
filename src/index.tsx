@@ -8180,8 +8180,8 @@ app.get('/international-student/:sessionId', (c) => {
                 try {
                     renderMathInElement(messageDiv, {
                         delimiters: [
-                            {left: '\\\\[', right: '\\\\]', display: true},   // Display math: \\[...\\]
-                            {left: '\\\\(', right: '\\\\)', display: false},  // Inline math: \\(...\\)
+                            {left: '\\\\\\\\[', right: '\\\\\\\\]', display: true},   // Display math: \\[...\\]
+                            {left: '\\\\\\\\(', right: '\\\\\\\\)', display: false},  // Inline math: \\(...\\)
                             {left: '$$', right: '$$', display: true},         // Display math: $$...$$
                             {left: '$', right: '$', display: false}           // Inline math: $...$
                         ],
