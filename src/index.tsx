@@ -8178,12 +8178,18 @@ app.get('/international-student/:sessionId', (c) => {
             // Render math if present (support multiple LaTeX delimiters)
             if (window.renderMathInElement && type === 'ai') {
                 try {
+                    var backslash = String.fromCharCode(92);
+                    var leftBracket = backslash + backslash + '[';
+                    var rightBracket = backslash + backslash + ']';
+                    var leftParen = backslash + backslash + '(';
+                    var rightParen = backslash + backslash + ')';
+                    
                     renderMathInElement(messageDiv, {
                         delimiters: [
-                            {left: '\\\\\\\\[', right: '\\\\\\\\]', display: true},   // Display math: \\[...\\]
-                            {left: '\\\\\\\\(', right: '\\\\\\\\)', display: false},  // Inline math: \\(...\\)
-                            {left: '$$', right: '$$', display: true},         // Display math: $$...$$
-                            {left: '$', right: '$', display: false}           // Inline math: $...$
+                            {left: leftBracket, right: rightBracket, display: true},   // Display math: \\[...\\]
+                            {left: leftParen, right: rightParen, display: false},      // Inline math: \\(...\\)
+                            {left: '$$', right: '$$', display: true},                  // Display math: $$...$$
+                            {left: '$', right: '$', display: false}                    // Inline math: $...$
                         ],
                         throwOnError: false,
                         strict: false
