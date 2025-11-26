@@ -87,9 +87,10 @@
         messageDiv.className = 'message ' + type;
         
         if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
-            // Parse bilingual content - FIXED REGEX: [\s\S] matches any character including newlines
-            const japaneseMatch = content.match(/【日本語】([\s\S]*?)(?=【English】|$)/);
-            const englishMatch = content.match(/【English】([\s\S]*?)$/);
+            // Parse bilingual content - Using Unicode range to avoid minification issues
+            // [\u0000-\uFFFF] matches any character including newlines (equivalent to [\s\S])
+            const japaneseMatch = content.match(/【日本語】([\u0000-\uFFFF]*?)(?=【English】|$)/);
+            const englishMatch = content.match(/【English】([\u0000-\uFFFF]*?)$/);
             
             const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
             const englishText = englishMatch ? englishMatch[1].trim() : '';
