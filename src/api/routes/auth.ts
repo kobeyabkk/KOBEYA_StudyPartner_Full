@@ -124,29 +124,4 @@ api.post('/auth/login', async (c) => {
   }
 })
 
-// 画像解析 + 段階学習開始 endpoint
-api.post('/api/analyze-and-learn', async (c) => {
-  console.log('📸 Analyze and learn endpoint called')
-  
-  try {
-    const formData = await c.req.formData()
-    const appkey = formData.get('appkey')?.toString() || '180418'
-    const sid = formData.get('sid')?.toString() || 'JS2-04'
-    const imageField = formData.get('image')
-    const userMessage = formData.get('message')?.toString() || ''
-    
-    console.log('📸 Image analysis request:', { appkey, sid, hasImage: !!imageField, hasMessage: !!userMessage })
-    
-    if (!imageField || !(imageField instanceof File)) {
-      throw new Error('画像ファイルが必要です')
-    }
-    
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    // 生徒情報の取得
-    const studentInfo = studentDatabase[sid]
-    console.log('👨‍🎓 Student info:', studentInfo ? `${studentInfo.name} (中学${studentInfo.grade}年)` : 'Not found')
-    
-    // OpenAI API Key の確認
-
 export default api
