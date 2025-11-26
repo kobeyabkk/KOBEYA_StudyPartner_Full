@@ -6672,6 +6672,21 @@ ${getRegenerationTypeInstructions(regenerationType)}
   "difficulty": "basic|intermediate|advanced", 
   "analysis": "【詳細分析】\\n\\n①問題の整理\\n②使う知識\\n③解法のポイント\\n④解答例\\n⑤確認・振り返り",
   "confidence": 0.85,
+  "steps": [
+    {
+      "stepNumber": 0,
+      "instruction": "ステップ1の指導内容（問いかけ形式で思考を促す）",
+      "type": "choice",
+      "options": ["A) 選択肢1", "B) 選択肢2", "C) 選択肢3", "D) 選択肢4"],
+      "correctAnswer": "A",
+      "explanation": "解説文"
+    }
+  ]
+}
+【重要】上記JSON構造を厳密に守り、stepsは必ずオブジェクトの配列にしてください`
+
+  return basePrompt + educationalPolicyPrompt
+}
 
 // International Student Chat Route
 app.route('/international-student', internationalStudentRoute)
