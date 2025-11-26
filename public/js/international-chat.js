@@ -87,9 +87,11 @@
         messageDiv.className = 'message ' + type;
         
         if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
-            // Parse bilingual content - FIXED REGEX: [\s\S] matches any character including newlines
-            const japaneseMatch = content.match(/【日本語】([\s\S]*?)(?=【English】|$)/);
-            const englishMatch = content.match(/【English】([\s\S]*?)$/);
+            // Parse bilingual content - Using Unicode range [\u0000-\uFFFF] to match any character including newlines
+            // This avoids Cloudflare minification issues with [\s\S] pattern
+            // Unicode range is not affected by minification and works in all browsers
+            const japaneseMatch = content.match(/【日本語】([\u0000-\uFFFF]*?)(?=【English】|$)/);
+            const englishMatch = content.match(/【English】([\u0000-\uFFFF]*?)$/);
             
             const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
             const englishText = englishMatch ? englishMatch[1].trim() : '';
