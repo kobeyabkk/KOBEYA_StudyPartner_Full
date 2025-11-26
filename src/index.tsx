@@ -7192,18 +7192,10 @@ app.get('/ai-chat-v2/:sessionId', (c) => {
         let cropper = null;
         let currentImageData = null;
         
-        // KaTeX delimiters（エスケープ対応）
-        const backslash = String.fromCharCode(92);
-        const leftBracket = backslash + '[';
-        const rightBracket = backslash + ']';
-        const leftParen = backslash + '(';
-        const rightParen = backslash + ')';
-        
+        // KaTeX delimiters (simplified - only $ and $$ to avoid escaping issues)
         const mathDelimiters = [
             {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false},
-            {left: leftBracket, right: rightBracket, display: true},
-            {left: leftParen, right: rightParen, display: false}
+            {left: '$', right: '$', display: false}
         ];
         
         // 初期化ログ
