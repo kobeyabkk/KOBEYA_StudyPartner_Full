@@ -7729,6 +7729,23 @@ app.get('/international-student/:sessionId', (c) => {
             margin-top: 0.5rem;
         }
         
+        /* Message content styling for better math rendering */
+        .message-content {
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .message-content .katex {
+            font-size: 1.1em;
+        }
+        
+        .message-content .katex-display {
+            margin: 1em 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
         .chat-input-container {
             padding: 1.5rem;
             background: white;
@@ -8150,20 +8167,30 @@ app.get('/international-student/:sessionId', (c) => {
                     '</div>' +
                     '</div>';
             } else {
-                messageDiv.textContent = content;
+                // Use innerHTML to preserve formatting and allow math rendering
+                const formattedContent = content.replace(/\\n/g, '<br>');
+                messageDiv.innerHTML = '<div class="message-content">' + formattedContent + '</div>';
             }
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            // Render math if present
+            // Render math if present (support multiple LaTeX delimiters)
             if (window.renderMathInElement && type === 'ai') {
-                renderMathInElement(messageDiv, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ]
-                });
+                try {
+                    renderMathInElement(messageDiv, {
+                        delimiters: [
+                            {left: '\\\\[', right: '\\\\]', display: true},   // Display math: \\[...\\]
+                            {left: '\\\\(', right: '\\\\)', display: false},  // Inline math: \\(...\\)
+                            {left: '$$', right: '$$', display: true},         // Display math: $$...$$
+                            {left: '$', right: '$', display: false}           // Inline math: $...$
+                        ],
+                        throwOnError: false,
+                        strict: false
+                    });
+                } catch (error) {
+                    console.error('KaTeX rendering error:', error);
+                }
             }
         }
         
