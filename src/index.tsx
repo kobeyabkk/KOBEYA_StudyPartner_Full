@@ -8083,6 +8083,33 @@ app.get('/international-student/:sessionId', (c) => {
         const confirmCropBtn = document.getElementById('confirmCropBtn');
         const cancelCropBtn = document.getElementById('cancelCropBtn');
         
+        // Load conversation history on page load
+        async function loadConversationHistory() {
+            try {
+                const response = await fetch('/api/unified-ai-chat/history/' + SESSION_ID);
+                const result = await response.json();
+                
+                if (result.ok && result.conversations && result.conversations.length > 0) {
+                    // Clear initial message
+                    chatMessages.innerHTML = '';
+                    
+                    // Add all historical messages
+                    result.conversations.forEach(function(conv) {
+                        if (conv.role === 'user') {
+                            addMessage(conv.content || '[画像]', 'user');
+                        } else if (conv.role === 'assistant') {
+                            addMessage(conv.content, 'ai');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load conversation history:', error);
+            }
+        }
+        
+        // Load history when page loads
+        loadConversationHistory();
+        
         function addMessage(content, type) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
@@ -8308,8 +8335,9 @@ app.get('/international-student/:sessionId', (c) => {
                 }
                 formData.append('sessionId', SESSION_ID);
                 formData.append('message', message);
+                formData.append('contextType', 'international');
                 
-                const response = await fetch('/api/international-chat', {
+                const response = await fetch('/api/unified-ai-chat', {
                     method: 'POST',
                     body: formData
                 });
@@ -9053,6 +9081,18 @@ app.get('/essay-coaching', (c) => {
         
 
         </script>
+
+        <!-- フローティングAIチャットボタン -->
+        <a href="/international-student/essay-ai-help" target="_blank" rel="noopener noreferrer" 
+           style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; text-decoration: none;">
+          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-radius: 50%; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5); display: flex; align-items: center; justify-content: center; transition: all 0.3s; cursor: pointer;"
+               onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 15px 35px rgba(124, 58, 237, 0.6)';"
+               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px rgba(124, 58, 237, 0.5)';">
+            <svg style="width: 28px; height: 28px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </div>
+        </a>
 
         <!-- ログイン状態インジケーター -->
         <div id="login-status-indicator" style="position: fixed; top: 1rem; right: 1rem; z-index: 40;"></div>
@@ -15273,6 +15313,15 @@ app.get('/flashcard/list', (c) => {
           window.addEventListener('loginStatusChanged', updateLoginStatus);
         })();
         </script>
+        
+        <!-- フローティングAIチャットボタン -->
+        <a href="/international-student/flashcard-ai-help" target="_blank" rel="noopener noreferrer" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; text-decoration: none;">
+          <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-radius: 50%; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 15px 35px rgba(124, 58, 237, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px rgba(124, 58, 237, 0.5)';">
+            <svg style="width: 28px; height: 28px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+            </svg>
+          </div>
+        </a>
     </body>
     </html>
   `)
