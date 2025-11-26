@@ -8354,19 +8354,15 @@ app.get('/international-student/:sessionId', (c) => {
                 formData.append('message', message);
                 
                 // Determine context type based on session ID prefix
+                // Only international students get special bilingual context, others use general
                 let contextType = 'general';
                 if (SESSION_ID.startsWith('intl_')) {
                     contextType = 'international';
-                } else if (SESSION_ID.startsWith('eiken_') || SESSION_ID.includes('eiken-ai-help')) {
-                    contextType = 'eiken';
-                } else if (SESSION_ID.startsWith('essay_') || SESSION_ID.includes('essay-ai-help')) {
-                    contextType = 'essay';
-                } else if (SESSION_ID.startsWith('flashcard_') || SESSION_ID.includes('flashcard-ai-help')) {
-                    contextType = 'flashcard';
                 }
+                // All other contexts (eiken, essay, flashcard, main) use 'general' for standard ChatGPT-like responses
                 
                 formData.append('contextType', contextType);
-                console.log('🤖 Sending message with contextType:', contextType);
+                console.log('🤖 Sending message with contextType:', contextType, 'for session:', SESSION_ID);
                 
                 const response = await fetch('/api/unified-ai-chat', {
                     method: 'POST',
@@ -9115,16 +9111,22 @@ app.get('/essay-coaching', (c) => {
         </script>
 
         <!-- フローティングAIチャットボタン -->
-        <a href="/international-student/essay-ai-help" target="_blank" rel="noopener noreferrer" 
-           style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; text-decoration: none;">
-          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-radius: 50%; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5); display: flex; align-items: center; justify-content: center; transition: all 0.3s; cursor: pointer;"
+        <button onclick="openAIChat('essay-ai-help')" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; border: none; padding: 0; cursor: pointer; background: transparent;">
+          <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-radius: 50%; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5); display: flex; align-items: center; justify-content: center; transition: all 0.3s;"
                onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 15px 35px rgba(124, 58, 237, 0.6)';"
                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px rgba(124, 58, 237, 0.5)';">
             <svg style="width: 28px; height: 28px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
           </div>
-        </a>
+        </button>
+        <script>
+        function openAIChat(context) {
+          const sessionId = context + '_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          const windowFeatures = 'width=900,height=700,scrollbars=yes,resizable=yes';
+          window.open('/international-student/' + sessionId, 'ai-chat-' + context, windowFeatures);
+        }
+        </script>
 
         <!-- ログイン状態インジケーター -->
         <div id="login-status-indicator" style="position: fixed; top: 1rem; right: 1rem; z-index: 40;"></div>
@@ -15347,13 +15349,20 @@ app.get('/flashcard/list', (c) => {
         </script>
         
         <!-- フローティングAIチャットボタン -->
-        <a href="/international-student/flashcard-ai-help" target="_blank" rel="noopener noreferrer" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; text-decoration: none;">
+        <button onclick="openAIChat('flashcard-ai-help')" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 56px; height: 56px; border: none; padding: 0; cursor: pointer; background: transparent;">
           <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-radius: 50%; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 15px 35px rgba(124, 58, 237, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px rgba(124, 58, 237, 0.5)';">
             <svg style="width: 28px; height: 28px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
             </svg>
           </div>
-        </a>
+        </button>
+        <script>
+        function openAIChat(context) {
+          const sessionId = context + '_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          const windowFeatures = 'width=900,height=700,scrollbars=yes,resizable=yes';
+          window.open('/international-student/' + sessionId, 'ai-chat-' + context, windowFeatures);
+        }
+        </script>
     </body>
     </html>
   `)

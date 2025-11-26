@@ -282,15 +282,16 @@ export default function EikenPracticePage() {
         `}</style>
         
         {/* フローティングAIチャットボタン */}
-        <a
-          href="/international-student/eiken-ai-help"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ai-chat-button fixed bottom-6 right-6 z-50 group"
+        <button
+          onClick={() => {
+            const sessionId = 'eiken-ai-help_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const windowFeatures = 'width=900,height=700,scrollbars=yes,resizable=yes';
+            window.open('/international-student/' + sessionId, 'ai-chat-eiken', windowFeatures);
+          }}
+          className="ai-chat-button fixed bottom-6 right-6 z-50 group border-0 p-0 cursor-pointer bg-transparent"
           style={{
             width: '56px',
-            height: '56px',
-            textDecoration: 'none'
+            height: '56px'
           }}
         >
           <div className="w-full h-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110">
@@ -305,7 +306,7 @@ export default function EikenPracticePage() {
               <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
             </div>
           </div>
-        </a>
+        </button>
 
         {/* ヘッダー */}
         <header className="text-center mb-8 relative">
