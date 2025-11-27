@@ -121,6 +121,66 @@ type Session = {
 // In-memory session storage
 const learningSessions = new Map<string, Session>()
 
+// D1 session management helper function
+async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: Session) {
+  try {
+    const now = new Date().toISOString()
+    
+    // session_data として JSON 保存
+    const sessionDataJson = JSON.stringify({
+      uploadedImages: sessionData.essaySession?.uploadedImages || [],
+      ocrResults: sessionData.essaySession?.ocrResults || [],
+      feedbacks: sessionData.essaySession?.feedbacks || [],
+      chatHistory: sessionData.chatHistory || [],
+      vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps: sessionData.steps,
+      confirmationProblem: sessionData.confirmationProblem,
+      similarProblems: sessionData.similarProblems,
+      lastActivity: now
+    })
+    
+    // UPSERT (INSERT OR REPLACE)
+    await db.prepare(`
+      INSERT INTO essay_sessions (
+        session_id, student_id, target_level, lesson_format, problem_mode, 
+        custom_input, learning_style, current_step, step_status, 
+        last_theme_content, last_theme_title, created_at, updated_at, session_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET
+        problem_mode = excluded.problem_mode,
+        custom_input = excluded.custom_input,
+        learning_style = excluded.learning_style,
+        current_step = excluded.current_step,
+        step_status = excluded.step_status,
+        last_theme_content = excluded.last_theme_content,
+        last_theme_title = excluded.last_theme_title,
+        updated_at = excluded.updated_at,
+        session_data = excluded.session_data
+    `).bind(
+      sessionId,
+      sessionData.studentId || 'anonymous',
+      sessionData.essaySession?.targetLevel || 'high_school',
+      sessionData.essaySession?.lessonFormat || 'full_55min',
+      sessionData.essaySession?.problemMode || 'ai',
+      sessionData.essaySession?.customInput || null,
+      sessionData.essaySession?.learningStyle || 'auto',
+      sessionData.essaySession?.currentStep || 1,
+      JSON.stringify(sessionData.essaySession?.stepStatus || {}),
+      sessionData.essaySession?.lastThemeContent || null,
+      sessionData.essaySession?.lastThemeTitle || null,
+      sessionData.essaySession?.createdAt || now,
+      now,
+      sessionDataJson
+    ).run()
+    
+    console.log('✅ Session saved to D1:', sessionId)
+    return true
+  } catch (error) {
+    console.error('❌ Failed to save session to D1:', error)
+    return false
+  }
+}
+
 // Utility function
 function toErrorMessage(error: unknown, fallback = '不明なエラー'): string {
   if (error instanceof Error) {
