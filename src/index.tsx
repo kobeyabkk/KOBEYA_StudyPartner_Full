@@ -47,6 +47,8 @@ import flashcardRoutes from './routes/flashcard'  // Flashcard routes
 import essayCoachingRoutes from './routes/essay-coaching'  // Essay Coaching UI routes
 import adminRoutes from './routes/admin'  // Admin UI routes
 import aiChatRoutes from './routes/ai-chat'  // AI Chat UI routes
+import aiChatV2Routes from './routes/ai-chat-v2'  // AI Chat V2 UI routes
+import internationalStudentRoutes from './routes/international-student'  // International Student Chat routes
 import flashcardApiRoutes from './api/routes/flashcard'  // Flashcard API routes
 import essayApiRoutes from './api/routes/essay'  // Essay Coaching API routes
 import adminApiRoutes from './api/routes/admin'  // Admin API routes
@@ -3282,6 +3284,8 @@ app.route('/admin', adminRoutes)
 
 // AI Chat UI Routes
 app.route('/ai-chat', aiChatRoutes)
+app.route('/ai-chat-v2', aiChatV2Routes)
+app.route('/international-student', internationalStudentRoutes)
 
 // Flashcard API Routes
 app.route('/api/flashcard', flashcardApiRoutes)

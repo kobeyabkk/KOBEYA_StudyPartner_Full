@@ -1972,16 +1972,16 @@ export function renderStudyPartnerPage(c: Context) {
           }
         }
         
-        // AI質問ウインドウを開く
+        // AI質問ウインドウを開く（フローティングボタン用）
         function openAIChat() {
-          console.log('🤖 Opening AI chat window (direct mode) - V2 Simple Version');
+          console.log('🤖 Opening AI chat window (direct mode) - International Student Chat');
           
           // 汎用的なセッションIDを生成
           const directSessionId = 'direct_' + Date.now() + '_' + Math.random().toString(36).substring(7);
           
-          // 新しいウインドウでAIチャットを開く（V2版：シンプルで安定した実装）
+          // インター用チャット（数式表示が改善されている）
           const windowFeatures = 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no';
-          const aiWindow = window.open('/ai-chat-v2/' + directSessionId, 'ai-chat-v2', windowFeatures);
+          const aiWindow = window.open('/international-student/' + directSessionId, 'international-student', windowFeatures);
           
           if (!aiWindow) {
             alert('❌ ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
@@ -1993,13 +1993,13 @@ export function renderStudyPartnerPage(c: Context) {
         
         // 学習セッション無しでAIチャットを開く（メインボタン用）
         function openAIChatDirect() {
-          console.log('🤖 Opening AI chat - Redirecting to international student chat');
+          console.log('🤖 Opening AI chat - AI Chat V2');
           
           // 汎用的なセッションIDを生成
           const directSessionId = 'main_' + Date.now() + '_' + Math.random().toString(36).substring(7);
           
-          // インター用チャットページにリダイレクト（統一されたUIを使用）
-          window.open('/international-student/' + directSessionId, '_blank');
+          // V2版AIチャット（シンプルで安定）
+          window.open('/ai-chat-v2/' + directSessionId, '_blank');
         }
 
         // === 問題再生成機能（Step 2: フロントエンド実装） ===
