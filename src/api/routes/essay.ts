@@ -9,6 +9,118 @@ type Bindings = {
 
 const router = new Hono<{ Bindings: Bindings }>()
 
+// Type definitions
+type LearningStep = {
+  stepNumber: number
+  type: string
+  instruction?: string
+  question?: string
+  content?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  explanation?: string
+  completed?: boolean
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type Problem = {
+  problemNumber?: number
+  type: string
+  question?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  correctAnswers?: string[]
+  explanation?: string
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type UploadedImage = {
+  step: number
+  url?: string
+  [key: string]: unknown
+}
+
+type OCRResult = {
+  step: number
+  text?: string
+  readable?: boolean
+  readabilityScore?: number
+  issues?: string[]
+  charCount?: number
+  [key: string]: unknown
+}
+
+type StudentInfo = {
+  studentId: string
+  name: string
+  grade: number
+  subjects: string[]
+  weakSubjects: string[]
+  lastLogin?: string
+}
+
+type Session = {
+  sessionId?: string
+  studentId?: string
+  appkey?: string
+  sid?: string
+  problemType?: string
+  analysis?: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep?: number
+  status?: string
+  originalImageData?: string | null
+  originalUserMessage?: string
+  createdAt?: string
+  updatedAt?: string
+  aiQuestions?: Array<{
+    question: string
+    answer: string
+    timestamp: string
+    phase?: string
+    currentStep?: number | null
+  }>
+  essaySession?: {
+    sessionId?: string
+    targetLevel?: string
+    lessonFormat?: string
+    problemMode?: string
+    customInput?: string | null
+    learningStyle?: string
+    currentStep?: number
+    stepStatus?: Record<string, string>
+    createdAt?: string
+    lastThemeContent?: string | null
+    lastThemeTitle?: string | null
+    uploadedImages?: UploadedImage[]
+    ocrResults?: OCRResult[]
+    feedbacks?: unknown[]
+    mainProblem?: string
+    [key: string]: unknown
+  }
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  studentInfo?: StudentInfo
+  [key: string]: unknown
+}
+
+// In-memory session storage
+const learningSessions = new Map<string, Session>()
+
 // Utility function
 function toErrorMessage(error: unknown, fallback = '不明なエラー'): string {
   if (error instanceof Error) {
