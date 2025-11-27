@@ -1553,18 +1553,11 @@ ${themeContent}
           // AIにお任せモード：レベルに応じた最適なテーマを自動選択
           console.log('✅ AI auto-generation mode activated')
           
-          // セッションに既にテーマがある場合はそれを使用（再生成しない）
-          if (session?.essaySession?.lastThemeTitle && session?.essaySession?.lastThemeContent) {
-            themeTitle = session.essaySession.lastThemeTitle
-            themeContent = session.essaySession.lastThemeContent
-            console.log('♻️ Reusing existing theme from session:', themeTitle)
-            console.log('📚 Theme content length:', themeContent.length)
-          } else {
-            // 新規生成
-            console.log('🆕 Generating new theme for AI mode')
-            
-            try {
-              const openaiApiKey = c.env?.OPENAI_API_KEY
+          // 常に新しいテーマを生成（多様性を確保）
+          console.log('🆕 Generating new theme for AI mode')
+          
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
               
               if (!openaiApiKey) {
                 console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
@@ -1860,7 +1853,6 @@ ${targetLevel === 'high_school' ? `
                 timestamp: new Date().toISOString()
               }, 500)
             }
-          }
         } else if (problemMode === 'theme' && customInput) {
           // ユーザーが入力したテーマを使用
           themeTitle = customInput
