@@ -9,6 +9,238 @@ type Bindings = {
 
 const router = new Hono<{ Bindings: Bindings }>()
 
+// Type definitions for Essay sessions
+type LearningStep = {
+  stepNumber: number
+  type: string
+  instruction?: string
+  question?: string
+  content?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  explanation?: string
+  completed?: boolean
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type Problem = {
+  problemNumber?: number
+  type: string
+  question?: string
+  options?: string[]
+  correctOption?: string
+  correctAnswer?: string
+  correctAnswers?: string[]
+  explanation?: string
+  attempts?: Array<{
+    answer: string
+    isCorrect: boolean
+    timestamp: string
+  }>
+  [key: string]: unknown
+}
+
+type UploadedImage = {
+  step: number
+  url?: string
+  [key: string]: unknown
+}
+
+type OCRResult = {
+  step: number
+  text?: string
+  readable?: boolean
+  readabilityScore?: number
+  issues?: string[]
+  charCount?: number
+  [key: string]: unknown
+}
+
+type StudentInfo = {
+  studentId: string
+  name: string
+  grade: number
+  subjects: string[]
+  weakSubjects: string[]
+  lastLogin?: string
+}
+
+type Session = {
+  sessionId?: string
+  studentId?: string
+  appkey?: string
+  sid?: string
+  problemType?: string
+  analysis?: string
+  steps: LearningStep[]
+  confirmationProblem: Problem | null
+  similarProblems: Problem[]
+  currentStep?: number
+  status?: string
+  originalImageData?: string | null
+  originalUserMessage?: string
+  createdAt?: string
+  updatedAt?: string
+  aiQuestions?: Array<{
+    question: string
+    answer: string
+    timestamp: string
+    phase?: string
+    currentStep?: number | null
+  }>
+  essaySession?: {
+    sessionId?: string
+    targetLevel?: string
+    lessonFormat?: string
+    problemMode?: string
+    customInput?: string | null
+    learningStyle?: string
+    currentStep?: number
+    stepStatus?: Record<string, string>
+    createdAt?: string
+    lastThemeContent?: string | null
+    lastThemeTitle?: string | null
+    uploadedImages?: UploadedImage[]
+    ocrResults?: OCRResult[]
+    feedbacks?: unknown[]
+    mainProblem?: string
+    [key: string]: unknown
+  }
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  studentInfo?: StudentInfo
+  [key: string]: unknown
+}
+
+type EssaySessionDataPayload = {
+  uploadedImages?: UploadedImage[]
+  ocrResults?: OCRResult[]
+  feedbacks?: unknown[]
+  chatHistory?: unknown[]
+  vocabularyProgress?: Record<string, unknown>
+  lastActivity?: string
+  steps?: LearningStep[]
+  confirmationProblem?: Problem | null
+  similarProblems?: Problem[]
+}
+
+type EssaySessionRow = {
+  session_id: string
+  student_id: string | null
+  target_level: string | null
+  lesson_format: string | null
+  problem_mode: string | null
+  custom_input: string | null
+  learning_style: string | null
+  current_step: number | null
+  step_status: string | null
+  last_theme_content: string | null
+  last_theme_title: string | null
+  created_at: string
+  updated_at: string
+  session_data: string | null
+}
+
+// In-memory session storage
+const learningSessions = new Map<string, Session>()
+
+// Helper function to safely parse JSON
+function safeJsonParse<T = unknown>(jsonStr: string, fallback: T): T {
+  try {
+    return JSON.parse(jsonStr) as T
+  } catch {
+    return fallback
+  }
+}
+
+// Load session from D1 database
+async function loadSessionFromDB(db: D1Database, sessionId: string): Promise<Session | null> {
+  try {
+    const result = await db.prepare(`
+      SELECT * FROM essay_sessions WHERE session_id = ? LIMIT 1
+    `)
+      .bind(sessionId)
+      .first() as EssaySessionRow | undefined
+    
+    if (!result) {
+      console.log('⚠️ Session not found in D1:', sessionId)
+      return null
+    }
+    
+    // D1から読み込んだデータを復元
+    const sessionData = safeJsonParse(result.session_data || '', {}) as EssaySessionDataPayload
+    const stepStatus = safeJsonParse(result.step_status || '', {}) as Record<string, string>
+    
+    const steps = Array.isArray(sessionData.steps) ? (sessionData.steps as LearningStep[]) : []
+    const confirmationProblem = (sessionData.confirmationProblem ?? null) as Problem | null
+    const similarProblems = Array.isArray(sessionData.similarProblems) ? (sessionData.similarProblems as Problem[]) : []
+
+    const session: Session = {
+      sessionId: result.session_id,
+      studentId: result.student_id ?? undefined,
+      essaySession: {
+        sessionId: result.session_id,
+        targetLevel: result.target_level ?? undefined,
+        lessonFormat: result.lesson_format ?? undefined,
+        problemMode: result.problem_mode || 'ai',
+        customInput: result.custom_input || null,
+        learningStyle: result.learning_style || 'auto',
+        currentStep: result.current_step ?? undefined,
+        stepStatus,
+        createdAt: result.created_at,
+        lastThemeContent: result.last_theme_content || null,
+        lastThemeTitle: result.last_theme_title || null,
+        uploadedImages: sessionData.uploadedImages || [],
+        ocrResults: sessionData.ocrResults || [],
+        feedbacks: sessionData.feedbacks || []
+      },
+      chatHistory: sessionData.chatHistory || [],
+      vocabularyProgress: sessionData.vocabularyProgress || {},
+      steps,
+      confirmationProblem,
+      similarProblems,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at
+    }
+    
+    console.log('✅ Session loaded from D1:', sessionId)
+    return session
+  } catch (error) {
+    console.error('❌ Failed to load session from D1:', error)
+    return null
+  }
+}
+
+// Get or create session (check memory, then D1)
+async function getOrCreateSession(db: D1Database | undefined, sessionId: string): Promise<Session | null> {
+  const cachedSession = learningSessions.get(sessionId)
+  if (cachedSession) {
+    console.log('📦 Session found in memory:', sessionId)
+    return cachedSession
+  }
+  
+  if (!db) {
+    console.log('❌ Session not found (no DB connection):', sessionId)
+    return null
+  }
+  
+  const persistedSession = await loadSessionFromDB(db, sessionId)
+  if (persistedSession) {
+    learningSessions.set(sessionId, persistedSession)
+    console.log('📦 Session restored from D1 to memory:', sessionId)
+    return persistedSession
+  }
+  
+  console.log('❌ Session not found:', sessionId)
+  return null
+}
+
 // 小論文指導ページ
 router.get('/', (c) => {
   console.log('📝 Essay Coaching page requested')
