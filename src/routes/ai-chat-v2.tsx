@@ -529,8 +529,9 @@ router.get('/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
-            // 改行を<br>タグに変換（international-chatと同じシンプルな処理）
-            const formattedText = text.replace(/\n/g, '<br>');
+            // 改行を<br>タグに変換（TSX互換の書き方）
+            const newlineChar = String.fromCharCode(10);
+            const formattedText = text.split(newlineChar).join('<br>');
             messageDiv.innerHTML = formattedText;
             
             chatMessages.appendChild(messageDiv);
