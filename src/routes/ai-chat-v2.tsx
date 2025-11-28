@@ -10,9 +10,38 @@ type Bindings = {
 const router = new Hono<{ Bindings: Bindings }>()
 
 // ==========================================
-router.get('/:sessionId', (c) => {
+router.get('/:sessionId', async (c) => {
   const sessionId = c.req.param('sessionId')
   console.log('🤖 AI Chat V2: Simple version requested for session:', sessionId)
+  
+  // セッションIDから生徒IDを抽出 (形式: studentId_timestamp_random)
+  const sessionParts = sessionId.split('_')
+  const studentId = sessionParts[0]
+  console.log('📍 Extracted student ID:', studentId)
+  
+  // DBから生徒情報を取得
+  let studentName = ''
+  let studentGrade = 0
+  
+  if (studentId && studentId !== 'guest' && c.env.DB) {
+    try {
+      const studentResult = await c.env.DB.prepare(`
+        SELECT student_name, grade FROM student_sessions WHERE student_id = ? LIMIT 1
+      `).bind(studentId).first()
+      
+      if (studentResult) {
+        studentName = studentResult.student_name as string || ''
+        studentGrade = studentResult.grade as number || 0
+        console.log('✅ Student info found:', { studentName, studentGrade })
+      } else {
+        console.log('⚠️ Student info not found in DB for:', studentId)
+      }
+    } catch (dbError) {
+      console.error('❌ Failed to fetch student info:', dbError)
+    }
+  }
+  
+  console.log('🎓 Final student info:', { studentId, studentName, studentGrade })
   
   return c.html(`
 <!DOCTYPE html>
@@ -467,8 +496,11 @@ router.get('/:sessionId', (c) => {
     
     <!-- External JavaScript for chat functionality -->
     <script>
-        // Pass session ID to external script via data attribute
+        // Pass session ID and student info to external script via data attributes
         document.body.setAttribute('data-session-id', ${JSON.stringify(sessionId)});
+        document.body.setAttribute('data-student-id', ${JSON.stringify(studentId)});
+        document.body.setAttribute('data-student-name', ${JSON.stringify(studentName)});
+        document.body.setAttribute('data-student-grade', ${JSON.stringify(studentGrade)});
     </script>
     <script src="/js/ai-chat-v2.js"></script>
 </body>

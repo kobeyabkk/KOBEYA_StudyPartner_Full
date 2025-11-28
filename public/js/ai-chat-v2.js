@@ -6,9 +6,14 @@
 (function() {
     console.log('🚀 AI Chat V2 script starting...');
     
-    // Get SESSION_ID from data attribute (will be set by server)
+    // Get SESSION_ID and student info from data attributes (will be set by server)
     const SESSION_ID = document.body.getAttribute('data-session-id');
+    const STUDENT_ID = document.body.getAttribute('data-student-id');
+    const STUDENT_NAME = document.body.getAttribute('data-student-name');
+    const STUDENT_GRADE = document.body.getAttribute('data-student-grade');
+    
     console.log('📍 Session ID:', SESSION_ID);
+    console.log('👨‍🎓 Student Info:', { STUDENT_ID, STUDENT_NAME, STUDENT_GRADE });
     
     // DOM要素
     const chatMessages = document.getElementById('chatMessages');
@@ -139,7 +144,7 @@
         const loadingDiv = showLoading();
         
         try {
-            // API呼び出し
+            // API呼び出し（生徒情報を含む）
             const response = await fetch('/api/ai-chat', {
                 method: 'POST',
                 headers: {
@@ -147,7 +152,10 @@
                 },
                 body: JSON.stringify({
                     sessionId: SESSION_ID,
-                    question: message
+                    question: message,
+                    studentId: STUDENT_ID,
+                    studentName: STUDENT_NAME,
+                    grade: parseInt(STUDENT_GRADE) || 0
                 })
             });
             
@@ -400,11 +408,14 @@
             const response = await fetch(imageData);
             const blob = await response.blob();
             
-            // Create FormData
+            // Create FormData（生徒情報を含む）
             const formData = new FormData();
             formData.append('image', blob, 'image.jpg');
             formData.append('sessionId', SESSION_ID);
             formData.append('message', message);
+            formData.append('studentId', STUDENT_ID || '');
+            formData.append('studentName', STUDENT_NAME || '');
+            formData.append('grade', STUDENT_GRADE || '0');
             
             // Send to API
             const apiResponse = await fetch('/api/ai-chat-image', {

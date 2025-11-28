@@ -1995,11 +1995,33 @@ export function renderStudyPartnerPage(c: Context) {
         function openAIChatDirect() {
           console.log('🤖 Opening AI chat - AI Chat V2');
           
-          // 汎用的なセッションIDを生成
-          const directSessionId = 'main_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+          // ログイン状態を確認し、生徒IDを含むセッションIDを生成
+          let sessionId;
+          if (authenticated) {
+            // LocalStorageから生徒情報を取得
+            const authData = localStorage.getItem('study_partner_auth');
+            if (authData) {
+              try {
+                const auth = JSON.parse(authData);
+                const studentId = auth.sid || 'guest';
+                // 生徒IDを含むセッションID（形式: studentId_timestamp_random）
+                sessionId = studentId + '_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+                console.log('✅ Creating session with student ID:', studentId);
+              } catch (e) {
+                console.error('❌ Failed to parse auth data:', e);
+                sessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+              }
+            } else {
+              sessionId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            }
+          } else {
+            // 未ログインの場合（本来は機能制限されるべき）
+            alert('⚠️ AI学習サポートを利用するには、ログインが必要です。');
+            return;
+          }
           
           // V2版AIチャット（シンプルで安定）
-          window.open('/ai-chat-v2/' + directSessionId, '_blank');
+          window.open('/ai-chat-v2/' + sessionId, '_blank');
         }
 
         // === 問題再生成機能（Step 2: フロントエンド実装） ===
