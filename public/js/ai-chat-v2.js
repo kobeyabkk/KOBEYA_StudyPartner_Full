@@ -1,181 +1,301 @@
 /**
- * International Student Bilingual Chat
- * External JavaScript for留学生用バイリンガルチャット
+ * AI Chat V2 JavaScript
+ * Handles chat functionality with image support and KaTeX math rendering
  */
 
 (function() {
-    'use strict';
+    console.log('🚀 AI Chat V2 script starting...');
     
-    // Get session ID from data attribute
-    const SESSION_ID = document.body.dataset.sessionId;
-    console.log('🌍 Initializing chat for session:', SESSION_ID);
+    // Get SESSION_ID from data attribute (will be set by server)
+    const SESSION_ID = document.body.getAttribute('data-session-id');
+    console.log('📍 Session ID:', SESSION_ID);
     
-    // DOM elements
+    // DOM要素
+    const chatMessages = document.getElementById('chatMessages');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
-    const chatMessages = document.getElementById('chatMessages');
-    const imagePreview = document.getElementById('imagePreview');
+    
+    console.log('📝 Basic elements:', {
+        chatMessages: !!chatMessages,
+        messageInput: !!messageInput,
+        sendButton: !!sendButton
+    });
+    
+    // Camera elements
+    const cameraButton = document.getElementById('cameraButton');
+    const fileButton = document.getElementById('fileButton');
+    const cameraInput = document.getElementById('cameraInput');
+    const fileInput = document.getElementById('fileInput');
+    const imagePreviewArea = document.getElementById('imagePreviewArea');
     const previewImage = document.getElementById('previewImage');
+    const btnClearImage = document.getElementById('btnClearImage');
+    const btnStartCrop = document.getElementById('btnStartCrop');
+    const btnSendDirect = document.getElementById('btnSendDirect');
     const cropArea = document.getElementById('cropArea');
+    
+    console.log('📷 Camera elements:', {
+        cameraButton: !!cameraButton,
+        fileButton: !!fileButton,
+        cameraInput: !!cameraInput,
+        fileInput: !!fileInput
+    });
+    
     const cropImage = document.getElementById('cropImage');
-    const startCropBtn = document.getElementById('startCropBtn');
-    const confirmCropBtn = document.getElementById('confirmCropBtn');
-    const cancelCropBtn = document.getElementById('cancelCropBtn');
+    const btnCancelCrop = document.getElementById('btnCancelCrop');
+    const btnConfirmCrop = document.getElementById('btnConfirmCrop');
     
     let cropper = null;
     let currentImageData = null;
     
-    /**
-     * Set initial welcome message based on session ID prefix
-     */
-    function setInitialMessage() {
-        const isInternational = SESSION_ID.startsWith('intl_');
-        
-        const chatTitle = document.getElementById('chatTitle');
-        const chatSubtitle = document.getElementById('chatSubtitle');
-        
-        if (isInternational) {
-            // Update header for international students
-            chatTitle.innerHTML = '<i class="fas fa-globe"></i> Bilingual Learning Support';
-            chatSubtitle.textContent = 'バイリンガル学習サポート - 日本語と英語で解説';
-            
-            // Bilingual welcome message for international students
-            chatMessages.innerHTML = '<div class="message ai"><div class="bilingual-content"><div class="japanese-section"><div class="section-label">🇯🇵 日本語</div><p>こんにちは！バイリンガル学習サポートです。質問や問題の画像を送ってください。日本語と英語の両方で詳しく解説します。</p></div><div class="english-section"><div class="section-label">🇺🇸 English</div><p>Hello! Welcome to Bilingual Learning Support. Please send your questions or images of problems. I will provide detailed explanations in both Japanese and English.</p></div></div></div>';
-        } else {
-            // Keep standard header for other pages
-            chatTitle.innerHTML = '<i class="fas fa-robot"></i> AIに質問';
-            chatSubtitle.textContent = '質問や問題を送ってください';
-            
-            // Standard Japanese welcome message for other pages
-            chatMessages.innerHTML = '<div class="message ai"><div class="message-content"><h3>AIに質問</h3><p>こんにちは！質問や問題の画像を送ってください。詳しく解説します。</p></div></div>';
-        }
-    }
+    // KaTeX delimiters
+    const mathDelimiters = [
+        {left: '$$', right: '$$', display: true},
+        {left: '\\[', right: '\\]', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\(', right: '\\)', display: false}
+    ];
     
-    /**
-     * Load conversation history on page load
-     */
-    async function loadConversationHistory() {
-        try {
-            const response = await fetch('/api/unified-ai-chat/history/' + SESSION_ID);
-            const result = await response.json();
-            
-            if (result.ok && result.conversations && result.conversations.length > 0) {
-                // Clear initial message
-                chatMessages.innerHTML = '';
-                
-                // Add all historical messages
-                result.conversations.forEach(function(conv) {
-                    if (conv.role === 'user') {
-                        addMessage(conv.content || '[画像]', 'user');
-                    } else if (conv.role === 'assistant') {
-                        addMessage(conv.content, 'ai');
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Failed to load conversation history:', error);
-        }
-    }
+    // 初期化ログ
+    console.log('✅ AI Chat V2 initialized');
+    console.log('📍 Session ID:', SESSION_ID);
+    console.log('📷 Camera button element:', cameraButton);
+    console.log('📁 File button element:', fileButton);
+    console.log('📸 Camera input element:', cameraInput);
+    console.log('🗂️ File input element:', fileInput);
     
-    /**
-     * Add a message to the chat
-     * @param {string} content - Message content
-     * @param {string} type - 'user' or 'ai'
-     */
-    function addMessage(content, type) {
+    // メッセージ追加関数（改行とKaTeX対応）
+    function addMessage(text, type = 'user') {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message ' + type;
         
-        if (type === 'ai' && content.includes('【日本語】') && content.includes('【English】')) {
-            // Parse bilingual content - Using Unicode range to avoid minification issues
-            // [\u0000-\uFFFF] matches any character including newlines (equivalent to [\s\S])
-            const japaneseMatch = content.match(/【日本語】([\u0000-\uFFFF]*?)(?=【English】|$)/);
-            const englishMatch = content.match(/【English】([\u0000-\uFFFF]*?)$/);
-            
-            const japaneseText = japaneseMatch ? japaneseMatch[1].trim() : '';
-            const englishText = englishMatch ? englishMatch[1].trim() : '';
-            
-            messageDiv.innerHTML = '<div class="bilingual-content">' +
-                '<div class="japanese-section">' +
-                '<div class="section-label">🇯🇵 日本語</div>' +
-                '<div class="content-text">' + japaneseText.replace(/\n/g, '<br>') + '</div>' +
-                '</div>' +
-                '<div class="english-section">' +
-                '<div class="section-label">🇺🇸 English</div>' +
-                '<div class="content-text">' + englishText.replace(/\n/g, '<br>') + '</div>' +
-                '</div>' +
-                '</div>';
-        } else {
-            // Use innerHTML to preserve formatting and allow math rendering
-            const formattedContent = content.replace(/\n/g, '<br>');
-            messageDiv.innerHTML = '<div class="message-content">' + formattedContent + '</div>';
-        }
+        // 改行を<br>タグに変換
+        const formattedText = text.replace(/\n/g, '<br>');
+        messageDiv.innerHTML = formattedText;
         
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
-        // Render math with KaTeX (now it works without escaping issues!)
-        if (window.renderMathInElement && type === 'ai') {
+        // AIメッセージの場合、KaTeXで数式をレンダリング
+        if (type === 'ai' && typeof window.renderMathInElement !== 'undefined') {
             try {
-                renderMathInElement(messageDiv, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ],
+                window.renderMathInElement(messageDiv, {
+                    delimiters: mathDelimiters,
                     throwOnError: false
                 });
+                console.log('✅ KaTeX rendering applied');
             } catch (error) {
-                console.error('KaTeX rendering error:', error);
+                console.error('❌ KaTeX rendering error:', error);
             }
         }
+        
+        return messageDiv;
     }
     
-    /**
-     * Handle image file selection
-     */
-    function handleImageSelect(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImage.src = e.target.result;
-                previewImage.onload = function() {
-                    imagePreview.style.display = 'block';
-                    cropArea.style.display = 'none';
-                    
-                    // Auto-start crop after 800ms
-                    setTimeout(() => {
-                        startCrop();
-                    }, 800);
-                };
-            };
-            reader.readAsDataURL(file);
-        }
+    // ローディング表示
+    function showLoading() {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message loading';
+        loadingDiv.innerHTML = '<span>考えています</span><div class="loading-dots"><span></span><span></span><span></span></div>';
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return loadingDiv;
     }
     
-    /**
-     * Start crop mode
-     */
-    function startCrop() {
-        if (!previewImage.src) {
-            console.error('No image source for crop');
+    // エラー表示
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = '❌ ' + message;
+        chatMessages.appendChild(errorDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // メッセージ送信
+    async function sendMessage() {
+        const message = messageInput.value.trim();
+        
+        // If image preview is active, send image message instead
+        if (imagePreviewArea.classList.contains('active') && currentImageData) {
+            console.log('📤 Sending image message with question');
+            sendImageMessage(currentImageData);
             return;
         }
         
-        console.log('✂️ Starting crop');
-        
-        cropImage.src = previewImage.src;
-        imagePreview.style.display = 'none';
-        cropArea.style.display = 'block';
-        
-        if (cropper) {
-            cropper.destroy();
+        if (!message) {
+            return;
         }
         
-        // Initialize Cropper.js
-        setTimeout(() => {
-            if (window.Cropper && cropImage) {
-                cropper = new window.Cropper(cropImage, {
+        console.log('📤 Sending text message:', message);
+        
+        // ユーザーメッセージ表示
+        addMessage(message, 'user');
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        
+        // 送信ボタン無効化
+        sendButton.disabled = true;
+        
+        // ローディング表示
+        const loadingDiv = showLoading();
+        
+        try {
+            // API呼び出し
+            const response = await fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sessionId: SESSION_ID,
+                    question: message
+                })
+            });
+            
+            const data = await response.json();
+            
+            // ローディング削除
+            loadingDiv.remove();
+            
+            if (data.ok && data.answer) {
+                console.log('✅ Response received');
+                addMessage(data.answer, 'ai');
+            } else {
+                console.error('❌ API error:', data.message);
+                showError(data.message || 'エラーが発生しました');
+            }
+        } catch (error) {
+            console.error('❌ Network error:', error);
+            loadingDiv.remove();
+            showError('通信エラーが発生しました。もう一度お試しください。');
+        } finally {
+            sendButton.disabled = false;
+            messageInput.focus();
+        }
+    }
+    
+    // イベントリスナー
+    console.log('🔗 Setting up event listeners...');
+    
+    if (sendButton) {
+        sendButton.addEventListener('click', () => {
+            console.log('🖱️ Send button clicked');
+            sendMessage();
+        });
+        console.log('✅ Send button listener attached');
+    } else {
+        console.error('❌ Send button not found!');
+    }
+    
+    // Handle Enter key press with IME support (Japanese input)
+    // isComposing flag prevents sending during IME conversion (漢字変換中)
+    if (messageInput) {
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                console.log('⌨️ Enter key pressed (not composing)');
+                sendMessage();
+            }
+        });
+        console.log('✅ Message input listener attached');
+    } else {
+        console.error('❌ Message input not found!');
+    }
+    
+    // テキストエリア自動リサイズ
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    
+    // 初期フォーカス
+    messageInput.focus();
+    
+    console.log('✅ Event listeners attached');
+    
+    // ========== Camera & Image Functions ==========
+    
+    console.log('🔧 Setting up camera event listeners...');
+    
+    // Camera button click - Trigger camera input
+    if (cameraButton) {
+        console.log('✅ Camera button found, adding event listener');
+        cameraButton.addEventListener('click', () => {
+            console.log('📷 Camera button clicked - triggering camera input');
+            if (cameraInput) {
+                console.log('📸 Triggering camera input element');
+                cameraInput.click();
+            } else {
+                console.error('❌ Camera input not found');
+            }
+        });
+    } else {
+        console.error('❌ Camera button not found in DOM');
+    }
+    
+    // File button click
+    if (fileButton) {
+        console.log('✅ File button found, adding event listener');
+        fileButton.addEventListener('click', () => {
+            console.log('📁 File button clicked');
+            if (fileInput) {
+                console.log('🗂️ Triggering file input');
+                fileInput.click();
+            } else {
+                console.error('❌ File input not found');
+            }
+        });
+    } else {
+        console.error('❌ File button not found in DOM');
+    }
+    
+    // Handle image selection
+    function handleImageSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        console.log('📸 Image selected:', file.name);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            currentImageData = e.target.result;
+            previewImage.src = currentImageData;
+            imagePreviewArea.classList.add('active');
+            cropArea.classList.remove('active');
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    if (cameraInput) cameraInput.addEventListener('change', handleImageSelect);
+    if (fileInput) fileInput.addEventListener('change', handleImageSelect);
+    
+    // Clear image
+    if (btnClearImage) {
+        btnClearImage.addEventListener('click', () => {
+            console.log('❌ Clear image');
+            imagePreviewArea.classList.remove('active');
+            cropArea.classList.remove('active');
+            currentImageData = null;
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            cameraInput.value = '';
+            fileInput.value = '';
+        });
+    }
+    
+    // Start crop
+    if (btnStartCrop) {
+        btnStartCrop.addEventListener('click', () => {
+            console.log('✂️ Start crop');
+            cropImage.src = currentImageData;
+            imagePreviewArea.classList.remove('active');
+            cropArea.classList.add('active');
+            
+            setTimeout(() => {
+                if (cropper) cropper.destroy();
+                
+                cropper = new Cropper(cropImage, {
                     aspectRatio: NaN, // Free aspect ratio
                     viewMode: 1,
                     dragMode: 'move',
@@ -192,214 +312,129 @@
                         console.log('✂️ Cropper initialized');
                     }
                 });
-            }
-        }, 100);
+            }, 100);
+        });
     }
     
-    /**
-     * Confirm crop and process image
-     */
-    function confirmCrop() {
-        if (!cropper) {
-            alert('クロップ機能が正しく初期化されていません。\nCrop function not properly initialized.');
-            return;
-        }
-        
-        console.log('✂️ Confirming crop');
-        
-        try {
-            const canvas = cropper.getCroppedCanvas({
-                maxWidth: 768,
-                maxHeight: 768,
-                imageSmoothingQuality: 'high'
-            });
-            
-            if (!canvas) {
-                alert('画像の切り取りに失敗しました。\nFailed to crop image.');
-                return;
-            }
-            
-            currentImageData = canvas.toDataURL('image/jpeg', 0.95);
-            console.log('✂️ Crop completed, image data length:', currentImageData.length);
-            
-            // Update preview
-            previewImage.src = currentImageData;
-            cropArea.style.display = 'none';
-            imagePreview.style.display = 'block';
-            
+    // Cancel crop
+    if (btnCancelCrop) {
+        btnCancelCrop.addEventListener('click', () => {
+            console.log('⬅️ Cancel crop');
             if (cropper) {
                 cropper.destroy();
                 cropper = null;
             }
+            cropArea.classList.remove('active');
+            imagePreviewArea.classList.add('active');
+        });
+    }
+    
+    // Confirm crop
+    if (btnConfirmCrop) {
+        btnConfirmCrop.addEventListener('click', () => {
+            console.log('✅ Confirm crop');
             
-        } catch (error) {
-            console.error('Error during crop:', error);
-            alert('画像の処理中にエラーが発生しました。\nError processing image.');
-        }
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({
+                    maxWidth: 2000,
+                    maxHeight: 2000,
+                    fillColor: '#fff',
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+                
+                currentImageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Update preview with cropped image
+                previewImage.src = currentImageData;
+                
+                cropper.destroy();
+                cropper = null;
+            }
+            
+            // Return to preview area for question input
+            cropArea.classList.remove('active');
+            imagePreviewArea.classList.add('active');
+            
+            // Focus on message input
+            messageInput.focus();
+        });
     }
     
-    /**
-     * Cancel crop and return to preview
-     */
-    function cancelCrop() {
-        console.log('❌ Canceling crop');
+    // Send image message
+    async function sendImageMessage(imageData) {
+        if (!imageData) return;
         
-        cropArea.style.display = 'none';
-        imagePreview.style.display = 'block';
+        const message = messageInput.value.trim() || '画像について教えてください';
         
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-    }
-    
-    /**
-     * Remove selected image
-     */
-    function removeImage() {
-        currentImageData = null;
-        imagePreview.style.display = 'none';
-        cropArea.style.display = 'none';
-        document.getElementById('cameraInput').value = '';
-        document.getElementById('fileInput').value = '';
+        console.log('📤 Sending image message');
         
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-    }
-    
-    /**
-     * Send message to AI
-     */
-    async function sendMessage() {
-        const message = messageInput.value.trim();
+        // Hide image areas
+        imagePreviewArea.classList.remove('active');
+        cropArea.classList.remove('active');
         
-        if (!message && !currentImageData) {
-            return;
-        }
-        
-        // Add user message
+        // Add user message with text
         if (message) {
             addMessage(message, 'user');
         }
         
-        if (currentImageData) {
-            const img = document.createElement('img');
-            img.src = currentImageData;
-            const imgDiv = document.createElement('div');
-            imgDiv.className = 'message user';
-            imgDiv.appendChild(img);
-            chatMessages.appendChild(imgDiv);
-        }
-        
-        messageInput.value = '';
-        sendButton.disabled = true;
-        
-        // Show loading
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message ai loading';
-        loadingDiv.innerHTML = '<div class="spinner"></div> <span>AIが回答を生成中...</span>';
-        chatMessages.appendChild(loadingDiv);
+        // Add user message with image
+        const img = document.createElement('img');
+        img.src = imageData;
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '0.5rem';
+        img.style.marginTop = '0.5rem';
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'message user';
+        imgDiv.appendChild(img);
+        chatMessages.appendChild(imgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
+        messageInput.value = '';
+        
+        sendButton.disabled = true;
+        const loadingDiv = showLoading();
+        
         try {
+            // Convert base64 to blob
+            const response = await fetch(imageData);
+            const blob = await response.blob();
+            
+            // Create FormData
             const formData = new FormData();
-            if (currentImageData) {
-                const blob = await (await fetch(currentImageData)).blob();
-                formData.append('image', blob, 'image.jpg');
-            }
+            formData.append('image', blob, 'image.jpg');
             formData.append('sessionId', SESSION_ID);
             formData.append('message', message);
             
-            // Determine context type based on session ID prefix
-            // Only international students get special bilingual context, others use general
-            let contextType = 'general';
-            if (SESSION_ID.startsWith('intl_')) {
-                contextType = 'international';
-            }
-            // All other contexts (eiken, essay, flashcard, main) use 'general' for standard ChatGPT-like responses
-            
-            formData.append('contextType', contextType);
-            console.log('🤖 Sending message with contextType:', contextType, 'for session:', SESSION_ID);
-            
-            const response = await fetch('/api/unified-ai-chat', {
+            // Send to API
+            const apiResponse = await fetch('/api/ai-chat-image', {
                 method: 'POST',
                 body: formData
             });
             
-            if (!response.ok) {
-                console.error('❌ HTTP Error:', response.status, response.statusText);
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                loadingDiv.remove();
-                addMessage('サーバーエラーが発生しました: ' + response.status, 'ai');
-                return;
-            }
-            
-            const data = await response.json();
-            console.log('📩 Received response:', data);
+            const data = await apiResponse.json();
             
             loadingDiv.remove();
             
             if (data.ok) {
-                console.log('✅ Success! Adding AI message:', data.answer.substring(0, 100) + '...');
+                console.log('✅ Image response received');
                 addMessage(data.answer, 'ai');
             } else {
-                console.error('❌ API returned error:', data.message);
-                addMessage('エラーが発生しました: ' + (data.message || 'Unknown error'), 'ai');
+                console.error('❌ API error:', data.message);
+                showError(data.message || 'エラーが発生しました');
             }
         } catch (error) {
-            console.error('❌ Exception occurred:', error);
-            console.error('Error details:', error.stack);
+            console.error('❌ Network error:', error);
             loadingDiv.remove();
-            addMessage('通信エラーが発生しました: ' + error.message, 'ai');
+            showError('通信エラーが発生しました');
         } finally {
             sendButton.disabled = false;
             messageInput.focus();
-            removeImage();
+            currentImageData = null;
+            cameraInput.value = '';
+            fileInput.value = '';
         }
     }
     
-    // Event listeners
-    const cameraInput = document.getElementById('cameraInput');
-    const fileInput = document.getElementById('fileInput');
-    
-    if (cameraInput) {
-        cameraInput.addEventListener('change', handleImageSelect);
-    }
-    if (fileInput) {
-        fileInput.addEventListener('change', handleImageSelect);
-    }
-    
-    // Handle Enter key press with IME support (Japanese input)
-    // isComposing flag prevents sending during IME conversion (漢字変換中)
-    if (messageInput) {
-        messageInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter' && !event.isComposing) {
-                event.preventDefault();
-                sendMessage();
-            }
-        });
-    }
-    
-    // Event listeners for crop buttons
-    if (startCropBtn) {
-        startCropBtn.addEventListener('click', startCrop);
-    }
-    if (confirmCropBtn) {
-        confirmCropBtn.addEventListener('click', confirmCrop);
-    }
-    if (cancelCropBtn) {
-        cancelCropBtn.addEventListener('click', cancelCrop);
-    }
-    
-    // Make sendMessage available globally
-    window.sendMessage = sendMessage;
-    window.removeImage = removeImage;
-    
-    // Initialize
-    setInitialMessage();
-    loadConversationHistory();
-    messageInput.focus();
+    console.log('✅ Camera functions initialized');
 })();
