@@ -865,8 +865,23 @@ router.get('/:sessionId', (c) => {
             imagePreviewArea.classList.remove('active');
             cropArea.classList.remove('active');
             
-            // Add user message
-            addMessage('📷 ' + message, 'user');
+            // Add user message with text
+            if (message) {
+                addMessage(message, 'user');
+            }
+            
+            // Add user message with image
+            const img = document.createElement('img');
+            img.src = imageData;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '0.5rem';
+            img.style.marginTop = '0.5rem';
+            const imgDiv = document.createElement('div');
+            imgDiv.className = 'message user';
+            imgDiv.appendChild(img);
+            chatMessages.appendChild(imgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
             messageInput.value = '';
             
             sendButton.disabled = true;
