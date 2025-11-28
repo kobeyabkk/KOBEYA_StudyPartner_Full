@@ -21,10 +21,10 @@ router.get('/:sessionId', (c) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI学習サポート - KOBEYA</title>
-    <!-- KaTeX for math rendering -->
+    <!-- KaTeX for math rendering (loaded before page scripts for immediate availability) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <!-- Cropper.js for image cropping -->
     <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css">
     <script src="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.js"></script>
@@ -529,6 +529,15 @@ router.get('/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
+            // デバッグ: 生のテキストをログに出力
+            if (type === 'ai') {
+                console.log('📝 Raw AI response (first 200 chars):', text.substring(0, 200));
+                console.log('🔍 Contains \\(:', text.includes('\\('));
+                console.log('🔍 Contains \\[:', text.includes('\\['));
+                console.log('🔍 Contains $$:', text.includes('$$'));
+                console.log('🔍 Contains $:', text.includes('$'));
+            }
+            
             // AIメッセージの場合、数学記号を自動変換
             let processedText = text;
             if (type === 'ai') {
@@ -561,12 +570,14 @@ router.get('/:sessionId', (c) => {
                     if (typeof window.renderMathInElement !== 'undefined') {
                         clearInterval(renderInterval);
                         try {
+                            console.log('🔄 Before KaTeX rendering (first 200 chars):', messageDiv.innerHTML.substring(0, 200));
                             window.renderMathInElement(messageDiv, {
                                 delimiters: mathDelimiters,
                                 throwOnError: false,
                                 strict: false
                             });
                             console.log('✅ KaTeX rendering applied successfully');
+                            console.log('📄 After KaTeX rendering (first 200 chars):', messageDiv.innerHTML.substring(0, 200));
                         } catch (error) {
                             console.error('❌ KaTeX rendering error:', error);
                             console.error('Error details:', error.message);
