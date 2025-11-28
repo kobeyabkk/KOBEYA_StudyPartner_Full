@@ -538,9 +538,19 @@ router.get('/:sessionId', (c) => {
                 console.log('🔍 Contains $:', text.includes('$'));
             }
             
-            // AIメッセージの場合、数学記号を自動変換
+            // AIメッセージの場合、数学記号とLaTeX形式を変換
             let processedText = text;
             if (type === 'ai') {
+                // LaTeX形式の数式デリミタを変換（KaTeXが認識しやすい形式に）
+                // \( ... \) → $...$ (inline math)
+                processedText = processedText.replace(/\\\(/g, '$');
+                processedText = processedText.replace(/\\\)/g, '$');
+                // \[ ... \] → $$...$$ (display math)
+                processedText = processedText.replace(/\\\[/g, '$$');
+                processedText = processedText.replace(/\\\]/g, '$$');
+                
+                console.log('🔧 After delimiter conversion (first 200 chars):', processedText.substring(0, 200));
+                
                 // 「角 ABC」→「∠ABC」
                 processedText = processedText.replace(/角\s*([A-Z]{2,4})/g, '∠$1');
                 // 「三角形 ABC」→「△ABC」
