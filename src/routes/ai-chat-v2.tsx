@@ -529,74 +529,24 @@ router.get('/:sessionId', (c) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + type;
             
-            // デバッグ: 生のテキストをログに出力
-            if (type === 'ai') {
-                console.log('📝 Raw AI response (first 200 chars):', text.substring(0, 200));
-                console.log('🔍 Contains \\(:', text.includes('\\('));
-                console.log('🔍 Contains \\[:', text.includes('\\['));
-                console.log('🔍 Contains $$:', text.includes('$$'));
-                console.log('🔍 Contains $:', text.includes('$'));
-            }
-            
-            // AIメッセージの場合、数学記号とLaTeX形式を変換
-            let processedText = text;
-            if (type === 'ai') {
-                // LaTeX形式の数式デリミタを変換（KaTeXが認識しやすい形式に）
-                // \( ... \) → $...$ (inline math)
-                processedText = processedText.replace(/\\\(/g, '$');
-                processedText = processedText.replace(/\\\)/g, '$');
-                // \[ ... \] → $$...$$ (display math)
-                processedText = processedText.replace(/\\\[/g, '$$');
-                processedText = processedText.replace(/\\\]/g, '$$');
-                
-                console.log('🔧 After delimiter conversion (first 200 chars):', processedText.substring(0, 200));
-                
-                // 「角 ABC」→「∠ABC」
-                processedText = processedText.replace(/角\s*([A-Z]{2,4})/g, '∠$1');
-                // 「三角形 ABC」→「△ABC」
-                processedText = processedText.replace(/三角形\s*([A-Z]{3,4})/g, '△$1');
-                // 「線分 AB」→「AB」（シンプルに）
-                processedText = processedText.replace(/線分\s*([A-Z]{2})/g, '$1');
-                // 「辺 AB」→「AB」（シンプルに）
-                processedText = processedText.replace(/辺\s*([A-Z]{2})/g, '$1');
-            }
-            
-            // 改行を<br>タグに変換（Viteビルド対応）
-            const newlineChar = String.fromCharCode(10);
-            const regex = new RegExp(newlineChar, 'g');
-            const formattedText = processedText.replace(regex, '<br>');
+            // 改行を<br>タグに変換（international-chatと同じシンプルな処理）
+            const formattedText = text.replace(/\n/g, '<br>');
             messageDiv.innerHTML = formattedText;
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            // AIメッセージの場合、KaTeXで数式をレンダリング
-            if (type === 'ai') {
-                // KaTeXが読み込まれるまで待機（最大5秒）
-                let attempts = 0;
-                const maxAttempts = 50; // 50 * 100ms = 5秒
-                const renderInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.renderMathInElement !== 'undefined') {
-                        clearInterval(renderInterval);
-                        try {
-                            console.log('🔄 Before KaTeX rendering (first 200 chars):', messageDiv.innerHTML.substring(0, 200));
-                            window.renderMathInElement(messageDiv, {
-                                delimiters: mathDelimiters,
-                                throwOnError: false,
-                                strict: false
-                            });
-                            console.log('✅ KaTeX rendering applied successfully');
-                            console.log('📄 After KaTeX rendering (first 200 chars):', messageDiv.innerHTML.substring(0, 200));
-                        } catch (error) {
-                            console.error('❌ KaTeX rendering error:', error);
-                            console.error('Error details:', error.message);
-                        }
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(renderInterval);
-                        console.error('❌ renderMathInElement not loaded after 5 seconds');
-                    }
-                }, 100);
+            // AIメッセージの場合、KaTeXで数式をレンダリング（international-chatと同じ）
+            if (type === 'ai' && typeof window.renderMathInElement !== 'undefined') {
+                try {
+                    window.renderMathInElement(messageDiv, {
+                        delimiters: mathDelimiters,
+                        throwOnError: false
+                    });
+                    console.log('✅ KaTeX rendering applied');
+                } catch (error) {
+                    console.error('❌ KaTeX rendering error:', error);
+                }
             }
             
             return messageDiv;
@@ -697,11 +647,13 @@ router.get('/:sessionId', (c) => {
             console.error('❌ Send button not found!');
         }
         
+        // Handle Enter key press with IME support (Japanese input)
+        // isComposing flag prevents sending during IME conversion (漢字変換中)
         if (messageInput) {
             messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
                     e.preventDefault();
-                    console.log('⌨️ Enter key pressed');
+                    console.log('⌨️ Enter key pressed (not composing)');
                     sendMessage();
                 }
             });
@@ -720,29 +672,6 @@ router.get('/:sessionId', (c) => {
         messageInput.focus();
         
         console.log('✅ Event listeners attached');
-        
-        // KaTeXライブラリの読み込み確認
-        console.log('🔍 Checking KaTeX availability...');
-        console.log('renderMathInElement:', typeof window.renderMathInElement);
-        console.log('katex:', typeof window.katex);
-        
-        // 初期メッセージの数式もレンダリング
-        setTimeout(() => {
-            if (typeof window.renderMathInElement !== 'undefined') {
-                console.log('✅ KaTeX is available, rendering initial math');
-                try {
-                    window.renderMathInElement(document.body, {
-                        delimiters: mathDelimiters,
-                        throwOnError: false,
-                        strict: false
-                    });
-                } catch (error) {
-                    console.error('❌ Initial KaTeX rendering error:', error);
-                }
-            } else {
-                console.warn('⚠️ KaTeX not loaded yet at initialization');
-            }
-        }, 1000);
         
         // ========== Camera & Image Functions ==========
         
