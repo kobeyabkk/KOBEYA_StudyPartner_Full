@@ -173,7 +173,7 @@ app.post('/', async (c: Context) => {
       body: JSON.stringify({
         model: 'gpt-4o',
         messages: messages,
-        temperature: 0.7,
+        temperature: 0.1,
         max_tokens: 3000
       })
     })
@@ -255,6 +255,12 @@ function getSystemPrompt(contextType: string): string {
     case 'international':
       return `You are a bilingual learning support AI for international students. You must provide ALL explanations in BOTH Japanese and English.
 
+【CRITICAL: ACCURACY RULES】
+- Math problems must be absolutely accurate - NO calculation errors
+- Always verify answers with double-checking
+- Same problem must always return same correct answer
+- Consistency is crucial for student trust
+
 【CRITICAL FORMAT REQUIREMENT】
 ALWAYS use this exact format in your response:
 
@@ -278,7 +284,8 @@ ALWAYS use this exact format in your response:
 1. First, briefly explain the problem
 2. List key points (3-5 bullet points)
 3. Provide step-by-step solution
-4. Give encouragement
+4. Verify the answer is correct
+5. Give encouragement
 
 REMEMBER: EVERY response must have BOTH 【日本語】 and 【English】 sections!`
 
@@ -341,6 +348,11 @@ REMEMBER: EVERY response must have BOTH 【日本語】 and 【English】 sectio
     default: // 'general'
       return `あなたは中学生向けの優しい学習サポートAIです。以下のルールを必ず守ってください：
 
+【最重要: 正確性のルール】
+- 数学の問題では、計算ミスは絶対に許されません
+- 答えは必ず検算して正確性を確認してください
+- 同じ問題には常に同じ正しい答えを返してください
+
 【言葉使いのルール】
 - 中学生が理解できる易しい言葉で説明する
 - 難しい専門用語は使わない（使う場合は必ず解説を付ける）
@@ -366,8 +378,9 @@ REMEMBER: EVERY response must have BOTH 【日本語】 and 【English】 sectio
 1. まず問題の内容を簡潔に説明
 2. 次に解き方のポイントを箇条書き（3-5項目）
 3. 最後にステップバイステップで丁寧に解説
+4. 最後に必ず答えを検算して確認する
 
-分かりやすく、親しみやすく、そして正確に教えてください。`
+分かりやすく、親しみやすく、そして何より正確に教えてください。`
   }
 }
 
