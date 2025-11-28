@@ -553,19 +553,27 @@ router.get('/:sessionId', (c) => {
             
             // AIメッセージの場合、KaTeXで数式をレンダリング
             if (type === 'ai') {
-                setTimeout(() => {
-                    if (typeof renderMathInElement !== 'undefined') {
+                // KaTeXが読み込まれるまで待機（最大5秒）
+                let attempts = 0;
+                const maxAttempts = 50; // 50 * 100ms = 5秒
+                const renderInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.renderMathInElement !== 'undefined') {
+                        clearInterval(renderInterval);
                         try {
-                            renderMathInElement(messageDiv, {
+                            window.renderMathInElement(messageDiv, {
                                 delimiters: mathDelimiters,
-                                throwOnError: false
+                                throwOnError: false,
+                                strict: false
                             });
-                            console.log('✅ KaTeX rendering applied');
+                            console.log('✅ KaTeX rendering applied successfully');
                         } catch (error) {
                             console.error('❌ KaTeX rendering error:', error);
+                            console.error('Error details:', error.message);
                         }
-                    } else {
-                        console.warn('⚠️ renderMathInElement not loaded yet');
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(renderInterval);
+                        console.error('❌ renderMathInElement not loaded after 5 seconds');
                     }
                 }, 100);
             }
@@ -692,15 +700,28 @@ router.get('/:sessionId', (c) => {
         
         console.log('✅ Event listeners attached');
         
+        // KaTeXライブラリの読み込み確認
+        console.log('🔍 Checking KaTeX availability...');
+        console.log('renderMathInElement:', typeof window.renderMathInElement);
+        console.log('katex:', typeof window.katex);
+        
         // 初期メッセージの数式もレンダリング
         setTimeout(() => {
-            if (typeof renderMathInElement !== 'undefined') {
-                renderMathInElement(document.body, {
-                    delimiters: mathDelimiters,
-                    throwOnError: false
-                });
+            if (typeof window.renderMathInElement !== 'undefined') {
+                console.log('✅ KaTeX is available, rendering initial math');
+                try {
+                    window.renderMathInElement(document.body, {
+                        delimiters: mathDelimiters,
+                        throwOnError: false,
+                        strict: false
+                    });
+                } catch (error) {
+                    console.error('❌ Initial KaTeX rendering error:', error);
+                }
+            } else {
+                console.warn('⚠️ KaTeX not loaded yet at initialization');
             }
-        }, 500);
+        }, 1000);
         
         // ========== Camera & Image Functions ==========
         

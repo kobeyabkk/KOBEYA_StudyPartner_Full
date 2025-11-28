@@ -211,8 +211,10 @@
         
         try {
             const canvas = cropper.getCroppedCanvas({
-                maxWidth: 768,
-                maxHeight: 768,
+                maxWidth: 2000,
+                maxHeight: 2000,
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high'
             });
             
