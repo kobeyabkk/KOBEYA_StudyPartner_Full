@@ -538,7 +538,9 @@ router.get('/:sessionId', (c) => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
             // AIメッセージの場合、KaTeXで数式をレンダリング（international-chatと同じ）
+            console.log('🔍 Message type:', type, 'renderMathInElement:', typeof window.renderMathInElement);
             if (type === 'ai' && typeof window.renderMathInElement !== 'undefined') {
+                console.log('🔄 Attempting KaTeX rendering...');
                 try {
                     window.renderMathInElement(messageDiv, {
                         delimiters: mathDelimiters,
@@ -548,6 +550,8 @@ router.get('/:sessionId', (c) => {
                 } catch (error) {
                     console.error('❌ KaTeX rendering error:', error);
                 }
+            } else {
+                console.warn('⚠️ KaTeX rendering skipped. Type:', type, 'KaTeX available:', typeof window.renderMathInElement);
             }
             
             return messageDiv;
