@@ -612,4 +612,190 @@ app.get('/search', async (c) => {
   }
 });
 
+/**
+ * POST /api/vocabulary/generate-definition
+ * 
+ * Generate Japanese definition using OpenAI
+ */
+app.post('/generate-definition', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { word, cefr_level } = body;
+
+    if (!word) {
+      return c.json(
+        {
+          success: false,
+          error: 'word is required'
+        },
+        400
+      );
+    }
+
+    if (!c.env.DB || !c.env.OPENAI_API_KEY) {
+      return c.json(
+        {
+          success: false,
+          error: 'Service not properly configured',
+        },
+        500
+      );
+    }
+
+    const db = c.env.DB;
+
+    // OpenAI で日本語定義を生成
+    const prompt = `日本人英語学習者（${cefr_level || 'B1'}レベル）向けに、以下の英単語の簡潔な日本語定義を生成してください。
+
+要件:
+- 15文字以内
+- 最も一般的な意味のみ
+- 専門用語は避ける
+- 例: "environment" → "環境"
+
+英単語: ${word}
+
+日本語定義:`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${c.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: '日本人英語学習者向けの簡潔な語彙定義を生成するアシスタントです。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 50
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const definition_ja = data.choices[0].message.content.trim();
+
+    // DBに保存
+    await db.prepare(
+      `UPDATE vocabulary_master 
+       SET definition_ja = ?, 
+           definition_cached_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE LOWER(word) = LOWER(?)`
+    ).bind(definition_ja, word).run();
+
+    console.log(`✅ Generated definition for: ${word} -> ${definition_ja}`);
+
+    return c.json({
+      success: true,
+      word,
+      definition_ja
+    });
+
+  } catch (error) {
+    console.error('[Generate Definition Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: 'Failed to generate definition',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/vocabulary/annotate-text
+ * 
+ * Annotate text with difficult words
+ */
+app.post('/annotate-text', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { text, difficulty_threshold = 60 } = body;
+
+    if (!text) {
+      return c.json(
+        {
+          success: false,
+          error: 'text is required'
+        },
+        400
+      );
+    }
+
+    if (!c.env.DB) {
+      return c.json(
+        {
+          success: false,
+          error: 'Database not configured',
+        },
+        500
+      );
+    }
+
+    const db = c.env.DB;
+
+    // 単語を抽出（簡易版：正規表現）
+    const words = text.toLowerCase().match(/\b[a-z]+\b/g) || [];
+    const uniqueWords = [...new Set(words)];
+
+    if (uniqueWords.length === 0) {
+      return c.json({
+        success: true,
+        annotationCount: 0,
+        annotations: [],
+        needsGeneration: []
+      });
+    }
+
+    // SQLiteは最大999個のパラメータまで
+    const maxParams = 999;
+    const batchSize = Math.min(uniqueWords.length, maxParams - 1);
+    const wordsToQuery = uniqueWords.slice(0, batchSize);
+
+    const placeholders = wordsToQuery.map(() => '?').join(',');
+    const query = `
+      SELECT word, cefr_level, final_difficulty_score, definition_ja
+      FROM vocabulary_master
+      WHERE LOWER(word) IN (${placeholders})
+      AND final_difficulty_score >= ?
+    `;
+
+    const result = await db.prepare(query)
+      .bind(...wordsToQuery, difficulty_threshold)
+      .all();
+
+    const annotations = result.results || [];
+    const needsGeneration = annotations.filter((a: any) => !a.definition_ja);
+
+    console.log(`✅ Annotated text: ${annotations.length} difficult words found`);
+
+    return c.json({
+      success: true,
+      annotationCount: annotations.length,
+      annotations,
+      needsGeneration: needsGeneration.map((a: any) => a.word)
+    });
+
+  } catch (error) {
+    console.error('[Annotate Text Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: 'Failed to annotate text',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      500
+    );
+  }
+});
+
 export default app;
