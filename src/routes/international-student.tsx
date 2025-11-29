@@ -309,55 +309,86 @@ router.get('/:sessionId', (c) => {
             background: rgba(255, 255, 255, 0.3);
         }
         
-        /* Crop area styles */
+        /* Crop area styles - Full screen modal like ai-chat-v2 */
         .crop-area {
-            margin-top: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             padding: 1rem;
-            background: #f8fafc;
-            border-radius: 0.5rem;
-            border: 2px solid #10b981;
-            max-height: 60vh;
-            overflow-y: auto;
+        }
+        
+        .crop-area.active {
+            display: flex;
+        }
+        
+        .crop-header {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .crop-content {
+            max-width: 90vw;
+            max-height: 70vh;
+            overflow: auto;
+            text-align: center;
         }
         
         .crop-area img {
             max-width: 100%;
-            max-height: 50vh;
+            max-height: 60vh;
             display: block;
+            background: white;
         }
         
         .crop-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 1rem;
             margin-top: 1rem;
             justify-content: center;
         }
         
-        .crop-btn {
-            padding: 0.5rem 1rem;
+        .crop-actions button {
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
             border: none;
             border-radius: 0.5rem;
             cursor: pointer;
-            font-weight: 500;
             transition: all 0.2s;
         }
         
-        .crop-btn.confirm {
-            background: #10b981;
-            color: white;
+        /* Button styles matching ai-chat-v2 */
+        .crop-btn.confirm,
+        button.confirm {
+            background: #10b981 !important;
+            color: white !important;
         }
         
-        .crop-btn.confirm:hover {
-            background: #059669;
+        .crop-btn.confirm:hover:not(:disabled),
+        button.confirm:hover:not(:disabled) {
+            background: #059669 !important;
         }
         
-        .crop-btn.cancel {
-            background: #ef4444;
-            color: white;
+        .crop-btn.cancel,
+        button.cancel {
+            background: #ef4444 !important;
+            color: white !important;
         }
         
-        .crop-btn.cancel:hover {
-            background: #dc2626;
+        .crop-btn.cancel:hover:not(:disabled),
+        button.cancel:hover:not(:disabled) {
+            background: #dc2626 !important;
         }
         
         /* Cropper.js handle sizes */
@@ -460,14 +491,17 @@ router.get('/:sessionId', (c) => {
             </div>
             
             <!-- Crop area -->
-            <div id="cropArea" class="crop-area" style="display: none;">
-                <img id="cropImage" src="" alt="Crop">
+            <div id="cropArea" class="crop-area">
+                <div class="crop-header">✂️ 範囲を選択してください / Select the area</div>
+                <div class="crop-content">
+                    <img id="cropImage" src="" alt="Crop">
+                </div>
                 <div class="crop-actions">
-                    <button class="crop-btn confirm" id="confirmCropBtn">
-                        <i class="fas fa-check"></i> 確定 / Confirm
-                    </button>
                     <button class="crop-btn cancel" id="cancelCropBtn">
                         <i class="fas fa-times"></i> キャンセル / Cancel
+                    </button>
+                    <button class="crop-btn confirm" id="confirmCropBtn">
+                        <i class="fas fa-check"></i> 確定 / Confirm
                     </button>
                 </div>
             </div>

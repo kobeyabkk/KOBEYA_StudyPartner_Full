@@ -143,7 +143,7 @@
                 previewImage.src = e.target.result;
                 previewImage.onload = function() {
                     imagePreview.style.display = 'block';
-                    cropArea.style.display = 'none';
+                    cropArea.classList.remove('active');
                     
                     // Auto-start crop after 800ms
                     setTimeout(() => {
@@ -168,7 +168,7 @@
         
         cropImage.src = previewImage.src;
         imagePreview.style.display = 'none';
-        cropArea.style.display = 'block';
+        cropArea.classList.add('active');
         
         if (cropper) {
             cropper.destroy();
@@ -228,7 +228,7 @@
             
             // Update preview
             previewImage.src = currentImageData;
-            cropArea.style.display = 'none';
+            cropArea.classList.remove('active');
             imagePreview.style.display = 'block';
             
             if (cropper) {
@@ -248,7 +248,7 @@
     function cancelCrop() {
         console.log('❌ Canceling crop');
         
-        cropArea.style.display = 'none';
+        cropArea.classList.remove('active');
         imagePreview.style.display = 'block';
         
         if (cropper) {
@@ -263,7 +263,7 @@
     function removeImage() {
         currentImageData = null;
         imagePreview.style.display = 'none';
-        cropArea.style.display = 'none';
+        cropArea.classList.remove('active');
         document.getElementById('cameraInput').value = '';
         document.getElementById('fileInput').value = '';
         
