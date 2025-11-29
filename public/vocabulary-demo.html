@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary Annotation Demo - KOBEYA StudyPartner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #667eea;
+      margin-bottom: 16px;
+      font-size: 1.5em;
+    }
+    .input-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      line-height: 1.8;
+      min-height: 200px;
+      resize: vertical;
+      font-family: Georgia, serif;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    input[type="range"] {
+      flex: 1;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .threshold-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #667eea;
+      min-width: 50px;
+      text-align: center;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-right: 8px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result-area {
+      background: #f9fafb;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 16px;
+      min-height: 150px;
+      line-height: 2;
+      font-size: 18px;
+      font-family: Georgia, serif;
+    }
+    .annotated-word {
+      background: #fef3c7;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      display: inline-block;
+      font-weight: 600;
+      color: #92400e;
+      border-bottom: 2px solid #fbbf24;
+      transition: all 0.2s;
+    }
+    .annotated-word:hover {
+      background: #fcd34d;
+      transform: translateY(-2px);
+    }
+    .tooltip {
+      visibility: hidden;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 400;
+      margin-bottom: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: all 0.2s;
+    }
+    .tooltip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1f2937;
+    }
+    .annotated-word:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-badge {
+      background: #667eea;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .loading {
+      color: #667eea;
+      font-style: italic;
+      text-align: center;
+      padding: 40px;
+    }
+    .error {
+      color: #e53e3e;
+      background: #fed7d7;
+      padding: 16px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .sample-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .sample-btn {
+      background: #e0e7ff;
+      color: #4c51bf;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .sample-btn:hover {
+      background: #c7d2fe;
+    }
+    .instructions {
+      background: #e0e7ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      color: #3730a3;
+      line-height: 1.6;
+    }
+    .instructions strong {
+      color: #4c1d95;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Vocabulary Annotation Demo</h1>
+
+    <!-- Instructions -->
+    <div class="section">
+      <div class="instructions">
+        <strong>使い方：</strong><br>
+        1️⃣ 下のテキストエリアに英文を入力してください（またはサンプルテキストを選択）<br>
+        2️⃣ 「Annotate Text」ボタンをクリックして語注を生成<br>
+        3️⃣ 黄色でハイライトされた単語にマウスを載せると日本語定義が表示されます<br>
+        4️⃣ 難易度スライダーで語注候補を調整できます
+      </div>
+    </div>
+
+    <!-- Main Annotation Section -->
+    <div class="section">
+      <h2>📝 Text Annotation</h2>
+      
+      <div class="sample-buttons">
+        <button class="sample-btn" onclick="loadSample(1)">Sample 1: Environment</button>
+        <button class="sample-btn" onclick="loadSample(2)">Sample 2: Technology</button>
+        <button class="sample-btn" onclick="loadSample(3)">Sample 3: Education</button>
+      </div>
+
+      <div class="input-group">
+        <label for="inputText">English Text:</label>
+        <textarea id="inputText" placeholder="Paste your English text here...">The government implemented comprehensive policies to address environmental challenges. These initiatives aimed to establish sustainable frameworks for future generations.</textarea>
+      </div>
+
+      <div class="input-group">
+        <label>Difficulty Threshold: <span class="threshold-value" id="thresholdDisplay">60</span></label>
+        <div class="slider-container">
+          <span>40</span>
+          <input type="range" id="threshold" min="40" max="80" value="60" step="5">
+          <span>80</span>
+        </div>
+        <small style="color: #666; margin-top: 8px; display: block;">
+          Lower = More annotations | Higher = Fewer annotations (only difficult words)
+        </small>
+      </div>
+
+      <button id="annotateBtn" onclick="annotateText()">🔍 Annotate Text</button>
+      <button onclick="clearResult()">Clear</button>
+
+      <div id="resultArea" class="result-area" style="display:none;"></div>
+      <div id="statsArea" class="stats" style="display:none;"></div>
+    </div>
+
+    <!-- Word Search Section -->
+    <div class="section">
+      <h2>🔍 Word Lookup</h2>
+      <div class="input-group">
+        <label for="searchWord">Search for a word:</label>
+        <input type="text" id="searchWord" placeholder="e.g., environment" style="padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; width: 100%; font-size: 14px;">
+      </div>
+      <button onclick="searchWord()">Search</button>
+      <div id="searchResult" style="margin-top: 16px; display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/vocabulary';
+    
+    // Sample texts
+    const samples = {
+      1: "The government implemented comprehensive policies to address environmental challenges. These initiatives aimed to establish sustainable frameworks for future generations.",
+      2: "Artificial intelligence has revolutionized numerous industries by automating complex processes. Organizations are increasingly adopting sophisticated algorithms to enhance productivity.",
+      3: "Educational institutions must cultivate critical thinking skills among students. Comprehensive curricula should incorporate diverse perspectives to foster intellectual growth."
+    };
+
+    // Update threshold display
+    document.getElementById('threshold').addEventListener('input', function() {
+      document.getElementById('thresholdDisplay').textContent = this.value;
+    });
+
+    function loadSample(num) {
+      document.getElementById('inputText').value = samples[num];
+    }
+
+    async function annotateText() {
+      const text = document.getElementById('inputText').value.trim();
+      const threshold = parseInt(document.getElementById('threshold').value);
+      const resultArea = document.getElementById('resultArea');
+      const statsArea = document.getElementById('statsArea');
+      const btn = document.getElementById('annotateBtn');
+
+      if (!text) {
+        alert('Please enter some text first!');
+        return;
+      }
+
+      resultArea.style.display = 'block';
+      statsArea.style.display = 'none';
+      resultArea.innerHTML = '<div class="loading">Analyzing text and generating annotations...</div>';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/annotate-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: text, 
+            difficulty_threshold: threshold 
+          })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Annotation failed');
+        }
+
+        // Display annotated text
+        const annotations = data.annotations || [];
+        const annotatedHTML = createAnnotatedHTML(text, annotations);
+        
+        resultArea.innerHTML = annotatedHTML;
+
+        // Display stats
+        if (annotations.length > 0) {
+          statsArea.style.display = 'flex';
+          statsArea.innerHTML = `
+            <div class="stat-badge">📊 ${annotations.length} words annotated</div>
+            <div class="stat-badge">🎯 Threshold: ${threshold} points</div>
+          `;
+        } else {
+          statsArea.style.display = 'flex';
+          statsArea.innerHTML = `
+            <div class="stat-badge">✅ No difficult words found (all below ${threshold} points)</div>
+          `;
+        }
+
+      } catch (error) {
+        resultArea.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function createAnnotatedHTML(text, annotations) {
+      if (annotations.length === 0) {
+        return text;
+      }
+
+      // Create a map of words to annotate
+      const annotationMap = {};
+      annotations.forEach(ann => {
+        const key = ann.word.toLowerCase();
+        annotationMap[key] = ann;
+      });
+
+      // Split text into words while preserving punctuation
+      const words = text.split(/(\s+)/);
+      
+      return words.map(word => {
+        if (/^\s+$/.test(word)) {
+          return word; // Preserve whitespace
+        }
+
+        // Extract actual word without punctuation
+        const match = word.match(/^([^a-zA-Z]*)([a-zA-Z]+)([^a-zA-Z]*)$/);
+        if (!match) return word;
+
+        const [, prefix, actualWord, suffix] = match;
+        const key = actualWord.toLowerCase();
+
+        if (annotationMap[key]) {
+          const ann = annotationMap[key];
+          const definition = ann.definition_ja || 'Loading...';
+          return `${prefix}<span class="annotated-word">${actualWord}<span class="tooltip">${definition}</span></span>${suffix}`;
+        }
+
+        return word;
+      }).join('');
+    }
+
+    async function searchWord() {
+      const word = document.getElementById('searchWord').value.trim();
+      const resultDiv = document.getElementById('searchResult');
+
+      if (!word) {
+        alert('Please enter a word to search!');
+        return;
+      }
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<div class="loading">Searching...</div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/search?word=${encodeURIComponent(word)}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Word not found');
+        }
+
+        const wordData = data.data;
+        resultDiv.innerHTML = `
+          <div style="background: white; padding: 16px; border-radius: 8px; border: 2px solid #667eea;">
+            <h3 style="color: #667eea; margin-bottom: 12px;">${wordData.word}</h3>
+            <p><strong>CEFR Level:</strong> ${wordData.cefr_level || 'N/A'}</p>
+            <p><strong>Difficulty Score:</strong> ${wordData.final_difficulty_score || 'N/A'}</p>
+            <p><strong>Frequency Rank:</strong> ${wordData.frequency_rank || 'N/A'}</p>
+            <p><strong>Japanese Definition:</strong> ${wordData.definition_ja || 'Not yet generated'}</p>
+            <p><strong>Should Annotate:</strong> ${wordData.should_annotate ? '✅ Yes' : '❌ No'}</p>
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      }
+    }
+
+    function clearResult() {
+      document.getElementById('resultArea').style.display = 'none';
+      document.getElementById('statsArea').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
