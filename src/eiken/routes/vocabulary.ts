@@ -481,4 +481,135 @@ app.post('/define/batch', async (c) => {
   }
 });
 
+/**
+ * GET /api/vocabulary/stats
+ * 
+ * Get vocabulary_master database statistics
+ */
+app.get('/stats', async (c) => {
+  try {
+    if (!c.env.DB) {
+      return c.json(
+        {
+          success: false,
+          error: 'Database not configured',
+        },
+        500
+      );
+    }
+
+    const db = c.env.DB;
+
+    const totalQuery = await db.prepare(
+      'SELECT COUNT(*) as total FROM vocabulary_master'
+    ).first();
+
+    const withDefinitionQuery = await db.prepare(
+      `SELECT COUNT(*) as count FROM vocabulary_master 
+       WHERE definition_ja IS NOT NULL AND definition_ja != ''`
+    ).first();
+
+    const annotationCandidatesQuery = await db.prepare(
+      'SELECT COUNT(*) as count FROM vocabulary_master WHERE should_annotate = 1'
+    ).first();
+
+    const cefrDistribution = await db.prepare(
+      `SELECT cefr_level, COUNT(*) as count 
+       FROM vocabulary_master 
+       GROUP BY cefr_level 
+       ORDER BY cefr_numeric`
+    ).all();
+
+    return c.json({
+      success: true,
+      stats: {
+        totalWords: totalQuery?.total || 0,
+        withDefinition: withDefinitionQuery?.count || 0,
+        needsDefinition: (totalQuery?.total || 0) - (withDefinitionQuery?.count || 0),
+        annotationCandidates: annotationCandidatesQuery?.count || 0,
+        cefrDistribution: cefrDistribution.results
+      }
+    });
+
+  } catch (error) {
+    console.error('[Vocabulary Stats Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
+  }
+});
+
+/**
+ * GET /api/vocabulary/search?word=example
+ * 
+ * Search for word in vocabulary_master
+ */
+app.get('/search', async (c) => {
+  try {
+    const word = c.req.query('word');
+    
+    if (!word) {
+      return c.json(
+        {
+          success: false,
+          error: 'word parameter is required'
+        },
+        400
+      );
+    }
+
+    if (!c.env.DB) {
+      return c.json(
+        {
+          success: false,
+          error: 'Database not configured',
+        },
+        500
+      );
+    }
+
+    const db = c.env.DB;
+
+    const result = await db.prepare(
+      `SELECT 
+        word, pos, cefr_level, cefr_numeric, eiken_grade,
+        zipf_score, frequency_rank, final_difficulty_score,
+        should_annotate, definition_en, definition_ja,
+        example_sentences, collocations
+       FROM vocabulary_master 
+       WHERE LOWER(word) = LOWER(?)
+       LIMIT 1`
+    ).bind(word).first();
+
+    if (!result) {
+      return c.json(
+        {
+          success: false,
+          error: 'Word not found'
+        },
+        404
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('[Vocabulary Search Error]', error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
+  }
+});
+
 export default app;
