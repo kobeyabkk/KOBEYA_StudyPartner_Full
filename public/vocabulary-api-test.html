@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary API Test - KOBEYA StudyPartner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #667eea;
+      margin-bottom: 16px;
+      font-size: 1.5em;
+    }
+    .input-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .result pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .loading {
+      color: #667eea;
+      font-style: italic;
+    }
+    .error {
+      color: #e53e3e;
+      font-weight: 600;
+    }
+    .success {
+      color: #38a169;
+      font-weight: 600;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2em;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Vocabulary API Test</h1>
+
+    <!-- Stats Section -->
+    <div class="section">
+      <h2>📊 Database Statistics</h2>
+      <button onclick="loadStats()">Load Stats</button>
+      <div id="statsResult" class="result" style="display:none;"></div>
+      <div id="statsCards" class="stats-grid"></div>
+    </div>
+
+    <!-- Word Search Section -->
+    <div class="section">
+      <h2>🔍 Word Search</h2>
+      <div class="input-group">
+        <label for="searchWord">Word to Search:</label>
+        <input type="text" id="searchWord" placeholder="e.g., environment" value="environment">
+      </div>
+      <button onclick="searchWord()">Search</button>
+      <div id="searchResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Generate Definition Section -->
+    <div class="section">
+      <h2>✨ Generate Japanese Definition</h2>
+      <div class="input-group">
+        <label for="genWord">Word:</label>
+        <input type="text" id="genWord" placeholder="e.g., comprehensive" value="comprehensive">
+      </div>
+      <div class="input-group">
+        <label for="genCefr">CEFR Level (optional):</label>
+        <input type="text" id="genCefr" placeholder="e.g., B2" value="B2">
+      </div>
+      <button onclick="generateDefinition()">Generate Definition</button>
+      <div id="genResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Annotate Text Section -->
+    <div class="section">
+      <h2>📝 Annotate Text</h2>
+      <div class="input-group">
+        <label for="annotateText">English Text:</label>
+        <textarea id="annotateText" placeholder="Paste English text here...">The environment is a comprehensive system that includes all living and non-living things. Scientists demonstrate that protecting our planet requires immediate action.</textarea>
+      </div>
+      <div class="input-group">
+        <label for="difficultyThreshold">Difficulty Threshold (default: 60):</label>
+        <input type="number" id="difficultyThreshold" value="60" min="0" max="100">
+      </div>
+      <button onclick="annotateText()">Annotate</button>
+      <div id="annotateResult" class="result" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/vocabulary';
+
+    async function loadStats() {
+      const resultDiv = document.getElementById('statsResult');
+      const cardsDiv = document.getElementById('statsCards');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span class="loading">Loading...</span>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/stats`);
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        
+        if (data.success && data.stats) {
+          const stats = data.stats;
+          cardsDiv.innerHTML = `
+            <div class="stat-card">
+              <div class="stat-number">${stats.totalWords.toLocaleString()}</div>
+              <div class="stat-label">Total Words</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${stats.withDefinition.toLocaleString()}</div>
+              <div class="stat-label">With Definition</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${stats.needsDefinition.toLocaleString()}</div>
+              <div class="stat-label">Needs Definition</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${stats.annotationCandidates.toLocaleString()}</div>
+              <div class="stat-label">Annotation Candidates</div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    }
+
+    async function searchWord() {
+      const word = document.getElementById('searchWord').value;
+      const resultDiv = document.getElementById('searchResult');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span class="loading">Searching...</span>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/search?word=${encodeURIComponent(word)}`);
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    }
+
+    async function generateDefinition() {
+      const word = document.getElementById('genWord').value;
+      const cefr_level = document.getElementById('genCefr').value;
+      const resultDiv = document.getElementById('genResult');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span class="loading">Generating definition...</span>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/generate-definition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word, cefr_level })
+        });
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    }
+
+    async function annotateText() {
+      const text = document.getElementById('annotateText').value;
+      const difficulty_threshold = parseInt(document.getElementById('difficultyThreshold').value);
+      const resultDiv = document.getElementById('annotateResult');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span class="loading">Analyzing text...</span>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/annotate-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, difficulty_threshold })
+        });
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    }
+
+    // Auto-load stats on page load
+    window.addEventListener('load', () => {
+      loadStats();
+    });
+  </script>
+</body>
+</html>
