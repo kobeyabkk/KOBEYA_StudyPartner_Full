@@ -22,9 +22,9 @@ export interface VocabularyAnalysisResult {
 }
 
 interface VocabEntry {
-  word_lemma: string;
+  lemma: string;
   cefr_level: string;
-  grade_level: number | null;
+  eiken_grade: string | null;
   zipf_score: number | null;
 }
 
@@ -88,17 +88,17 @@ export async function analyzeVocabularyLevel(
   
   const placeholders = uniqueLemmas.map(() => '?').join(',');
   const vocabData = await env.DB.prepare(`
-    SELECT word_lemma, cefr_level, grade_level, zipf_score
+    SELECT lemma, cefr_level, eiken_grade, zipf_score
     FROM eiken_vocabulary_lexicon
-    WHERE word_lemma IN (${placeholders})
-    ORDER BY confidence DESC
+    WHERE lemma IN (${placeholders})
+    ORDER BY source_confidence DESC
   `).bind(...uniqueLemmas).all();
   
   console.log(`   Found ${vocabData.results.length} words in dictionary`);
   
   // 3. レベル判定
   const vocabMap = new Map<string, VocabEntry>(
-    vocabData.results.map((row: any) => [row.word_lemma, row as VocabEntry])
+    vocabData.results.map((row: any) => [row.lemma, row as VocabEntry])
   );
   
   const targetCEFR = getTargetCEFR(targetGrade);

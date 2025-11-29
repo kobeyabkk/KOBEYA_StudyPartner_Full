@@ -122,7 +122,8 @@ generate.post('/', async (c) => {
           questionType,
           difficulty,
           topicHints,
-          openaiApiKey
+          openaiApiKey,
+          c.env
         );
         
         // 生成成功
@@ -169,7 +170,7 @@ generate.post('/', async (c) => {
 });
 
 /**
- * 単一問題を生成
+ * 単一問題を生成（語彙レベル検証付き）
  */
 async function generateSingleQuestion(
   grade: EikenGrade,
@@ -177,7 +178,8 @@ async function generateSingleQuestion(
   questionType: QuestionType,
   difficulty: number,
   topicHints: string[],
-  apiKey: string
+  apiKey: string,
+  env?: EikenEnv
 ): Promise<GeneratedQuestion> {
   
   const topicHint = topicHints.length > 0 ? topicHints[Math.floor(Math.random() * topicHints.length)] : '';
@@ -258,6 +260,25 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
   
   // JSONをパース
   const parsed = JSON.parse(content);
+  
+  // Phase 1: 語彙レベル検証（envがある場合のみ）
+  if (env?.DB) {
+    const { analyzeVocabularyLevel } = await import('../services/vocabulary-analyzer');
+    const analysisResult = await analyzeVocabularyLevel(
+      parsed.questionText,
+      grade,
+      env
+    );
+    
+    // 3%ルールに違反している場合はリトライ
+    if (!analysisResult.isValid) {
+      console.log(`⚠️ Vocabulary validation failed: ${analysisResult.outOfRangeRatio * 100}% out of range`);
+      console.log(`   Problematic words: ${analysisResult.outOfRangeWords.slice(0, 5).join(', ')}`);
+      throw new Error(`Vocabulary level too difficult: ${analysisResult.outOfRangeRatio * 100}% out of range (max 3%)`);
+    }
+    
+    console.log(`✅ Vocabulary validation passed: ${analysisResult.validPercentage.toFixed(1)}% valid words`);
+  }
   
   return parsed;
 }
