@@ -59,7 +59,7 @@ app.post('/', async (c: Context) => {
       console.warn('⚠️ Session upsert warning:', dbError)
     }
     
-    // 過去の会話履歴を取得（最新10件）
+    // 過去の会話履歴を取得（最新50件 = 25往復分）
     let conversationHistory: any[] = []
     try {
       const historyResult = await c.env.DB.prepare(`
@@ -67,7 +67,7 @@ app.post('/', async (c: Context) => {
         FROM ai_chat_conversations
         WHERE session_id = ?
         ORDER BY timestamp ASC
-        LIMIT 10
+        LIMIT 50
       `).bind(sessionId).all()
       
       conversationHistory = historyResult.results || []
@@ -268,7 +268,18 @@ function getSystemPrompt(contextType: string): string {
    - Only when the student explicitly says "I don't know" or "Please tell me," OR when they input the correct answer, provide explanation → final answer.
    - Always encourage students: "If you don't know, just say you don't know."
 
-2. Conversation Flow (Basic Flow)
+2. Conversation Continuity Rules
+   - When students say "this problem" or "the previous problem," check conversation history to understand context
+   - If you can see the problem content in the history, refer to it and continue the conversation naturally
+   - Only if you truly cannot find the problem content, politely ask: "I apologize, could you please share the problem again?"
+   - NEVER respond with cold questions like "Which problem are you talking about?"
+
+3. Hints and Answer Rules
+   - When students clearly say "I don't understand" or "Please teach me how to solve this," provide concrete solutions, not just hints
+   - Don't repeat the same hints - progress to more specific and understandable explanations
+   - If students are struggling to understand, explain step by step in more detail
+
+4. Conversation Flow (Basic Flow)
    STEP1: Understanding Check & Greeting
      - Paraphrase the problem briefly and comment on "what they might understand so far."
    STEP2: Small Hint
@@ -280,7 +291,7 @@ function getSystemPrompt(contextType: string): string {
    STEP5: Full Explanation + Final Answer
      - When requested by the student, explain step-by-step, then conclude with "Answer: ~"
 
-3. Tone
+5. Tone
    - Kind, positive (e.g., "Good thinking!" "That's important too!").
    - Use Japanese and English that elementary/junior high students can understand.
    - When using technical terms, always add a brief explanation.
@@ -369,6 +380,18 @@ REMEMBER: EVERY response must have BOTH 【日本語】 and 【English】 sectio
 - 数学の問題では、計算ミスは絶対に許されません
 - 答えは必ず検算して正確性を確認してください
 - 同じ問題には常に同じ正しい答えを返してください
+
+【会話の継続性ルール】
+- ユーザーが「さっきの問題」「この問題」と言った場合、会話履歴から文脈を理解してください
+- 会話履歴に問題内容がある場合、それを参照して回答してください
+- もし本当に問題内容が分からない場合のみ、丁寧に聞き直してください
+  例: 「申し訳ございません。もう一度問題の内容を教えていただけますか？」
+- 「どの問題ですか？」のような冷たい聞き返しは絶対にしないでください
+
+【ヒントと解答のルール】
+- ユーザーが「わかりません」「解き方を教えてください」と明確に言った場合は、ヒントだけでなく具体的な解法を示してください
+- 同じヒントを繰り返すのではなく、より具体的で分かりやすい説明に進んでください
+- ユーザーが理解に苦しんでいる様子なら、段階的に詳しく説明してください
 
 【言葉使いのルール】
 - 中学生が理解できる易しい言葉で説明する
