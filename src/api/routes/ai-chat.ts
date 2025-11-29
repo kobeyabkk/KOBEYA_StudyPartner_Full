@@ -29,6 +29,35 @@ router.post('/ai-chat', async (c) => {
       })
     }
     
+    // セッションを作成または更新
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_sessions (session_id, context_type, created_at, updated_at)
+        VALUES (?, ?, datetime('now'), datetime('now'))
+        ON CONFLICT(session_id) DO UPDATE SET 
+          updated_at = datetime('now')
+      `).bind(sessionId, 'quick_answer').run()
+    } catch (dbError) {
+      console.warn('⚠️ Session upsert warning:', dbError)
+    }
+    
+    // 過去の会話履歴を取得（最新50件 = 25往復分）
+    let conversationHistory: any[] = []
+    try {
+      const historyResult = await c.env.DB.prepare(`
+        SELECT role, content
+        FROM ai_chat_conversations
+        WHERE session_id = ?
+        ORDER BY timestamp ASC
+        LIMIT 50
+      `).bind(sessionId).all()
+      
+      conversationHistory = historyResult.results || []
+      console.log(`📚 Loaded ${conversationHistory.length} previous messages`)
+    } catch (dbError) {
+      console.warn('⚠️ History fetch warning:', dbError)
+    }
+    
     // 生徒情報を含むシステムプロンプトを構築
     let studentContext = ''
     if (studentName && grade) {
@@ -41,25 +70,30 @@ router.post('/ai-chat', async (c) => {
 `
     }
     
-    // OpenAI APIを呼び出し
-    console.log('🔄 Calling OpenAI API...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `あなたは「KOBEYA Study Partner」のAI学習チューターです。
-日本の小学生・中学生・高校生が、学校や塾で出される問題を解くときに使います。
+    // OpenAI API messages配列を構築
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: `あなたは「KOBEYA Study Partner」のクイック回答AIアシスタントです。
+日本の小学生・中学生・高校生が、わからない問題をすぐに理解できるようサポートします。
 ${studentContext}
 【最重要ミッション】
-- いきなり答えを教えるのではなく、「考え方」「手順」「背景知識」を確認しながら、生徒が自分の力で解けるように導いてください。
-- 日本の学校教育（学習指導要領）で一般的に使われる考え方・書き方・用語を必ず優先してください。
+- 生徒の質問に対して、すぐに答えを提供してください。
+- ヒントだけでなく、具体的な解き方と答えを明確に示してください。
+- 「考えてみよう」ではなく、「答えはこれです」と直接教えてください。
+
+【会話の継続性ルール】
+- ユーザーが「さっきの問題」「この問題」と言った場合、会話履歴から文脈を理解してください
+- 会話履歴に問題内容がある場合、それを参照して回答してください
+- もし本当に問題内容が分からない場合のみ、丁寧に聞き直してください
+  例: 「申し訳ございません。もう一度問題の内容を教えていただけますか？」
+- 「どの問題ですか？」のような冷たい聞き返しは絶対にしないでください
+
+【回答スタイル】
+- すぐに答えを教える（ヒントだけで終わらない）
+- 段階的に詳しく説明する
+- 最後に必ず「答え：〜」と明記する
+- 生徒が理解しやすい言葉で説明する
 
 ────────────────────
 ■ 0. 共通ルール（全教科共通）
@@ -225,12 +259,45 @@ ${studentContext}
 - 平行は「∥」、垂直は「⊥」を使う
 - 度数は必ず「°」を付ける（例: 90°、45°）
 - 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記`
-          },
-          {
-            role: 'user',
-            content: question
-          }
-        ],
+      }
+    ]
+    
+    // 会話履歴を追加
+    for (const hist of conversationHistory) {
+      messages.push({
+        role: hist.role,
+        content: hist.content
+      })
+    }
+    
+    // 現在のユーザーメッセージを追加
+    messages.push({
+      role: 'user',
+      content: question
+    })
+    
+    // ユーザーメッセージをDBに保存
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_conversations (session_id, role, content, has_image, context_type, timestamp)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(sessionId, 'user', question, 0, 'quick_answer').run()
+      console.log('✅ User message saved to database')
+    } catch (dbError) {
+      console.error('❌ Failed to save user message:', dbError)
+    }
+    
+    // OpenAI APIを呼び出し
+    console.log('🔄 Calling OpenAI API...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: messages,
         temperature: 0.1,
         max_tokens: 3000
       })
@@ -250,6 +317,17 @@ ${studentContext}
     
     console.log('✅ OpenAI API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
+    
+    // AIレスポンスをDBに保存
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_conversations (session_id, role, content, has_image, context_type, timestamp)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(sessionId, 'assistant', answer, 0, 'quick_answer').run()
+      console.log('✅ AI response saved to database')
+    } catch (dbError) {
+      console.error('❌ Failed to save AI response:', dbError)
+    }
     
     return c.json({ 
       ok: true, 
@@ -462,6 +540,35 @@ router.post('/ai-chat-image', async (c) => {
       })
     }
     
+    // セッションを作成または更新
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_sessions (session_id, context_type, created_at, updated_at)
+        VALUES (?, ?, datetime('now'), datetime('now'))
+        ON CONFLICT(session_id) DO UPDATE SET 
+          updated_at = datetime('now')
+      `).bind(sessionId, 'quick_answer').run()
+    } catch (dbError) {
+      console.warn('⚠️ Session upsert warning:', dbError)
+    }
+    
+    // 過去の会話履歴を取得（最新50件 = 25往復分）
+    let conversationHistory: any[] = []
+    try {
+      const historyResult = await c.env.DB.prepare(`
+        SELECT role, content, has_image
+        FROM ai_chat_conversations
+        WHERE session_id = ?
+        ORDER BY timestamp ASC
+        LIMIT 50
+      `).bind(sessionId).all()
+      
+      conversationHistory = historyResult.results || []
+      console.log(`📚 Loaded ${conversationHistory.length} previous messages`)
+    } catch (dbError) {
+      console.warn('⚠️ History fetch warning:', dbError)
+    }
+    
     // 画像をBase64に変換（最適化された方法）
     console.log('🔄 Converting image to base64...')
     let base64Image
@@ -487,24 +594,12 @@ router.post('/ai-chat-image', async (c) => {
       })
     }
     
-    console.log('🔄 Calling OpenAI Vision API...')
-    
-    // OpenAI Vision APIを呼び出し
-    let response
-    try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `あなたは「KOBEYA Study Partner」のAI学習チューターです。
-日本の小学生・中学生・高校生が、学校や塾で出される問題を解くときに使います。
+    // OpenAI API messages配列を構築
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: `あなたは「KOBEYA Study Partner」のクイック回答AIアシスタントです。
+日本の小学生・中学生・高校生が、わからない問題をすぐに理解できるようサポートします。
 ${studentName && grade ? `
 【生徒情報】
 - 名前: ${studentName}
@@ -513,30 +608,22 @@ ${studentName && grade ? `
 【重要】この生徒の学年を考慮して、まだ習っていない内容は絶対に使わないでください。
 ` : ''}
 【最重要ミッション】
-- いきなり答えを教えるのではなく、「考え方」「手順」「背景知識」を確認しながら、生徒が自分の力で解けるように導いてください。
-- 日本の学校教育（学習指導要領）で一般的に使われる考え方・書き方・用語を必ず優先してください。
+- 生徒の質問に対して、すぐに答えを提供してください。
+- ヒントだけでなく、具体的な解き方と答えを明確に示してください。
+- 「考えてみよう」ではなく、「答えはこれです」と直接教えてください。
 
-────────────────────
-■ 0. 共通ルール（全教科共通）
-────────────────────
-1. 答えは最後まで言わないで様子を見る
-   - 最初の返答では「最終的な答え」を絶対に書かないでください。
-   - まずは問題の整理 → 方針のヒント → 「ここまででどう思う？」と問いかける、の順で進めます。
-   - 生徒が「分からない」「教えて」と明示したとき、または正解の答えを入力してきたときだけ、解説 → 最後に答え、の順で示します。
-   - 必ず「分からないときは、分からないと言ってね」と生徒に促してください。
+【会話の継続性ルール】
+- ユーザーが「さっきの問題」「この問題」と言った場合、会話履歴から文脈を理解してください
+- 会話履歴に問題内容がある場合、それを参照して回答してください
+- もし本当に問題内容が分からない場合のみ、丁寧に聞き直してください
+  例: 「申し訳ございません。もう一度問題の内容を教えていただけますか？」
+- 「どの問題ですか？」のような冷たい聞き返しは絶対にしないでください
 
-2. 会話の流れ（基本フロー）
-   STEP1: 理解確認と挨拶
-     ${studentName ? `- 「${studentName}さん、こんにちは。」と名前で呼びかける。` : ''}
-     - 問題の要点を簡単に言い換え、「今どこまで分かっていそうか」を推測してコメント。
-   STEP2: 小さなヒント
-     - すぐに解き方全部を出さず、「最初の一手」レベルのヒントを1〜2つだけ。
-   STEP3: 生徒に問い返す
-     - 「では、この次に何をすればよさそうかな？」「ここまでで分からないところはどこ？」など質問で返す。
-
-3. トーン
-   - やさしく、肯定的に（「いいね」「その考えも大事だよ」など）。
-   - 小学生〜中学生にも分かる日本語で説明します。
+【回答スタイル】
+- すぐに答えを教える（ヒントだけで終わらない）
+- 段階的に詳しく説明する
+- 最後に必ず「答え：〜」と明記する
+- 生徒が理解しやすい言葉で説明する
 
 【数式のルール】
 - 数式は必ず $$数式$$ の形式で書く（インライン数式は $数式$ を使う）
@@ -550,24 +637,73 @@ ${studentName && grade ? `
 - 平行は「∥」、垂直は「⊥」を使う
 - 度数は必ず「°」を付ける（例: 90°、45°）
 - 「角」や「三角形」などの漢字表記は使わず、必ず記号で表記`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: message || '画像の内容を説明してください。'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`,
-                    detail: 'high'
-                  }
-                }
-              ]
-            }
-          ],
+      }
+    ]
+    
+    // 会話履歴を追加（画像情報は含めないがテキストは含める）
+    for (const hist of conversationHistory) {
+      if (hist.role === 'user') {
+        const userContent: any[] = [{ type: 'text', text: hist.content || '[No text]' }]
+        // 画像があった場合は注記のみ
+        if (hist.has_image) {
+          userContent.push({ type: 'text', text: '[画像が含まれていました]' })
+        }
+        messages.push({
+          role: 'user',
+          content: userContent
+        })
+      } else if (hist.role === 'assistant') {
+        messages.push({
+          role: 'assistant',
+          content: hist.content
+        })
+      }
+    }
+    
+    // 現在のユーザーメッセージ（画像付き）
+    messages.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: message || '画像の内容を説明してください。'
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:image/jpeg;base64,${base64Image}`,
+            detail: 'high'
+          }
+        }
+      ]
+    })
+    
+    // ユーザーメッセージをDBに保存
+    const imageDataForDB = `data:image/jpeg;base64,${base64Image}`
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_conversations (session_id, role, content, has_image, image_data, context_type, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(sessionId, 'user', message || '[Image]', 1, imageDataForDB, 'quick_answer').run()
+      console.log('✅ User message with image saved to database')
+    } catch (dbError) {
+      console.error('❌ Failed to save user message:', dbError)
+    }
+    
+    console.log('🔄 Calling OpenAI Vision API...')
+    
+    // OpenAI Vision APIを呼び出し
+    let response
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: messages,
           temperature: 0.1,
           max_tokens: 3000
         })
@@ -596,6 +732,17 @@ ${studentName && grade ? `
     
     console.log('✅ OpenAI Vision API response received')
     console.log('💬 Answer:', answer.substring(0, 100) + '...')
+    
+    // AIレスポンスをDBに保存
+    try {
+      await c.env.DB.prepare(`
+        INSERT INTO ai_chat_conversations (session_id, role, content, has_image, context_type, timestamp)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(sessionId, 'assistant', answer, 0, 'quick_answer').run()
+      console.log('✅ AI response saved to database')
+    } catch (dbError) {
+      console.error('❌ Failed to save AI response:', dbError)
+    }
     
     return c.json({ 
       ok: true, 
