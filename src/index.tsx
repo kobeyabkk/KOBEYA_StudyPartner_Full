@@ -53,6 +53,7 @@ import flashcardApiRoutes from './api/routes/flashcard'  // Flashcard API routes
 import essayApiRoutes from './api/routes/essay'  // Essay Coaching API routes
 import adminApiRoutes from './api/routes/admin'  // Admin API routes
 import aiChatApiRoutes from './api/routes/ai-chat'  // AI Chat API routes
+import vocabularyDemoRoutes from './routes/vocabulary-demo'  // Vocabulary Demo routes
 
 // Eiken Practice Page をインポート
 import EikenPracticePage from './pages/eiken/practice'
