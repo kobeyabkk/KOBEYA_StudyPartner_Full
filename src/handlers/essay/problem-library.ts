@@ -8,8 +8,6 @@
  * - 同じ生徒に同じ問題を出さない
  */
 
-import { createHash } from 'crypto';
-
 // ========================================
 // Types
 // ========================================
@@ -58,9 +56,14 @@ export interface ProblemSelectionOptions {
 
 /**
  * 問題文のハッシュを生成（重複チェック用）
+ * Web Crypto API を使用（Cloudflare Workers対応）
  */
-export function generateContentHash(problemText: string): string {
-  return createHash('sha256').update(problemText.trim()).digest('hex');
+export async function generateContentHash(problemText: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(problemText.trim());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -125,7 +128,7 @@ export async function saveProblemToLibrary(
   db: D1Database,
   problem: Omit<ProblemLibraryEntry, 'id' | 'content_hash' | 'created_at' | 'updated_at'>
 ): Promise<number> {
-  const contentHash = generateContentHash(problem.problem_text);
+  const contentHash = await generateContentHash(problem.problem_text);
 
   // 重複チェック
   const existingProblem = await db.prepare(
