@@ -968,6 +968,19 @@ ${essayText}
     
     console.log('✅ AI feedback completed and saved to D1')
     
+    // 🆕 問題ライブラリのスコアを更新（Step 4 & Step 5用）
+    const problemIdToUpdate = session.essaySession.challengeProblemId || session.essaySession.currentProblemId
+    if (problemIdToUpdate && feedback.overallScore && studentId) {
+      try {
+        const { updateProblemScore } = await import('../../handlers/essay/problem-library')
+        await updateProblemScore(db, problemIdToUpdate, studentId, feedback.overallScore)
+        console.log(`📚 ✅ Updated problem library score: Problem ${problemIdToUpdate}, Score: ${feedback.overallScore}`)
+      } catch (scoreError) {
+        console.error('❌ Failed to update problem score:', scoreError)
+        // スコア更新失敗してもエラーにはしない
+      }
+    }
+    
     return c.json({
       ok: true,
       feedback,

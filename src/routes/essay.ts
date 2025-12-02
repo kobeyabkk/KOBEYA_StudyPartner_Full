@@ -12,6 +12,13 @@
 import type { Hono } from 'hono'
 import { learningSessions } from '../utils/session'
 import { getStudyPartnerSession } from '../services/database'
+import {
+  getProblemForStudent,
+  saveProblemToLibrary,
+  recordProblemUsage,
+  updateProblemScore,
+  type ProblemLibraryEntry
+} from '../handlers/essay/problem-library'
 
 // ========================================
 // Type Definitions
@@ -2158,21 +2165,55 @@ ${targetLevel === 'high_school' ? `
           }
         } else if ((problemMode === 'theme' || problemMode === 'ai') && customInput) {
           console.log('✅ Generating detailed problem from theme:', customInput)
-          // テーマから具体的な問題を生成
-          try {
-            const openaiApiKey = c.env?.OPENAI_API_KEY
-            
-            if (!openaiApiKey) {
-              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for Step 4 problem!')
-              throw new Error('OpenAI API key not configured')
+          
+          // 🆕 問題ライブラリシステム統合
+          const wordCount = targetLevel === 'high_school' ? '400字' : targetLevel === 'vocational' ? '500字' : '600字'
+          const wordCountNum = parseInt(wordCount)
+          const db = c.env?.DB
+          let usedProblemId: number | undefined = undefined
+          
+          // Step 1: ライブラリから問題を検索
+          if (db && studentId) {
+            try {
+              const libraryResult = await getProblemForStudent(db, {
+                studentId: studentId,
+                theme: customInput,
+                targetLevel: targetLevel as 'high_school' | 'vocational' | 'university',
+                targetWordCount: wordCountNum,
+                isCurrentEvent: customInput.includes('時事') || customInput.includes('最近') || customInput.includes('現在')
+              })
+              
+              if (libraryResult.source === 'library' && libraryResult.problem) {
+                // ライブラリから取得成功
+                mainProblem = libraryResult.problem.problem_text
+                usedProblemId = libraryResult.problemId
+                console.log(`📚 ✅ Using problem from library: ID ${usedProblemId}`)
+                console.log(`📚 Problem preview: ${mainProblem.substring(0, 50)}...`)
+                charCount = wordCount
+              } else {
+                console.log('📚 ℹ️ No suitable problem in library, generating new one with AI')
+              }
+            } catch (error) {
+              console.error('❌ Library search error:', error)
+              console.log('🔄 Falling back to AI generation')
             }
-            
-            const wordCount = targetLevel === 'high_school' ? '400字' : targetLevel === 'vocational' ? '500字' : '600字'
-            
-            console.log('🚀 Generating Step 4 main problem with OpenAI')
-            console.log('🔑 OpenAI API Key status (Step 4):', openaiApiKey ? 'Present' : 'Missing')
-            
-            const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
+          }
+          
+          // Step 2: ライブラリに問題がない場合、AIで生成
+          if (!mainProblem || mainProblem === 'SNSが社会に与える影響について、あなたの考えを述べなさい') {
+            // テーマから具体的な問題を生成
+            try {
+              const openaiApiKey = c.env?.OPENAI_API_KEY
+              
+              if (!openaiApiKey) {
+                console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for Step 4 problem!')
+                throw new Error('OpenAI API key not configured')
+              }
+              
+              console.log('🚀 Generating Step 4 main problem with OpenAI')
+              console.log('🔑 OpenAI API Key status (Step 4):', openaiApiKey ? 'Present' : 'Missing')
+              
+              const systemPrompt = `あなたは小論文の先生です。以下のテーマについて、本格的で具体的な小論文問題を作成してください。
 
 テーマ: ${customInput}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -2185,54 +2226,100 @@ ${targetLevel === 'high_school' ? `
 - 「あなたの考えを述べなさい」で締める
 - 問題文のみ（条件や説明は不要）
 - 60文字以上150文字以内`
-            
-            console.log('🤖 Calling OpenAI API for Step 4 main problem...')
-            
-            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiApiKey}`
-              },
-              body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: '本格的な小論文問題を1つ作成してください。' }
-                ],
-                max_tokens: 300,
-                temperature: 0.8
+              
+              console.log('🤖 Calling OpenAI API for Step 4 main problem...')
+              
+              const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o',
+                  messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: '本格的な小論文問題を1つ作成してください。' }
+                  ],
+                  max_tokens: 300,
+                  temperature: 0.8
+                })
               })
-            })
-            
-            console.log('📡 OpenAI API response status (Step 4):', response_api.status)
-            
-            if (!response_api.ok) {
-              const errorText = await response_api.text()
-              console.error('❌ OpenAI API error response (Step 4):', errorText)
-              throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
-            }
-            
-                const result = await response_api.json() as OpenAIChatCompletionResponse
-                console.log('✅ OpenAI API call successful for Step 4 problem')
+              
+              console.log('📡 OpenAI API response status (Step 4):', response_api.status)
+              
+              if (!response_api.ok) {
+                const errorText = await response_api.text()
+                console.error('❌ OpenAI API error response (Step 4):', errorText)
+                throw new Error(`OpenAI API error: ${response_api.status} - ${errorText}`)
+              }
+              
+              const result = await response_api.json() as OpenAIChatCompletionResponse
+              console.log('✅ OpenAI API call successful for Step 4 problem')
+              
+              const generatedProblem = result.choices?.[0]?.message?.content || ''
+              console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
+              console.log('📝 Generated problem preview:', generatedProblem?.substring(0, 100) || 'EMPTY')
+              
+              if (generatedProblem && generatedProblem.length > 10) {
+                mainProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+                console.log('✅ Using OpenAI-generated problem for Step 4')
                 
-                const generatedProblem = result.choices?.[0]?.message?.content || ''
-            console.log('📊 AI Generated problem length:', generatedProblem?.length || 0)
-            console.log('📝 Generated problem preview:', generatedProblem?.substring(0, 100) || 'EMPTY')
-            
-            if (generatedProblem && generatedProblem.length > 10) {
-              mainProblem = generatedProblem.replace(/^「|」$/g, '').trim()
-              console.log('✅ Using OpenAI-generated problem for Step 4')
-            } else {
+                // Step 3: 新規生成した問題をライブラリに保存
+                if (db && mainProblem.length >= 60) {
+                  try {
+                    usedProblemId = await saveProblemToLibrary(db, {
+                      theme: customInput,
+                      problem_text: mainProblem,
+                      target_level: targetLevel as 'high_school' | 'vocational' | 'university',
+                      target_word_count: wordCountNum,
+                      category: null,
+                      tags: null,
+                      is_current_event: customInput.includes('時事') || customInput.includes('最近') || customInput.includes('現在'),
+                      quality_score: 50, // デフォルト品質スコア
+                      usage_count: 0,
+                      is_active: true,
+                      is_approved: true, // 自動承認
+                      created_by: 'ai'
+                    })
+                    console.log(`📚 ✅ Saved new problem to library: ID ${usedProblemId}`)
+                  } catch (saveError) {
+                    console.error('❌ Failed to save problem to library:', saveError)
+                    // 保存失敗してもエラーにはしない（問題文は使える）
+                  }
+                }
+              } else {
+                mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
+                console.warn('⚠️ AI problem too short, using custom fallback')
+              }
+              charCount = wordCount
+            } catch (error) {
+              console.error('❌ Step 4 problem generation error:', error)
+              console.error('❌ Error details:', toErrorDetails(error))
               mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
-              console.warn('⚠️ AI problem too short, using custom fallback')
+              console.log('🔄 Using error fallback with custom theme')
             }
-            charCount = wordCount
-          } catch (error) {
-            console.error('❌ Step 4 problem generation error:', error)
-            console.error('❌ Error details:', toErrorDetails(error))
-            mainProblem = `${customInput}の発展により、社会に様々な影響が生じています。あなたはこの${customInput}について、どのような課題があり、どう対応すべきと考えますか。具体例を挙げながら、あなたの考えを述べなさい`
-            console.log('🔄 Using error fallback with custom theme')
+          }
+          
+          // Step 4: 使用履歴を記録
+          if (db && studentId && usedProblemId && sessionId) {
+            try {
+              await recordProblemUsage(db, {
+                student_id: studentId,
+                problem_id: usedProblemId,
+                session_id: parseInt(sessionId)
+              })
+              console.log(`📚 ✅ Recorded problem usage: Student ${studentId}, Problem ${usedProblemId}`)
+              
+              // セッションに problemId を保存（後でスコア更新するため）
+              if (session && session.essaySession) {
+                session.essaySession.currentProblemId = usedProblemId
+                await updateSession(db, sessionId, { essaySession: session.essaySession })
+              }
+            } catch (usageError) {
+              console.error('❌ Failed to record problem usage:', usageError)
+              // 記録失敗してもエラーにはしない
+            }
           }
         } else {
           console.warn('⚠️ Using fallback main problem (no custom input)')
@@ -2313,24 +2400,57 @@ ${targetLevel === 'high_school' ? `
             charCount = charMatch[0]
           }
         } else {
-          // カスタムテーマまたはAIモードの場合、毎回違う高難度問題を生成
-          try {
-            const openaiApiKey = c.env?.OPENAI_API_KEY
-            
-            if (!openaiApiKey) {
-              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for challenge problem!')
-              throw new Error('OpenAI API key not configured')
+          // カスタムテーマまたはAIモードの場合、Challenge問題をライブラリまたはAI生成
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || '社会問題'
+          const baseTheme = ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) ? themeTitle : '社会問題'
+          const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
+          const wordCountNum = parseInt(wordCount)
+          const db = c.env?.DB
+          let usedChallengeProblemId: number | undefined = undefined
+          
+          // Step 1: ライブラリから問題を検索（Step 5用）
+          if (db && studentId) {
+            try {
+              const libraryResult = await getProblemForStudent(db, {
+                studentId: studentId,
+                theme: baseTheme,
+                targetLevel: targetLevel as 'high_school' | 'vocational' | 'university',
+                targetWordCount: wordCountNum,
+                isCurrentEvent: baseTheme.includes('時事') || baseTheme.includes('最近') || baseTheme.includes('現在')
+              })
+              
+              if (libraryResult.source === 'library' && libraryResult.problem) {
+                // ライブラリから取得成功
+                challengeProblem = libraryResult.problem.problem_text
+                usedChallengeProblemId = libraryResult.problemId
+                console.log(`📚 ✅ Using challenge problem from library: ID ${usedChallengeProblemId}`)
+                console.log(`📚 Challenge problem preview: ${challengeProblem.substring(0, 50)}...`)
+                charCount = wordCount
+              } else {
+                console.log('📚 ℹ️ No suitable challenge problem in library, generating new one with AI')
+              }
+            } catch (error) {
+              console.error('❌ Library search error (challenge):', error)
+              console.log('🔄 Falling back to AI generation for challenge')
             }
-            
-            const themeTitle = session?.essaySession?.lastThemeTitle || customInput || '社会問題'
-            const baseTheme = ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) ? themeTitle : '社会問題'
-            const wordCount = targetLevel === 'high_school' ? '500字' : targetLevel === 'vocational' ? '600字' : '800字'
-            const timestamp = Date.now() // 毎回違う問題を生成するため
-            
-            console.log('🚀 Generating challenge problem for:', baseTheme)
-            console.log('🔑 OpenAI API Key status (challenge):', openaiApiKey ? 'Present' : 'Missing')
-            
-            const systemPrompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
+          }
+          
+          // Step 2: ライブラリに問題がない場合、AIで生成
+          if (!challengeProblem || challengeProblem === '人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい') {
+            try {
+              const openaiApiKey = c.env?.OPENAI_API_KEY
+              
+              if (!openaiApiKey) {
+                console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for challenge problem!')
+                throw new Error('OpenAI API key not configured')
+              }
+              
+              const timestamp = Date.now() // 毎回違う問題を生成するため
+              
+              console.log('🚀 Generating challenge problem for:', baseTheme)
+              console.log('🔑 OpenAI API Key status (challenge):', openaiApiKey ? 'Present' : 'Missing')
+              
+              const systemPrompt = `あなたは小論文の先生です。以下のテーマに関連した、より難易度の高いチャレンジ問題を作成してください。
 
 ベーステーマ: ${baseTheme}
 対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
@@ -2349,50 +2469,96 @@ ${targetLevel === 'high_school' ? `
 
 出力例：
 「人工知能（AI）の発展が、将来の雇用に与える影響について、あなたの考えを述べなさい」`
-            
-            console.log('🤖 Calling OpenAI API for challenge problem...')
-            
-            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiApiKey}`
-              },
-              body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: 'チャレンジ問題を1つ生成してください。' }
-                ],
-                max_tokens: 200,
-                temperature: 0.9
+              
+              console.log('🤖 Calling OpenAI API for challenge problem...')
+              
+              const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o',
+                  messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: 'チャレンジ問題を1つ生成してください。' }
+                  ],
+                  max_tokens: 200,
+                  temperature: 0.9
+                })
               })
-            })
-            
-            console.log('📡 OpenAI API response status (challenge):', response_api.status)
-            
-            if (!response_api.ok) {
-              const errorText = await response_api.text()
-              console.error('❌ OpenAI API error (challenge):', errorText)
-              throw new Error(`OpenAI API error: ${response_api.status}`)
+              
+              console.log('📡 OpenAI API response status (challenge):', response_api.status)
+              
+              if (!response_api.ok) {
+                const errorText = await response_api.text()
+                console.error('❌ OpenAI API error (challenge):', errorText)
+                throw new Error(`OpenAI API error: ${response_api.status}`)
+              }
+              
+              const result = await response_api.json() as OpenAIChatCompletionResponse
+              const generatedProblem = result.choices?.[0]?.message?.content || ''
+              
+              console.log('📝 Generated challenge problem:', generatedProblem)
+              
+              if (generatedProblem && generatedProblem.length > 10) {
+                challengeProblem = generatedProblem.replace(/^「|」$/g, '').trim()
+                console.log('✅ Using AI-generated challenge problem')
+                
+                // Step 3: 新規生成した問題をライブラリに保存
+                if (db && challengeProblem.length >= 60) {
+                  try {
+                    usedChallengeProblemId = await saveProblemToLibrary(db, {
+                      theme: baseTheme,
+                      problem_text: challengeProblem,
+                      target_level: targetLevel as 'high_school' | 'vocational' | 'university',
+                      target_word_count: wordCountNum,
+                      category: null,
+                      tags: null,
+                      is_current_event: baseTheme.includes('時事') || baseTheme.includes('最近') || baseTheme.includes('現在'),
+                      quality_score: 50, // デフォルト品質スコア
+                      usage_count: 0,
+                      is_active: true,
+                      is_approved: true, // 自動承認
+                      created_by: 'ai'
+                    })
+                    console.log(`📚 ✅ Saved new challenge problem to library: ID ${usedChallengeProblemId}`)
+                  } catch (saveError) {
+                    console.error('❌ Failed to save challenge problem to library:', saveError)
+                    // 保存失敗してもエラーにはしない
+                  }
+                }
+              } else {
+                console.warn('⚠️ AI challenge problem too short, using fallback')
+              }
+              charCount = wordCount
+            } catch (error) {
+              console.error('❌ Challenge problem generation error:', error)
+              if (problemMode === 'theme' && customInput) {
+                challengeProblem = `${customInput}の将来的な課題と解決策について、あなたの考えを述べなさい`
+              }
             }
-            
-            const result = await response_api.json() as OpenAIChatCompletionResponse
-            const generatedProblem = result.choices?.[0]?.message?.content || ''
-            
-            console.log('📝 Generated challenge problem:', generatedProblem)
-            
-            if (generatedProblem && generatedProblem.length > 10) {
-              challengeProblem = generatedProblem.replace(/^「|」$/g, '').trim()
-              console.log('✅ Using AI-generated challenge problem')
-            } else {
-              console.warn('⚠️ AI challenge problem too short, using fallback')
-            }
-            charCount = wordCount
-          } catch (error) {
-            console.error('❌ Challenge problem generation error:', error)
-            if (problemMode === 'theme' && customInput) {
-              challengeProblem = `${customInput}の将来的な課題と解決策について、あなたの考えを述べなさい`
+          }
+          
+          // Step 4: 使用履歴を記録（Step 5用）
+          if (db && studentId && usedChallengeProblemId && sessionId) {
+            try {
+              await recordProblemUsage(db, {
+                student_id: studentId,
+                problem_id: usedChallengeProblemId,
+                session_id: parseInt(sessionId)
+              })
+              console.log(`📚 ✅ Recorded challenge problem usage: Student ${studentId}, Problem ${usedChallengeProblemId}`)
+              
+              // セッションに challengeProblemId を保存（後でスコア更新するため）
+              if (session && session.essaySession) {
+                session.essaySession.challengeProblemId = usedChallengeProblemId
+                await updateSession(db, sessionId, { essaySession: session.essaySession })
+              }
+            } catch (usageError) {
+              console.error('❌ Failed to record challenge problem usage:', usageError)
+              // 記録失敗してもエラーにはしない
             }
           }
         }
