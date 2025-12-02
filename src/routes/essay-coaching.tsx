@@ -2272,10 +2272,17 @@ router.get('/session/:sessionId', async (c) => {
         }
         
         function getStepIntroMessage(step) {
+            // 授業形式に応じたメッセージ
+            const lessonFormat = sessionData?.lessonFormat || 'full_55min';
+            
             const messages = {
                 1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                2: '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                3: '【短文演習】指定字数で短い小論文を書いてみましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                2: lessonFormat === 'vocabulary_focus' 
+                    ? '【語彙力強化①】口語表現を小論文風に言い換える練習をしましょう（1回目）。\\n\\n準備ができたら「OK」と入力して送信してください。'
+                    : '【語彙力強化】口語表現を小論文風に言い換える練習をしましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                3: lessonFormat === 'short_essay_focus'
+                    ? '【短文演習①】指定字数で短い小論文を書いてみましょう（1回目）。\\n\\n準備ができたら「OK」と入力して送信してください。'
+                    : '【短文演習】指定字数で短い小論文を書いてみましょう。\\n\\n準備ができたら「OK」と入力して送信してください。',
                 4: '【本練習】より長い小論文に挑戦します。\\n\\n準備ができたら「OK」と入力して送信してください。',
                 5: '【チャレンジ問題】応用的なテーマに取り組みます。\\n\\n準備ができたら「OK」と入力して送信してください。',
                 6: '【まとめ】今日の学習を振り返りましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
@@ -2898,14 +2905,6 @@ router.get('/session/:sessionId', async (c) => {
                 
                 // 開発者モードの案内メッセージを追加
                 addMessage('🛠️ 【開発者モード有効】\\n右下の⚡ボタンでStep 4（カメラ機能）へ直接ジャンプできます。', true);
-            }
-            
-            // デバッグモードまたはモバイルの場合の案内
-            if (isDebugMode || window.innerWidth < 1024) {
-                setTimeout(function() {
-                    console.log('📱 Eruda console is active. Tap the 🐛 button in the bottom-right corner to open the console.');
-                    addMessage('📱 デバッグモード：画面右下の🐛ボタンをタップすると、コンソールログが確認できます。', true);
-                }, 1000);
             }
         });
         </script>

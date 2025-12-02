@@ -914,6 +914,7 @@ app.post('/api/essay/generate-pdf', async (c) => {
     const customInput = essaySession?.customInput || null
     const learningStyle = essaySession?.learningStyle || 'auto'
     const targetLevel = essaySession?.targetLevel || 'high_school'
+    const lessonFormat = essaySession?.lessonFormat || 'full_55min'
     
     console.log('📝 Essay chat - Session data:', { 
       sessionId, 
@@ -921,6 +922,7 @@ app.post('/api/essay/generate-pdf', async (c) => {
       customInput, 
       learningStyle, 
       targetLevel,
+      lessonFormat,
       currentStep,
       message: message.substring(0, 50)
     })
@@ -1823,6 +1825,9 @@ ${targetLevel === 'high_school' ? `
       }
     } else if (currentStep === 2) {
       // ステップ2: 語彙力強化
+      // 授業形式チェック: vocabulary_focus の場合は集中的に実施
+      console.log(`📋 Step 2 - Lesson format: ${lessonFormat}`)
+      
       // 保存された模範解答を取得（デフォルト値を設定）
       const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
       
@@ -1969,7 +1974,12 @@ ${targetLevel === 'high_school' ? `
         }
         
         // すぐに語彙問題を表示
-        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n━━━━━━━━━━━━━━━━━━\n📝 回答方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n5つの言い換えをチャットで答えて、送信ボタンを押してください。\n\n＜方法2：手書き提出＞\n1️⃣ ノートに手書きで答える\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\n※ わからない場合は「パス」と入力すると解答例を見られます`
+        const vocabTitle = lessonFormat === 'vocabulary_focus' ? '【語彙力強化①】' : '【語彙力強化】'
+        const vocabSubtitle = lessonFormat === 'vocabulary_focus' 
+          ? '口語表現を小論文風に言い換える練習をしましょう（25分構成の1回目）。' 
+          : '口語表現を小論文風に言い換える練習をしましょう。'
+        
+        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n━━━━━━━━━━━━━━━━━━\n📝 回答方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n5つの言い換えをチャットで答えて、送信ボタンを押してください。\n\n＜方法2：手書き提出＞\n1️⃣ ノートに手書きで答える\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\n※ わからない場合は「パス」と入力すると解答例を見られます`
       }
       // 回答が短すぎる
       else {
@@ -1977,6 +1987,8 @@ ${targetLevel === 'high_school' ? `
       }
     } else if (currentStep === 3) {
       // ステップ3: 短文演習（AI添削付き）
+      // 授業形式チェック: short_essay_focus の場合は集中的に実施
+      console.log(`📋 Step 3 - Lesson format: ${lessonFormat}`)
       
       // 長い回答（200字以上）が送られてきた場合 → AI添削実行
       if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
@@ -2084,7 +2096,12 @@ ${targetLevel === 'high_school' ? `
           console.warn('⚠️ Using fallback short essay problem')
         }
         
-        response = `【短文演習】\n指定字数で短い小論文を書いてみましょう。\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n━━━━━━━━━━━━━━━━━━\n📝 提出方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n書き終えたら、この入力エリアに入力して送信してください。\n\n＜方法2：手書き提出＞\n1️⃣ 原稿用紙またはノートに手書き\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\nAIが添削します。`
+        const shortEssayTitle = lessonFormat === 'short_essay_focus' ? '【短文演習①】' : '【短文演習】'
+        const shortEssaySubtitle = lessonFormat === 'short_essay_focus'
+          ? '指定字数で短い小論文を書いてみましょう（30分構成の1回目）。'
+          : '指定字数で短い小論文を書いてみましょう。'
+        
+        response = `${shortEssayTitle}\n${shortEssaySubtitle}\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n━━━━━━━━━━━━━━━━━━\n📝 提出方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n書き終えたら、この入力エリアに入力して送信してください。\n\n＜方法2：手書き提出＞\n1️⃣ 原稿用紙またはノートに手書き\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\nAIが添削します。`
       }
       // 短すぎる回答
       else {
