@@ -45,6 +45,7 @@ import dashboardRoute from './routes/dashboard'  // Dashboard Route
 import staticRoutes from './routes/static'  // Static files (sitemap, robots, favicon)
 import flashcardRoutes from './routes/flashcard'  // Flashcard routes
 import essayCoachingRoutes from './routes/essay-coaching'  // Essay Coaching UI routes
+import essayAdminRoutes from './routes/essay-admin'  // Essay Admin Dashboard routes
 import adminRoutes from './routes/admin'  // Admin UI routes
 import aiChatRoutes from './routes/ai-chat'  // AI Chat UI routes
 import aiChatV2Routes from './routes/ai-chat-v2'  // AI Chat V2 UI routes
@@ -3279,6 +3280,7 @@ app.route('/flashcard', flashcardRoutes)
 
 // Essay Coaching UI Routes
 app.route('/essay-coaching', essayCoachingRoutes)
+app.route('/essay-admin', essayAdminRoutes)
 
 // Admin UI Routes
 app.route('/admin', adminRoutes)
