@@ -157,6 +157,7 @@ export class IntegratedQuestionGenerator {
     
     // 形式別の現実的な目標スコア
     // 応急処置Phase 2: grammar_fillの閾値をさらに緩和（85% → 70%）
+    // Phase 4A Update: 5級grammar_fillの閾値をさらに緩和（70% → 60%）
     const formatAdjustments: Record<QuestionFormat, number> = {
       'grammar_fill': -25,    // 短文だが語彙の自然な多様性を許容（95 → 70%）
       'opinion_speech': -5,   // 自然な表現必要（95 → 90%）
@@ -167,6 +168,12 @@ export class IntegratedQuestionGenerator {
     };
     
     baseThreshold += formatAdjustments[format] || 0;
+    
+    // 5級・4級のgrammar_fill特別調整（短文で初心者向けなので、さらに緩和）
+    if ((grade === '5' || grade === '4') && format === 'grammar_fill') {
+      baseThreshold -= 10;  // 70% → 60%
+      console.log(`[Threshold] Grade ${grade} grammar_fill: applying extra -10% adjustment (60% target)`);
+    }
     
     // Phase 4A: 注釈付き語彙ボーナス（学習効果が高いため、より多様な語彙を許容）
     if (hasVocabularyNotes) {
@@ -282,8 +289,8 @@ export class IntegratedQuestionGenerator {
     });
     console.log(`[Model Selection] ${selectedModel} - ${selectionReason}`);
 
-    // Step 3: 問題生成（最大3回リトライ）
-    const maxAttempts = 3;
+    // Step 3: 問題生成（最大5回リトライ - Phase 4A改善）
+    const maxAttempts = 5;
     let attempts = 0;
     let questionData: any = null;
     let vocabularyPassed = false;
@@ -316,12 +323,16 @@ export class IntegratedQuestionGenerator {
           continue; // 重複の場合は再生成
         }
 
-        // 検証2: 文法複雑さ（Phase 4B）
-        const grammarValidation = this.validateGrammar(questionData, request.grade);
-        if (!grammarValidation.passed) {
-          console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
-          console.log(`[Grammar Rejection] Violations: ${grammarValidation.violations.join(', ')}`);
-          continue;
+        // 検証2: 文法複雑さ（Phase 4B）- grammar_fill形式は除外
+        if (request.format !== 'grammar_fill') {
+          const grammarValidation = this.validateGrammar(questionData, request.grade);
+          if (!grammarValidation.passed) {
+            console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
+            console.log(`[Grammar Rejection] Violations: ${grammarValidation.violations.join(', ')}`);
+            continue;
+          }
+        } else {
+          console.log(`[Grammar Validation] Skipped for grammar_fill format`);
         }
 
         // 検証3: 語彙レベル（形式を渡して適応的閾値を使用）
