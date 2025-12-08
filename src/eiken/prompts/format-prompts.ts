@@ -120,9 +120,12 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
   }
 }
 
-## IMPORTANT: explanation field MUST be in JAPANESE
-- Write the explanation in Japanese (日本語)
-- Explain the grammar point clearly for Japanese learners
+## IMPORTANT: explanation field MUST be in JAPANESE using SCHOOL GRAMMAR TERMS
+- Write the explanation in Japanese (日本語) using Japanese school grammar terminology
+- Use terms like: 不定詞（名詞的用法）, 受動態（受け身）, 現在完了形, 三人称単数, 過去進行形, 比較級, 最上級, 関係代名詞, etc.
+- Format: 【文法項目名】パターン説明 → 具体的な解説
+- Example: 【受動態（受け身）】be + 過去分詞 → この文は「〜される」という意味で、動作を受ける側が主語になっています。
+- Explain the grammar point clearly for Japanese learners using familiar school terms
 - Include the meaning and reason for each choice
 
 ## Important Notes

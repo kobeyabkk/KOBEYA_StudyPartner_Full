@@ -21,6 +21,7 @@ import { getTargetCEFR } from './vocabulary-analyzer';
 import { VocabularyFailureTracker } from './vocabulary-tracker';
 import { validateGrammarComplexity } from '../config/grammar-constraints';
 import { VocabularyAnnotator } from './vocabulary-annotator';
+import { GrammarAnalyzer } from './grammar/grammar-analyzer';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -428,6 +429,44 @@ export class IntegratedQuestionGenerator {
     } catch (error) {
       console.error('[Vocabulary Annotation Error]', error);
       // アノテーション生成失敗は致命的エラーではない
+    }
+
+    // Step 3.6: 文法解説を生成（Phase 4A+）
+    try {
+      const grammarAnalyzer = new GrammarAnalyzer(this.db);
+      
+      // テキストを抽出（形式によって異なる）
+      let textToAnalyze = '';
+      if (questionData.question_text) {
+        textToAnalyze = questionData.question_text;
+      } else if (questionData.passage) {
+        textToAnalyze = questionData.passage;
+      } else if (questionData.essay_prompt) {
+        textToAnalyze = questionData.essay_prompt;
+      }
+      
+      if (textToAnalyze) {
+        console.log('[Grammar Analysis] Analyzing grammar patterns...');
+        const grammarAnalysis = await grammarAnalyzer.analyzeGrammar(
+          textToAnalyze,
+          request.grade
+        );
+        
+        if (grammarAnalysis.detected_patterns.length > 0) {
+          // 学校文法スタイルの解説を追加
+          questionData.grammar_explanation = grammarAnalysis.school_style_explanation;
+          questionData.grammar_patterns = grammarAnalysis.detected_patterns;
+          questionData.grammar_breakdown = grammarAnalysis.grammar_breakdown;
+          
+          console.log(`[Grammar Analysis] Detected ${grammarAnalysis.detected_patterns.length} grammar patterns`);
+          console.log(`[Grammar Analysis] Patterns: ${grammarAnalysis.detected_patterns.map(p => p.term_name_ja).join(', ')}`);
+        } else {
+          console.log('[Grammar Analysis] No specific grammar patterns detected');
+        }
+      }
+    } catch (error) {
+      console.error('[Grammar Analysis Error]', error);
+      // 文法解析失敗は致命的エラーではない
     }
 
     // Step 4: データベースに保存（production と practice の両方で保存）
