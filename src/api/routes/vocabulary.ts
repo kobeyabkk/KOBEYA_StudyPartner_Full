@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import { VocabularyService } from '../../handlers/vocabulary/vocabulary-service'
+import { SM2Algorithm } from '../../handlers/vocabulary/sm2-algorithm'
 
 type Bindings = {
   OPENAI_API_KEY: string
@@ -8,6 +10,7 @@ type Bindings = {
 }
 
 const router = new Hono<{ Bindings: Bindings }>()
+const vocabularyService = new VocabularyService()
 
 /**
  * GET /api/vocabulary/search?word=example
@@ -202,6 +205,233 @@ router.get('/stats', async (c) => {
     })
   } catch (error) {
     console.error('Stats error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
+// ========================================
+// 語彙ノート (Phase 4A) API
+// ========================================
+
+/**
+ * POST /api/vocabulary/notebook/add
+ * 語彙ノートに単語を追加
+ */
+router.post('/notebook/add', async (c) => {
+  try {
+    const { user_id, word_id, source_context, source_passage_id } = await c.req.json()
+
+    if (!user_id || !word_id) {
+      return c.json({ error: 'user_id and word_id are required' }, 400)
+    }
+
+    const progress = await vocabularyService.addWordToUserProgress(
+      c.env.DB,
+      user_id,
+      word_id,
+      source_context,
+      source_passage_id
+    )
+
+    return c.json({
+      success: true,
+      message: '語彙ノートに追加しました',
+      data: progress
+    })
+  } catch (error) {
+    console.error('Add to notebook error:', error)
+    return c.json({ 
+      error: 'Failed to add to notebook',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+/**
+ * POST /api/vocabulary/notebook/review
+ * 語彙の復習結果を記録
+ */
+router.post('/notebook/review', async (c) => {
+  try {
+    const { 
+      user_id, 
+      word_id, 
+      quality, 
+      response_time_ms,
+      eiken_grade,
+      days_until_exam
+    } = await c.req.json()
+
+    if (!user_id || !word_id || quality === undefined) {
+      return c.json({ 
+        error: 'user_id, word_id, and quality are required' 
+      }, 400)
+    }
+
+    if (quality < 0 || quality > 5) {
+      return c.json({ error: 'quality must be between 0 and 5' }, 400)
+    }
+
+    const progress = await vocabularyService.recordReview(
+      c.env.DB,
+      user_id,
+      word_id,
+      quality,
+      response_time_ms,
+      eiken_grade,
+      days_until_exam
+    )
+
+    return c.json({
+      success: true,
+      message: '復習結果を記録しました',
+      data: progress
+    })
+  } catch (error) {
+    console.error('Review recording error:', error)
+    return c.json({ 
+      error: 'Failed to record review',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+/**
+ * GET /api/vocabulary/notebook/due
+ * 今日復習すべき単語を取得
+ */
+router.get('/notebook/due', async (c) => {
+  try {
+    const user_id = c.req.query('user_id')
+    const limit = parseInt(c.req.query('limit') || '20', 10)
+
+    if (!user_id) {
+      return c.json({ error: 'user_id parameter is required' }, 400)
+    }
+
+    const dueWords = await vocabularyService.getDueWordsForToday(
+      c.env.DB,
+      user_id,
+      limit
+    )
+
+    return c.json({
+      success: true,
+      count: dueWords.length,
+      data: dueWords
+    })
+  } catch (error) {
+    console.error('Get due words error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
+/**
+ * GET /api/vocabulary/notebook/stats
+ * ユーザーの語彙学習統計
+ */
+router.get('/notebook/stats', async (c) => {
+  try {
+    const user_id = c.req.query('user_id')
+
+    if (!user_id) {
+      return c.json({ error: 'user_id parameter is required' }, 400)
+    }
+
+    const stats = await vocabularyService.getUserVocabularyStats(
+      c.env.DB,
+      user_id
+    )
+
+    return c.json({
+      success: true,
+      data: stats
+    })
+  } catch (error) {
+    console.error('Get user stats error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
+/**
+ * GET /api/vocabulary/notebook/entries
+ * ユーザーの語彙ノート一覧
+ */
+router.get('/notebook/entries', async (c) => {
+  try {
+    const user_id = c.req.query('user_id')
+    const limit = parseInt(c.req.query('limit') || '100', 10)
+    const offset = parseInt(c.req.query('offset') || '0', 10)
+
+    if (!user_id) {
+      return c.json({ error: 'user_id parameter is required' }, 400)
+    }
+
+    const results = await c.env.DB.prepare(`
+      SELECT 
+        vne.*,
+        vm.word, vm.pos, vm.definition_ja, vm.definition_en,
+        vm.cefr_level, vm.eiken_grade, vm.final_difficulty_score,
+        vm.example_sentences, vm.collocations
+      FROM vocabulary_notebook_entries vne
+      JOIN vocabulary_master vm ON vne.word_id = vm.id
+      WHERE vne.user_id = ?
+      ORDER BY vne.added_at DESC
+      LIMIT ? OFFSET ?
+    `).bind(user_id, limit, offset).all()
+
+    return c.json({
+      success: true,
+      count: results.results?.length || 0,
+      data: results.results
+    })
+  } catch (error) {
+    console.error('Get notebook entries error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
+/**
+ * GET /api/vocabulary/notebook/review-history
+ * ユーザーの復習履歴
+ */
+router.get('/notebook/review-history', async (c) => {
+  try {
+    const user_id = c.req.query('user_id')
+    const word_id = c.req.query('word_id')
+    const limit = parseInt(c.req.query('limit') || '50', 10)
+
+    if (!user_id) {
+      return c.json({ error: 'user_id parameter is required' }, 400)
+    }
+
+    let query = `
+      SELECT 
+        vrh.*,
+        vm.word, vm.definition_ja
+      FROM vocabulary_review_history vrh
+      JOIN vocabulary_master vm ON vrh.word_id = vm.id
+      WHERE vrh.user_id = ?
+    `
+    const params: any[] = [user_id]
+
+    if (word_id) {
+      query += ' AND vrh.word_id = ?'
+      params.push(parseInt(word_id, 10))
+    }
+
+    query += ' ORDER BY vrh.reviewed_at DESC LIMIT ?'
+    params.push(limit)
+
+    const results = await c.env.DB.prepare(query).bind(...params).all()
+
+    return c.json({
+      success: true,
+      count: results.results?.length || 0,
+      data: results.results
+    })
+  } catch (error) {
+    console.error('Get review history error:', error)
     return c.json({ error: 'Internal server error' }, 500)
   }
 })
