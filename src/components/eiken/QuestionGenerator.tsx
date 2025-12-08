@@ -75,7 +75,18 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
       }
     } catch (err) {
       console.error('❌ Failed to generate questions:', err);
-      alert('エラー: ' + (err instanceof Error ? err.message : String(err)));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      
+      // ユーザーフレンドリーなエラーメッセージ
+      let userMessage = errorMessage;
+      if (errorMessage.includes('Failed to generate valid question')) {
+        userMessage = '問題の生成に失敗しました。\n\n' +
+          '原因：語彙レベルや著作権の検証に通らなかった可能性があります。\n' +
+          '対処：もう一度「問題を生成する」ボタンを押してください。\n' +
+          '（2回目以降は成功する可能性が高いです）';
+      }
+      
+      alert('エラー: ' + userMessage);
     }
   };
 
