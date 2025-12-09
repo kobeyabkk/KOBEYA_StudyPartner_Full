@@ -319,6 +319,19 @@ export class IntegratedQuestionGenerator {
           questionText
         );
         
+        // Phase 5C: ログ記録
+        await this.logValidation({
+          student_id: request.student_id,
+          grade: request.grade,
+          format: request.format,
+          topic_code: blueprint.topic.topic_code,
+          attempt_number: attempts,
+          validation_stage: 'duplicate',
+          validation_passed: !isDuplicate,
+          model_used: selectedModel,
+          generation_mode: mode
+        });
+        
         if (isDuplicate) {
           console.log(`[Validation Failed] Duplicate question detected`);
           continue; // 重複の場合は再生成
@@ -327,6 +340,21 @@ export class IntegratedQuestionGenerator {
         // 検証2: 文法複雑さ（Phase 4B）- grammar_fill形式は除外
         if (request.format !== 'grammar_fill') {
           const grammarValidation = this.validateGrammar(questionData, request.grade);
+          
+          // Phase 5C: ログ記録
+          await this.logValidation({
+            student_id: request.student_id,
+            grade: request.grade,
+            format: request.format,
+            topic_code: blueprint.topic.topic_code,
+            attempt_number: attempts,
+            validation_stage: 'grammar',
+            validation_passed: grammarValidation.passed,
+            validation_details: { violations: grammarValidation.violations },
+            model_used: selectedModel,
+            generation_mode: mode
+          });
+          
           if (!grammarValidation.passed) {
             console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
             console.log(`[Grammar Rejection] Violations: ${grammarValidation.violations.join(', ')}`);
@@ -345,6 +373,20 @@ export class IntegratedQuestionGenerator {
         vocabularyPassed = vocabValidation.passed;
         vocabularyScore = vocabValidation.score;
 
+        // Phase 5C: ログ記録
+        await this.logValidation({
+          student_id: request.student_id,
+          grade: request.grade,
+          format: request.format,
+          topic_code: blueprint.topic.topic_code,
+          attempt_number: attempts,
+          validation_stage: 'vocabulary',
+          validation_passed: vocabularyPassed,
+          validation_details: { score: vocabularyScore, threshold: vocabValidation.threshold || 'N/A' },
+          model_used: selectedModel,
+          generation_mode: mode
+        });
+
         if (!vocabularyPassed) {
           console.log(`[Validation Failed] Vocabulary (score: ${vocabularyScore})`);
           continue;
@@ -358,6 +400,20 @@ export class IntegratedQuestionGenerator {
         copyrightPassed = copyrightValidation.passed;
         copyrightScore = copyrightValidation.score;
 
+        // Phase 5C: ログ記録
+        await this.logValidation({
+          student_id: request.student_id,
+          grade: request.grade,
+          format: request.format,
+          topic_code: blueprint.topic.topic_code,
+          attempt_number: attempts,
+          validation_stage: 'copyright',
+          validation_passed: copyrightPassed,
+          validation_details: { score: copyrightScore },
+          model_used: selectedModel,
+          generation_mode: mode
+        });
+
         if (!copyrightPassed) {
           console.log(`[Validation Failed] Copyright (score: ${copyrightScore})`);
           continue;
@@ -369,6 +425,23 @@ export class IntegratedQuestionGenerator {
           request.format,
           blueprint.guidelines.grammar_patterns[0] || 'unknown'
         );
+        
+        // Phase 5C: ログ記録
+        await this.logValidation({
+          student_id: request.student_id,
+          grade: request.grade,
+          format: request.format,
+          topic_code: blueprint.topic.topic_code,
+          attempt_number: attempts,
+          validation_stage: 'uniqueness',
+          validation_passed: uniquenessValidation.passed,
+          validation_details: uniquenessValidation.passed ? null : {
+            issue: uniquenessValidation.issue,
+            suggestion: uniquenessValidation.suggestion
+          },
+          model_used: selectedModel,
+          generation_mode: mode
+        });
         
         if (!uniquenessValidation.passed) {
           console.log(`[Validation Failed] Multiple correct answers detected`);
@@ -1640,5 +1713,144 @@ Return ONLY valid JSON:
     }
 
     return result;
+  }
+
+  /**
+   * Phase 5C: 検証ログの記録
+   * 
+   * ダッシュボード可視化のためにログをDBに記録
+   */
+  private async logValidation(params: {
+    student_id: string;
+    grade: EikenGrade;
+    format: QuestionFormat;
+    topic_code: string;
+    attempt_number: number;
+    validation_stage: 'duplicate' | 'grammar' | 'vocabulary' | 'copyright' | 'uniqueness';
+    validation_passed: boolean;
+    validation_details?: any;
+    model_used: string;
+    generation_mode: GenerationMode;
+  }): Promise<void> {
+    try {
+      await this.db
+        .prepare(`
+          INSERT INTO question_validation_logs (
+            student_id, grade, format, topic_code,
+            attempt_number, validation_stage, validation_passed,
+            validation_details, model_used, generation_mode
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          params.student_id,
+          params.grade,
+          params.format,
+          params.topic_code || null,
+          params.attempt_number,
+          params.validation_stage,
+          params.validation_passed ? 1 : 0,
+          params.validation_details ? JSON.stringify(params.validation_details) : null,
+          params.model_used,
+          params.generation_mode
+        )
+        .run();
+    } catch (error) {
+      console.error('[Validation Log Error]', error);
+      // ログ記録の失敗は致命的ではない
+    }
+  }
+
+  /**
+   * Phase 5C: セッション統計の更新
+   */
+  private async updateSessionStats(params: {
+    session_id: string;
+    student_id: string;
+    grade: EikenGrade;
+    format: QuestionFormat;
+    success: boolean;
+    failure_reason?: 'vocabulary' | 'copyright' | 'grammar' | 'uniqueness' | 'duplicate';
+    generation_time_ms: number;
+  }): Promise<void> {
+    try {
+      // セッションレコードが存在するか確認
+      const session = await this.db
+        .prepare(`SELECT * FROM generation_sessions WHERE session_id = ?`)
+        .bind(params.session_id)
+        .first();
+
+      if (!session) {
+        // 新規セッション作成
+        await this.db
+          .prepare(`
+            INSERT INTO generation_sessions (
+              session_id, student_id, grade, format,
+              total_attempts, successful_generations, failed_generations,
+              failed_vocabulary, failed_copyright, failed_grammar, failed_uniqueness, failed_duplicate,
+              total_generation_time_ms, average_generation_time_ms
+            ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .bind(
+            params.session_id,
+            params.student_id,
+            params.grade,
+            params.format,
+            params.success ? 1 : 0,
+            params.success ? 0 : 1,
+            params.failure_reason === 'vocabulary' ? 1 : 0,
+            params.failure_reason === 'copyright' ? 1 : 0,
+            params.failure_reason === 'grammar' ? 1 : 0,
+            params.failure_reason === 'uniqueness' ? 1 : 0,
+            params.failure_reason === 'duplicate' ? 1 : 0,
+            params.generation_time_ms,
+            params.generation_time_ms
+          )
+          .run();
+      } else {
+        // 既存セッション更新
+        const totalAttempts = (session.total_attempts as number) + 1;
+        const totalTime = (session.total_generation_time_ms as number) + params.generation_time_ms;
+        const avgTime = totalTime / totalAttempts;
+
+        const updates: any = {
+          total_attempts: totalAttempts,
+          total_generation_time_ms: totalTime,
+          average_generation_time_ms: avgTime,
+        };
+
+        if (params.success) {
+          updates.successful_generations = (session.successful_generations as number) + 1;
+        } else {
+          updates.failed_generations = (session.failed_generations as number) + 1;
+          
+          if (params.failure_reason === 'vocabulary') {
+            updates.failed_vocabulary = (session.failed_vocabulary as number) + 1;
+          } else if (params.failure_reason === 'copyright') {
+            updates.failed_copyright = (session.failed_copyright as number) + 1;
+          } else if (params.failure_reason === 'grammar') {
+            updates.failed_grammar = (session.failed_grammar as number) + 1;
+          } else if (params.failure_reason === 'uniqueness') {
+            updates.failed_uniqueness = (session.failed_uniqueness as number) + 1;
+          } else if (params.failure_reason === 'duplicate') {
+            updates.failed_duplicate = (session.failed_duplicate as number) + 1;
+          }
+        }
+
+        const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+        const values = Object.values(updates);
+
+        await this.db
+          .prepare(`
+            UPDATE generation_sessions 
+            SET ${setClause}, updated_at = datetime('now')
+            WHERE session_id = ?
+          `)
+          .bind(...values, params.session_id)
+          .run();
+      }
+    } catch (error) {
+      console.error('[Session Stats Error]', error);
+      // 統計更新の失敗は致命的ではない
+    }
   }
 }
