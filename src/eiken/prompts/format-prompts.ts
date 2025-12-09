@@ -102,9 +102,11 @@ export function buildGrammarFillPrompt(blueprint: Blueprint): string {
 
 **CRITICAL**: Use dialogue format to eliminate ambiguous answers!
 
-Format structure:
+Format structure (MUST use line break after A:):
 A: [Context/situation statement]
 B: [Response with blank _____]
+
+**CRITICAL**: In your JSON output, use actual newline character \\n between A: and B: lines!
 
 **Why dialogue format?**
 - Provides natural context automatically
@@ -112,9 +114,11 @@ B: [Response with blank _____]
 - Matches actual Eiken exam format
 - Makes grammar point unambiguous
 
-**GOOD Example** (Clear, unambiguous):
+**GOOD Example** (Clear, unambiguous - note the line break!):
 A: Look! Ms. Green is over there.
 B: Oh, _____ you say hello to her?
+
+In JSON: "question_text": "A: Look! Ms. Green is over there.\\nB: Oh, _____ you say hello to her?"
 
 Choices: Can, Do, Is, Are
 ✓ Answer: Can (ability question - context makes this clear)
@@ -197,7 +201,7 @@ Solutions:
 
 ## Output Format (JSON)
 {
-  "question_text": "${useDialogFormat ? 'A: [context]\nB: [sentence with _____]' : 'The sentence with _____ (blank)'}",
+  "question_text": "${useDialogFormat ? 'A: [context]\\nB: [sentence with _____] (MUST include \\\\n line break!)' : 'The sentence with _____ (blank)'}",
   "correct_answer": "the correct form",
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
@@ -224,12 +228,13 @@ ${getExplanationTerminologyGuide(blueprint.grade)}
 
 ## Important Notes
 - ONE blank per sentence only
-- ${useDialogFormat ? 'Use A/B dialogue format for natural context' : 'Provide clear context clues'}
+- ${useDialogFormat ? '**CRITICAL**: Use A/B dialogue format with actual line break (\\n) between speakers! Example: "A: text\\nB: text"' : 'Provide clear context clues'}
 - Distractors should be plausible but clearly wrong IN THIS CONTEXT
 - Use natural, authentic English
 - The sentence must relate to the topic: ${topic.topic_label_en}
 - MUST provide Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
-- **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!`;
+- **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!
+${useDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}`;
 }
 
 /**
