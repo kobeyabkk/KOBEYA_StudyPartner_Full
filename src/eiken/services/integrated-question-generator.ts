@@ -363,6 +363,21 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
+        // 検証5: 複数正解チェック（Phase 4C）- grammar_fill形式のみ
+        if (request.format === 'grammar_fill') {
+          const uniquenessValidation = await this.validateUniqueness(
+            questionData,
+            blueprint.guidelines.grammar_patterns[0] || 'unknown'
+          );
+          
+          if (!uniquenessValidation.passed) {
+            console.log(`[Validation Failed] Multiple correct answers detected`);
+            console.log(`  Issue: ${uniquenessValidation.issue}`);
+            console.log(`  Suggestion: ${uniquenessValidation.suggestion}`);
+            continue;
+          }
+        }
+
         // 全検証パス！
         console.log(`[Validation Passed] All checks passed on attempt ${attempts}`);
         break;
@@ -1142,6 +1157,127 @@ Always respond with valid JSON.`;
         new Date().toISOString()
       )
       .run();
+  }
+
+  /**
+   * Phase 4C: 複数正解チェック
+   * 
+   * 問題文に対して複数の選択肢が正解になりうるかAIで検証
+   * grammar_fill形式の曖昧性を排除するための最終防衛ライン
+   */
+  private async validateUniqueness(
+    questionData: any,
+    grammarPoint: string
+  ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
+    
+    const { question_text, correct_answer, distractors } = questionData;
+    
+    // 必須フィールドのチェック
+    if (!question_text || !correct_answer || !distractors) {
+      console.log('[Uniqueness Check] Skipped - missing required fields');
+      return { passed: true };
+    }
+    
+    const allOptions = [correct_answer, ...distractors].filter(Boolean);
+    
+    if (allOptions.length < 2) {
+      console.log('[Uniqueness Check] Skipped - insufficient options');
+      return { passed: true };
+    }
+
+    const validationPrompt = `You are an English grammar expert. Analyze this Eiken grammar question for ambiguity.
+
+Question: "${question_text}"
+Stated correct answer: "${correct_answer}"
+All options: ${allOptions.join(', ')}
+Target grammar: "${grammarPoint}"
+
+Task: Determine if MULTIPLE options are grammatically correct in this context.
+
+Analysis criteria:
+1. Is each option grammatically valid in this sentence?
+2. Does the context make the answer unambiguous?
+3. Could a native speaker reasonably choose a different answer?
+
+Examples of PROBLEMS to detect:
+
+❌ AMBIGUOUS (reject):
+Q: "_____ you say hello to her?"
+Options: Can, Do, Is, Are
+Problem: Both "Can" (ability) and "Do" (habit) are grammatically correct without context
+Result: {"is_ambiguous": true, "potentially_correct": ["Can", "Do"]}
+
+❌ AMBIGUOUS (reject):
+Q: "I _____ play soccer every weekend."
+Options: usually, always, play, often
+Problem: Multiple adverbs work, and "play" creates duplicate
+Result: {"is_ambiguous": true, "potentially_correct": ["usually", "always", "often"]}
+
+✅ CLEAR (accept):
+Q: "A: Look! Ms. Green is over there.\\nB: Oh, _____ you say hello to her?"
+Options: Can, Do, Is, Are
+Clear: "Can" is natural (ability), "Do" is unnatural in this excited context
+Result: {"is_ambiguous": false, "potentially_correct": ["Can"]}
+
+✅ CLEAR (accept):
+Q: "Yesterday, I _____ to the park."
+Options: go, goes, went, going
+Clear: "Yesterday" requires past tense, only "went" works
+Result: {"is_ambiguous": false, "potentially_correct": ["went"]}
+
+Return ONLY valid JSON (no markdown, no explanation outside JSON):
+{
+  "is_ambiguous": boolean,
+  "potentially_correct": ["option1", "option2"],
+  "issue": "brief description if ambiguous",
+  "suggestion": "how to fix (add context, change options, use dialogue format)"
+}`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: validationPrompt }],
+          temperature: 0.2,
+          response_format: { type: 'json_object' }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('[Uniqueness Check] API Error:', response.statusText);
+        // API エラー時は通過させる（既存の挙動を維持）
+        return { passed: true };
+      }
+
+      const data = await response.json();
+      const result = JSON.parse(data.choices[0].message.content || '{}');
+      
+      if (result.is_ambiguous) {
+        console.log(`[Uniqueness Check Failed] ✗`);
+        console.log(`  Potentially correct: ${result.potentially_correct?.join(', ')}`);
+        console.log(`  Issue: ${result.issue}`);
+        console.log(`  Suggestion: ${result.suggestion}`);
+        
+        return {
+          passed: false,
+          issue: result.issue,
+          suggestion: result.suggestion
+        };
+      }
+
+      console.log(`[Uniqueness Check Passed] ✓`);
+      return { passed: true };
+
+    } catch (error) {
+      console.error('[Uniqueness Check Error]', error);
+      // エラー時は通過させる（既存の挙動を維持）
+      return { passed: true };
+    }
   }
 
   /**

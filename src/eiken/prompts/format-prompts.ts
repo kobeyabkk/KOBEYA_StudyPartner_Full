@@ -77,11 +77,85 @@ Additionally, disproportionate smartphone engagement diminishes opportunities fo
 
 /**
  * 文法穴埋め問題のプロンプト生成
+ * Phase 4C: Dialogue format for unambiguous questions
  */
 export function buildGrammarFillPrompt(blueprint: Blueprint): string {
   const { topic, guidelines, instructions } = blueprint;
   const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
   
+  // 会話形式に適した文法項目を判定
+  const dialogSuitableGrammar = [
+    'can', 'will', 'should', 'must', 'may', 'would', 'could',
+    'present simple', 'past simple', 'future', 'going to',
+    'present continuous', 'past continuous',
+    'questions', 'negatives', 'modals'
+  ];
+  
+  const grammarPatternStr = guidelines.grammar_patterns.join(' ').toLowerCase();
+  const useDialogFormat = dialogSuitableGrammar.some(pattern => 
+    grammarPatternStr.includes(pattern)
+  );
+  
+  const formatInstruction = useDialogFormat 
+    ? `
+## 🎯 QUESTION FORMAT: A/B Dialogue (Eiken Exam Standard)
+
+**CRITICAL**: Use dialogue format to eliminate ambiguous answers!
+
+Format structure:
+A: [Context/situation statement]
+B: [Response with blank _____]
+
+**Why dialogue format?**
+- Provides natural context automatically
+- Eliminates multiple correct answers
+- Matches actual Eiken exam format
+- Makes grammar point unambiguous
+
+**GOOD Example** (Clear, unambiguous):
+A: Look! Ms. Green is over there.
+B: Oh, _____ you say hello to her?
+
+Choices: Can, Do, Is, Are
+✓ Answer: Can (ability question - context makes this clear)
+✗ "Do" would be unnatural in this context ("Oh, do you..." sounds wrong)
+
+**BAD Example** (Ambiguous - DO NOT CREATE):
+_____ you say hello to her?
+
+Choices: Can, Do, Is, Are
+Problem: Both "Can" (ability) and "Do" (habit) are grammatically correct!
+This creates confusion and multiple valid answers.
+
+**Rules for creating dialogue**:
+1. Speaker A provides situation/context
+2. Speaker B's response contains the blank
+3. Context must make only ONE answer natural
+4. Test grammar naturally through conversation
+5. Both speakers use appropriate ${blueprint.grade} level language
+
+**Context examples for different grammar**:
+- Can (ability): "Look! Ms. Green..." → Natural ability question
+- Will (future): "Tomorrow is Sunday..." → Natural future plan
+- Present continuous: "Where is Tom?" → Natural "He is playing..."
+- Past simple: "What did you do yesterday?" → Natural past response
+`
+    : `
+## 🎯 QUESTION FORMAT: Standard Sentence with Context
+
+**IMPORTANT**: Add context to eliminate ambiguous answers!
+
+If a question could have multiple correct answers:
+- Add a context sentence BEFORE the question
+- Make sure context clarifies which grammar is tested
+- Ensure only ONE answer is both grammatically AND contextually correct
+
+Example:
+Context: "Tom is learning to swim but he's still a beginner."
+Question: He _____ swim 50 meters yet.
+Answer: can't (context makes negative ability clear)
+`;
+
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
 
 ## Task
@@ -104,9 +178,26 @@ ${grammarInstructions}
 Target one of these grammar patterns:
 ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
 
+${formatInstruction}
+
+## 🚨 CRITICAL: Prevent Multiple Correct Answers
+
+**Your question MUST have EXACTLY ONE correct answer!**
+
+Common mistakes to avoid:
+❌ "_____ you like pizza?" (Both "Do" and "Would" work)
+❌ "She _____ to school." (Both "goes" and "went" could work)
+❌ "I _____ play soccer every weekend." (Both "usually" and nothing work)
+
+Solutions:
+✓ Use dialogue format (recommended for ${blueprint.grade})
+✓ Add time markers: "yesterday", "every day", "tomorrow"
+✓ Add context that specifies the grammar
+✓ Make sure distractors are clearly wrong in THIS context
+
 ## Output Format (JSON)
 {
-  "question_text": "The sentence with _____ (blank)",
+  "question_text": "${useDialogFormat ? 'A: [context]\nB: [sentence with _____]' : 'The sentence with _____ (blank)'}",
   "correct_answer": "the correct form",
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
@@ -130,11 +221,12 @@ ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
 
 ## Important Notes
 - ONE blank per sentence only
-- Provide clear context clues
-- Distractors should be plausible but clearly wrong
+- ${useDialogFormat ? 'Use A/B dialogue format for natural context' : 'Provide clear context clues'}
+- Distractors should be plausible but clearly wrong IN THIS CONTEXT
 - Use natural, authentic English
 - The sentence must relate to the topic: ${topic.topic_label_en}
-- MUST provide Japanese meanings for ALL vocabulary choices (correct answer + all distractors)`;
+- MUST provide Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
+- **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!`;
 }
 
 /**
