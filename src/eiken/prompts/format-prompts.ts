@@ -7,7 +7,7 @@
  */
 
 import type { Blueprint, EikenGrade } from '../types';
-import { getGrammarPromptInstructions } from '../config/grammar-constraints';
+import { getGrammarPromptInstructions, getExplanationTerminologyGuide } from '../config/grammar-constraints';
 
 // ====================
 // Few-shot Examples for Vocabulary Control
@@ -211,13 +211,16 @@ Solutions:
   }
 }
 
-## IMPORTANT: explanation field MUST be in JAPANESE using SCHOOL GRAMMAR TERMS
-- Write the explanation in Japanese (日本語) using Japanese school grammar terminology
-- Use terms like: 不定詞（名詞的用法）, 受動態（受け身）, 現在完了形, 三人称単数, 過去進行形, 比較級, 最上級, 関係代名詞, etc.
+## IMPORTANT: explanation field MUST be in JAPANESE using APPROPRIATE GRADE-LEVEL TERMS
+
+${getExplanationTerminologyGuide(blueprint.grade)}
+
 - Format: 【文法項目名】パターン説明 → 具体的な解説
-- Example: 【受動態（受け身）】be + 過去分詞 → この文は「〜される」という意味で、動作を受ける側が主語になっています。
-- Explain the grammar point clearly for Japanese learners using familiar school terms
+- Example for grade 3+: 【受動態（受け身）】be + 過去分詞 → この文は「〜される」という意味で、動作を受ける側が主語になっています。
+- Example for grade 5: 【be動詞+〜ing】→ この文は「〜しています」という意味です。Tom is playing soccerは「トムはサッカーをしています」となります。
+- Explain the grammar point clearly for Japanese learners
 - Include the meaning and reason for each choice
+- **CRITICAL**: Use age-appropriate terminology as specified in the guide above!
 
 ## Important Notes
 - ONE blank per sentence only
@@ -265,9 +268,14 @@ ${instructions.prompt_template}
   "explanation": "良い回答のポイント（日本語で詳しく説明）"
 }
 
-## IMPORTANT: explanation field MUST be in JAPANESE
-- Write the explanation in Japanese (日本語)
+## IMPORTANT: explanation field MUST be in JAPANESE using APPROPRIATE GRADE-LEVEL TERMS
+
+${getExplanationTerminologyGuide(blueprint.grade)}
+
 - Explain what makes a good answer for Japanese learners
+- Use age-appropriate language as specified in the guide above
+- Avoid overly complex grammatical terminology
+- Focus on practical speaking tips rather than abstract theory
 
 ## Important Notes
 - The question should allow multiple viewpoints
@@ -515,9 +523,16 @@ ${instructions.prompt_template}
 - Questions test different skills (main idea, details, inference)
 - All information needed to answer must be in the passage
 - Topic: ${topic.topic_label_en}
-- **CRITICAL**: explanation field MUST be in JAPANESE (日本語)
+- **CRITICAL**: explanation field MUST be in JAPANESE (日本語) using APPROPRIATE GRADE-LEVEL TERMS
 - For each question, explanation MUST cover why the correct answer is right AND why each wrong choice is incorrect
 - **MUST include 5-8 vocabulary notes** for key terms that appear in the passage
+
+${getExplanationTerminologyGuide(blueprint.grade)}
+
+**IMPORTANT for explanations**:
+- Use age-appropriate language as specified in the guide above
+- Avoid overly complex grammatical terminology
+- Focus on "what it means" and "when to use it" rather than abstract definitions
 
 ## 🚨 FINAL WARNING (Phase 3)
 
@@ -648,7 +663,15 @@ ${instructions.prompt_template}
 - Appropriate difficulty for ${blueprint.grade} level
 - Topic: ${topic.topic_label_en}
 - **MUST include 3-5 vocabulary notes** for key terms in the essay prompt or sample essay
-- **REMEMBER**: Simple vocabulary + clear structure = GOOD essay. Complex vocabulary = REJECTED essay`;
+- **REMEMBER**: Simple vocabulary + clear structure = GOOD essay. Complex vocabulary = REJECTED essay
+
+${getExplanationTerminologyGuide(blueprint.grade)}
+
+**IMPORTANT for guidance and explanations**:
+- Use age-appropriate language as specified in the guide above
+- Explain writing strategies in simple terms
+- Avoid overly technical grammatical terminology in outline_guidance
+- Focus on "what to write" and "how to structure" rather than abstract writing theory`;
 }
 
 /**
