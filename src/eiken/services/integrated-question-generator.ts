@@ -450,6 +450,35 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
+        // 検証6: 4ブロック解説形式チェック（Phase 6）- grammar_fill のみ
+        if (request.format === 'grammar_fill' && questionData.explanation) {
+          const explanationValidation = this.validate4BlockExplanation(questionData.explanation, request.grade);
+          
+          // Phase 5C: ログ記録
+          await this.logValidation({
+            student_id: request.student_id,
+            grade: request.grade,
+            format: request.format,
+            topic_code: blueprint.topic.topic_code,
+            attempt_number: attempts,
+            validation_stage: 'explanation_format',
+            validation_passed: explanationValidation.valid,
+            validation_details: explanationValidation.valid ? null : {
+              issues: explanationValidation.issues
+            },
+            model_used: selectedModel,
+            generation_mode: mode
+          });
+          
+          if (!explanationValidation.valid) {
+            console.log(`[Validation Warning] 4-block explanation format incomplete`);
+            console.log(`  Issues: ${explanationValidation.issues.join(', ')}`);
+            // 警告のみで続行（必須ではない）
+          } else {
+            console.log(`[Validation Passed] 4-block explanation format correct`);
+          }
+        }
+
         // 全検証パス！
         console.log(`[Validation Passed] All checks passed on attempt ${attempts}`);
         break;
@@ -1697,6 +1726,67 @@ Return ONLY valid JSON:
    * 
    * 級別の文法制約に違反していないかチェック
    */
+  /**
+   * Phase 6: 4ブロック解説形式の検証
+   */
+  private validate4BlockExplanation(
+    explanation: string,
+    grade: EikenGrade
+  ): {
+    valid: boolean;
+    has_focus_points: boolean;
+    has_rule: boolean;
+    has_application: boolean;
+    has_wrong_reasons: boolean;
+    issues: string[];
+  } {
+    const issues: string[] = [];
+    
+    // 4ブロックの存在チェック
+    const hasFocusPoints = explanation.includes('＜着眼点＞') || explanation.includes('<着眼点>');
+    const hasRule = explanation.includes('＜鉄則') || explanation.includes('＜Point') || 
+                    explanation.includes('<鉄則') || explanation.includes('<Point');
+    const hasApplication = explanation.includes('＜当てはめ＞') || explanation.includes('<当てはめ>');
+    const hasWrongReasons = explanation.includes('＜誤答の理由＞') || explanation.includes('<誤答の理由>');
+    
+    if (!hasFocusPoints) issues.push('＜着眼点＞ブロックなし');
+    if (!hasRule) issues.push('＜鉄則/Point＞ブロックなし');
+    if (!hasApplication) issues.push('＜当てはめ＞ブロックなし');
+    if (!hasWrongReasons) issues.push('＜誤答の理由＞ブロックなし');
+    
+    // NG フレーズチェック
+    const ngPhrases = [
+      { phrase: '未来を表す文なので will を使います', reason: 'ルールが不明確' },
+      { phrase: 'if の後には動詞の原形を使います', reason: '誤った情報' },
+      { phrase: 'なんとなく', reason: '感覚的すぎる' },
+    ];
+    
+    for (const ng of ngPhrases) {
+      if (explanation.includes(ng.phrase)) {
+        issues.push(`NGフレーズ: "${ng.phrase}" (${ng.reason})`);
+      }
+    }
+    
+    const valid = hasFocusPoints && hasRule && hasApplication && hasWrongReasons && issues.length === 0;
+    
+    console.log('[4-Block Validation]', {
+      hasFocusPoints,
+      hasRule,
+      hasApplication,
+      hasWrongReasons,
+      issues
+    });
+    
+    return {
+      valid,
+      has_focus_points: hasFocusPoints,
+      has_rule: hasRule,
+      has_application: hasApplication,
+      has_wrong_reasons: hasWrongReasons,
+      issues
+    };
+  }
+
   private validateGrammar(
     questionData: any,
     grade: EikenGrade

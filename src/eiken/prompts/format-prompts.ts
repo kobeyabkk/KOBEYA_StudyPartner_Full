@@ -221,12 +221,30 @@ Solutions:
 
 ${getExplanationTerminologyGuide(blueprint.grade)}
 
-- Format: 【文法項目名】パターン説明 → 具体的な解説
-- Example for grade 3+: 【受動態（受け身）】be + 過去分詞 → この文は「〜される」という意味で、動作を受ける側が主語になっています。
-- Example for grade 5: 【be動詞+〜ing】→ この文は「〜しています」という意味です。Tom is playing soccerは「トムはサッカーをしています」となります。
-- Explain the grammar point clearly for Japanese learners
-- Include the meaning and reason for each choice
-- **CRITICAL**: Use age-appropriate terminology as specified in the guide above!
+## 🏫 CRITICAL: Use 4-Block Teacher-Style Explanation Format
+
+Your explanation MUST follow this structure:
+
+**＜着眼点＞**
+Point out key hints in the question (keywords, time markers, context clues)
+Example: "if（もし〜なら）と tomorrow（明日）があるので、『未来の条件』の文です。"
+
+**＜${blueprint.grade === '5' || blueprint.grade === '4' ? 'Point！' : '鉄則！'}＞**
+State the grammar rule clearly and concisely (1-2 sentences)
+Example: "時・条件の副詞節（if / when など）では、未来のことでも現在形を使います。"
+
+**＜当てはめ＞**
+Apply the rule to this specific question
+Example: "if の中は現在形にするので、主語が it（3単現）なので、rains になります。"
+
+**＜誤答の理由＞**
+Explain why each wrong choice is incorrect (one line per choice, end with ×)
+Example: "rain：動詞の原形。3単現のsがついていないので ×"
+
+**CRITICAL**: 
+- Use age-appropriate terminology as specified in the guide above!
+- DO NOT use vague phrases like "未来を表す文なので will を使います" without explaining the rule
+- DO specify grammar forms: 動詞の原形、過去形、現在進行形、3単現のs, etc.
 
 ## Important Notes
 - ONE blank per sentence only
