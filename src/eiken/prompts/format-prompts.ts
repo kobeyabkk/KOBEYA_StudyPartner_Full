@@ -78,8 +78,12 @@ Additionally, disproportionate smartphone engagement diminishes opportunities fo
 /**
  * 文法穴埋め問題のプロンプト生成
  * Phase 4C: Dialogue format for unambiguous questions
+ * Phase 6 Part 3: Answer diversity tracking
  */
-export function buildGrammarFillPrompt(blueprint: Blueprint): string {
+export function buildGrammarFillPrompt(
+  blueprint: Blueprint,
+  diversityGuidance?: string
+): string {
   const { topic, guidelines, instructions } = blueprint;
   const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
   
@@ -181,6 +185,8 @@ ${grammarInstructions}
 ## Grammar Focus
 Target one of these grammar patterns:
 ${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
+
+${diversityGuidance || ''}
 
 ${formatInstruction}
 
@@ -713,11 +719,15 @@ ${getExplanationTerminologyGuide(blueprint.grade)}
 
 /**
  * Blueprint に基づいて適切なプロンプトを選択
+ * Phase 6 Part 3: Answer diversity tracking support
  */
-export function buildPromptForBlueprint(blueprint: Blueprint): string {
+export function buildPromptForBlueprint(
+  blueprint: Blueprint,
+  diversityGuidance?: string
+): string {
   switch (blueprint.format) {
     case 'grammar_fill':
-      return buildGrammarFillPrompt(blueprint);
+      return buildGrammarFillPrompt(blueprint, diversityGuidance);
     case 'opinion_speech':
       return buildOpinionSpeechPrompt(blueprint);
     case 'reading_aloud':

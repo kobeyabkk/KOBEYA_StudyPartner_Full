@@ -22,6 +22,7 @@ import { VocabularyFailureTracker } from './vocabulary-tracker';
 import { validateGrammarComplexity } from '../config/grammar-constraints';
 import { VocabularyAnnotator } from './vocabulary-annotator';
 import { GrammarAnalyzer } from './grammar/grammar-analyzer';
+import { getAnswerDiversityTracker } from './answer-diversity-tracker';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -619,6 +620,17 @@ export class IntegratedQuestionGenerator {
       request.session_id
     );
 
+    // Step 6: Phase 6 Part 3 - 正解を多様性トラッカーに記録（grammar_fill のみ）
+    if (request.format === 'grammar_fill' && questionData.correct_answer) {
+      const diversityTracker = getAnswerDiversityTracker();
+      diversityTracker.addAnswer(
+        questionData.correct_answer,
+        request.grade,
+        request.session_id
+      );
+      console.log(`[Diversity] Tracked answer: "${questionData.correct_answer}" for grade ${request.grade}`);
+    }
+
     const endTime = Date.now();
     console.log(`[Question Generation] Completed in ${endTime - startTime}ms`);
 
@@ -679,8 +691,19 @@ export class IntegratedQuestionGenerator {
     
     console.log(`[LLM] Using ${forbiddenWords.length} forbidden words (${recentViolations.length} from recent failures)`);
     
+    // Phase 6 Part 3: 正解の多様性ガイダンスを取得（grammar_fill のみ）
+    let diversityGuidance: string | undefined;
+    if (blueprint.format === 'grammar_fill') {
+      const diversityTracker = getAnswerDiversityTracker();
+      diversityGuidance = diversityTracker.getDiversityGuidance(blueprint.grade);
+      
+      if (diversityGuidance) {
+        console.log(`[Diversity] Adding diversity guidance to prompt`);
+      }
+    }
+    
     // ベースプロンプトを生成
-    const basePrompt = buildPromptForBlueprint(blueprint);
+    const basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
     
     // 追加の禁止語コンテキストを構築
     const forbiddenWordsContext = recentViolations.length > 0
