@@ -79,6 +79,8 @@ export interface GeneratedQuestion {
   choices: string[];
   correctAnswerIndex: number;
   explanation: string;
+  translation_ja?: string; // Phase 5F: 問題文の日本語訳
+  vocabulary_meanings?: Record<string, string>; // Phase 5F: 重要語句の意味
   difficulty: number;
   topic: string;
   copyrightSafe: boolean;
@@ -260,6 +262,8 @@ function convertPhase3ToLegacyMulti(question: Phase3Question): GeneratedQuestion
         choices: choices.map((c: string) => c.replace(/^[A-Z]\)\s*/, '')), // "A) Math" → "Math"
         correctAnswerIndex,
         explanation: q.explanation || '',
+        translation_ja: q.translation_ja || questionData.passage_ja, // Phase 5F: 日本語訳
+        vocabulary_meanings: questionData.vocabulary_meanings || q.vocabulary_meanings, // Phase 5F: 語句解説
         difficulty: 0.6,
         topic: question.format,
         copyrightSafe: true,
@@ -338,6 +342,8 @@ function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
     choices,
     correctAnswerIndex,
     explanation,
+    translation_ja: questionData.translation_ja, // Phase 5F: 問題文の日本語訳
+    vocabulary_meanings: questionData.vocabulary_meanings, // Phase 5F: 重要語句の意味
     difficulty: 0.6,
     topic: question.format,
     copyrightSafe: true,
