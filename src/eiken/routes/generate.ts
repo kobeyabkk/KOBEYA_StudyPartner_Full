@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono';
 import type { EikenEnv, EikenGrade, QuestionType } from '../types';
+import { AnswerDiversityManager } from '../services/answer-diversity-manager';
 
 const generate = new Hono<{ Bindings: EikenEnv }>();
 
@@ -104,9 +105,14 @@ generate.post('/', async (c) => {
     
     console.log(`🎯 Generating ${count} questions for Grade ${grade}, Section: ${section}`);
     
+    // Phase 6.5: 正解分散マネージャーを初期化
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const diversityManager = new AnswerDiversityManager(db);
+    await diversityManager.initializeSession(sessionId, grade);
+    
     // AI問題生成
     const generated: GeneratedQuestion[] = [];
-    const maxAttempts = count * 2; // 最大試行回数
+    const maxAttempts = count * 3; // 最大試行回数（分散フィルタのため増加）
     let attempts = 0;
     let rejected = 0;
     
@@ -116,6 +122,9 @@ generate.post('/', async (c) => {
       try {
         console.log(`🔄 Attempt ${attempts}/${maxAttempts}: Generating question...`);
         
+        // Phase 6.5: 正解分散の指示をプロンプトに追加
+        const diversityInstruction = diversityManager.getAnswerDiversityInstruction(sessionId);
+        
         const question = await generateSingleQuestion(
           grade,
           section,
@@ -123,17 +132,35 @@ generate.post('/', async (c) => {
           difficulty,
           topicHints,
           openaiApiKey,
-          c.env
+          c.env,
+          diversityInstruction
         );
+        
+        // Phase 6.5: 正解選択肢が偏っていないかチェック
+        const correctAnswer = question.choices[question.correctAnswerIndex];
+        if (diversityManager.shouldAvoidAnswer(sessionId, correctAnswer)) {
+          console.log(`⚠️ Answer diversity check failed for: "${correctAnswer}" - regenerating...`);
+          rejected++;
+          continue; // この問題をスキップして再生成
+        }
+        
+        // Phase 6.5: 正解選択肢を記録
+        await diversityManager.recordAnswer(sessionId, correctAnswer, grade);
         
         // 生成成功
         generated.push(question);
-        console.log(`✅ Question ${generated.length} generated successfully`);
+        console.log(`✅ Question ${generated.length} generated successfully (answer: "${correctAnswer}")`);
         
       } catch (error) {
         rejected++;
         console.log(`❌ Question rejected: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    }
+    
+    // Phase 6.5: 正解分散の統計情報をログ出力
+    const diversityStats = diversityManager.getStatistics(sessionId);
+    if (diversityStats) {
+      console.log(`📊 Answer diversity stats:`, diversityStats);
     }
     
     // 生成結果が0件の場合はエラー
@@ -179,7 +206,8 @@ async function generateSingleQuestion(
   difficulty: number,
   topicHints: string[],
   apiKey: string,
-  env?: EikenEnv
+  env?: EikenEnv,
+  diversityInstruction?: string
 ): Promise<GeneratedQuestion> {
   
   const topicHint = topicHints.length > 0 ? topicHints[Math.floor(Math.random() * topicHints.length)] : '';
@@ -197,6 +225,8 @@ Difficulty level: ${Math.round(difficulty * 100)}%
 Request ID: ${randomSeed}-${timestamp}
 
 IMPORTANT: Create a completely DIFFERENT question from any previous ones. Be creative and vary the vocabulary, grammar patterns, and contexts.
+
+${diversityInstruction || ''}
 
 Requirements:
 1. Question must be appropriate for EIKEN Grade ${grade} level
