@@ -7,7 +7,10 @@
 import { useState, useEffect } from 'react';
 import type { ValidationStats } from '../../../api/validation-dashboard/stats';
 
+import { ThresholdSettings } from './ThresholdSettings';
+
 export function ValidationDashboard() {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
   const [stats, setStats] = useState<ValidationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +75,38 @@ export function ValidationDashboard() {
             英検問題生成システムの検証ログをリアルタイムで監視
           </p>
         </div>
+
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'dashboard'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              統計ダッシュボード
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'settings'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              閾値設定
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'settings' ? (
+          <ThresholdSettings />
+        ) : (
+          <>
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -206,6 +241,8 @@ export function ValidationDashboard() {
           <h2 className="text-xl font-semibold mb-4">時系列推移</h2>
           <TimelineChart timeline={stats.timeline} />
         </div>
+        </>
+        )}
       </div>
     </div>
   );
