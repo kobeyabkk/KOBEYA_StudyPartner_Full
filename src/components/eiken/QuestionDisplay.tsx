@@ -647,14 +647,14 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 </h4>
                 
                 {/* 問題文の日本語訳 */}
-                {(currentQuestion as any).translation_ja && (
+                {((currentQuestion as any).translation_ja || (currentQuestion as any).translationJa) && (
                   <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <h5 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                       <span>🌐</span>
                       <span>問題文の意味</span>
                     </h5>
                     <p className="text-blue-800 whitespace-pre-wrap">
-                      {(currentQuestion as any).translation_ja}
+                      {(currentQuestion as any).translation_ja || (currentQuestion as any).translationJa}
                     </p>
                   </div>
                 )}
@@ -684,7 +684,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                     <span>文法解説</span>
                   </h5>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {currentQuestion.explanation}
+                    {currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation}
                   </p>
                 </div>
               </div>

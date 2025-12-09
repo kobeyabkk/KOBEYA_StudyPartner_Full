@@ -79,7 +79,10 @@ export interface GeneratedQuestion {
   choices: string[];
   correctAnswerIndex: number;
   explanation: string;
+  explanation_ja?: string; // Phase 6 Part 2: 4ブロック形式の日本語解説
+  explanationJa?: string; // Phase 6 Part 2: 4ブロック形式の日本語解説 (alias)
   translation_ja?: string; // Phase 5F: 問題文の日本語訳
+  translationJa?: string; // Phase 5F: 問題文の日本語訳 (alias)
   vocabulary_meanings?: Record<string, string>; // Phase 5F: 重要語句の意味
   difficulty: number;
   topic: string;
