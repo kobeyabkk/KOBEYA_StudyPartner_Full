@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import type { EikenEnv, EikenGrade, QuestionType } from '../types';
 import { AnswerDiversityManager } from '../services/answer-diversity-manager';
+import { GrammarCategoryManager } from '../services/grammar-category-manager';
 
 const generate = new Hono<{ Bindings: EikenEnv }>();
 
@@ -110,9 +111,13 @@ generate.post('/', async (c) => {
     const diversityManager = new AnswerDiversityManager(db);
     await diversityManager.initializeSession(sessionId, grade);
     
+    // Phase 6.7: 文法カテゴリー分散マネージャーを初期化
+    const categoryManager = new GrammarCategoryManager(db);
+    await categoryManager.initializeSession(sessionId, grade);
+    
     // AI問題生成
     const generated: GeneratedQuestion[] = [];
-    const maxAttempts = count * 3; // 最大試行回数（分散フィルタのため増加）
+    const maxAttempts = count * 4; // 最大試行回数（Phase 6.7でさらに増加）
     let attempts = 0;
     let rejected = 0;
     
@@ -125,6 +130,9 @@ generate.post('/', async (c) => {
         // Phase 6.5: 正解分散の指示をプロンプトに追加
         const diversityInstruction = diversityManager.getAnswerDiversityInstruction(sessionId);
         
+        // Phase 6.7: 文法カテゴリー分散の指示を追加
+        const categoryInstruction = categoryManager.getCategoryInstruction(sessionId);
+        
         const question = await generateSingleQuestion(
           grade,
           section,
@@ -133,7 +141,7 @@ generate.post('/', async (c) => {
           topicHints,
           openaiApiKey,
           c.env,
-          diversityInstruction
+          diversityInstruction + categoryInstruction
         );
         
         // Phase 6.5: 正解選択肢が偏っていないかチェック
@@ -144,12 +152,28 @@ generate.post('/', async (c) => {
           continue; // この問題をスキップして再生成
         }
         
+        // Phase 6.7: 文法カテゴリーが偏っていないかチェック
+        const detectedCategory = categoryManager.detectCategory(
+          question.questionText,
+          question.choices
+        );
+        console.log(`📝 Detected grammar category: "${detectedCategory}"`);
+        
+        if (categoryManager.shouldAvoidCategory(sessionId, detectedCategory)) {
+          console.log(`⚠️ Grammar category diversity check failed for: "${detectedCategory}" - regenerating...`);
+          rejected++;
+          continue; // この問題をスキップして再生成
+        }
+        
         // Phase 6.5: 正解選択肢を記録
         await diversityManager.recordAnswer(sessionId, correctAnswer, grade);
         
+        // Phase 6.7: 文法カテゴリーを記録
+        await categoryManager.recordCategory(sessionId, detectedCategory, grade);
+        
         // 生成成功
         generated.push(question);
-        console.log(`✅ Question ${generated.length} generated successfully (answer: "${correctAnswer}")`);
+        console.log(`✅ Question ${generated.length} generated successfully (answer: "${correctAnswer}", category: "${detectedCategory}")`);
         
       } catch (error) {
         rejected++;
@@ -161,6 +185,12 @@ generate.post('/', async (c) => {
     const diversityStats = diversityManager.getStatistics(sessionId);
     if (diversityStats) {
       console.log(`📊 Answer diversity stats:`, diversityStats);
+    }
+    
+    // Phase 6.7: 文法カテゴリー分散の統計情報をログ出力
+    const categoryStats = categoryManager.getStatistics(sessionId);
+    if (categoryStats) {
+      console.log(`📚 Grammar category stats:`, categoryStats);
     }
     
     // 生成結果が0件の場合はエラー
