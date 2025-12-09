@@ -262,20 +262,45 @@ Requirements:
 1. Question must be appropriate for EIKEN Grade ${grade} level
 2. Provide 4 multiple-choice options
 3. Include correct answer index (0-3)
-4. Provide explanation in English
-5. Provide Japanese explanation (explanationJa)
-6. Provide Japanese translation of question text (translationJa)
-7. Each question must be UNIQUE - avoid repeating the same vocabulary or sentence structure
+4. Provide Japanese translation of question text (translationJa)
+5. Each question must be UNIQUE - avoid repeating the same vocabulary or sentence structure
+
+6. CRITICAL: Provide Japanese explanation (explanationJa) in 4-BLOCK TEACHER STYLE:
+
+＜着眼点＞
+[この問題で注目すべきポイントを1文で]
+
+＜鉄則！＞または＜Point！＞
+[文法ルールを学校で習う用語で説明（「〜の文」「〜を表す」など）]
+
+＜当てはめ＞
+[このルールを問題文にどう適用するかを説明]
+
+＜誤答の理由＞
+[他の選択肢がなぜ間違いなのかを説明]
+
+Example of good explanationJa:
+"＜着眼点＞
+過去のことを聞く疑問文です。
+
+＜鉄則！＞
+過去のことを聞く疑問文では、文の最初に Did を使います。
+
+＜当てはめ＞
+'yesterday'（昨日）という言葉があるので、過去のことです。だから Did が正解です。
+
+＜誤答の理由＞
+Do と Does は現在の文で使います。Was は be動詞の過去形なので、一般動詞と一緒には使えません。"
 
 Output format (JSON):
 {
   "questionNumber": 1,
-  "questionText": "She was _____ to hear the good news about her promotion.",
-  "choices": ["delighted", "angry", "confused", "worried"],
+  "questionText": "A: What did you do yesterday? B: I _____ soccer.",
+  "choices": ["played", "play", "playing", "plays"],
   "correctAnswerIndex": 0,
-  "explanation": "The word 'delighted' means very pleased...",
-  "explanationJa": "delighted は「大喜びする」という意味で...",
-  "translationJa": "彼女は昇進の良い知らせを聞いて___した。",
+  "explanation": "Use past tense 'played' because the question asks about yesterday.",
+  "explanationJa": "＜着眼点＞\\n過去のことを答える文です。\\n\\n＜鉄則！＞\\n過去のことを表すには、動詞の過去形を使います。\\n\\n＜当てはめ＞\\n'yesterday'（昨日）のことなので、play の過去形 played が正解です。\\n\\n＜誤答の理由＞\\nplay は現在形、playing は進行形、plays は三人称単数現在形なので、過去の文では使えません。",
+  "translationJa": "A: 昨日何をしましたか？ B: 私はサッカーを_____。",
   "difficulty": ${difficulty},
   "topic": "${topicHint || section}",
   "copyrightSafe": true,
@@ -295,7 +320,13 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
       messages: [
         {
           role: 'system',
-          content: 'You are an expert English test creator. Create unique and diverse questions. Always respond with valid JSON only. Never repeat the same question patterns or vocabulary.'
+          content: `You are a Japanese junior high school English teacher creating EIKEN test questions.
+
+CRITICAL REQUIREMENTS:
+1. explanationJa MUST use 4-BLOCK STRUCTURE: ＜着眼点＞ ＜鉄則！＞ ＜当てはめ＞ ＜誤答の理由＞
+2. Use school-level terminology (not linguistic terms)
+3. Always respond with valid JSON only
+4. Create unique and diverse questions`
         },
         {
           role: 'user',
