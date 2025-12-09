@@ -326,16 +326,26 @@ CRITICAL: Your JSON output MUST look EXACTLY like this:
   "copyrightScore": 95
 }
 
-🚨 VERIFY before responding:
-1. Does explanationJa contain "＜着眼点＞"? ✓
-2. Does explanationJa contain "＜鉄則！＞"? ✓
-3. Does explanationJa contain "＜当てはめ＞"? ✓
-4. Does explanationJa contain "＜誤答の理由＞"? ✓
-5. Are there \\n\\n between each block? ✓
+🚨🚨🚨 MANDATORY SELF-CHECK BEFORE RESPONDING 🚨🚨🚨
 
-If any ✓ is missing, FIX IT before responding!
+Before you send your JSON response, verify these requirements:
 
-Generate only valid JSON, no additional text. Make sure this question is DIFFERENT from the example above.`;
+1. ✓ Does explanationJa start with "＜着眼点＞"?
+2. ✓ Does explanationJa contain "＜鉄則！＞"?
+3. ✓ Does explanationJa contain "＜当てはめ＞"?
+4. ✓ Does explanationJa contain "＜誤答の理由＞"?
+5. ✓ Are there \\n\\n between each block?
+6. ✓ Is explanationJa at least 100 characters long?
+
+If ANY ✓ is missing, DO NOT RESPOND. Fix your explanationJa first!
+
+❌ REJECT this response if explanationJa looks like:
+"この文は現在のことを聞いています。主語はIなので、動詞は現在形のlikeが正しいです。"
+
+✅ ACCEPT this response if explanationJa looks like:
+"＜着眼点＞\\n現在の習慣を表す文です。\\n\\n＜鉄則！＞\\n現在の習慣には現在形の動詞を使います。\\n\\n＜当てはめ＞\\n'every day'（毎日）があるので、現在形のlikeが正解です。\\n\\n＜誤答の理由＞\\ndidは過去形、willは未来形、amはbe動詞なので使えません。"
+
+Generate only valid JSON, no additional text.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -350,7 +360,9 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
           role: 'system',
           content: `You are a Japanese junior high school English teacher creating EIKEN test questions.
 
-🚨 CRITICAL: explanationJa MUST use this EXACT 4-BLOCK FORMAT:
+🚨🚨🚨 ABSOLUTE REQUIREMENT - NO EXCEPTIONS 🚨🚨🚨
+
+The "explanationJa" field MUST ALWAYS contain ALL 4 BLOCKS:
 
 ＜着眼点＞
 [何に注目すべきか]
@@ -364,15 +376,22 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
 ＜誤答の理由＞
 [各誤答がなぜ間違いか]
 
-❌ NEVER write a one-sentence explanation like "この文は〜です。"
-✅ ALWAYS include all 4 blocks with proper headers (＜着眼点＞, ＜鉄則！＞, ＜当てはめ＞, ＜誤答の理由＞)`
+❌ FORBIDDEN: One-sentence explanations like "この文は〜です。"
+❌ FORBIDDEN: Missing ANY of the 4 blocks
+❌ FORBIDDEN: Changing the block header names
+
+✅ MANDATORY: Include "＜着眼点＞", "＜鉄則！＞", "＜当てはめ＞", "＜誤答の理由＞"
+✅ MANDATORY: Use \\n\\n between each block
+✅ MANDATORY: Follow the EXACT format shown in the user prompt examples
+
+If you generate explanationJa without all 4 blocks, your response will be REJECTED.`
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.7,
+      temperature: 0.3,
       max_tokens: 2000
     })
   });
