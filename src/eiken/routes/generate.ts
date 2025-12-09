@@ -279,7 +279,9 @@ Requirements:
 ＜誤答の理由＞
 [他の選択肢がなぜ間違いなのかを説明]
 
-Example of good explanationJa:
+🚨 REQUIRED FORMAT for explanationJa (YOU MUST FOLLOW THIS):
+
+Example 1 - Good explanationJa:
 "＜着眼点＞
 過去のことを聞く疑問文です。
 
@@ -292,7 +294,24 @@ Example of good explanationJa:
 ＜誤答の理由＞
 Do と Does は現在の文で使います。Was は be動詞の過去形なので、一般動詞と一緒には使えません。"
 
-Output format (JSON):
+Example 2 - Good explanationJa:
+"＜着眼点＞
+未来のことを表す文です。
+
+＜鉄則！＞
+未来のことを表すには will を使います。
+
+＜当てはめ＞
+'tomorrow'（明日）という言葉があるので、未来のことです。だから will が正解です。
+
+＜誤答の理由＞
+can は能力を表す言葉です。do は現在形、am は be動詞なので、未来を表す文では使えません。"
+
+❌ BAD example (NEVER do this):
+"この文は現在のことを聞いています。主語はIなので、動詞は現在形のlikeが正しいです。"
+↑ This is TOO SHORT and missing the 4 blocks!
+
+CRITICAL: Your JSON output MUST look EXACTLY like this:
 {
   "questionNumber": 1,
   "questionText": "A: What did you do yesterday? B: I _____ soccer.",
@@ -306,6 +325,15 @@ Output format (JSON):
   "copyrightSafe": true,
   "copyrightScore": 95
 }
+
+🚨 VERIFY before responding:
+1. Does explanationJa contain "＜着眼点＞"? ✓
+2. Does explanationJa contain "＜鉄則！＞"? ✓
+3. Does explanationJa contain "＜当てはめ＞"? ✓
+4. Does explanationJa contain "＜誤答の理由＞"? ✓
+5. Are there \\n\\n between each block? ✓
+
+If any ✓ is missing, FIX IT before responding!
 
 Generate only valid JSON, no additional text. Make sure this question is DIFFERENT from the example above.`;
 
@@ -322,33 +350,30 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
           role: 'system',
           content: `You are a Japanese junior high school English teacher creating EIKEN test questions.
 
-🚨 ABSOLUTE REQUIREMENTS - NO EXCEPTIONS:
+🚨 CRITICAL: explanationJa MUST use this EXACT 4-BLOCK FORMAT:
 
-1. explanationJa MUST ALWAYS include ALL FOUR blocks in this EXACT format:
-   ＜着眼点＞
-   [1-2 sentences identifying what to focus on]
-   
-   ＜鉄則！＞
-   [Grammar rule explanation using school terminology]
-   
-   ＜当てはめ＞
-   [How to apply the rule to this specific question]
-   
-   ＜誤答の理由＞
-   [Why each wrong answer is incorrect]
+＜着眼点＞
+[何に注目すべきか]
 
-2. NEVER write a simple one-sentence explanation
-3. NEVER skip any of the 4 blocks
-4. Use school-level Japanese (中学生レベルの日本語)
-5. Always respond with valid JSON only`
+＜鉄則！＞
+[文法ルール]
+
+＜当てはめ＞
+[ルールの適用方法]
+
+＜誤答の理由＞
+[各誤答がなぜ間違いか]
+
+❌ NEVER write a one-sentence explanation like "この文は〜です。"
+✅ ALWAYS include all 4 blocks with proper headers (＜着眼点＞, ＜鉄則！＞, ＜当てはめ＞, ＜誤答の理由＞)`
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.9,
-      max_tokens: 1500
+      temperature: 0.7,
+      max_tokens: 2000
     })
   });
   
