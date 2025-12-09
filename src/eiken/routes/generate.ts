@@ -399,13 +399,15 @@ async function saveGeneratedQuestions(
           choices_json,
           correct_answer_index,
           explanation,
+          translation_ja,
+          explanation_ja,
           difficulty_score,
           similarity_score,
           review_status,
           generated_at,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
       `).bind(
         grade,
         section,
@@ -415,6 +417,8 @@ async function saveGeneratedQuestions(
         JSON.stringify(question.choices),
         question.correctAnswerIndex,
         question.explanation,
+        question.translationJa || null,
+        question.explanationJa || null,
         question.difficulty,
         1.0 - (question.copyrightScore / 100),
         question.copyrightSafe ? 'approved' : 'rejected'
