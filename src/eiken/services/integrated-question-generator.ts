@@ -363,19 +363,18 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
-        // 検証5: 複数正解チェック（Phase 4C）- grammar_fill形式のみ
-        if (request.format === 'grammar_fill') {
-          const uniquenessValidation = await this.validateUniqueness(
-            questionData,
-            blueprint.guidelines.grammar_patterns[0] || 'unknown'
-          );
-          
-          if (!uniquenessValidation.passed) {
-            console.log(`[Validation Failed] Multiple correct answers detected`);
-            console.log(`  Issue: ${uniquenessValidation.issue}`);
-            console.log(`  Suggestion: ${uniquenessValidation.suggestion}`);
-            continue;
-          }
+        // 検証5: 複数正解チェック（Phase 4C）- 全形式対応
+        const uniquenessValidation = await this.validateUniqueness(
+          questionData,
+          request.format,
+          blueprint.guidelines.grammar_patterns[0] || 'unknown'
+        );
+        
+        if (!uniquenessValidation.passed) {
+          console.log(`[Validation Failed] Multiple correct answers detected`);
+          console.log(`  Issue: ${uniquenessValidation.issue}`);
+          console.log(`  Suggestion: ${uniquenessValidation.suggestion}`);
+          continue;
         }
 
         // 全検証パス！
@@ -1163,9 +1162,35 @@ Always respond with valid JSON.`;
    * Phase 4C: 複数正解チェック
    * 
    * 問題文に対して複数の選択肢が正解になりうるかAIで検証
-   * grammar_fill形式の曖昧性を排除するための最終防衛ライン
+   * 全形式対応：grammar_fill, long_reading, essay, opinion_speech, reading_aloud
    */
   private async validateUniqueness(
+    questionData: any,
+    format: QuestionFormat,
+    grammarPoint: string
+  ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
+    
+    // 形式別の検証ロジック
+    if (format === 'grammar_fill') {
+      return this.validateGrammarFillUniqueness(questionData, grammarPoint);
+    } else if (format === 'long_reading') {
+      return this.validateLongReadingUniqueness(questionData);
+    } else if (format === 'essay' || format === 'opinion_speech') {
+      return this.validateEssayUniqueness(questionData, format);
+    } else if (format === 'reading_aloud') {
+      // reading_aloud は選択肢がないのでスキップ
+      console.log('[Uniqueness Check] Skipped for reading_aloud (no choices)');
+      return { passed: true };
+    }
+    
+    console.log(`[Uniqueness Check] Skipped for unknown format: ${format}`);
+    return { passed: true };
+  }
+
+  /**
+   * Grammar Fill 形式の複数正解チェック
+   */
+  private async validateGrammarFillUniqueness(
     questionData: any,
     grammarPoint: string
   ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
@@ -1274,8 +1299,188 @@ Return ONLY valid JSON (no markdown, no explanation outside JSON):
       return { passed: true };
 
     } catch (error) {
-      console.error('[Uniqueness Check Error]', error);
+      console.error('[Grammar Fill Uniqueness Check Error]', error);
       // エラー時は通過させる（既存の挙動を維持）
+      return { passed: true };
+    }
+  }
+
+  /**
+   * Long Reading 形式の複数正解チェック
+   */
+  private async validateLongReadingUniqueness(
+    questionData: any
+  ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
+    
+    const { passage, questions } = questionData;
+    
+    if (!passage || !questions || !Array.isArray(questions)) {
+      console.log('[Long Reading Uniqueness Check] Skipped - missing required fields');
+      return { passed: true };
+    }
+
+    // 各質問をチェック
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const { question_text, choices, correct_answer } = q;
+      
+      if (!question_text || !choices || !correct_answer) {
+        continue;
+      }
+
+      const validationPrompt = `You are an English reading comprehension expert. Analyze this question for ambiguity.
+
+Passage excerpt: "${passage.substring(0, 300)}..."
+Question: "${question_text}"
+Choices: ${JSON.stringify(choices)}
+Stated correct answer: "${correct_answer}"
+
+Task: Check if multiple choices could be correct based on the passage.
+
+Analysis criteria:
+1. Does the passage clearly support only ONE answer?
+2. Could multiple choices be defensible interpretations?
+3. Is the question specific enough to eliminate other choices?
+
+Return ONLY valid JSON:
+{
+  "is_ambiguous": boolean,
+  "potentially_correct": ["choice1", "choice2"],
+  "issue": "description if ambiguous",
+  "suggestion": "how to fix"
+}`;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: validationPrompt }],
+            temperature: 0.2,
+            response_format: { type: 'json_object' }
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('[Long Reading Uniqueness Check] API Error:', response.statusText);
+          continue;
+        }
+
+        const data = await response.json();
+        const result = JSON.parse(data.choices[0].message.content || '{}');
+        
+        if (result.is_ambiguous) {
+          console.log(`[Long Reading Uniqueness Check Failed] Question ${i + 1} ✗`);
+          console.log(`  Issue: ${result.issue}`);
+          console.log(`  Suggestion: ${result.suggestion}`);
+          
+          return {
+            passed: false,
+            issue: `Question ${i + 1}: ${result.issue}`,
+            suggestion: result.suggestion
+          };
+        }
+      } catch (error) {
+        console.error(`[Long Reading Uniqueness Check Error] Question ${i + 1}:`, error);
+        // エラー時は続行
+      }
+    }
+
+    console.log(`[Long Reading Uniqueness Check Passed] All ${questions.length} questions ✓`);
+    return { passed: true };
+  }
+
+  /**
+   * Essay/Opinion Speech 形式の曖昧性チェック
+   */
+  private async validateEssayUniqueness(
+    questionData: any,
+    format: 'essay' | 'opinion_speech'
+  ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
+    
+    const prompt = questionData.essay_prompt || questionData.question_text;
+    const sampleAnswer = questionData.sample_essay || questionData.sample_answer;
+    
+    if (!prompt) {
+      console.log(`[${format} Uniqueness Check] Skipped - no prompt`);
+      return { passed: true };
+    }
+
+    const validationPrompt = `You are an English writing/speaking test expert. Analyze this prompt for clarity.
+
+Format: ${format}
+Prompt: "${prompt}"
+${sampleAnswer ? `Sample answer: "${sampleAnswer.substring(0, 200)}..."` : ''}
+
+Task: Check if the prompt is clear and unambiguous.
+
+Analysis criteria:
+1. Is the prompt specific enough for students to understand what to write?
+2. Could students interpret the prompt in multiple conflicting ways?
+3. Does the sample answer align with the prompt?
+4. Is there any ambiguous wording that could confuse students?
+
+Examples of PROBLEMS:
+
+❌ AMBIGUOUS:
+"Write about technology."
+Problem: Too vague - technology in general? specific tech? good or bad?
+
+✅ CLEAR:
+"Do you think using smartphones is good or bad for young people? Give reasons."
+Clear: Specific topic, clear opinion required, reasons needed
+
+Return ONLY valid JSON:
+{
+  "is_ambiguous": boolean,
+  "issue": "description if ambiguous",
+  "suggestion": "how to make it clearer"
+}`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: validationPrompt }],
+          temperature: 0.2,
+          response_format: { type: 'json_object' }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`[${format} Uniqueness Check] API Error:`, response.statusText);
+        return { passed: true };
+      }
+
+      const data = await response.json();
+      const result = JSON.parse(data.choices[0].message.content || '{}');
+      
+      if (result.is_ambiguous) {
+        console.log(`[${format} Uniqueness Check Failed] ✗`);
+        console.log(`  Issue: ${result.issue}`);
+        console.log(`  Suggestion: ${result.suggestion}`);
+        
+        return {
+          passed: false,
+          issue: result.issue,
+          suggestion: result.suggestion
+        };
+      }
+
+      console.log(`[${format} Uniqueness Check Passed] ✓`);
+      return { passed: true };
+
+    } catch (error) {
+      console.error(`[${format} Uniqueness Check Error]`, error);
       return { passed: true };
     }
   }
