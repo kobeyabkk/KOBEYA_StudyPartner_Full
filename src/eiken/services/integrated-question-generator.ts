@@ -1045,14 +1045,22 @@ Always respond with valid JSON.`;
       correctAnswerText: correctAnswerText ? 'EXISTS' : 'NULL',
     });
     
+    // Phase 5F: translation_ja と vocabulary_meanings を JSON 文字列として保存
+    const translationJa = questionData.translation_ja || null;
+    const vocabularyMeaningsJson = questionData.vocabulary_meanings 
+      ? (typeof questionData.vocabulary_meanings === 'string' 
+          ? questionData.vocabulary_meanings 
+          : JSON.stringify(questionData.vocabulary_meanings))
+      : null;
+    
     const result = await this.db
       .prepare(`
         INSERT INTO eiken_generated_questions (
           grade, section, question_type, answer_type,
           question_text, choices_json, correct_answer_index, correct_answer_text,
-          explanation, explanation_ja, model, difficulty_score,
-          vocab_band, quality_score, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          explanation, explanation_ja, translation_ja, vocabulary_meanings,
+          model, difficulty_score, vocab_band, quality_score, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         data.grade,
@@ -1065,6 +1073,8 @@ Always respond with valid JSON.`;
         correctAnswerText,  // 空文字列ではなくNULL
         questionData.explanation || '',
         questionData.explanation_ja || '',
+        translationJa,  // Phase 5F: 問題文の日本語訳
+        vocabularyMeaningsJson,  // Phase 5F: 重要語句の意味（JSON）
         data.model_used,
         0.5, // デフォルト難易度
         `vocabulary_score:${data.vocabulary_score}`, // 語彙スコアを保存
@@ -1161,14 +1171,22 @@ Always respond with valid JSON.`;
       
       console.log(`[saveLongReadingQuestions] Question ${i + 1}: correctIndex=${correctIndex}, choices.length=${choices.length}`);
       
+      // Phase 5F: passage の translation_ja と vocabulary_meanings をパース
+      const translationJa = (q.translation_ja || questionData.passage_ja) || null;
+      const vocabularyMeaningsJson = questionData.vocabulary_meanings 
+        ? (typeof questionData.vocabulary_meanings === 'string' 
+            ? questionData.vocabulary_meanings 
+            : JSON.stringify(questionData.vocabulary_meanings))
+        : null;
+      
       const result = await this.db
         .prepare(`
           INSERT INTO eiken_generated_questions (
             grade, section, question_type, answer_type,
             question_text, choices_json, correct_answer_index, correct_answer_text,
-            explanation, explanation_ja, model, difficulty_score,
-            vocab_band, quality_score, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            explanation, explanation_ja, translation_ja, vocabulary_meanings,
+            model, difficulty_score, vocab_band, quality_score, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .bind(
           data.grade,
@@ -1181,6 +1199,8 @@ Always respond with valid JSON.`;
           correctAnswer,
           q.explanation || '',
           q.explanation_ja || '',
+          translationJa,  // Phase 5F: 問題文・パッセージの日本語訳
+          vocabularyMeaningsJson,  // Phase 5F: 重要語句の意味（JSON）
           data.model_used,
           0.5,
           `vocabulary_score:${data.vocabulary_score}`,

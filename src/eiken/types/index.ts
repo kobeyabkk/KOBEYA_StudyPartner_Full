@@ -106,6 +106,7 @@ export interface GeneratedQuestion {
   correct_answer_text?: string;      // For written/speaking
   explanation?: string;
   explanation_ja?: string;
+  translation_ja?: string;           // Phase 5F: Japanese translation of question text
   audio_key?: string;
   
   // メタデータ
@@ -114,7 +115,8 @@ export interface GeneratedQuestion {
   
   // Phase 4B: Vocabulary features
   // vocabulary_meanings: LLM-generated glossary (用語集) for students
-  vocabulary_meanings?: Array<{
+  // Can be stored as JSON string in database or parsed object in memory
+  vocabulary_meanings?: string | Array<{
     term: string;
     definition: string;
   }> | Record<string, string>;

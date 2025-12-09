@@ -202,6 +202,18 @@ app.get('/list', async (c) => {
                               ? choices[q.correct_answer_index] 
                               : null);
       
+      // Phase 5F: vocabulary_meanings を JSON としてパース
+      let vocabularyMeanings = null;
+      if (q.vocabulary_meanings) {
+        try {
+          vocabularyMeanings = typeof q.vocabulary_meanings === 'string' 
+            ? JSON.parse(q.vocabulary_meanings) 
+            : q.vocabulary_meanings;
+        } catch {
+          vocabularyMeanings = null;
+        }
+      }
+      
       // essay形式の場合、question_textにJSON全体が保存されている可能性があるためパース
       let questionDataContent: any = {};
       if (q.question_type === 'essay' && q.question_text.startsWith('{')) {
@@ -220,6 +232,8 @@ app.get('/list', async (c) => {
           correct_answer: correctAnswer,
           explanation: q.explanation || '',
           explanation_ja: q.explanation_ja || '',
+          translation_ja: q.translation_ja || null,  // Phase 5F: 問題文の日本語訳
+          vocabulary_meanings: vocabularyMeanings,  // Phase 5F: 重要語句の意味
         };
       }
       
@@ -306,6 +320,18 @@ app.get('/:id', async (c) => {
                             ? choices[question.correct_answer_index] 
                             : null);
     
+    // Phase 5F: vocabulary_meanings を JSON としてパース
+    let vocabularyMeanings = null;
+    if (question.vocabulary_meanings) {
+      try {
+        vocabularyMeanings = typeof question.vocabulary_meanings === 'string' 
+          ? JSON.parse(question.vocabulary_meanings as string) 
+          : question.vocabulary_meanings;
+      } catch {
+        vocabularyMeanings = null;
+      }
+    }
+    
     // essay形式の場合、question_textにJSON全体が保存されている可能性があるためパース
     let questionData: any;
     if (question.question_type === 'essay' && typeof question.question_text === 'string' && question.question_text.startsWith('{')) {
@@ -328,6 +354,8 @@ app.get('/:id', async (c) => {
         correct_answer: correctAnswer,
         explanation: question.explanation || '',
         explanation_ja: question.explanation_ja || '',
+        translation_ja: question.translation_ja || null,  // Phase 5F: 問題文の日本語訳
+        vocabulary_meanings: vocabularyMeanings,  // Phase 5F: 重要語句の意味
       };
     }
 
