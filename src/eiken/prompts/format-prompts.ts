@@ -206,12 +206,14 @@ Solutions:
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
   "explanation": "なぜこれが正解か（日本語で詳しく説明）。全ての選択肢の意味と文法的な理由を含めること。",
-  "translation_ja": "問題文の日本語訳",
+  "translation_ja": "問題文の日本語訳（会話形式の場合は両方のセリフを訳すこと）",
   "vocabulary_meanings": {
     "correct_answer": "meaning in Japanese",
     "distractor_1": "meaning in Japanese",
     "distractor_2": "meaning in Japanese",
-    "distractor_3": "meaning in Japanese"
+    "distractor_3": "meaning in Japanese",
+    "key_phrase_1": "問題文に出てくる重要な熟語や表現の意味（例: keep in touch with = 〜と連絡を取り合う）",
+    "key_phrase_2": "別の重要表現があれば追加"
   }
 }
 
@@ -232,9 +234,21 @@ ${getExplanationTerminologyGuide(blueprint.grade)}
 - Distractors should be plausible but clearly wrong IN THIS CONTEXT
 - Use natural, authentic English
 - The sentence must relate to the topic: ${topic.topic_label_en}
-- MUST provide Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
+- **MUST provide**:
+  1. Japanese translation of the ENTIRE question (translation_ja)
+  2. Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
+  3. Japanese meanings for KEY PHRASES and IDIOMS in the question text (e.g., "keep in touch with" = 「〜と連絡を取り合う」)
 - **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!
-${useDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}`;
+${useDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}
+
+## 🌐 Translation & Vocabulary Requirements
+**CRITICAL**: Students need to understand the question to answer it!
+- translation_ja: Provide COMPLETE Japanese translation of question_text
+  ${useDialogFormat ? '- If dialogue format, translate BOTH A: and B: lines' : ''}
+- vocabulary_meanings: Include ALL important words/phrases:
+  * All answer choices (correct + distractors)
+  * Key phrases/idioms in question (e.g., "keep in touch with", "used to", "look forward to")
+  * Any difficult vocabulary that ${blueprint.grade} students might not know`;
 }
 
 /**

@@ -637,17 +637,56 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               <span className="text-2xl">
                 {selectedAnswer === currentQuestion.correctAnswerIndex ? '🎉' : '📚'}
               </span>
-              <div>
-                <h4 className={`font-bold ${
+              <div className="flex-1">
+                <h4 className={`font-bold mb-3 ${
                   selectedAnswer === currentQuestion.correctAnswerIndex
                     ? 'text-green-900'
                     : 'text-red-900'
                 }`}>
                   {selectedAnswer === currentQuestion.correctAnswerIndex ? '正解です！' : '不正解'}
                 </h4>
-                <p className="mt-2 text-gray-700 leading-relaxed">
-                  {currentQuestion.explanation}
-                </p>
+                
+                {/* 問題文の日本語訳 */}
+                {(currentQuestion as any).translation_ja && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h5 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <span>🌐</span>
+                      <span>問題文の意味</span>
+                    </h5>
+                    <p className="text-blue-800 whitespace-pre-wrap">
+                      {(currentQuestion as any).translation_ja}
+                    </p>
+                  </div>
+                )}
+                
+                {/* 重要な熟語・表現の解説 */}
+                {(currentQuestion as any).vocabulary_meanings && Object.keys((currentQuestion as any).vocabulary_meanings).length > 0 && (
+                  <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h5 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                      <span>📖</span>
+                      <span>重要な語句</span>
+                    </h5>
+                    <div className="space-y-2">
+                      {Object.entries((currentQuestion as any).vocabulary_meanings).map(([term, meaning]) => (
+                        <div key={term} className="flex gap-2">
+                          <span className="font-medium text-purple-800 min-w-[80px]">{term}:</span>
+                          <span className="text-purple-700">{meaning as string}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 文法解説 */}
+                <div className="p-3 bg-white bg-opacity-50 rounded-lg">
+                  <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <span>💡</span>
+                    <span>文法解説</span>
+                  </h5>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {currentQuestion.explanation}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
