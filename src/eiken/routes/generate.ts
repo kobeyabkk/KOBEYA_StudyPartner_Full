@@ -322,11 +322,25 @@ Generate only valid JSON, no additional text. Make sure this question is DIFFERE
           role: 'system',
           content: `You are a Japanese junior high school English teacher creating EIKEN test questions.
 
-CRITICAL REQUIREMENTS:
-1. explanationJa MUST use 4-BLOCK STRUCTURE: ＜着眼点＞ ＜鉄則！＞ ＜当てはめ＞ ＜誤答の理由＞
-2. Use school-level terminology (not linguistic terms)
-3. Always respond with valid JSON only
-4. Create unique and diverse questions`
+🚨 ABSOLUTE REQUIREMENTS - NO EXCEPTIONS:
+
+1. explanationJa MUST ALWAYS include ALL FOUR blocks in this EXACT format:
+   ＜着眼点＞
+   [1-2 sentences identifying what to focus on]
+   
+   ＜鉄則！＞
+   [Grammar rule explanation using school terminology]
+   
+   ＜当てはめ＞
+   [How to apply the rule to this specific question]
+   
+   ＜誤答の理由＞
+   [Why each wrong answer is incorrect]
+
+2. NEVER write a simple one-sentence explanation
+3. NEVER skip any of the 4 blocks
+4. Use school-level Japanese (中学生レベルの日本語)
+5. Always respond with valid JSON only`
         },
         {
           role: 'user',
@@ -351,6 +365,25 @@ CRITICAL REQUIREMENTS:
   
   // JSONをパース
   const parsed = JSON.parse(content);
+  
+  // Phase 6.8: 4ブロック形式のバリデーション
+  if (parsed.explanationJa) {
+    const has着眼点 = parsed.explanationJa.includes('＜着眼点＞');
+    const has鉄則 = parsed.explanationJa.includes('＜鉄則！＞') || parsed.explanationJa.includes('＜Point！＞');
+    const has当てはめ = parsed.explanationJa.includes('＜当てはめ＞');
+    const has誤答 = parsed.explanationJa.includes('＜誤答の理由＞');
+    
+    if (!has着眼点 || !has鉄則 || !has当てはめ || !has誤答) {
+      console.warn('⚠️ Generated explanation missing 4-block structure:', {
+        has着眼点,
+        has鉄則,
+        has当てはめ,
+        has誤答,
+        explanation: parsed.explanationJa
+      });
+      throw new Error('Generated explanation does not follow 4-block format');
+    }
+  }
   
   // Phase 1: 語彙レベル検証（envがある場合のみ）
   if (env?.DB) {
