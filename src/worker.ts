@@ -1,4 +1,5 @@
 import { handleValidationDashboardRequest } from './api/validation-dashboard';
+import generateRoutes from './eiken/routes/generate';
 
 export default {
   async fetch(request: Request, env: any, ctx: ExecutionContext): Promise<Response> {
@@ -23,7 +24,12 @@ export default {
       return handleValidationDashboardRequest(request, env);
     }
 
-    // 4) 他は静的アセットへ（public → dist にコピーされたファイル）
+    // 4) Phase 6.7: Eiken AI Question Generation API
+    if (url.pathname.startsWith('/api/eiken/generate')) {
+      return generateRoutes.fetch(request, env, ctx);
+    }
+
+    // 5) 他は静的アセットへ（public → dist にコピーされたファイル）
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler;
