@@ -1,3 +1,5 @@
+import { handleValidationDashboardRequest } from './api/validation-dashboard';
+
 export default {
   async fetch(request: Request, env: any, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -16,7 +18,12 @@ export default {
       });
     }
 
-    // 3) 他は静的アセットへ（public → dist にコピーされたファイル）
+    // 3) Phase 5D: Validation Dashboard API
+    if (url.pathname.startsWith('/api/validation-dashboard')) {
+      return handleValidationDashboardRequest(request, env);
+    }
+
+    // 4) 他は静的アセットへ（public → dist にコピーされたファイル）
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler;
