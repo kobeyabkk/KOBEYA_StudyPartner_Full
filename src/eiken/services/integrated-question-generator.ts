@@ -1177,6 +1177,9 @@ Always respond with valid JSON.`;
       return this.validateLongReadingUniqueness(questionData);
     } else if (format === 'essay' || format === 'opinion_speech') {
       return this.validateEssayUniqueness(questionData, format);
+    } else if (format === 'listening_comprehension') {
+      // Phase 5B: listening_comprehension への複数正解チェック追加
+      return this.validateListeningUniqueness(questionData);
     } else if (format === 'reading_aloud') {
       // reading_aloud は選択肢がないのでスキップ
       console.log('[Uniqueness Check] Skipped for reading_aloud (no choices)');
@@ -1483,6 +1486,117 @@ Return ONLY valid JSON:
       console.error(`[${format} Uniqueness Check Error]`, error);
       return { passed: true };
     }
+  }
+
+  /**
+   * Phase 5B: Listening Comprehension 形式の複数正解チェック
+   * 
+   * 音声問題の選択肢が曖昧でないかチェック
+   */
+  private async validateListeningUniqueness(
+    questionData: any
+  ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
+    
+    // listening_comprehension の構造を確認
+    const { audio_script, questions } = questionData;
+    
+    if (!audio_script || !questions || questions.length === 0) {
+      console.log('[Listening Uniqueness Check] Skipped - missing audio_script or questions');
+      return { passed: true };
+    }
+    
+    // 各質問を検証
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const { question_text, choices, correct_answer } = question;
+      
+      if (!question_text || !choices || !correct_answer) {
+        continue; // 必須フィールドがない場合はスキップ
+      }
+      
+      const validationPrompt = `You are an English listening test expert. Analyze this listening comprehension question for ambiguity.
+
+Audio Script: "${audio_script}"
+Question ${i + 1}: "${question_text}"
+Choices: ${choices.map((c: string, idx: number) => `${idx + 1}. ${c}`).join(', ')}
+Stated correct answer: "${correct_answer}"
+
+Task: Determine if ONLY ONE choice is clearly correct based on the audio script.
+
+Analysis criteria:
+1. Based on the audio script, is the stated answer the ONLY defensible choice?
+2. Could any other choice be argued as correct based on the script?
+3. Is the information in the script sufficient to answer definitively?
+4. Are any choices ambiguous or could be interpreted differently?
+
+Examples of PROBLEMS:
+
+❌ AMBIGUOUS:
+Audio: "John likes music."
+Question: "What does John like?"
+Choices: A) music, B) songs, C) playing instruments
+Problem: B "songs" could also be correct as songs are a type of music
+
+✅ CLEAR:
+Audio: "John plays the piano every day."
+Question: "What instrument does John play?"
+Choices: A) piano, B) guitar, C) drums
+Clear: Only A is supported by the script
+
+Return ONLY valid JSON:
+{
+  "multiple_correct": boolean,
+  "ambiguous_choices": ["choice A", "choice B"],
+  "issue": "description if ambiguous",
+  "suggestion": "how to fix the question"
+}`;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: validationPrompt }],
+            temperature: 0.2,
+            response_format: { type: 'json_object' }
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(`[Listening Uniqueness Check] API Error:`, response.statusText);
+          continue; // APIエラーは次の質問へ
+        }
+
+        const data = await response.json();
+        const result = JSON.parse(data.choices[0].message.content || '{}');
+        
+        if (result.multiple_correct) {
+          console.log(`[Listening Uniqueness Check Failed] Question ${i + 1} ✗`);
+          console.log(`  Ambiguous choices: ${result.ambiguous_choices?.join(', ')}`);
+          console.log(`  Issue: ${result.issue}`);
+          console.log(`  Suggestion: ${result.suggestion}`);
+          
+          return {
+            passed: false,
+            issue: `Question ${i + 1}: ${result.issue}`,
+            suggestion: result.suggestion
+          };
+        }
+
+        console.log(`[Listening Uniqueness Check] Question ${i + 1} ✓`);
+
+      } catch (error) {
+        console.error(`[Listening Uniqueness Check Error] Question ${i + 1}:`, error);
+        // エラーは致命的ではないので続行
+      }
+    }
+    
+    console.log('[Listening Uniqueness Check] All questions passed ✓');
+    return { passed: true };
   }
 
   /**
