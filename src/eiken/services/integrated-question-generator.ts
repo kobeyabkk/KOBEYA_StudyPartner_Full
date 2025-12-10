@@ -107,9 +107,9 @@ export class IntegratedQuestionGenerator {
   private getOptimalLLMConfig(format: QuestionFormat): LLMConfig {
     const configs: Record<QuestionFormat, LLMConfig> = {
       'grammar_fill': {
-        temperature: 0.5,
+        temperature: 0.3,
         top_p: 0.9,
-        reasoning: '短文なので多様性とのバランス'
+        reasoning: '4ブロック解説形式の厳格な遵守のため（Phase 6.8B: 0.5→0.3）'
       },
       'opinion_speech': {
         temperature: 0.4,
@@ -719,6 +719,18 @@ export class IntegratedQuestionGenerator {
 CRITICAL VOCABULARY CONSTRAINT: Use ONLY CEFR ${blueprint.guidelines.vocabulary_level} vocabulary.
 
 FORBIDDEN WORDS (NEVER use): ${forbiddenWords.slice(0, 30).join(', ')}
+
+🚨🚨🚨 ABSOLUTE REQUIREMENT - 4-BLOCK EXPLANATION FORMAT 🚨🚨🚨
+
+For grammar_fill questions, the "explanation_ja" field MUST ALWAYS contain ALL 4 BLOCKS:
+＜着眼点＞ [key observation]
+＜鉄則！＞ or ＜Point！＞ [grammar rule]
+＜当てはめ＞ [application]
+＜誤答の理由＞ [why wrong answers are wrong]
+
+❌ FORBIDDEN: One-sentence explanations
+✅ MANDATORY: All 4 blocks with proper headers
+✅ MANDATORY: Use \\n\\n between blocks
 
 Always respond with valid JSON.`;
 

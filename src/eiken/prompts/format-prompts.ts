@@ -272,7 +272,25 @@ ${useDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST conta
 - vocabulary_meanings: Include ALL important words/phrases:
   * All answer choices (correct + distractors)
   * Key phrases/idioms in question (e.g., "keep in touch with", "used to", "look forward to")
-  * Any difficult vocabulary that ${blueprint.grade} students might not know`;
+  * Any difficult vocabulary that ${blueprint.grade} students might not know
+
+🚨🚨🚨 MANDATORY SELF-CHECK BEFORE RESPONDING 🚨🚨🚨
+
+Before submitting your JSON, verify:
+1. ✓ explanation_ja starts with "＜着眼点＞"
+2. ✓ explanation_ja contains "＜鉄則！＞" or "＜Point！＞"
+3. ✓ explanation_ja contains "＜当てはめ＞"
+4. ✓ explanation_ja contains "＜誤答の理由＞"
+5. ✓ There are empty lines (\\n\\n) between each block
+6. ✓ explanation_ja is at least 100 characters long
+
+❌ REJECT if explanation_ja looks like:
+"この文は過去の文なので、動詞は過去形を使います。主語はyouなので、didが正解です。"
+
+✅ ACCEPT if explanation_ja looks like:
+"＜着眼点＞\\n過去のことを聞く疑問文です。\\n\\n＜鉄則！＞\\n過去のことを聞く疑問文では、文の最初に Did を使います。\\n\\n＜当てはめ＞\\n'yesterday'という言葉があるので、過去のことです。だから Did が正解です。\\n\\n＜誤答の理由＞\\ndo/doesは現在形、areはbe動詞なので×。"
+
+If ANY check fails, FIX your explanation_ja before responding!`;
 }
 
 /**
