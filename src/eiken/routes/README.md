@@ -5,7 +5,7 @@
 | API Endpoint | Status | Used By | Implementation | Notes |
 |-------------|--------|---------|----------------|-------|
 | `/api/eiken/questions/generate` | ✅ **ACTIVE** | Frontend | `questions.ts` + `IntegratedQuestionGenerator` | Phase 3 API - Current production API |
-| `/api/eiken/generate` | ⚠️ **DEPRECATED** | None (legacy) | `generate.ts` | Legacy API - Keep for backward compatibility only |
+| `/api/eiken/generate` | 🗑️ **REMOVED** | None | `generate.ts.REMOVED` (archived) | Removed 2025-12-09 - No longer exists |
 
 ---
 

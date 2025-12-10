@@ -34,7 +34,7 @@ const assetManifest: Record<string, string> = (() => {
 
 // Eiken Analysis Route をインポート
 import analyzeRoute from './eiken/routes/analyze'
-import generateRoute from './eiken/routes/generate'
+// Phase 7: generateRoute REMOVED - Use questionRoutes instead
 import topicRoutes from './eiken/routes/topic-routes'
 import blueprintRoutes from './eiken/routes/blueprint-routes'
 import questionRoutes from './eiken/routes/questions'  // Phase 3
@@ -3254,8 +3254,9 @@ app.post('/api/reports/weekly', requireSecret, async (c) => {
 // 問題分析エンドポイント
 app.route('/api/eiken/analyze', analyzeRoute)
 
-// AI問題生成エンドポイント
-app.route('/api/eiken/generate', generateRoute)
+// Phase 7: Legacy API REMOVED
+// Old: app.route('/api/eiken/generate', generateRoute)
+// Active API: /api/eiken/questions/generate (mounted via questionRoutes below)
 
 // Phase 2: Topic Management エンドポイント
 app.route('/api/eiken/topics', topicRoutes)

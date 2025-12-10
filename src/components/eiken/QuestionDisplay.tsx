@@ -667,12 +667,31 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                       <span>重要な語句</span>
                     </h5>
                     <div className="space-y-2">
-                      {Object.entries((currentQuestion as any).vocabulary_meanings).map(([term, meaning]) => (
-                        <div key={term} className="flex gap-2">
-                          <span className="font-medium text-purple-800 min-w-[80px]">{term}:</span>
-                          <span className="text-purple-700">{meaning as string}</span>
-                        </div>
-                      ))}
+                      {Object.entries((currentQuestion as any).vocabulary_meanings).map(([term, meaning]) => {
+                        // 英語キーを日本語に変換
+                        const termLabels: Record<string, string> = {
+                          'correct_answer': '正解',
+                          'distractor_1': '誤答選択肢1',
+                          'distractor_2': '誤答選択肢2',
+                          'distractor_3': '誤答選択肢3',
+                        };
+                        
+                        // key_phrase_X は "重要表現X" に変換
+                        let displayTerm = term;
+                        if (term.startsWith('key_phrase_')) {
+                          const num = term.replace('key_phrase_', '');
+                          displayTerm = `重要表現${num}`;
+                        } else if (termLabels[term]) {
+                          displayTerm = termLabels[term];
+                        }
+                        
+                        return (
+                          <div key={term} className="flex gap-2">
+                            <span className="font-medium text-purple-800 min-w-[100px]">{displayTerm}:</span>
+                            <span className="text-purple-700">{meaning as string}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

@@ -5,7 +5,7 @@
 | Endpoint | Status | Action Required |
 |----------|--------|-----------------|
 | `/api/eiken/questions/generate` | ✅ ACTIVE | Use this for all new code |
-| `/api/eiken/generate` | ⚠️ DEPRECATED | Do not use - will be removed |
+| `/api/eiken/generate` | 🗑️ REMOVED | Deleted in Phase 7 (2025-12-09) |
 
 ---
 
@@ -63,12 +63,12 @@ cat src/eiken/routes/README.md
   - Answer diversity management
   - Grammar category distribution
 
-#### ⚠️ `/api/eiken/generate` (DEPRECATED)
-- **File**: `src/eiken/routes/generate.ts`
+#### 🗑️ `/api/eiken/generate` (REMOVED)
+- **File**: `src/eiken/routes/generate.ts.REMOVED` (archived)
 - **Service**: Direct LLM calls
-- **Used By**: None (legacy only)
-- **Reason for Keeping**: Backward compatibility, health check endpoint
-- **Planned Removal**: Phase 7
+- **Used By**: None
+- **Removal Date**: 2025-12-09 (Phase 7)
+- **Reason for Removal**: Not used by frontend, caused confusion, technical debt
 
 ---
 
