@@ -1,8 +1,20 @@
 /**
+ * ⚠️ DEPRECATED - LEGACY API ⚠️
+ * 
  * AI問題生成APIエンドポイント
  * POST /api/eiken/generate
  * 
- * 従来のAPI仕様を維持しつつ、Phase 1の語彙・テキストプロファイル検証を統合
+ * @deprecated このAPIは非推奨です。新しいコードでは /api/eiken/questions/generate (Phase 3 API) を使用してください。
+ * @see src/eiken/routes/questions.ts - Phase 3 API (現在アクティブ)
+ * 
+ * 注意: フロントエンド (src/hooks/useEikenAPI.ts) は /api/eiken/questions/generate を使用しています。
+ * このファイルを修正しても、フロントエンドには影響しません。
+ * 
+ * 保持理由:
+ * - 後方互換性のため（外部システムが使用している可能性）
+ * - ヘルスチェックエンドポイント (/api/eiken/generate/health) のため
+ * 
+ * TODO: 外部依存がないことを確認後、削除予定（Phase 7で削除検討）
  */
 
 import { Hono } from 'hono';

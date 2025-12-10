@@ -1,7 +1,20 @@
 /**
- * Phase 3: Question Generation API Routes
+ * ✅ ACTIVE API - Phase 3: Question Generation API Routes
  * 
  * 統合問題生成エンドポイント
+ * POST /api/eiken/questions/generate
+ * 
+ * @status ACTIVE - フロントエンドがこのAPIを使用しています
+ * @see src/hooks/useEikenAPI.ts - フロントエンドの実装
+ * 
+ * このAPIは IntegratedQuestionGenerator を使用し、以下の機能を提供：
+ * - Blueprint生成（トピック選択、語彙レベル制約）
+ * - LLM問題生成（GPT-4による生成）
+ * - 多段階検証（語彙、文法、著作権）
+ * - データベース保存
+ * - 4ブロック形式の解説（＜着眼点＞＜鉄則！＞＜当てはめ＞＜誤答の理由＞）
+ * 
+ * レガシーAPI（非推奨）: src/eiken/routes/generate.ts
  */
 
 import { Hono } from 'hono';

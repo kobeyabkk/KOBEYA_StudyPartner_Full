@@ -152,7 +152,12 @@ export function useEikenGenerate() {
       for (let i = 0; i < passageCount; i++) {
         console.log(`\n🔄 Generating ${isLongReading ? 'passage' : 'question'} ${i + 1}/${passageCount}...`);
         
-        // Phase 3 APIリクエスト（1問ずつ）
+        // ✅ Phase 3 API（アクティブAPI）へのリクエスト
+        // エンドポイント: /api/eiken/questions/generate
+        // 実装: src/eiken/routes/questions.ts
+        // サービス: IntegratedQuestionGenerator (src/eiken/services/integrated-question-generator.ts)
+        // 
+        // 注意: /api/eiken/generate (レガシーAPI) は使用していません
         const phase3Request: Phase3QuestionGenerationRequest = {
           student_id: 'web_user_' + Date.now(),
           grade: request.grade,
