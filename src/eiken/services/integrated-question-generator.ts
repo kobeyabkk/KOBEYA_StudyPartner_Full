@@ -107,7 +107,7 @@ export class IntegratedQuestionGenerator {
   private getOptimalLLMConfig(format: QuestionFormat): LLMConfig {
     const configs: Record<QuestionFormat, LLMConfig> = {
       'grammar_fill': {
-        temperature: 0.2,  // Phase 7.2: Lower temperature for more consistent explanation_ja generation
+        temperature: 0.3,  // Phase 7.2: Reverted to 0.3 for more natural explanations (user feedback)
         top_p: 0.9,
         reasoning: '4ブロック解説形式の厳格な遵守のため（Phase 6.8B: 0.5→0.3）'
       },

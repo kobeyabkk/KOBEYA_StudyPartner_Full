@@ -85,6 +85,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   // Phase 4B: Vocabulary annotation state
   const [selectedVocabNote, setSelectedVocabNote] = useState<any | null>(null);
   
+  // Phase 7.2: 解説再生成の状態管理
+  const [regeneratingExplanation, setRegeneratingExplanation] = useState<Set<number>>(new Set());
+  const [regeneratedExplanations, setRegeneratedExplanations] = useState<Map<number, string>>(new Map());
+  
   // Vocabulary markers visibility toggle (default: false = hidden)
   const [showVocabularyMarkers, setShowVocabularyMarkers] = useState(() => {
     try {
@@ -319,6 +323,76 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     } catch (error) {
       console.error('❌ Failed to add word to notebook:', error);
       throw error;
+    }
+  };
+
+  // Phase 7.2: 解説を再生成する関数
+  const handleRegenerateExplanation = async () => {
+    const questionIndex = currentIndex;
+    
+    try {
+      console.log('🔄 Regenerating explanation for question:', questionIndex);
+      
+      // ローディング状態を設定
+      setRegeneratingExplanation(prev => new Set(prev).add(questionIndex));
+      
+      // 現在の問題データを取得
+      const question = questions[questionIndex];
+      const rawQuestion = (question as any)._raw || question;
+      
+      // APIリクエスト（既存のgenerationエンドポイントを再利用）
+      const response = await fetch('/api/eiken/questions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: 'user-123', // TODO: Get from auth context
+          grade: rawQuestion.grade || 'pre1',
+          format: 'grammar_fill',
+          count: 1,
+          adaptiveDifficulty: false,
+          difficulty: 0.6,
+          topicHints: rawQuestion.topic_code ? [rawQuestion.topic_code] : undefined
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Regeneration API response:', data);
+      
+      // 新しい解説を取得
+      if (data.generated && data.generated.length > 0) {
+        const newQuestion = data.generated[0];
+        const newExplanation = newQuestion.explanation_ja || newQuestion.explanationJa || newQuestion.explanation;
+        
+        if (newExplanation) {
+          // 再生成された解説をMapに保存
+          setRegeneratedExplanations(prev => {
+            const newMap = new Map(prev);
+            newMap.set(questionIndex, newExplanation);
+            return newMap;
+          });
+          
+          console.log('✅ Explanation regenerated successfully');
+        } else {
+          throw new Error('No explanation in regenerated question');
+        }
+      } else {
+        throw new Error('No question generated');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to regenerate explanation:', error);
+      alert('解説の再生成に失敗しました。もう一度お試しください。');
+    } finally {
+      // ローディング状態を解除
+      setRegeneratingExplanation(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionIndex);
+        return newSet;
+      });
     }
   };
   
@@ -731,20 +805,51 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 
                 {/* 文法解説 */}
                 <div className="p-3 bg-white bg-opacity-50 rounded-lg">
-                  <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <span>💡</span>
-                    <span>文法解説</span>
-                  </h5>
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <span>💡</span>
+                      <span>文法解説</span>
+                    </h5>
+                    {/* Phase 7.2: 解説再生成ボタン */}
+                    <button
+                      onClick={handleRegenerateExplanation}
+                      disabled={regeneratingExplanation.has(currentIndex)}
+                      className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center gap-1"
+                      title="別の解説を生成します"
+                    >
+                      {regeneratingExplanation.has(currentIndex) ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>生成中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>別の解説</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {(() => {
-                      const explanation = currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation;
+                      // Phase 7.2: 再生成された解説を優先表示
+                      const regenerated = regeneratedExplanations.get(currentIndex);
+                      const explanation = regenerated || currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation;
+                      
                       console.log('🔍 Explanation debug:', {
                         explanation_ja: currentQuestion.explanation_ja,
                         explanationJa: currentQuestion.explanationJa,
                         explanation: currentQuestion.explanation,
+                        regenerated: regenerated,
                         selected: explanation,
                         grade: (currentQuestion as any).grade || 'unknown'
                       });
+                      
                       return explanation || '（解説が見つかりません）';
                     })()}
                   </p>
