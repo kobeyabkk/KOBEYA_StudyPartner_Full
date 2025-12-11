@@ -107,7 +107,7 @@ export class IntegratedQuestionGenerator {
   private getOptimalLLMConfig(format: QuestionFormat): LLMConfig {
     const configs: Record<QuestionFormat, LLMConfig> = {
       'grammar_fill': {
-        temperature: 0.3,
+        temperature: 0.2,  // Phase 7.2: Lower temperature for more consistent explanation_ja generation
         top_p: 0.9,
         reasoning: '4ブロック解説形式の厳格な遵守のため（Phase 6.8B: 0.5→0.3）'
       },
@@ -774,6 +774,12 @@ Always respond with valid JSON.`;
     } else {
       console.log(`[LLM Response Debug] ⚠️ WARNING: explanation_ja is missing!`);
       console.log(`[LLM Response Debug] Available fields:`, Object.keys(generated));
+      
+      // 🔧 FALLBACK: explanation_ja が空の場合、explanation をコピー
+      if (generated.explanation && !generated.explanation_ja) {
+        console.log(`[LLM Response Debug] 🔧 FALLBACK: Copying explanation to explanation_ja`);
+        generated.explanation_ja = generated.explanation;
+      }
     }
 
     return generated;
