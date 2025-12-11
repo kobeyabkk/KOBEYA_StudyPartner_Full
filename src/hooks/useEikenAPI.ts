@@ -88,6 +88,7 @@ export interface GeneratedQuestion {
   topic: string;
   copyrightSafe: boolean;
   copyrightScore: number;
+  _raw?: any; // 元のAPIレスポンス（distractors配列などへのアクセス用）
 }
 
 // 従来APIレスポンス型 (後方互換性)
@@ -357,6 +358,7 @@ function convertPhase3ToLegacy(question: Phase3Question): GeneratedQuestion {
     copyrightSafe: true,
     copyrightScore: 95,
     vocabulary_notes: questionData.vocabulary_notes || [], // Phase 4B: vocabulary annotations
+    _raw: questionData, // 元のAPIレスポンスを保存（distractors配列へのアクセス用）
   };
 }
 

@@ -668,7 +668,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                     </h5>
                     <div className="space-y-2">
                       {Object.entries((currentQuestion as any).vocabulary_meanings).map(([term, meaning]) => {
-                        // 英語キーを日本語に変換
+                        // 英語キーを日本語に変換 + 実際の英単語を取得
                         const termLabels: Record<string, string> = {
                           'correct_answer': '正解',
                           'distractor_1': '誤答選択肢1',
@@ -676,18 +676,51 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                           'distractor_3': '誤答選択肢3',
                         };
                         
-                        // key_phrase_X は "重要表現X" に変換
+                        // 実際の英単語を取得
+                        // choices配列はシャッフル済みなので、元のdistractors配列から対応を取得
+                        let englishWord = '';
+                        
+                        if (term === 'correct_answer') {
+                          // 正解は常にcorrectAnswerIndexの位置
+                          englishWord = currentQuestion.choices?.[currentQuestion.correctAnswerIndex] || '';
+                        } else if (term.startsWith('distractor_')) {
+                          // distractor_1, distractor_2, distractor_3 の場合
+                          // 元のAPIレスポンスからdistractors配列を取得
+                          const rawQuestion = (currentQuestion as any)._raw || currentQuestion;
+                          const distractors = rawQuestion.distractors || [];
+                          const distractorIndex = parseInt(term.replace('distractor_', '')) - 1;
+                          
+                          if (distractors[distractorIndex]) {
+                            englishWord = distractors[distractorIndex];
+                          } else {
+                            // フォールバック: choices配列から正解以外を取得
+                            const wrongChoices = currentQuestion.choices?.filter((_, idx) => idx !== currentQuestion.correctAnswerIndex) || [];
+                            englishWord = wrongChoices[distractorIndex] || '';
+                          }
+                        }
+                        
+                        // key_phrase_X の場合は、日本語説明の中から英語部分を抽出
                         let displayTerm = term;
+                        let displayEnglish = englishWord;
+                        
                         if (term.startsWith('key_phrase_')) {
                           const num = term.replace('key_phrase_', '');
                           displayTerm = `重要表現${num}`;
+                          // "on weekends = 週末に" のような形式から英語部分を抽出
+                          const meaningStr = meaning as string;
+                          const match = meaningStr.match(/^([^=]+)\s*=/);
+                          if (match) {
+                            displayEnglish = match[1].trim();
+                          }
                         } else if (termLabels[term]) {
                           displayTerm = termLabels[term];
                         }
                         
                         return (
                           <div key={term} className="flex gap-2">
-                            <span className="font-medium text-purple-800 min-w-[100px]">{displayTerm}:</span>
+                            <span className="font-medium text-purple-800 min-w-[120px]">
+                              {displayTerm}{displayEnglish ? ` ${displayEnglish}` : ''}:
+                            </span>
                             <span className="text-purple-700">{meaning as string}</span>
                           </div>
                         );
