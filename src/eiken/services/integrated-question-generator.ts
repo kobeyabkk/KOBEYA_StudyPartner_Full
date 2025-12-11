@@ -764,6 +764,18 @@ Always respond with valid JSON.`;
     const data = await response.json();
     const generated = JSON.parse(data.choices[0].message.content);
 
+    // デバッグログ: 生成された解説をチェック
+    console.log(`[LLM Response Debug] Grade: ${blueprint.grade}`);
+    console.log(`[LLM Response Debug] Format: ${blueprint.format}`);
+    console.log(`[LLM Response Debug] explanation_ja exists: ${!!generated.explanation_ja}`);
+    console.log(`[LLM Response Debug] explanation_ja length: ${generated.explanation_ja?.length || 0}`);
+    if (generated.explanation_ja) {
+      console.log(`[LLM Response Debug] explanation_ja preview: ${generated.explanation_ja.substring(0, 100)}...`);
+    } else {
+      console.log(`[LLM Response Debug] ⚠️ WARNING: explanation_ja is missing!`);
+      console.log(`[LLM Response Debug] Available fields:`, Object.keys(generated));
+    }
+
     return generated;
   }
 

@@ -736,7 +736,17 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                     <span>文法解説</span>
                   </h5>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation}
+                    {(() => {
+                      const explanation = currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation;
+                      console.log('🔍 Explanation debug:', {
+                        explanation_ja: currentQuestion.explanation_ja,
+                        explanationJa: currentQuestion.explanationJa,
+                        explanation: currentQuestion.explanation,
+                        selected: explanation,
+                        grade: (currentQuestion as any).grade || 'unknown'
+                      });
+                      return explanation || '（解説が見つかりません）';
+                    })()}
                   </p>
                 </div>
               </div>
