@@ -11,7 +11,7 @@
 set -e  # Exit on error
 
 MIGRATIONS_DIR="migrations"
-DB_NAME="kobeya-study-partner-db"
+DB_NAME="kobeya-logs-db"  # Updated to match wrangler.toml
 
 echo "🗄️  D1 Database Migration Runner"
 echo "================================"
