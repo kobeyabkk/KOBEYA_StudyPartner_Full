@@ -347,19 +347,32 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       const question = questions[questionIndex];
       const rawQuestion = (question as any)._raw || question;
       
+      // Phase 7.4 FIX: 現在の問題の内容を明示的に送信して、同じ問題に対する解説を生成する
+      const currentQuestionData = {
+        question_text: question.questionText,
+        correct_answer: question.correctAnswer,
+        distractors: question.choices.filter(c => c !== question.correctAnswer),
+        grade: rawQuestion.grade || question.grade || 'pre1',
+        format: 'grammar_fill',
+        explanationStyle: targetStyle
+      };
+      
+      console.log('📤 Sending question data for explanation:', currentQuestionData);
+      
       // APIリクエスト（既存のgenerationエンドポイントを再利用）
       const response = await fetch('/api/eiken/questions/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          student_id: 'user-123', // TODO: Get from auth context
-          grade: rawQuestion.grade || 'pre1',
+          student_id: 'user-123',
+          grade: currentQuestionData.grade,
           format: 'grammar_fill',
           count: 1,
           adaptiveDifficulty: false,
           difficulty: 0.6,
-          topicHints: rawQuestion.topic_code ? [rawQuestion.topic_code] : undefined,
-          explanationStyle: targetStyle  // Phase 7.4: 解説スタイルを指定
+          // Phase 7.4 FIX: 固定問題として送信
+          fixedQuestion: currentQuestionData,
+          explanationStyle: targetStyle
         }),
       });
       

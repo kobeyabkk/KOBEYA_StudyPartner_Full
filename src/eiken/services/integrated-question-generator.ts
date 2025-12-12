@@ -33,6 +33,13 @@ export interface QuestionGenerationRequest {
   difficulty_adjustment?: number;
   session_id?: string;
   explanationStyle?: 'simple' | 'standard' | 'detailed';  // Phase 7.4: 解説スタイル
+  fixedQuestion?: {  // Phase 7.4 FIX: 既存問題に対する解説再生成用
+    question_text: string;
+    correct_answer: string;
+    distractors: string[];
+    grade?: EikenGrade;
+    format?: QuestionFormat;
+  };
 }
 
 export interface GeneratedQuestionData {
@@ -98,6 +105,91 @@ export class IntegratedQuestionGenerator {
     this.db = db;
     this.blueprintGenerator = new BlueprintGenerator(db);
     this.openaiApiKey = openaiApiKey;
+  }
+
+  /**
+   * Phase 7.4 FIX: 固定問題に対する解説のみを再生成
+   * 新しい問題を生成せず、既存の問題文・選択肢に対して解説だけを生成し直す
+   */
+  private async regenerateExplanationOnly(
+    request: QuestionGenerationRequest
+  ): Promise<QuestionGenerationResult> {
+    const { fixedQuestion, grade, format, explanationStyle } = request;
+    
+    if (!fixedQuestion) {
+      throw new Error('fixedQuestion is required for explanation regeneration');
+    }
+
+    console.log('[Explanation Regeneration] Question:', fixedQuestion.question_text);
+    console.log('[Explanation Regeneration] Style:', explanationStyle || 'standard');
+
+    // 固定問題用の簡易blueprintを作成
+    const blueprint = {
+      id: `fixed-${Date.now()}`,
+      student_id: request.student_id,
+      grade: grade,
+      format: format,
+      topic_code: 'general',
+      guidelines: {
+        vocabulary_level: this.getVocabularyLevel(grade),
+        target_difficulty: 0.6,
+        question_focus: 'grammar',
+      },
+    };
+
+    // LLMモデル選択
+    const selectedModel = selectModel({
+      grade: grade,
+      format: format,
+      mode: 'production',
+    });
+
+    // 固定問題データをLLMプロンプトに含める形でcallLLMを呼び出す
+    const questionData = await this.callLLM(
+      blueprint as any,
+      selectedModel,
+      fixedQuestion,  // 固定問題データを渡す
+      explanationStyle || 'standard'
+    );
+
+    // レスポンス構造を整える
+    return {
+      success: true,
+      data: {
+        question: {
+          question_data: questionData,
+          grade: grade,
+          format: format,
+        },
+        blueprint: blueprint as any,
+        topic_selection: { code: 'general', name: 'General' },
+        validation: {
+          vocabulary_passed: true,
+          copyright_passed: true,
+        },
+        metadata: {
+          model_used: selectedModel,
+          generation_time_ms: 0,
+          attempts: 1,
+        },
+      },
+    };
+  }
+
+  /**
+   * 級別の語彙レベルを取得
+   */
+  private getVocabularyLevel(grade: EikenGrade): string {
+    const levels: Record<EikenGrade, string> = {
+      '5': 'A1',
+      '4': 'A1-A2',
+      '3': 'A2',
+      'pre2': 'A2-B1',
+      '2': 'B1',
+      'pre1': 'B2',
+      '1': 'C1',
+    };
+    return levels[grade] || 'A2';
   }
 
   /**
@@ -267,6 +359,12 @@ export class IntegratedQuestionGenerator {
     const mode = request.mode || 'production';
     
     console.log(`[Question Generation] Starting for ${request.grade}/${request.format} (${mode})`);
+
+    // Phase 7.4 FIX: 固定問題モード（解説のみ再生成）
+    if (request.fixedQuestion) {
+      console.log('[Fixed Question Mode] Regenerating explanation only');
+      return this.regenerateExplanationOnly(request);
+    }
 
     // Step 1: Blueprint生成
     const blueprintResult = await this.blueprintGenerator.generateBlueprint({
@@ -678,7 +776,7 @@ export class IntegratedQuestionGenerator {
   private async callLLM(
     blueprint: Blueprint,
     model: string,
-    additionalContext?: string,
+    fixedQuestion?: { question_text: string; correct_answer: string; distractors: string[] },  // Phase 7.4 FIX
     explanationStyle?: 'simple' | 'standard' | 'detailed'  // Phase 7.4
   ): Promise<any> {
     // 形式別の最適パラメータを取得
@@ -704,21 +802,52 @@ export class IntegratedQuestionGenerator {
       }
     }
     
-    // ベースプロンプトを生成
-    const basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
+    // Phase 7.4 FIX: 固定問題モードの場合は解説のみを生成するプロンプト
+    let basePrompt: string;
+    if (fixedQuestion) {
+      // 固定問題の場合: 問題文と選択肢を提示し、解説のみを生成
+      basePrompt = `Generate ONLY the explanation for this existing question. DO NOT generate a new question.
+
+Question: ${fixedQuestion.question_text}
+Correct Answer: ${fixedQuestion.correct_answer}
+Incorrect Choices: ${fixedQuestion.distractors.join(', ')}
+
+Generate a complete explanation in Japanese following the 4-block format:
+＜着眼点＞ [key observation about the question]
+＜鉄則！＞ or ＜Point！＞ [grammar rule or principle]
+＜当てはめ＞ [how to apply the rule to this question]
+＜誤答の理由＞ [why each wrong answer is incorrect]
+
+Output as JSON:
+{
+  "question_text": "${fixedQuestion.question_text}",
+  "correct_answer": "${fixedQuestion.correct_answer}",
+  "distractors": ${JSON.stringify(fixedQuestion.distractors)},
+  "explanation_ja": "＜着眼点＞\\n...\\n\\n＜鉄則！＞\\n...\\n\\n＜当てはめ＞\\n...\\n\\n＜誤答の理由＞\\n...",
+  "translation_ja": "(Japanese translation of the question)",
+  "vocabulary_meanings": {
+    "correct_answer": "(meaning in Japanese)",
+    "distractor_1": "(meaning in Japanese)",
+    "distractor_2": "(meaning in Japanese)"
+  }
+}`;
+    } else {
+      // 通常モード: 新しい問題を生成
+      basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
+    }
     
     // Phase 7.4: 解説スタイルの追加
     const style = explanationStyle || 'standard';
     const { getExplanationStyleModifier } = await import('../prompts/format-prompts');
     const styleModifier = getExplanationStyleModifier(style, blueprint.grade);
     
-    // 追加の禁止語コンテキストを構築
-    const forbiddenWordsContext = recentViolations.length > 0
+    // 追加の禁止語コンテキストを構築（固定問題の場合はスキップ）
+    const forbiddenWordsContext = !fixedQuestion && recentViolations.length > 0
       ? `\n\n## ⚠️ ADDITIONAL FORBIDDEN WORDS (from recent generation failures)\nThese words were used in previous attempts and caused vocabulary level violations:\n${recentViolations.join(', ')}\n\n**YOU MUST AVOID THESE WORDS!**`
       : '';
     
     // 完全なプロンプト（解説スタイルを含む）
-    const enhancedPrompt = `${basePrompt}${styleModifier}${forbiddenWordsContext}${additionalContext || ''}`;
+    const enhancedPrompt = `${basePrompt}${styleModifier}${forbiddenWordsContext}`;
     
     // システムプロンプトに禁止語を含める
     const systemContent = `You are a vocabulary-constrained English test creator for Eiken (英検) ${blueprint.grade} preparation.
