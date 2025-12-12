@@ -509,14 +509,28 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           // Check if this word is in vocabulary notes
           const normalizedWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
           const note = vocabularyNotes.find(n => 
-            n && n.word && n.word.toLowerCase() === normalizedWord
+            n && (n.word || n.term) && (n.word?.toLowerCase() === normalizedWord || n.term?.toLowerCase() === normalizedWord)
           );
           
           if (note) {
+            // Normalize note structure for VocabularyPopup
+            // Long reading format uses {term, definition}, but VocabularyPopup expects {word, definition_ja}
+            const normalizedNote = {
+              word: note.word || note.term,
+              pos: note.pos || 'n/a',
+              definition_ja: note.definition_ja || note.definition,
+              definition_en: note.definition_en,
+              cefr_level: note.cefr_level,
+              difficulty_score: note.difficulty_score || 50,
+              word_id: note.word_id,
+              example_sentence_en: note.example_sentence_en,
+              example_sentence_ja: note.example_sentence_ja,
+            };
+            
             return (
               <span
                 key={index}
-                onClick={() => setSelectedVocabNote(note)}
+                onClick={() => setSelectedVocabNote(normalizedNote)}
                 className="inline-flex items-center cursor-pointer underline decoration-dotted decoration-blue-500 hover:decoration-solid hover:bg-blue-50 transition-colors"
                 title="クリックして語彙詳細を表示"
               >
