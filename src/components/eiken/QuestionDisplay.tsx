@@ -146,6 +146,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const isLastQuestion = currentIndex === questions.length - 1;
   const answered = selectedAnswer !== null;
   
+  // Check if current question is a writing format (essay, opinion_speech, reading_aloud)
+  const isWritingFormat = ['essay', 'opinion_speech', 'reading_aloud'].includes(currentQuestion.topic);
+  const hasChoices = Array.isArray(currentQuestion.choices) && currentQuestion.choices.length > 0;
+  
   // Debug: Check if vocabulary_notes exists
   useEffect(() => {
     console.log('🔍 [DEBUG] Current question:', currentQuestion);
@@ -771,6 +775,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
         </div>
 
         {/* 選択肢 */}
+        {hasChoices && (
         <div className="space-y-3 mb-6">
           {currentQuestion.choices.map((choice, index) => (
             <button
@@ -810,6 +815,19 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             </button>
           ))}
         </div>
+        )}
+
+        {/* ライティング問題の場合のプロンプト表示 */}
+        {isWritingFormat && (
+          <div className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📝 Writing Task</h3>
+            <div className="prose max-w-none">
+              <p className="text-gray-900 font-medium">
+                {(currentQuestion as any).essay_prompt || (currentQuestion as any).opinion_prompt || 'No prompt available'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 解説表示（アコーディオン） */}
         {isSubmitted && showExplanation && (
@@ -1101,25 +1119,31 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             </button>
             
             {/* 解答または解説ボタン */}
-            {!isSubmitted ? (
-              <button
-                onClick={handleSubmit}
-                disabled={selectedAnswer === null}
-                className={`flex-[2] py-3 px-6 rounded-lg font-bold transition-all ${
-                  selectedAnswer !== null
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                解答する
-              </button>
+            {!isWritingFormat ? (
+              !isSubmitted ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={selectedAnswer === null}
+                  className={`flex-[2] py-3 px-6 rounded-lg font-bold transition-all ${
+                    selectedAnswer !== null
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  解答する
+                </button>
+              ) : (
+                <button
+                  onClick={toggleExplanation}
+                  className="flex-[2] py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
+                >
+                  {showExplanation ? '解説を隠す' : '結果を見る'}
+                </button>
+              )
             ) : (
-              <button
-                onClick={toggleExplanation}
-                className="flex-[2] py-3 px-6 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
-              >
-                {showExplanation ? '解説を隠す' : '結果を見る'}
-              </button>
+              <div className="flex-[2] py-3 px-6 rounded-lg bg-blue-100 border-2 border-blue-300 text-blue-800 font-medium text-center">
+                ✍️ ライティング問題（解答は手動で記入してください）
+              </div>
             )}
             
             {/* 次の問題 */}
