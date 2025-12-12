@@ -2034,13 +2034,19 @@ router.get('/session/:sessionId', async (c) => {
         const sessionId = '${sessionId}';
         let currentStep = 1;
         
+        // セッションデータをクライアントサイドに渡す
+        const sessionData = {
+          lessonFormat: '${essaySession.lessonFormat || 'full_55min'}',
+          problemMode: '${essaySession.problemMode}',
+          customInput: '${essaySession.customInput || ""}',
+          learningStyle: '${essaySession.learningStyle}',
+          targetLevel: '${essaySession.targetLevel}'
+        };
+        
         // セッション設定をコンソールに表示（デバッグ用）
         console.log('🔍 Essay Session Configuration:', {
           sessionId: sessionId,
-          problemMode: '${essaySession.problemMode}',
-          customInput: '${essaySession.customInput || "(empty)"}',
-          learningStyle: '${essaySession.learningStyle}',
-          targetLevel: '${essaySession.targetLevel}',
+          ...sessionData,
           timestamp: new Date().toISOString()
         });
         
