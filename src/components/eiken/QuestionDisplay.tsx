@@ -823,8 +823,8 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
 
         {/* ライティング問題の場合のプロンプト表示 */}
         {isWritingFormat && (() => {
-          // Extract essay/opinion data from question_data or _raw
-          const questionData = (currentQuestion as any)._raw?.question_data || (currentQuestion as any).question_data || {};
+          // Extract essay/opinion data from _raw (which IS the question_data)
+          const questionData = (currentQuestion as any)._raw || (currentQuestion as any).question_data || {};
           const essayPrompt = questionData.essay_prompt || (currentQuestion as any).essay_prompt || '';
           const essayPromptJa = questionData.essay_prompt_ja || (currentQuestion as any).essay_prompt_ja || '';
           const opinionPrompt = questionData.opinion_prompt || (currentQuestion as any).opinion_prompt || '';
@@ -832,6 +832,10 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           const sampleEssayJa = questionData.sample_essay_ja || '';
           const outlineGuidanceJa = questionData.outline_guidance_ja || {};
           const usefulExpressions = questionData.useful_expressions || [];
+          
+          // Debug log
+          console.log('📝 [ESSAY RENDER] questionData:', questionData);
+          console.log('📝 [ESSAY RENDER] essayPrompt:', essayPrompt);
           
           return (
             <div className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6 space-y-4">
