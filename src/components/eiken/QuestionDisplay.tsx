@@ -845,15 +845,38 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 )}
                 
                 {/* 重要な熟語・表現の解説 */}
-                {(currentQuestion as any).vocabulary_meanings && Object.keys((currentQuestion as any).vocabulary_meanings).length > 0 && (
+                {(currentQuestion as any).vocabulary_meanings && (
+                  Array.isArray((currentQuestion as any).vocabulary_meanings) 
+                    ? (currentQuestion as any).vocabulary_meanings.length > 0
+                    : Object.keys((currentQuestion as any).vocabulary_meanings).length > 0
+                ) && (
                   <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                     <h5 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
                       <span>📖</span>
                       <span>重要な語句</span>
                     </h5>
                     <div className="space-y-2">
-                      {Object.entries((currentQuestion as any).vocabulary_meanings).map(([term, meaning]) => {
-                        // 英語キーを日本語に変換 + 実際の英単語を取得
+                      {/* Handle both array format (long_reading) and object format (grammar_fill) */}
+                      {(Array.isArray((currentQuestion as any).vocabulary_meanings)
+                        ? (currentQuestion as any).vocabulary_meanings.map((item: any) => [item.term || item.word, item.definition || item.definition_ja])
+                        : Object.entries((currentQuestion as any).vocabulary_meanings)
+                      ).map(([term, meaning]: [string, any]) => {
+                        // Check if this is array format (long_reading) or object format (grammar_fill)
+                        const isArrayFormat = Array.isArray((currentQuestion as any).vocabulary_meanings);
+                        
+                        // For array format, term is already the English word/phrase
+                        if (isArrayFormat) {
+                          return (
+                            <div key={term} className="flex gap-2">
+                              <span className="font-medium text-purple-800 min-w-[120px]">
+                                {term}:
+                              </span>
+                              <span className="text-purple-700">{meaning as string}</span>
+                            </div>
+                          );
+                        }
+                        
+                        // For object format (grammar_fill), use original logic
                         const termLabels: Record<string, string> = {
                           'correct_answer': '正解',
                           'distractor_1': '誤答選択肢1',
