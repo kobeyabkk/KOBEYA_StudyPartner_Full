@@ -32,6 +32,7 @@ export interface QuestionGenerationRequest {
   topic_code?: string;
   difficulty_adjustment?: number;
   session_id?: string;
+  explanationStyle?: 'simple' | 'standard' | 'detailed';  // Phase 7.4: 解説スタイル
 }
 
 export interface GeneratedQuestionData {
@@ -705,13 +706,18 @@ export class IntegratedQuestionGenerator {
     // ベースプロンプトを生成
     const basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
     
+    // Phase 7.4: 解説スタイルの追加
+    const explanationStyle = request.explanationStyle || 'standard';
+    const { getExplanationStyleModifier } = await import('../prompts/format-prompts');
+    const styleModifier = getExplanationStyleModifier(explanationStyle, blueprint.grade);
+    
     // 追加の禁止語コンテキストを構築
     const forbiddenWordsContext = recentViolations.length > 0
       ? `\n\n## ⚠️ ADDITIONAL FORBIDDEN WORDS (from recent generation failures)\nThese words were used in previous attempts and caused vocabulary level violations:\n${recentViolations.join(', ')}\n\n**YOU MUST AVOID THESE WORDS!**`
       : '';
     
-    // 完全なプロンプト
-    const enhancedPrompt = `${basePrompt}${forbiddenWordsContext}${additionalContext || ''}`;
+    // 完全なプロンプト（解説スタイルを含む）
+    const enhancedPrompt = `${basePrompt}${styleModifier}${forbiddenWordsContext}${additionalContext || ''}`;
     
     // システムプロンプトに禁止語を含める
     const systemContent = `You are a vocabulary-constrained English test creator for Eiken (英検) ${blueprint.grade} preparation.

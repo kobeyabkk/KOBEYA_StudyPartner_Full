@@ -89,6 +89,12 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   const [regeneratingExplanation, setRegeneratingExplanation] = useState<Set<number>>(new Set());
   const [regeneratedExplanations, setRegeneratedExplanations] = useState<Map<number, string>>(new Map());
   
+  // Phase 7.4: 解説スタイルと履歴の管理
+  const [explanationStyle, setExplanationStyle] = useState<'simple' | 'standard' | 'detailed'>('standard');
+  const [explanationHistories, setExplanationHistories] = useState<Map<number, Array<{text: string, style: string, timestamp: number}>>>(new Map());
+  const [currentExplanationIndex, setCurrentExplanationIndex] = useState<Map<number, number>>(new Map());
+  const [favoriteExplanations, setFavoriteExplanations] = useState<Set<string>>(new Set());
+  
   // Vocabulary markers visibility toggle (default: false = hidden)
   const [showVocabularyMarkers, setShowVocabularyMarkers] = useState(() => {
     try {
@@ -326,12 +332,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     }
   };
 
-  // Phase 7.2: 解説を再生成する関数
-  const handleRegenerateExplanation = async () => {
+  // Phase 7.4: 解説を再生成する関数（スタイル指定対応）
+  const handleRegenerateExplanation = async (style?: 'simple' | 'standard' | 'detailed') => {
     const questionIndex = currentIndex;
+    const targetStyle = style || explanationStyle;
     
     try {
-      console.log('🔄 Regenerating explanation for question:', questionIndex);
+      console.log('🔄 Regenerating explanation for question:', questionIndex, 'Style:', targetStyle);
       
       // ローディング状態を設定
       setRegeneratingExplanation(prev => new Set(prev).add(questionIndex));
@@ -351,7 +358,8 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           count: 1,
           adaptiveDifficulty: false,
           difficulty: 0.6,
-          topicHints: rawQuestion.topic_code ? [rawQuestion.topic_code] : undefined
+          topicHints: rawQuestion.topic_code ? [rawQuestion.topic_code] : undefined,
+          explanationStyle: targetStyle  // Phase 7.4: 解説スタイルを指定
         }),
       });
       
@@ -368,7 +376,31 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
         const newExplanation = newQuestion.explanation_ja || newQuestion.explanationJa || newQuestion.explanation;
         
         if (newExplanation) {
-          // 再生成された解説をMapに保存
+          // Phase 7.4: 解説履歴に追加（最大5個まで）
+          setExplanationHistories(prev => {
+            const newMap = new Map(prev);
+            const history = newMap.get(questionIndex) || [];
+            const newEntry = {
+              text: newExplanation,
+              style: targetStyle,
+              timestamp: Date.now()
+            };
+            
+            // 最大5個まで保存
+            const updatedHistory = [...history, newEntry].slice(-5);
+            newMap.set(questionIndex, updatedHistory);
+            return newMap;
+          });
+          
+          // 現在の表示インデックスを最新に設定
+          setCurrentExplanationIndex(prev => {
+            const newMap = new Map(prev);
+            const history = explanationHistories.get(questionIndex) || [];
+            newMap.set(questionIndex, history.length); // 新しい要素のインデックス
+            return newMap;
+          });
+          
+          // 再生成された解説をMapに保存（後方互換性のため）
           setRegeneratedExplanations(prev => {
             const newMap = new Map(prev);
             newMap.set(questionIndex, newExplanation);
@@ -391,6 +423,53 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       setRegeneratingExplanation(prev => {
         const newSet = new Set(prev);
         newSet.delete(questionIndex);
+        return newSet;
+      });
+    }
+  };
+  
+  // Phase 7.4: 解説履歴のナビゲーション
+  const handlePreviousExplanation = () => {
+    const history = explanationHistories.get(currentIndex) || [];
+    const currentIdx = currentExplanationIndex.get(currentIndex) || 0;
+    
+    if (currentIdx > 0) {
+      setCurrentExplanationIndex(prev => {
+        const newMap = new Map(prev);
+        newMap.set(currentIndex, currentIdx - 1);
+        return newMap;
+      });
+    }
+  };
+  
+  const handleNextExplanation = () => {
+    const history = explanationHistories.get(currentIndex) || [];
+    const currentIdx = currentExplanationIndex.get(currentIndex) || 0;
+    
+    if (currentIdx < history.length - 1) {
+      setCurrentExplanationIndex(prev => {
+        const newMap = new Map(prev);
+        newMap.set(currentIndex, currentIdx + 1);
+        return newMap;
+      });
+    }
+  };
+  
+  // Phase 7.4: お気に入り登録
+  const handleToggleFavorite = () => {
+    const history = explanationHistories.get(currentIndex) || [];
+    const currentIdx = currentExplanationIndex.get(currentIndex) || 0;
+    const currentExplanationText = history[currentIdx]?.text;
+    
+    if (currentExplanationText) {
+      const key = `${currentIndex}-${currentIdx}`;
+      setFavoriteExplanations(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(key)) {
+          newSet.delete(key);
+        } else {
+          newSet.add(key);
+        }
         return newSet;
       });
     }
@@ -803,52 +882,142 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                   </div>
                 )}
                 
-                {/* 文法解説 */}
+                {/* Phase 7.4: 文法解説（スタイル切り替え・履歴対応） */}
                 <div className="p-3 bg-white bg-opacity-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
+                  {/* ヘッダー：タイトル + 解説スタイル切り替え + 再生成ボタン */}
+                  <div className="flex items-center justify-between mb-3">
                     <h5 className="font-semibold text-gray-900 flex items-center gap-2">
                       <span>💡</span>
                       <span>文法解説</span>
                     </h5>
-                    {/* Phase 7.2: 解説再生成ボタン */}
-                    <button
-                      onClick={handleRegenerateExplanation}
-                      disabled={regeneratingExplanation.has(currentIndex)}
-                      className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center gap-1"
-                      title="別の解説を生成します"
-                    >
-                      {regeneratingExplanation.has(currentIndex) ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>生成中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          <span>別の解説</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* 解説スタイル切り替えボタン */}
+                      <div className="flex bg-gray-200 rounded-md p-0.5">
+                        <button
+                          onClick={() => { setExplanationStyle('simple'); handleRegenerateExplanation('simple'); }}
+                          disabled={regeneratingExplanation.has(currentIndex)}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            explanationStyle === 'simple'
+                              ? 'bg-white text-purple-700 font-semibold shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                          title="中学生でも分かる簡単な解説"
+                        >
+                          簡単
+                        </button>
+                        <button
+                          onClick={() => { setExplanationStyle('standard'); handleRegenerateExplanation('standard'); }}
+                          disabled={regeneratingExplanation.has(currentIndex)}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            explanationStyle === 'standard'
+                              ? 'bg-white text-purple-700 font-semibold shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                          title="標準的な解説"
+                        >
+                          標準
+                        </button>
+                        <button
+                          onClick={() => { setExplanationStyle('detailed'); handleRegenerateExplanation('detailed'); }}
+                          disabled={regeneratingExplanation.has(currentIndex)}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            explanationStyle === 'detailed'
+                              ? 'bg-white text-purple-700 font-semibold shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                          title="文法用語を使った詳しい解説"
+                        >
+                          詳しい
+                        </button>
+                      </div>
+                      
+                      {/* 別の解説ボタン */}
+                      <button
+                        onClick={() => handleRegenerateExplanation()}
+                        disabled={regeneratingExplanation.has(currentIndex)}
+                        className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center gap-1"
+                        title="同じスタイルで別の解説を生成"
+                      >
+                        {regeneratingExplanation.has(currentIndex) ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-xs">生成中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span className="text-xs">別の解説</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
+                  
+                  {/* 解説履歴ナビゲーション */}
+                  {(() => {
+                    const history = explanationHistories.get(currentIndex) || [];
+                    const currentIdx = currentExplanationIndex.get(currentIndex) || 0;
+                    
+                    if (history.length > 1) {
+                      return (
+                        <div className="flex items-center justify-between mb-2 px-2 py-1 bg-purple-50 rounded">
+                          <button
+                            onClick={handlePreviousExplanation}
+                            disabled={currentIdx === 0}
+                            className="px-2 py-1 text-xs text-purple-700 hover:bg-purple-100 disabled:text-gray-400 disabled:hover:bg-transparent rounded transition-colors"
+                          >
+                            ⏪ 前の解説
+                          </button>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-purple-700 font-medium">
+                              {currentIdx + 1} / {history.length}
+                            </span>
+                            <button
+                              onClick={handleToggleFavorite}
+                              className={`p-1 rounded transition-colors ${
+                                favoriteExplanations.has(`${currentIndex}-${currentIdx}`)
+                                  ? 'text-yellow-500 hover:text-yellow-600'
+                                  : 'text-gray-400 hover:text-yellow-500'
+                              }`}
+                              title="お気に入りに登録"
+                            >
+                              <svg className="w-5 h-5" fill={favoriteExplanations.has(`${currentIndex}-${currentIdx}`) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                              </svg>
+                            </button>
+                          </div>
+                          <button
+                            onClick={handleNextExplanation}
+                            disabled={currentIdx === history.length - 1}
+                            className="px-2 py-1 text-xs text-purple-700 hover:bg-purple-100 disabled:text-gray-400 disabled:hover:bg-transparent rounded transition-colors"
+                          >
+                            次の解説 ⏩
+                          </button>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  {/* 解説本文 */}
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {(() => {
-                      // Phase 7.2: 再生成された解説を優先表示
+                      const history = explanationHistories.get(currentIndex) || [];
+                      const currentIdx = currentExplanationIndex.get(currentIndex) || 0;
+                      
+                      // 履歴がある場合は履歴から取得
+                      if (history.length > 0 && history[currentIdx]) {
+                        return history[currentIdx].text;
+                      }
+                      
+                      // フォールバック: 元の解説
                       const regenerated = regeneratedExplanations.get(currentIndex);
                       const explanation = regenerated || currentQuestion.explanation_ja || currentQuestion.explanationJa || currentQuestion.explanation;
-                      
-                      console.log('🔍 Explanation debug:', {
-                        explanation_ja: currentQuestion.explanation_ja,
-                        explanationJa: currentQuestion.explanationJa,
-                        explanation: currentQuestion.explanation,
-                        regenerated: regenerated,
-                        selected: explanation,
-                        grade: (currentQuestion as any).grade || 'unknown'
-                      });
                       
                       return explanation || '（解説が見つかりません）';
                     })()}

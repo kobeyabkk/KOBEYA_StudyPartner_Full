@@ -758,3 +758,96 @@ export function buildPromptForBlueprint(
       throw new Error(`Unknown format: ${blueprint.format}`);
   }
 }
+
+/**
+ * Phase 7.4: 解説スタイル別のプロンプト修飾子
+ */
+export type ExplanationStyle = 'simple' | 'standard' | 'detailed';
+
+export function getExplanationStyleModifier(style: ExplanationStyle, grade: string): string {
+  switch (style) {
+    case 'simple':
+      return `
+🎓 EXPLANATION STYLE: SIMPLE (簡単な解説)
+
+**TARGET AUDIENCE**: 初学者、文法が苦手な学習者
+**TONE**: 優しく、親しみやすく
+**REQUIREMENTS**:
+- 中学生でも理解できる平易な言葉を使う
+- 文法用語を最小限に抑える（必要な場合は括弧で説明を加える）
+- 具体例を多く使う
+- 1文を短く、シンプルに
+- explanation_ja の各ブロックは簡潔に（各ブロック50-80字程度）
+
+**EXAMPLE**:
+＜着眼点＞
+「yesterday（昨日）」という言葉があります。これは「過去のこと」を表します。
+
+＜Point！＞
+過去のことを聞く疑問文では、文の最初に「Did」を使います。
+
+＜当てはめ＞
+「昨日」のことなので、「Did」が正解です。
+
+＜誤答の理由＞
+Do/Does：今のことを聞く言葉なので×
+Are：「〜です」という意味の言葉なので×
+`;
+
+    case 'detailed':
+      return `
+🎓 EXPLANATION STYLE: DETAILED (詳しい解説)
+
+**TARGET AUDIENCE**: 文法を深く理解したい学習者、上級者
+**TONE**: アカデミック、正確
+**REQUIREMENTS**:
+- 文法用語を正確に使用（例：助動詞、時制、品詞など）
+- 文法規則の背景や例外も説明
+- 類似表現との違いも解説
+- 英語の例文を豊富に使用
+- explanation_ja の各ブロックは詳細に（各ブロック100-150字程度）
+
+**EXAMPLE**:
+＜着眼点＞
+時を表す副詞 "yesterday" が使用されており、過去時制を示唆しています。疑問文の構造を判断する必要があります。
+
+＜鉄則！＞
+一般動詞の過去時制の疑問文では、助動詞 "did" を文頭に配置し、動詞は原形を使用します。これは do/does の過去形である did が時制を担うためです。
+
+＜当てはめ＞
+"yesterday" により過去時制が確定し、主語が二人称 "you" であっても、一般動詞の疑問文では "Did" を使用します。動詞 "buy" は原形のままです。
+
+＜誤答の理由＞
+Do/Does：現在時制の助動詞であり、過去を表す "yesterday" とは時制が一致しない×
+Are："be" 動詞の現在形であり、一般動詞 "buy" とは併用できない×
+`;
+
+    case 'standard':
+    default:
+      return `
+🎓 EXPLANATION STYLE: STANDARD (標準の解説)
+
+**TARGET AUDIENCE**: 一般的な学習者
+**TONE**: 分かりやすく、バランスの取れた
+**REQUIREMENTS**:
+- 適度な文法用語の使用（基本的な用語は使う）
+- 理解しやすい説明と適度な詳しさ
+- 必要に応じて具体例を使用
+- explanation_ja の各ブロックは標準的な長さ（各ブロック70-100字程度）
+
+**EXAMPLE**:
+＜着眼点＞
+「yesterday（昨日）」という単語があるので、過去のことを聞く疑問文です。
+
+＜${grade === '5' || grade === '4' ? 'Point！' : '鉄則！'}＞
+過去のことを聞く疑問文では、文の最初に助動詞の "Did" を使います。動詞は原形になります。
+
+＜当てはめ＞
+「昨日」という過去の時を表す言葉があるので、"Did" が正解です。主語が "you" でも "Did" を使います。
+
+＜誤答の理由＞
+Do/Does：現在形の助動詞なので、過去の "yesterday" とは合わない×
+Are：be動詞の現在形で、一般動詞の疑問文には使えない×
+`;
+  }
+}
