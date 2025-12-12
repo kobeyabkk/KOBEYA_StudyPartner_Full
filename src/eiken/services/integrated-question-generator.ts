@@ -306,8 +306,8 @@ export class IntegratedQuestionGenerator {
       console.log(`[Generation Attempt] ${attempts}/${maxAttempts}`);
 
       try {
-        // LLM呼び出し
-        questionData = await this.callLLM(blueprint, selectedModel);
+        // LLM呼び出し（Phase 7.4: explanationStyle を渡す）
+        questionData = await this.callLLM(blueprint, selectedModel, undefined, request.explanationStyle);
 
         // 検証1: 重複チェック（Phase 4C - Gemini推奨）
         const questionText = questionData.question_text 
@@ -678,7 +678,8 @@ export class IntegratedQuestionGenerator {
   private async callLLM(
     blueprint: Blueprint,
     model: string,
-    additionalContext?: string
+    additionalContext?: string,
+    explanationStyle?: 'simple' | 'standard' | 'detailed'  // Phase 7.4
   ): Promise<any> {
     // 形式別の最適パラメータを取得
     const llmConfig = this.getOptimalLLMConfig(blueprint.format);
@@ -707,9 +708,9 @@ export class IntegratedQuestionGenerator {
     const basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
     
     // Phase 7.4: 解説スタイルの追加
-    const explanationStyle = request.explanationStyle || 'standard';
+    const style = explanationStyle || 'standard';
     const { getExplanationStyleModifier } = await import('../prompts/format-prompts');
-    const styleModifier = getExplanationStyleModifier(explanationStyle, blueprint.grade);
+    const styleModifier = getExplanationStyleModifier(style, blueprint.grade);
     
     // 追加の禁止語コンテキストを構築
     const forbiddenWordsContext = recentViolations.length > 0
