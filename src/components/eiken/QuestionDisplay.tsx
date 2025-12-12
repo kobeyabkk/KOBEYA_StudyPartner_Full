@@ -370,9 +370,11 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       const data = await response.json();
       console.log('✅ Regeneration API response:', data);
       
-      // 新しい解説を取得
-      if (data.generated && data.generated.length > 0) {
-        const newQuestion = data.generated[0];
+      // Phase 7.4: Phase 3 API のレスポンス構造に対応
+      // レスポンス形式: { success: true, data: { question: {...} } }
+      const newQuestion = data.data?.question;
+      
+      if (newQuestion) {
         const newExplanation = newQuestion.explanation_ja || newQuestion.explanationJa || newQuestion.explanation;
         
         if (newExplanation) {
@@ -412,7 +414,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
           throw new Error('No explanation in regenerated question');
         }
       } else {
-        throw new Error('No question generated');
+        throw new Error('No question in API response. Response structure: ' + JSON.stringify(Object.keys(data)));
       }
       
     } catch (error) {
