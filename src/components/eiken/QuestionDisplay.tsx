@@ -374,15 +374,11 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       // レスポンス形式: { success: true, data: { question: {...} } }
       const newQuestion = data.data?.question;
       
-      // デバッグ: レスポンスの詳細をログ出力
-      console.log('🔍 newQuestion:', newQuestion);
-      console.log('🔍 newQuestion keys:', newQuestion ? Object.keys(newQuestion) : 'null');
-      console.log('🔍 explanation_ja:', newQuestion?.explanation_ja);
-      console.log('🔍 explanationJa:', newQuestion?.explanationJa);
-      console.log('🔍 explanation:', newQuestion?.explanation);
+      // Phase 7.4: explanation_ja は question_data の中にある
+      const questionData = newQuestion?.question_data;
       
-      if (newQuestion) {
-        const newExplanation = newQuestion.explanation_ja || newQuestion.explanationJa || newQuestion.explanation;
+      if (questionData) {
+        const newExplanation = questionData.explanation_ja || questionData.explanationJa || questionData.explanation;
         
         if (newExplanation) {
           // Phase 7.4: 解説履歴に追加（最大5個まで）
