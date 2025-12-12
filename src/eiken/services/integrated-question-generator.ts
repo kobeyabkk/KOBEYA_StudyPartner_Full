@@ -123,44 +123,57 @@ export class IntegratedQuestionGenerator {
     console.log('[Explanation Regeneration] Question:', fixedQuestion.question_text);
     console.log('[Explanation Regeneration] Style:', explanationStyle || 'standard');
 
-    // 固定問題用の簡易blueprintを作成
-    const blueprint = {
-      id: `fixed-${Date.now()}`,
-      student_id: request.student_id,
-      grade: grade,
-      format: format,
-      topic_code: 'general',
-      guidelines: {
-        vocabulary_level: this.getVocabularyLevel(grade),
-        target_difficulty: 0.6,
-        question_focus: 'grammar',
-      },
-    };
+    try {
+      // 固定問題用の簡易blueprintを作成
+      const blueprint = {
+        id: `fixed-${Date.now()}`,
+        student_id: request.student_id,
+        grade: grade,
+        format: format,
+        topic_code: 'general',
+        guidelines: {
+          vocabulary_level: this.getVocabularyLevel(grade),
+          target_difficulty: 0.6,
+          question_focus: 'grammar',
+        },
+      };
 
-    // LLMモデル選択
-    const selectedModel = selectModel({
-      grade: grade,
-      format: format,
-      mode: 'production',
-    });
+      // LLMモデル選択
+      const selectedModel = selectModel({
+        grade: grade,
+        format: format,
+        mode: 'production',
+      });
 
-    // 固定問題データをLLMプロンプトに含める形でcallLLMを呼び出す
-    const questionData = await this.callLLM(
-      blueprint as any,
-      selectedModel,
-      fixedQuestion,  // 固定問題データを渡す
-      explanationStyle || 'standard'
-    );
+      console.log('[Explanation Regeneration] Calling LLM with model:', selectedModel);
+      console.log('[Explanation Regeneration] Blueprint:', blueprint);
 
-    // レスポンス構造を整える
-    return {
-      success: true,
-      data: {
+      // 固定問題データをLLMプロンプトに含める形でcallLLMを呼び出す
+      const questionData = await this.callLLM(
+        blueprint as any,
+        selectedModel,
+        fixedQuestion,  // 固定問題データを渡す
+        explanationStyle || 'standard'
+      );
+
+      console.log('[Explanation Regeneration] LLM response received:', !!questionData);
+      console.log('[Explanation Regeneration] Response keys:', Object.keys(questionData || {}));
+
+      // レスポンス構造を整える（QuestionGenerationResult 形式に合わせる）
+      const response: QuestionGenerationResult = {
+        success: true,
         question: {
-          question_data: questionData,
+          id: undefined,
+          blueprint_id: blueprint.id,
+          student_id: request.student_id,
           grade: grade,
           format: format,
-        },
+          topic_code: 'general',
+          question_data: questionData,
+          model_used: selectedModel,
+          generation_mode: 'production',
+          created_at: new Date().toISOString(),
+        } as GeneratedQuestionData,
         blueprint: blueprint as any,
         topic_selection: { code: 'general', name: 'General' },
         validation: {
@@ -169,11 +182,23 @@ export class IntegratedQuestionGenerator {
         },
         metadata: {
           model_used: selectedModel,
+          generation_mode: 'production',
           generation_time_ms: 0,
           attempts: 1,
         },
-      },
-    };
+      };
+
+      console.log('[Explanation Regeneration] Response structure:', {
+        success: response.success,
+        hasQuestion: !!response.question,
+        hasQuestionData: !!response.question?.question_data,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[Explanation Regeneration] ERROR:', error);
+      throw new Error(`Failed to regenerate explanation: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
