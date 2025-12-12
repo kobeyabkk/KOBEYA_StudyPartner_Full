@@ -87,24 +87,29 @@ export function buildGrammarFillPrompt(
   const { topic, guidelines, instructions } = blueprint;
   const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
   
-  // 会話形式に適した文法項目を判定
-  const dialogSuitableGrammar = [
-    'can', 'will', 'should', 'must', 'may', 'would', 'could',
-    'present simple', 'past simple', 'future', 'going to',
-    'present continuous', 'past continuous',
-    'questions', 'negatives', 'modals'
-  ];
+  // Phase 7.4: 実際の英検に合わせた形式判定
+  // 5級・4級・3級: 会話文形式（A/B dialogue）
+  // 準2級: 会話文と短文の混在（徐々に移行）
+  // 2級・準1級・1級: 短文形式（non-dialogue）
+  const useDialogFormat = ['5', '4', '3', 'pre2'].includes(blueprint.grade);
   
-  const grammarPatternStr = guidelines.grammar_patterns.join(' ').toLowerCase();
-  const useDialogFormat = dialogSuitableGrammar.some(pattern => 
-    grammarPatternStr.includes(pattern)
-  );
+  // 準2級は50%の確率で会話文を使用（実際の英検に近づける）
+  const isPre2 = blueprint.grade === 'pre2';
+  const shouldUseDialogForPre2 = isPre2 && Math.random() < 0.5;
   
-  const formatInstruction = useDialogFormat 
+  // 最終判定: 準2級は50%、それ以外は級に応じて決定
+  const finalUseDialogFormat = isPre2 ? shouldUseDialogForPre2 : useDialogFormat;
+  
+  const formatInstruction = finalUseDialogFormat
     ? `
-## 🎯 QUESTION FORMAT: A/B Dialogue (Eiken Exam Standard)
+## 🎯 QUESTION FORMAT: A/B Dialogue (Eiken ${blueprint.grade} Standard)
 
-**CRITICAL**: Use dialogue format to eliminate ambiguous answers!
+**REAL EIKEN EXAM FORMAT**:
+- Grades 5, 4, 3: Always use dialogue format (realistic conversations)
+- Grade Pre-2: Mix of dialogue and single sentences (transition period)
+- Grades 2, Pre-1, 1: Single sentence format (academic/formal context)
+
+**CRITICAL**: This question should use dialogue format!
 
 Format structure (MUST use line break after A:):
 A: [Context/situation statement]
@@ -149,19 +154,37 @@ This creates confusion and multiple valid answers.
 - Past simple: "What did you do yesterday?" → Natural past response
 `
     : `
-## 🎯 QUESTION FORMAT: Standard Sentence with Context
+## 🎯 QUESTION FORMAT: Single Sentence (Eiken ${blueprint.grade} Standard)
 
-**IMPORTANT**: Add context to eliminate ambiguous answers!
+**REAL EIKEN EXAM FORMAT**:
+- Grades 5, 4, 3: Dialogue format (see conversational context)
+- Grade Pre-2: Mix of dialogue and single sentences
+- Grades 2, Pre-1, 1: **Single sentence format** (academic/formal)
+
+**CRITICAL**: This question should use single sentence format!
+
+**For Grades 2, Pre-1, 1:**
+- Use formal, academic, or business context
+- One complete sentence with clear grammatical structure
+- More sophisticated vocabulary and complex grammar
+- Context should be clear from the sentence itself
+
+**IMPORTANT**: Add sufficient context to eliminate ambiguous answers!
+
+**Good Example (Grade 2)**:
+The company decided to _____ a new policy to improve employee satisfaction.
+Choices: implement, neglect, postpone, ignore
+✓ Answer: implement (formal business context)
+
+**Good Example (Pre-1)**:
+It is essential that the board _____ this proposal before making a final decision.
+Choices: reviews, review, reviewed, will review
+✓ Answer: review (subjunctive mood with "essential that")
 
 If a question could have multiple correct answers:
-- Add a context sentence BEFORE the question
-- Make sure context clarifies which grammar is tested
+- Provide clear contextual clues within the sentence
+- Use formal/academic vocabulary appropriate for ${blueprint.grade}
 - Ensure only ONE answer is both grammatically AND contextually correct
-
-Example:
-Context: "Tom is learning to swim but he's still a beginner."
-Question: He _____ swim 50 meters yet.
-Answer: can't (context makes negative ability clear)
 `;
 
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
@@ -207,7 +230,7 @@ Solutions:
 
 ## Output Format (JSON)
 {
-  "question_text": "${useDialogFormat ? 'A: [context]\\nB: [sentence with _____] (MUST include \\\\n line break!)' : 'The sentence with _____ (blank)'}",
+  "question_text": "${finalUseDialogFormat ? 'A: [context]\\nB: [sentence with _____] (MUST include \\\\n line break!)' : 'The sentence with _____ (blank)'}",
   "correct_answer": "the correct form",
   "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
   "grammar_point": "what grammar is being tested",
@@ -254,7 +277,7 @@ Example: "rain：動詞の原形。3単現のsがついていないので ×"
 
 ## Important Notes
 - ONE blank per sentence only
-- ${useDialogFormat ? '**CRITICAL**: Use A/B dialogue format with actual line break (\\n) between speakers! Example: "A: text\\nB: text"' : 'Provide clear context clues'}
+- ${finalUseDialogFormat ? '**CRITICAL**: Use A/B dialogue format with actual line break (\\n) between speakers! Example: "A: text\\nB: text"' : 'Provide clear context clues'}
 - Distractors should be plausible but clearly wrong IN THIS CONTEXT
 - Use natural, authentic English
 - The sentence must relate to the topic: ${topic.topic_label_en}
@@ -263,12 +286,12 @@ Example: "rain：動詞の原形。3単現のsがついていないので ×"
   2. Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
   3. Japanese meanings for KEY PHRASES and IDIOMS in the question text (e.g., "keep in touch with" = 「〜と連絡を取り合う」)
 - **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!
-${useDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}
+${finalUseDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}
 
 ## 🌐 Translation & Vocabulary Requirements
 **CRITICAL**: Students need to understand the question to answer it!
 - translation_ja: Provide COMPLETE Japanese translation of question_text
-  ${useDialogFormat ? '- If dialogue format, translate BOTH A: and B: lines' : ''}
+  ${finalUseDialogFormat ? '- If dialogue format, translate BOTH A: and B: lines' : ''}
 - vocabulary_meanings: Include ALL important words/phrases:
   * All answer choices (correct + distractors)
   * Key phrases/idioms in question (e.g., "keep in touch with", "used to", "look forward to")
