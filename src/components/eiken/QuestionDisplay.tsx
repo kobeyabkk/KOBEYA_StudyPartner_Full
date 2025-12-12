@@ -156,7 +156,11 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     console.log('🔍 [DEBUG] vocabulary_notes:', (currentQuestion as any).vocabulary_notes);
     console.log('🔍 [DEBUG] vocabulary_notes type:', typeof (currentQuestion as any).vocabulary_notes);
     console.log('🔍 [DEBUG] vocabulary_notes length:', (currentQuestion as any).vocabulary_notes?.length);
-  }, [currentQuestion]);
+    console.log('🔍 [DEBUG] _raw:', (currentQuestion as any)._raw);
+    console.log('🔍 [DEBUG] _raw.essay_prompt:', (currentQuestion as any)._raw?.essay_prompt);
+    console.log('🔍 [DEBUG] isWritingFormat:', isWritingFormat);
+    console.log('🔍 [DEBUG] topic:', currentQuestion.topic);
+  }, [currentQuestion, isWritingFormat]);
 
   // 現在の長文を取得
   const currentPassage = (currentQuestion as any).passage || '';
@@ -818,16 +822,93 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
         )}
 
         {/* ライティング問題の場合のプロンプト表示 */}
-        {isWritingFormat && (
-          <div className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📝 Writing Task</h3>
-            <div className="prose max-w-none">
-              <p className="text-gray-900 font-medium">
-                {(currentQuestion as any).essay_prompt || (currentQuestion as any).opinion_prompt || 'No prompt available'}
-              </p>
+        {isWritingFormat && (() => {
+          // Extract essay/opinion data from question_data or _raw
+          const questionData = (currentQuestion as any)._raw?.question_data || (currentQuestion as any).question_data || {};
+          const essayPrompt = questionData.essay_prompt || (currentQuestion as any).essay_prompt || '';
+          const essayPromptJa = questionData.essay_prompt_ja || (currentQuestion as any).essay_prompt_ja || '';
+          const opinionPrompt = questionData.opinion_prompt || (currentQuestion as any).opinion_prompt || '';
+          const sampleEssay = questionData.sample_essay || '';
+          const sampleEssayJa = questionData.sample_essay_ja || '';
+          const outlineGuidanceJa = questionData.outline_guidance_ja || {};
+          const usefulExpressions = questionData.useful_expressions || [];
+          
+          return (
+            <div className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6 space-y-4">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">📝 Writing Task</h3>
+              
+              {/* Essay/Opinion Prompt */}
+              <div className="prose max-w-none">
+                <p className="text-gray-900 font-medium text-lg">
+                  {essayPrompt || opinionPrompt || 'No prompt available'}
+                </p>
+                {essayPromptJa && (
+                  <p className="text-gray-600 mt-2 text-sm">
+                    📖 {essayPromptJa}
+                  </p>
+                )}
+              </div>
+              
+              {/* Outline Guidance */}
+              {outlineGuidanceJa && Object.keys(outlineGuidanceJa).length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-bold text-blue-900 mb-2">💡 アウトラインガイダンス</h4>
+                  {outlineGuidanceJa.introduction && (
+                    <div className="mb-2">
+                      <span className="font-semibold text-blue-800">序論：</span>
+                      <span className="text-gray-700"> {outlineGuidanceJa.introduction}</span>
+                    </div>
+                  )}
+                  {outlineGuidanceJa.body_points && outlineGuidanceJa.body_points.length > 0 && (
+                    <div className="mb-2">
+                      <span className="font-semibold text-blue-800">本論：</span>
+                      <ul className="list-disc list-inside ml-4 text-gray-700">
+                        {outlineGuidanceJa.body_points.map((point: string, i: number) => (
+                          <li key={i}>{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {outlineGuidanceJa.conclusion && (
+                    <div>
+                      <span className="font-semibold text-blue-800">結論：</span>
+                      <span className="text-gray-700"> {outlineGuidanceJa.conclusion}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Useful Expressions */}
+              {usefulExpressions.length > 0 && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-bold text-green-900 mb-2">✨ 便利な表現</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {usefulExpressions.map((expr: string, i: number) => (
+                      <span key={i} className="bg-white px-3 py-1 rounded-full text-sm text-gray-700 border border-green-300">
+                        {expr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Sample Essay (collapsed by default) */}
+              {sampleEssay && (
+                <details className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <summary className="font-bold text-purple-900 cursor-pointer">📄 模範解答を見る</summary>
+                  <div className="mt-3 space-y-2">
+                    <p className="text-gray-800 whitespace-pre-wrap">{sampleEssay}</p>
+                    {sampleEssayJa && (
+                      <div className="pt-2 border-t border-purple-200">
+                        <p className="text-gray-600 text-sm whitespace-pre-wrap">{sampleEssayJa}</p>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 解説表示（アコーディオン） */}
         {isSubmitted && showExplanation && (
