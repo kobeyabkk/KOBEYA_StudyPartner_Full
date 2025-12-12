@@ -374,6 +374,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       // レスポンス形式: { success: true, data: { question: {...} } }
       const newQuestion = data.data?.question;
       
+      // デバッグ: レスポンスの詳細をログ出力
+      console.log('🔍 newQuestion:', newQuestion);
+      console.log('🔍 newQuestion keys:', newQuestion ? Object.keys(newQuestion) : 'null');
+      console.log('🔍 explanation_ja:', newQuestion?.explanation_ja);
+      console.log('🔍 explanationJa:', newQuestion?.explanationJa);
+      console.log('🔍 explanation:', newQuestion?.explanation);
+      
       if (newQuestion) {
         const newExplanation = newQuestion.explanation_ja || newQuestion.explanationJa || newQuestion.explanation;
         
