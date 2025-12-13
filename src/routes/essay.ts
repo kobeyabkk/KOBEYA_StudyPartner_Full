@@ -921,6 +921,15 @@ app.post('/api/essay/generate-pdf', async (c) => {
     const targetLevel = essaySession?.targetLevel || 'high_school'
     const lessonFormat = essaySession?.lessonFormat || 'full_55min'
     
+    // 🔍 CRITICAL DEBUG: lessonFormatの値を確認
+    console.log('🔍 CRITICAL: lessonFormat value:', {
+      raw: essaySession?.lessonFormat,
+      final: lessonFormat,
+      type: typeof lessonFormat,
+      length: lessonFormat?.length,
+      charCodes: lessonFormat?.split('').map((c: string) => c.charCodeAt(0))
+    })
+    
     console.log('📝 Essay chat - Session data:', { 
       sessionId, 
       problemMode, 
