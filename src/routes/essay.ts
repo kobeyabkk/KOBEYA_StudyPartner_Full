@@ -2781,7 +2781,9 @@ ${targetLevel === 'high_school' ? `
       ok: true,
       response,
       stepCompleted,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // 🚨 常にlessonFormatを含める（デバッグ用）
+      _debug_lessonFormat: lessonFormat
     }
     
     // 開発用デバッグ情報（Step 1の場合のみ）
