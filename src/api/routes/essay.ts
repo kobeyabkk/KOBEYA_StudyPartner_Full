@@ -1192,9 +1192,9 @@ router.post('/chat', async (c) => {
       else if (hasImage) {
         response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n読み取り結果が表示されたら、内容を確認して「確認完了」と入力してください。修正が必要な場合は、正しいテキストを入力して送信してください。'
       }
-      // パス機能
-      else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
-        console.log('✅ Matched: パス')
+      // パス機能（標準55分モードのみ）
+      else if (!isFocusedFormat && (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass'))) {
+        console.log('✅ Matched: パス (standard mode)')
         
         // セッションから読み物と質問を取得
         const themeContent = session?.essaySession?.lastThemeContent || ''
@@ -2141,6 +2141,7 @@ ${targetLevel === 'high_school' ? `
               session.essaySession = {}
             }
             session.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswersStep1 = vocabAnswers  // Step 1用に保存
             
             console.log('✅ Using AI-generated vocab problems and answers')
           } else {
@@ -2150,6 +2151,7 @@ ${targetLevel === 'high_school' ? `
               session.essaySession = {}
             }
             session.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswersStep1 = vocabAnswers  // Step 1用に保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
@@ -2165,6 +2167,7 @@ ${targetLevel === 'high_school' ? `
             session.essaySession = {}
           }
           session.essaySession.vocabAnswers = fallbackAnswers
+          session.essaySession.vocabAnswersStep1 = fallbackAnswers  // Step 1用に保存
         }
         
         // 語彙問題を表示
@@ -2313,6 +2316,7 @@ ${targetLevel === 'high_school' ? `
               session.essaySession = {}
             }
             session.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
             
             console.log('✅ Using AI-generated vocab problems and answers')
             console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
@@ -2325,6 +2329,7 @@ ${targetLevel === 'high_school' ? `
               session.essaySession = {}
             }
             session.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
@@ -2334,6 +2339,7 @@ ${targetLevel === 'high_school' ? `
           if (!session.essaySession) {
             session.essaySession = {}
           }
+          session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
           session.essaySession.vocabAnswers = vocabAnswers
         }
         
@@ -2639,10 +2645,19 @@ ${targetLevel === 'high_school' ? `
               session.essaySession = {}
             }
             session.essaySession.vocabAnswers = vocabAnswers
+            session.essaySession.vocabAnswersStep3 = vocabAnswers  // Step 3用に保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error (Step 3):', error)
           vocabProblems = '1. 「本当にすごい」→ ?\n2. 「絶対に正しい」→ ?\n3. 「とても大切」→ ?\n4. 「かなり難しい」→ ?\n5. 「ちゃんと理解する」→ ?'
+          
+          // エラー時のフォールバック解答も保存
+          const fallbackAnswers = '【模範解答】\n1. 「本当にすごい」→「非常に優れている」または「極めて素晴らしい」\n2. 「絶対に正しい」→「確実に正しい」または「間違いなく正しい」\n3. 「とても大切」→「非常に重要」または「極めて大切」\n4. 「かなり難しい」→「相当困難である」または「非常に難解である」\n5. 「ちゃんと理解する」→「適切に理解する」または「正確に把握する」'
+          if (!session.essaySession) {
+            session.essaySession = {}
+          }
+          session.essaySession.vocabAnswers = fallbackAnswers
+          session.essaySession.vocabAnswersStep3 = fallbackAnswers  // Step 3用に保存
         }
         
         response = `【語彙力強化③ - 実践編】\n実践的な表現に挑戦しましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
@@ -2653,9 +2668,84 @@ ${targetLevel === 'high_school' ? `
         }
       }
     } else if (currentStep === 4) {
-      // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
-      // セッションを取得
+      // ステップ4: vocabulary_focusの場合は復習テスト、それ以外は本練習
       const session = learningSessions.get(sessionId)
+      
+      // vocabulary_focusモードの場合、復習テストを実施
+      if (isVocabularyFocus) {
+        console.log('✅ Step 4 - Vocabulary focus: Review test')
+        
+        // 「OK」で復習テストを開始
+        if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+          // セッションからStep 1-3の語彙問題を全て取得してランダムに出題
+          const step1Answers = session?.essaySession?.vocabAnswersStep1 || session?.essaySession?.vocabAnswers || ''
+          const step2Answers = session?.essaySession?.vocabAnswersStep2 || ''
+          const step3Answers = session?.essaySession?.vocabAnswersStep3 || ''
+          
+          // 全ての語彙問題をパース
+          const allProblems: string[] = []
+          const allAnswers: string[] = []
+          
+          const parseVocabAnswers = (answersText: string) => {
+            const lines = answersText.split('\n').filter(line => line.trim() && /^\d+\./.test(line.trim()))
+            return lines.map(line => {
+              const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→\s*(.+)$/)
+              if (match) {
+                return { problem: `${match[1]} → ?`, answer: `${match[1]} → ${match[2]}` }
+              }
+              return null
+            }).filter(Boolean) as { problem: string; answer: string }[]
+          }
+          
+          const step1Items = parseVocabAnswers(step1Answers)
+          const step2Items = parseVocabAnswers(step2Answers)
+          const step3Items = parseVocabAnswers(step3Answers)
+          
+          const allItems = [...step1Items, ...step2Items, ...step3Items]
+          
+          // ランダムに5-10問を選択（全部の問題が10問未満の場合は全部）
+          const reviewCount = Math.min(10, allItems.length)
+          const shuffled = allItems.sort(() => Math.random() - 0.5)
+          const reviewItems = shuffled.slice(0, reviewCount)
+          
+          // 復習用の問題と解答を保存
+          const reviewProblems = reviewItems.map((item, idx) => `${idx + 1}. ${item.problem.replace(/^\d+\.\s*/, '')}`).join('\n')
+          const reviewAnswers = reviewItems.map((item, idx) => `${idx + 1}. ${item.answer.replace(/^\d+\.\s*/, '')}`).join('\n')
+          
+          if (!session.essaySession) {
+            session.essaySession = {}
+          }
+          session.essaySession.vocabReviewAnswers = `【模範解答】\n${reviewAnswers}`
+          
+          // セッション更新
+          learningSessions.set(sessionId, session)
+          if (db) {
+            await saveSessionToDB(db, sessionId, session)
+          }
+          
+          response = `【まとめ - 語彙力復習テスト】\nこれまでに学習した語彙をランダムに出題します。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${reviewProblems}\n\n全て答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+        }
+        // 「パス」で復習テストの解答を表示
+        else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+          const reviewAnswers = session?.essaySession?.vocabReviewAnswers || '【模範解答】\n復習問題の解答が見つかりませんでした。'
+          
+          response = `わかりました。解答例をお見せしますね。\n\n${reviewAnswers}\n\n素晴らしい学習でした！語彙力が確実に向上しています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+        }
+        // 回答を入力した場合（10文字以上）
+        else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+          const reviewAnswers = session?.essaySession?.vocabReviewAnswers || '【模範解答】\n（解答が生成されませんでした）'
+          
+          response = `素晴らしい取り組みです！\n\n${reviewAnswers}\n\n今回の学習で、多くの語彙表現を習得できました。小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+        }
+        else {
+          response = '復習テストを開始するには「OK」と入力してください。'
+        }
+      }
+      // 標準55分モードの場合、本練習
+      else {
+        // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
       
       // 画像がアップロードされたかチェック
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
@@ -2836,6 +2926,7 @@ ${targetLevel === 'high_school' ? `
       else {
         response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
       }
+      }  // 標準55分モードの else ブロック終了
     } else if (currentStep === 5) {
       // ステップ5: チャレンジ問題（新しいテーマの小論文）
       const session = learningSessions.get(sessionId)
