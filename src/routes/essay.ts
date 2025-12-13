@@ -164,7 +164,11 @@ async function loadSessionFromDB(db: D1Database, sessionId: string) {
       vocabularyProgress: sessionData.vocabularyProgress || {}
     }
     
-    console.log('✅ Session loaded from D1:', sessionId)
+    console.log('✅ Session loaded from D1:', sessionId, {
+      lessonFormat: session.essaySession?.lessonFormat,  // 🔍 DEBUG
+      targetLevel: session.essaySession?.targetLevel,
+      problemMode: session.essaySession?.problemMode
+    })
     return session
   } catch (error) {
     console.error('❌ Failed to load session from D1:', error)
@@ -327,7 +331,8 @@ export function registerEssayRoutes(app: Hono<any>) {
         problemMode: essaySession.problemMode,
         customInput: essaySession.customInput,
         learningStyle: essaySession.learningStyle,
-        targetLevel: essaySession.targetLevel
+        targetLevel: essaySession.targetLevel,
+        lessonFormat: essaySession.lessonFormat  // 🔍 DEBUG: lessonFormat確認
       })
     } else {
       console.warn('⚠️ D1 not available, session only in memory:', sessionId)
