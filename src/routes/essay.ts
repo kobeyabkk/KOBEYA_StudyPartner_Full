@@ -932,6 +932,17 @@ app.post('/api/essay/generate-pdf', async (c) => {
       message: message.substring(0, 50)
     })
     
+    // 🔍 DEBUG: 条件判定をログに追加（Step 1処理前）
+    const debugInfo = {
+      lessonFormat,
+      isVocabularyFocus: lessonFormat === 'vocabulary_focus',
+      isShortEssayFocus: lessonFormat === 'short_essay_focus',
+      isFocusedFormat: (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus'),
+      currentStep,
+      messagePreview: message.substring(0, 20)
+    }
+    console.log('🔍 BEFORE STEP CHECK:', debugInfo)
+    
     // Session data validation
     if (!problemMode) {
       console.warn('⚠️ problemMode is missing in session')
@@ -2756,12 +2767,27 @@ ${targetLevel === 'high_school' ? `
     console.log('📝 Essay chat response for step ' + currentStep)
     console.log('📤 Sending response:', { response: response.substring(0, 50) + '...', stepCompleted })
     
-    return c.json({
+    // 🔍 DEBUG: レスポンスにデバッグ情報を含める
+    const responseData: any = {
       ok: true,
       response,
       stepCompleted,
       timestamp: new Date().toISOString()
-    }, 200)
+    }
+    
+    // 開発用デバッグ情報（Step 1の場合のみ）
+    if (currentStep === 1) {
+      responseData.debug = {
+        lessonFormat,
+        isVocabularyFocus: lessonFormat === 'vocabulary_focus',
+        isShortEssayFocus: lessonFormat === 'short_essay_focus',
+        isFocusedFormat: lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus',
+        enteredStep1Block: response.includes('読み物') || response.includes('テーマ'),
+        messageType: message.substring(0, 20)
+      }
+    }
+    
+    return c.json(responseData, 200)
     
   } catch (error) {
     console.error('❌ Essay chat error:', error)
