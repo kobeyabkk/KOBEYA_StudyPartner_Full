@@ -1,5 +1,6 @@
 {
   "name": "webapp",
+  "version": "1.0.5-force-rebuild",
   "type": "module",
   "engines": {
     "node": "20.x",
