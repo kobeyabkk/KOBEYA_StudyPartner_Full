@@ -2321,8 +2321,8 @@ ${targetLevel === 'high_school' ? `
       else {
         response = '回答が短すぎるようです。\n\n3つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n（わからない場合は「パス」と入力すると解答例を見られます）'
       }
-    } else if (currentStep === 3) {
-      // ステップ3: 短文演習（AI添削付き）
+    } else if (currentStep === 3 && !isVocabularyFocus) {
+      // ステップ3: 短文演習（AI添削付き）（vocabulary_focus以外）
       
       // 長い回答（200字以上）が送られてきた場合 → AI添削実行
       if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
@@ -2497,6 +2497,132 @@ ${targetLevel === 'high_school' ? `
       // 短すぎる回答
       else {
         response = '短文小論文は150字以上で書いてください。\n\n主張→理由→具体例→結論の構成を意識しましょう。\n\n書き終えたら、この入力エリアに入力して送信してください。'
+      }
+    } else if (currentStep === 3 && isVocabularyFocus) {
+      // ステップ3: 語彙力強化③（vocabulary_focusのみ）
+      const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+      
+      // パス機能
+      if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+        stepCompleted = true
+      }
+      // 答えを入力した場合
+      else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+        stepCompleted = true
+      }
+      // 「OK」で語彙問題③を生成
+      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
+        console.log('🔍 Step 3 - Vocabulary focus: Generating vocab problems ③')
+        
+        // 語彙問題を生成（Step 1と同じロジック）
+        let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n4. 「ちゃんと」→ ?\n5. 「いっぱい」→ ?'
+        let vocabExample = '「すごく大事」→「極めて重要」'
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const timestamp = Date.now()
+          console.log('✅ Generating vocab problems ③ with timestamp:', timestamp)
+          
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を5つ作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+タイムスタンプ: ${timestamp}
+難易度: 実践レベル（やや難しめ）
+
+重要：まず完全な解答ペアを作成し、そこから問題を抽出してください。
+
+要求:
+- よく使う口語表現を含むフレーズを5つ選ぶ
+- 毎回異なる表現を出題すること
+- Step 1、Step 2とは違う表現を選ぶこと
+- 口語表現は単独ではなく、フレーズとして出題すること
+
+出力形式（この形式を厳守）：
+【模範解答】
+1. 「口語表現を含むフレーズ1」→「小論文風の表現1」または「別の表現1」
+2. 「口語表現を含むフレーズ2」→「小論文風の表現2」または「別の表現2」
+3. 「口語表現を含むフレーズ3」→「小論文風の表現3」または「別の表現3」
+4. 「口語表現を含むフレーズ4」→「小論文風の表現4」または「別の表現4」
+5. 「口語表現を含むフレーズ5」→「小論文風の表現5」または「別の表現5」
+
+例：「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」`
+          
+          const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題を5つ生成してください（Step 3用）。' }
+              ],
+              max_tokens: 500,
+              temperature: 0.95  // より高い温度で多様性を確保
+            })
+          })
+          
+          if (!apiResponse.ok) {
+            throw new Error(`OpenAI API error: ${apiResponse.status}`)
+          }
+          
+          const result = await apiResponse.json() as OpenAIChatCompletionResponse
+          const generated = result.choices?.[0]?.message?.content || ''
+          
+          let vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+          
+          if (generated && generated.length > 20) {
+            const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
+            
+            if (answerMatch) {
+              const answerText = answerMatch[1].trim()
+              vocabAnswers = '【模範解答】\n' + answerText
+              
+              const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
+              if (exampleMatch) {
+                vocabExample = exampleMatch[1].trim()
+              }
+              
+              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
+              const problemLines = answerLines
+                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+                .map((line: string) => {
+                  const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
+                  return match ? `${match[1]} → ?` : null
+                })
+                .filter(Boolean)
+              
+              if (problemLines.length >= 3) {
+                vocabProblems = problemLines.join('\n')
+              }
+            }
+            
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabAnswers = vocabAnswers
+          }
+        } catch (error) {
+          console.error('❌ Vocab problems generation error (Step 3):', error)
+          vocabProblems = '1. 「本当にすごい」→ ?\n2. 「絶対に正しい」→ ?\n3. 「とても大切」→ ?\n4. 「かなり難しい」→ ?\n5. 「ちゃんと理解する」→ ?'
+        }
+        
+        response = `【語彙力強化③ - 実践編】\n実践的な表現に挑戦しましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+        
+        learningSessions.set(sessionId, session)
+        if (db) {
+          await saveSessionToDB(db, sessionId, session)
+        }
       }
     } else if (currentStep === 4) {
       // ステップ4: 本練習（手書き原稿アップロード + OCR + AI添削）
