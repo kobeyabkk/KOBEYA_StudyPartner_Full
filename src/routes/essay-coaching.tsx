@@ -1927,9 +1927,9 @@ router.get('/session/:sessionId', async (c) => {
                 <!-- チャットエリア -->
                 <div class="chat-section">
                     <div class="messages" id="messages">
-                        <div class="message teacher">
+                        <div class="message teacher" id="initialMessage">
                             <span class="icon">👨‍🏫</span>
-                            <div>
+                            <div id="initialMessageContent">
                               こんにちは！小論文指導を始めましょう。<br>
                               まずは今日のテーマについて読み物を読んでいただきます。<br>
                               準備ができたら「OK」と入力して、送信ボタンを押してください。
@@ -2050,24 +2050,38 @@ router.get('/session/:sessionId', async (c) => {
           timestamp: new Date().toISOString()
         });
         
-        // 授業形式に応じてプログレスバーをカスタマイズ
+        // 授業形式に応じてプログレスバーと初期メッセージをカスタマイズ
         (function initializeProgressBar() {
           const lessonFormat = sessionData?.lessonFormat || 'full_55min';
           
           if (lessonFormat === 'vocabulary_focus') {
-            // 語彙力重点：5ステップ（語彙×3）
-            document.querySelector('#step-2 .step-label').textContent = '語彙①';
-            document.querySelector('#step-3 .step-label').textContent = '語彙②';
-            document.querySelector('#step-4 .step-label').textContent = '語彙③';
-            document.querySelector('#step-5 .step-label').textContent = 'まとめ';
+            // 語彙力重点：4ステップ（語彙×3 + まとめ）- 導入なし
+            document.querySelector('#step-1 .step-label').textContent = '語彙①';
+            document.querySelector('#step-2 .step-label').textContent = '語彙②';
+            document.querySelector('#step-3 .step-label').textContent = '語彙③';
+            document.querySelector('#step-4 .step-label').textContent = 'まとめ';
+            document.getElementById('step-5').style.display = 'none'; // ステップ5を非表示
             document.getElementById('step-6').style.display = 'none'; // ステップ6を非表示
+            
+            // 初期メッセージを変更
+            document.getElementById('initialMessageContent').innerHTML = 
+              'こんにちは！語彙力強化トレーニングを始めましょう。<br>' +
+              '口語表現を小論文風に言い換える練習をします。<br>' +
+              '準備ができたら「OK」と入力して、送信ボタンを押してください。';
           } else if (lessonFormat === 'short_essay_focus') {
-            // 短文重点：5ステップ（短文×3）
-            document.querySelector('#step-2 .step-label').textContent = '短文①';
-            document.querySelector('#step-3 .step-label').textContent = '短文②';
-            document.querySelector('#step-4 .step-label').textContent = '短文③';
-            document.querySelector('#step-5 .step-label').textContent = 'まとめ';
+            // 短文重点：4ステップ（短文×3 + まとめ）- 導入なし
+            document.querySelector('#step-1 .step-label').textContent = '短文①';
+            document.querySelector('#step-2 .step-label').textContent = '短文②';
+            document.querySelector('#step-3 .step-label').textContent = '短文③';
+            document.querySelector('#step-4 .step-label').textContent = 'まとめ';
+            document.getElementById('step-5').style.display = 'none'; // ステップ5を非表示
             document.getElementById('step-6').style.display = 'none'; // ステップ6を非表示
+            
+            // 初期メッセージを変更
+            document.getElementById('initialMessageContent').innerHTML = 
+              'こんにちは！短文演習トレーニングを始めましょう。<br>' +
+              '段階的に字数を増やして小論文を書く練習をします。<br>' +
+              '準備ができたら「OK」と入力して、送信ボタンを押してください。';
           }
           // full_55minの場合はデフォルトのまま（6ステップ）
         })();
@@ -2270,7 +2284,7 @@ router.get('/session/:sessionId', async (c) => {
             
             // 授業形式によって最大ステップ数を変える
             const lessonFormat = sessionData?.lessonFormat || 'full_55min';
-            const maxSteps = (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus') ? 5 : 6;
+            const maxSteps = (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus') ? 4 : 6;
             
             if (currentStep > maxSteps) {
                 alert('全てのステップが完了しました！');
@@ -2294,7 +2308,7 @@ router.get('/session/:sessionId', async (c) => {
         
         function updateProgressBar() {
             const lessonFormat = sessionData?.lessonFormat || 'full_55min';
-            const maxSteps = (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus') ? 5 : 6;
+            const maxSteps = (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus') ? 4 : 6;
             
             for (let i = 1; i <= maxSteps; i++) {
                 const stepDiv = document.getElementById('step-' + i);
@@ -2316,23 +2330,21 @@ router.get('/session/:sessionId', async (c) => {
             
             // 授業形式によってステップの内容を変える
             if (lessonFormat === 'vocabulary_focus') {
-                // 語彙力重点：語彙練習のみ（5ステップ）
+                // 語彙力重点：語彙練習のみ（4ステップ）- 導入なし
                 const messages = {
-                    1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    2: '【語彙力強化①】口語表現を小論文風に言い換える練習をしましょう（基礎編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    3: '【語彙力強化②】より高度な表現に挑戦します（応用編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    4: '【語彙力強化③】実践的な使い方を学びましょう（実践編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    5: '【まとめ】今日学んだ語彙を復習しましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
+                    1: '【語彙力強化①】口語表現を小論文風に言い換える練習をしましょう（基礎編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    2: '【語彙力強化②】より高度な表現に挑戦します（応用編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    3: '【語彙力強化③】実践的な使い方を学びましょう（実践編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    4: '【まとめ】今日学んだ語彙を復習しましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
                 };
                 return messages[step] || 'ステップを進めましょう。';
             } else if (lessonFormat === 'short_essay_focus') {
-                // 短文重点：短文演習のみ（5ステップ）
+                // 短文重点：短文演習のみ（4ステップ）- 導入なし
                 const messages = {
-                    1: '【導入】まずは今日のテーマについて読み物を読んでいただきます。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    2: '【短文演習①】100字程度の短文を書いてみましょう（基礎編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    3: '【短文演習②】200字程度の短文に挑戦します（応用編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    4: '【短文演習③】300字程度の短文を書いてみましょう（実践編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
-                    5: '【まとめ】今日学んだ書き方のポイントを復習しましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
+                    1: '【短文演習①】100字程度の短文を書いてみましょう（基礎編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    2: '【短文演習②】200字程度の短文に挑戦します（応用編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    3: '【短文演習③】300字程度の短文を書いてみましょう（実践編）。\\n\\n準備ができたら「OK」と入力して送信してください。',
+                    4: '【まとめ】今日学んだ書き方のポイントを復習しましょう。\\n\\n準備ができたら「OK」と入力して送信してください。'
                 };
                 return messages[step] || 'ステップを進めましょう。';
             } else {
