@@ -1036,6 +1036,12 @@ router.post('/chat', async (c) => {
     const customInput = essaySession?.customInput || null
     const learningStyle = essaySession?.learningStyle || 'auto'
     const targetLevel = essaySession?.targetLevel || 'high_school'
+    const lessonFormat = essaySession?.lessonFormat || 'full_55min'
+    
+    // 🔍 Check focused format
+    const isVocabularyFocus = lessonFormat === 'vocabulary_focus'
+    const isShortEssayFocus = lessonFormat === 'short_essay_focus'
+    const isFocusedFormat = isVocabularyFocus || isShortEssayFocus
     
     console.log('📝 Essay chat - Session data:', { 
       sessionId, 
@@ -1043,6 +1049,10 @@ router.post('/chat', async (c) => {
       customInput, 
       learningStyle, 
       targetLevel,
+      lessonFormat,
+      isVocabularyFocus,
+      isShortEssayFocus,
+      isFocusedFormat,
       currentStep,
       message: message.substring(0, 50)
     })
@@ -1538,9 +1548,10 @@ ${themeContent}
         
         response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
       }
-      // 「OK」のみ
-      else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
-        console.log('✅ Matched: OK/はい')
+      // 「OK」のみ（標準55分モードのみ、focused formatは除外）
+      else if (!isFocusedFormat && (message.toLowerCase().trim() === 'ok' || message.includes('はい'))) {
+        console.log('✅ Matched: OK/はい (standard 55min mode)')
+        console.log('🔍 Lesson format:', lessonFormat)
         
         // カスタムテーマに基づいた問題を生成
         let themeTitle = null
