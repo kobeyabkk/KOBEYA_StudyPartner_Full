@@ -517,6 +517,74 @@ export class IntegratedQuestionGenerator {
           continue;
         }
 
+        // Phase 2: Essay形式の場合、CEFR-J Wordlistに基づく詳細分析
+        if (request.format === 'essay') {
+          try {
+            const { VocabularyListService } = await import('./vocabulary-list-service');
+            const vocabService = new VocabularyListService(this.db);
+            
+            // Sample essayのテキストを分析
+            const sampleEssay = questionData.sample_essay || '';
+            if (sampleEssay.length > 20) {
+              const detailedAnalysis = await vocabService.analyzeVocabularyLevel(
+                sampleEssay,
+                blueprint.guidelines.vocabulary_level
+              );
+              
+              console.log(`[Essay Vocab Analysis] Total: ${detailedAnalysis.totalWords}, Within level: ${detailedAnalysis.withinLevel}, Above level: ${detailedAnalysis.aboveLevel}, Unknown: ${detailedAnalysis.unknownWords.length}, Score: ${detailedAnalysis.score}%`);
+              
+              // 90%以上の単語がターゲットレベル内であることを確認
+              if (detailedAnalysis.score < 90 && detailedAnalysis.aboveLevel > 3) {
+                console.log(`[Essay Vocab Analysis FAILED] Score ${detailedAnalysis.score}% below 90% threshold`);
+                console.log(`[Essay Vocab Analysis] Above-level words found: ${detailedAnalysis.aboveLevel}`);
+                
+                // 失敗した場合も記録
+                await this.logValidation({
+                  student_id: request.student_id,
+                  grade: request.grade,
+                  format: request.format,
+                  topic_code: blueprint.topic.topic_code,
+                  attempt_number: attempts,
+                  validation_stage: 'vocabulary_db_check',
+                  validation_passed: false,
+                  validation_details: { 
+                    score: detailedAnalysis.score,
+                    totalWords: detailedAnalysis.totalWords,
+                    withinLevel: detailedAnalysis.withinLevel,
+                    aboveLevel: detailedAnalysis.aboveLevel,
+                    unknownWords: detailedAnalysis.unknownWords.slice(0, 10)
+                  },
+                  model_used: selectedModel,
+                  generation_mode: mode
+                });
+                
+                continue; // 再生成
+              }
+              
+              // 成功した場合も記録
+              await this.logValidation({
+                student_id: request.student_id,
+                grade: request.grade,
+                format: request.format,
+                topic_code: blueprint.topic.topic_code,
+                attempt_number: attempts,
+                validation_stage: 'vocabulary_db_check',
+                validation_passed: true,
+                validation_details: { 
+                  score: detailedAnalysis.score,
+                  totalWords: detailedAnalysis.totalWords,
+                  withinLevel: detailedAnalysis.withinLevel
+                },
+                model_used: selectedModel,
+                generation_mode: mode
+              });
+            }
+          } catch (error) {
+            console.error(`[Essay Vocab Analysis] Error:`, error);
+            // エラーは無視して次の検証に進む
+          }
+        }
+
         // 検証4: 著作権
         const copyrightValidation = await this.validateCopyright(
           questionData,
@@ -816,6 +884,31 @@ export class IntegratedQuestionGenerator {
     
     console.log(`[LLM] Using ${forbiddenWords.length} forbidden words (${recentViolations.length} from recent failures)`);
     
+    // Phase 2: Essay形式の場合、CEFR-J Wordlistから語彙リストを取得
+    let vocabularyPrompt: string | undefined;
+    if (blueprint.format === 'essay' && !fixedQuestion) {
+      try {
+        const { VocabularyListService } = await import('./vocabulary-list-service');
+        const vocabService = new VocabularyListService(this.db);
+        
+        // CEFRレベルに基づいて語彙リストを取得（categorized形式）
+        vocabularyPrompt = await vocabService.getVocabularyPromptString(
+          blueprint.guidelines.vocabulary_level,
+          'categorized'
+        );
+        
+        if (vocabularyPrompt && vocabularyPrompt.length > 50) {
+          console.log(`[Vocabulary List] Loaded ${vocabularyPrompt.length} chars for ${blueprint.guidelines.vocabulary_level} level`);
+        } else {
+          console.log(`[Vocabulary List] Warning: Empty or short vocabulary list, using prompt-only constraints`);
+          vocabularyPrompt = undefined;
+        }
+      } catch (error) {
+        console.error(`[Vocabulary List] Error loading vocabulary list:`, error);
+        vocabularyPrompt = undefined;
+      }
+    }
+    
     // Phase 6 Part 3: 正解の多様性ガイダンスを取得（grammar_fill のみ）
     let diversityGuidance: string | undefined;
     if (blueprint.format === 'grammar_fill') {
@@ -858,7 +951,7 @@ Output as JSON:
 }`;
     } else {
       // 通常モード: 新しい問題を生成
-      basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance);
+      basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance, vocabularyPrompt);
     }
     
     // Phase 7.4: 解説スタイルの追加

@@ -638,8 +638,13 @@ Your passage will be AUTOMATICALLY REJECTED if:
 /**
  * エッセイ問題のプロンプト生成
  */
-export function buildEssayPrompt(blueprint: Blueprint): string {
+export function buildEssayPrompt(blueprint: Blueprint, vocabularyPrompt?: string): string {
   const { topic, guidelines, instructions } = blueprint;
+  
+  // 語彙リストセクションの生成
+  const vocabularyListSection = vocabularyPrompt 
+    ? `\n\n## ✅ ALLOWED VOCABULARY LIST (USE THESE WORDS)\n\n**IMPORTANT**: You should primarily use words from this ${guidelines.vocabulary_level} approved list:\n\n${vocabularyPrompt}\n\n**RULE**: 80%+ of content words (nouns, verbs, adjectives, adverbs) must come from this list.\n`
+    : '';
   
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
 
@@ -647,7 +652,7 @@ export function buildEssayPrompt(blueprint: Blueprint): string {
 
 **TARGET LEVEL**: ${guidelines.vocabulary_level} ONLY
 **SUCCESS CRITERIA**: 95%+ of words must be within ${guidelines.vocabulary_level}
-**FAILURE CONSEQUENCE**: If too many difficult words, question will be REJECTED
+**FAILURE CONSEQUENCE**: If too many difficult words, question will be REJECTED${vocabularyListSection}
 
 ## 🚫 FORBIDDEN WORDS (NEVER USE)
 
@@ -761,10 +766,12 @@ ${getExplanationTerminologyGuide(blueprint.grade)}
 /**
  * Blueprint に基づいて適切なプロンプトを選択
  * Phase 6 Part 3: Answer diversity tracking support
+ * Phase 2: Vocabulary list integration for essay format
  */
 export function buildPromptForBlueprint(
   blueprint: Blueprint,
-  diversityGuidance?: string
+  diversityGuidance?: string,
+  vocabularyPrompt?: string
 ): string {
   switch (blueprint.format) {
     case 'grammar_fill':
@@ -776,7 +783,7 @@ export function buildPromptForBlueprint(
     case 'long_reading':
       return buildLongReadingPrompt(blueprint);
     case 'essay':
-      return buildEssayPrompt(blueprint);
+      return buildEssayPrompt(blueprint, vocabularyPrompt);
     default:
       throw new Error(`Unknown format: ${blueprint.format}`);
   }
