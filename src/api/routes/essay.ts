@@ -2013,8 +2013,146 @@ ${targetLevel === 'high_school' ? `
         
         response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
       }
-      // 回答が短すぎる
-      else {
+      // vocabulary_focus の場合は Step 2 の語彙問題を生成
+      else if (isVocabularyFocus && (message.toLowerCase().trim() === 'ok' || message.includes('はい'))) {
+        console.log('✅ Step 1 - Vocabulary focus: Generating vocab problems')
+        
+        // Step 2の語彙問題生成ロジックを実行
+        let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n4. 「ちゃんと」→ ?\n5. 「いっぱい」→ ?'
+        let vocabExample = '「すごく大事」→「極めて重要」'
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for vocab!')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const timestamp = Date.now()
+          console.log('✅ Generating vocab problems with timestamp:', timestamp)
+          
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を5つ作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+タイムスタンプ: ${timestamp}
+
+重要：まず完全な解答ペアを作成し、そこから問題を抽出してください。
+
+要求:
+- よく使う口語表現を含むフレーズを5つ選ぶ（例：「すごく大事」「やっぱりそう」「だから必要」など）
+- 毎回異なる表現を出題すること
+- 口語表現は単独ではなく、フレーズとして出題すること
+
+出力形式（この形式を厳守）：
+【模範解答】
+1. 「口語表現を含むフレーズ1」→「小論文風の表現1」または「別の表現1」
+2. 「口語表現を含むフレーズ2」→「小論文風の表現2」または「別の表現2」
+3. 「口語表現を含むフレーズ3」→「小論文風の表現3」または「別の表現3」
+4. 「口語表現を含むフレーズ4」→「小論文風の表現4」または「別の表現4」
+5. 「口語表現を含むフレーズ5」→「小論文風の表現5」または「別の表現5」
+
+例：「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」`
+          
+          console.log('🤖 Calling OpenAI API for vocab problems...')
+          
+          const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題を5つ生成してください。' }
+              ],
+              max_tokens: 500,
+              temperature: 0.8
+            })
+          })
+          
+          console.log('📡 OpenAI API response status (vocab):', apiResponse.status)
+          
+          if (!apiResponse.ok) {
+            const errorText = await apiResponse.text()
+            console.error('❌ OpenAI API error response (vocab):', errorText)
+            throw new Error(`OpenAI API error: ${apiResponse.status} - ${errorText}`)
+          }
+          
+          const result = await apiResponse.json() as OpenAIChatCompletionResponse
+          console.log('✅ OpenAI API call successful for vocab problems')
+          
+          const generated = result.choices?.[0]?.message?.content || ''
+          console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          
+          let vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱりそう」→「やはりそのとおり」または「確かにそうだ」\n3. 「だから必要」→「したがって必要」または「それゆえ必要」\n4. 「ちゃんと確認」→「適切に確認」または「正確に確認」\n5. 「いっぱいある」→「多数存在する」または「数多く存在する」'
+          
+          if (generated && generated.length > 20) {
+            const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
+            
+            if (answerMatch) {
+              const answerText = answerMatch[1].trim()
+              vocabAnswers = '【模範解答】\n' + answerText
+              
+              const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
+              if (exampleMatch) {
+                vocabExample = exampleMatch[1].trim()
+              }
+              
+              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
+              const problemLines = answerLines
+                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+                .map((line: string) => {
+                  const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
+                  return match ? `${match[1]} → ?` : null
+                })
+                .filter(Boolean)
+              
+              if (problemLines.length >= 3) {
+                vocabProblems = problemLines.join('\n')
+                console.log('✅ Generated problems from answers:', vocabProblems)
+              }
+            }
+            
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabAnswers = vocabAnswers
+            
+            console.log('✅ Using AI-generated vocab problems and answers')
+          } else {
+            console.warn('⚠️ AI vocab too short, using fallback')
+            vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱりそう」→ ?\n3. 「だから必要」→ ?\n4. 「ちゃんと確認」→ ?\n5. 「いっぱいある」→ ?'
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabAnswers = vocabAnswers
+          }
+        } catch (error) {
+          console.error('❌ Vocab problems generation error:', error)
+          const errorDetails = error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : { message: toErrorMessage(error) }
+          console.error('❌ Error details:', errorDetails)
+          vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱりそう」→ ?\n3. 「だから必要」→ ?\n4. 「ちゃんと確認」→ ?\n5. 「いっぱいある」→ ?'
+        }
+        
+        // 語彙問題を表示
+        const vocabTitle = '【語彙力強化① - 基礎編】'
+        const vocabSubtitle = '口語表現を小論文風に言い換える練習をしましょう。'
+        
+        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+        
+        // セッション更新
+        learningSessions.set(sessionId, session)
+        if (db) {
+          await saveSessionToDB(db, sessionId, session)
+        }
+      }
+      // 回答が短すぎる（標準55分モードのみ）
+      else if (!isFocusedFormat) {
         console.log('⚠️ Answer too short')
         response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
       }
