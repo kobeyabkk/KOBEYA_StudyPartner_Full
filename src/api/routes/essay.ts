@@ -1074,15 +1074,19 @@ router.post('/chat', async (c) => {
       
       // vocabulary_focus の場合、パス機能と回答処理を優先
       if (isVocabularyFocus) {
-        const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
-        
         // パス機能
         if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+          // セッションから最新の模範解答を取得
+          const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+          
           response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
         }
         // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
         else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+          // セッションから最新の模範解答を取得
+          const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+          
           response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
         }
@@ -2154,6 +2158,13 @@ ${targetLevel === 'high_school' ? `
             : { message: toErrorMessage(error) }
           console.error('❌ Error details:', errorDetails)
           vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱりそう」→ ?\n3. 「だから必要」→ ?\n4. 「ちゃんと確認」→ ?\n5. 「いっぱいある」→ ?'
+          
+          // エラー時のフォールバック模範解答も保存
+          const fallbackAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱりそう」→「やはりそのとおり」または「確かにそうだ」\n3. 「だから必要」→「したがって必要」または「それゆえ必要」\n4. 「ちゃんと確認」→「適切に確認」または「正確に確認」\n5. 「いっぱいある」→「多数存在する」または「数多く存在する」'
+          if (!session.essaySession) {
+            session.essaySession = {}
+          }
+          session.essaySession.vocabAnswers = fallbackAnswers
         }
         
         // 語彙問題を表示
