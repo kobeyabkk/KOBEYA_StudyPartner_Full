@@ -939,8 +939,21 @@ app.post('/api/essay/generate-pdf', async (c) => {
     let stepCompleted = false
     
     // ステップごとの簡易応答
-    if (currentStep === 1) {
-      console.log('📝 Step 1 processing, message:', message)
+    // 授業形式によってステップの内容を変える
+    const isVocabularyFocus = lessonFormat === 'vocabulary_focus'
+    const isShortEssayFocus = lessonFormat === 'short_essay_focus'
+    const isFocusedFormat = isVocabularyFocus || isShortEssayFocus
+    
+    // Focused formatsの場合、ステップ1は導入ではなく練習問題
+    // そのため、full_55minのステップ2処理にジャンプする
+    
+    // Focused formats: Step 1を練習問題として扱う（Step 2処理へfallthrough）
+    // vocabulary_focus: Step 1-3 = 語彙練習①②③
+    // short_essay_focus: Step 1-3 = 短文演習①②③
+    // 条件式は後のelse ifで統合処理するため、ここでは何もしない
+    
+    if (currentStep === 1 && !isFocusedFormat) {
+      console.log('📝 Step 1 (intro) processing, message:', message, 'lessonFormat:', lessonFormat)
       
       // 画像がアップロードされたかチェック（OCR処理済みの回答）
       const hasImage = session && session.essaySession && session.essaySession.uploadedImages && 
@@ -1823,10 +1836,12 @@ ${targetLevel === 'high_school' ? `
         console.log('⚠️ Answer too short')
         response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
       }
-    } else if (currentStep === 2) {
+    } else if (currentStep === 2 || (isVocabularyFocus && currentStep >= 1 && currentStep <= 3)) {
       // ステップ2: 語彙力強化
-      // 授業形式チェック: vocabulary_focus の場合は集中的に実施
-      console.log(`📋 Step 2 - Lesson format: ${lessonFormat}`)
+      // vocabulary_focusの場合、ステップ1-3をすべて語彙練習として扱う
+      const vocabStepLabel = isVocabularyFocus ? 
+        (currentStep === 1 ? '①' : currentStep === 2 ? '②' : '③') : ''
+      console.log(`📋 Step ${currentStep} - Lesson format: ${lessonFormat} (mapped to vocab training${vocabStepLabel})`)
       
       // 保存された模範解答を取得（デフォルト値を設定）
       const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
@@ -1974,10 +1989,16 @@ ${targetLevel === 'high_school' ? `
         }
         
         // すぐに語彙問題を表示
-        const vocabTitle = lessonFormat === 'vocabulary_focus' ? '【語彙力強化①】' : '【語彙力強化】'
-        const vocabSubtitle = lessonFormat === 'vocabulary_focus' 
-          ? '口語表現を小論文風に言い換える練習をしましょう（25分構成の1回目）。' 
-          : '口語表現を小論文風に言い換える練習をしましょう。'
+        const vocabTitle = isVocabularyFocus ? 
+          (currentStep === 1 ? '【語彙力強化① - 基礎編】' : 
+           currentStep === 2 ? '【語彙力強化② - 応用編】' : 
+           '【語彙力強化③ - 実践編】') : 
+          '【語彙力強化】'
+        const vocabSubtitle = isVocabularyFocus ? 
+          (currentStep === 1 ? '口語表現を小論文風に言い換える基礎練習です。' :
+           currentStep === 2 ? 'より高度な表現の言い換え練習です。' :
+           '実践的な文脈での言い換え練習です。') :
+          '口語表現を小論文風に言い換える練習をしましょう。'
         
         response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n━━━━━━━━━━━━━━━━━━\n📝 回答方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n5つの言い換えをチャットで答えて、送信ボタンを押してください。\n\n＜方法2：手書き提出＞\n1️⃣ ノートに手書きで答える\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\n※ わからない場合は「パス」と入力すると解答例を見られます`
       }
@@ -1985,14 +2006,22 @@ ${targetLevel === 'high_school' ? `
       else {
         response = '回答が短すぎるようです。\n\n5つの言い換えをすべて答えてください。各10文字以上で答えましょう。\n\n💡 手書きで答えた場合は、📷カメラボタン または 📁ファイルボタンから画像をアップロードしてください。\n\n（わからない場合は「パス」と入力すると解答例を見られます）'
       }
-    } else if (currentStep === 3) {
+    } else if (currentStep === 3 || (isShortEssayFocus && currentStep >= 1 && currentStep <= 3)) {
       // ステップ3: 短文演習（AI添削付き）
-      // 授業形式チェック: short_essay_focus の場合は集中的に実施
-      console.log(`📋 Step 3 - Lesson format: ${lessonFormat}`)
+      // short_essay_focusの場合、ステップ1-3をすべて短文演習として扱う
+      const essayStepLabel = isShortEssayFocus ? 
+        (currentStep === 1 ? '100字' : currentStep === 2 ? '200字' : '300字') : ''
+      console.log(`📋 Step ${currentStep} - Lesson format: ${lessonFormat} (mapped to short essay training ${essayStepLabel})`)
       
-      // 長い回答（200字以上）が送られてきた場合 → AI添削実行
-      if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        console.log('📝 Step 3: Received short essay for feedback')
+      // 短文重点モードの字数要件（Step 1: 80字, Step 2: 150字, Step 3: 250字）
+      const minCharCount = isShortEssayFocus ?
+        (currentStep === 1 ? 80 : currentStep === 2 ? 150 : 250) : 150
+      const targetCharCount = isShortEssayFocus ?
+        (currentStep === 1 ? 100 : currentStep === 2 ? 200 : 300) : 200
+      
+      // 長い回答が送られてきた場合 → AI添削実行
+      if (message.length >= minCharCount && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log(`📝 Step ${currentStep}: Received short essay for feedback (${isShortEssayFocus ? targetCharCount + '字' : '200字'}目標)`)
         console.log('📏 Essay length:', message.length, 'characters')
         
         try {
@@ -2005,13 +2034,13 @@ ${targetLevel === 'high_school' ? `
           
           console.log('🤖 Calling OpenAI API for short essay feedback...')
           
-          const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
+          const systemPrompt = `あなたは小論文の先生です。生徒が書いた${targetCharCount}字程度の短文小論文を添削してください。
 
 【評価基準】
 - 論理構成（主張→理由→具体例→結論）
 - 文章の明確さと説得力
 - 語彙の適切さ
-- 文字数（目標: 200字前後）
+- 文字数（目標: ${targetCharCount}字前後）
 
 【重要】以下のJSON形式で必ず返してください：
 {
@@ -2082,12 +2111,18 @@ ${targetLevel === 'high_school' ? `
           hasThemeTitle: !!themeTitle
         })
         
+        // 短文重点モードの場合、ステップに応じて字数を変更
+        const charCount = isShortEssayFocus ? 
+          (currentStep === 1 ? '100字' : currentStep === 2 ? '200字' : '300字') : '200字'
+        const charCountNum = isShortEssayFocus ?
+          (currentStep === 1 ? 100 : currentStep === 2 ? 200 : 300) : 200
+        
         // カスタムテーマに基づいた短文問題を生成
-        let shortProblem = '環境問題について、200字程度で小論文を書いてください。'
+        let shortProblem = `環境問題について、${charCount}程度で小論文を書いてください。`
         
         if ((problemMode === 'theme' || problemMode === 'ai') && (customInput || themeTitle)) {
-          shortProblem = `${themeTitle}について、200字程度で小論文を書いてください。`
-          console.log('✅ Using theme for short essay:', themeTitle)
+          shortProblem = `${themeTitle}について、${charCount}程度で小論文を書いてください。`
+          console.log('✅ Using theme for short essay:', themeTitle, 'with', charCount)
         } else if (problemMode === 'problem' && customInput) {
           // 問題文がある場合は、そのまま使用
           shortProblem = customInput
@@ -2096,10 +2131,12 @@ ${targetLevel === 'high_school' ? `
           console.warn('⚠️ Using fallback short essay problem')
         }
         
-        const shortEssayTitle = lessonFormat === 'short_essay_focus' ? '【短文演習①】' : '【短文演習】'
-        const shortEssaySubtitle = lessonFormat === 'short_essay_focus'
-          ? '指定字数で短い小論文を書いてみましょう（30分構成の1回目）。'
-          : '指定字数で短い小論文を書いてみましょう。'
+        const shortEssayTitle = isShortEssayFocus ? 
+          `【短文演習${currentStep === 1 ? '①: 100字' : currentStep === 2 ? '②: 200字' : '③: 300字'}】` : 
+          '【短文演習】'
+        const shortEssaySubtitle = isShortEssayFocus ?
+          `${charCount}で短い小論文を書いてみましょう。` :
+          '指定字数で短い小論文を書いてみましょう。'
         
         response = `${shortEssayTitle}\n${shortEssaySubtitle}\n\n＜課題＞\n${shortProblem}\n\n＜構成＞\n主張→理由→具体例→結論（200字程度）\n\n＜書き方＞\n1. まず自分の主張を明確に述べる\n2. その理由を説明する\n3. 具体例を1つ挙げる\n4. 最後に結論でまとめる\n\n━━━━━━━━━━━━━━━━━━\n📝 提出方法\n━━━━━━━━━━━━━━━━━━\n\n＜方法1：直接入力＞\n書き終えたら、この入力エリアに入力して送信してください。\n\n＜方法2：手書き提出＞\n1️⃣ 原稿用紙またはノートに手書き\n2️⃣ 📷カメラボタン または 📁ファイルボタンを押す\n3️⃣ 撮影またはファイル選択\n4️⃣ 画像を確認して送信\n\nAIが添削します。`
       }
