@@ -2783,7 +2783,8 @@ ${targetLevel === 'high_school' ? `
       stepCompleted,
       timestamp: new Date().toISOString(),
       // 🚨 常にlessonFormatを含める（デバッグ用）
-      _debug_lessonFormat: lessonFormat
+      _debug_lessonFormat: lessonFormat,
+      _debug_version: 'v1.0.3'  // デプロイ確認用バージョン
     }
     
     // 開発用デバッグ情報（Step 1の場合のみ）
