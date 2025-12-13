@@ -1411,6 +1411,8 @@ ${themeContent}
       else if (!isFocusedFormat && (message.toLowerCase().trim() === 'ok' || message.includes('はい'))) {
         console.log('✅ Matched: OK/はい (standard 55min mode)')
         console.log('🔍 Lesson format:', lessonFormat)
+        console.log('🚨 DEBUG: This branch should NOT execute for vocabulary_focus!')
+        console.log('🚨 DEBUG: lessonFormat =', lessonFormat, '| isFocusedFormat =', isFocusedFormat)
         
         // 標準55分モードの場合のみ読み物を生成
         
