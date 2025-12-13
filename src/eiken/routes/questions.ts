@@ -82,6 +82,21 @@ app.post('/generate', async (c) => {
       console.log(`[Phase 4 Production] Generating ${body.format} with vocabulary improvements (target: ${body.format === 'essay' ? '78-81%' : '82-85%'})`);
     }
 
+    // 🚫 実際の英検に準拠: 5級・4級にはライティング問題なし
+    if (body.format === 'essay' && ['5', '4'].includes(body.grade)) {
+      console.warn(`[Validation Error] Essay format is not available for grade ${body.grade}`);
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: `ライティング問題は3級以上で利用可能です。5級・4級では文法問題と長文読解をご利用ください。(Essay format is not available for grades 5 and 4. Writing questions start from grade 3.)`,
+            code: 'INVALID_FORMAT_FOR_GRADE',
+          },
+        },
+        400
+      );
+    }
+
     // OpenAI API Key チェック
     if (!c.env.OPENAI_API_KEY) {
       return c.json(

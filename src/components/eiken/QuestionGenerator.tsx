@@ -12,10 +12,11 @@ interface QuestionGeneratorProps {
 }
 
 // Phase 3 API対応: 英検の正式な問題形式
+// 注: essayは3級以上でのみ利用可能（実際の英検に準拠）
 const FORMAT_OPTIONS = [
-  { value: 'grammar_fill', label: '短文の語句空所補充', icon: '📚', description: '語彙・文法問題' },
-  { value: 'long_reading', label: '長文読解', icon: '📖', description: '内容一致選択' },
-  { value: 'essay', label: 'ライティング (意見論述)', icon: '✍️', description: 'エッセイ形式' },
+  { value: 'grammar_fill', label: '短文の語句空所補充', icon: '📚', description: '語彙・文法問題', minGrade: '5' },
+  { value: 'long_reading', label: '長文読解', icon: '📖', description: '内容一致選択', minGrade: '5' },
+  { value: 'essay', label: 'ライティング (意見論述)', icon: '✍️', description: 'エッセイ形式', minGrade: '3' },
 ];
 
 const TOPIC_SUGGESTIONS = [
@@ -101,6 +102,35 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
     setTopicHints(topicHints.filter((t: string) => t !== topic));
   };
 
+  // gradeに応じて利用可能なフォーマットをフィルタリング
+  const getAvailableFormats = () => {
+    const gradeOrder = ['5', '4', '3', 'pre2', '2', 'pre1', '1'];
+    const currentGradeIndex = gradeOrder.indexOf(grade);
+    
+    return FORMAT_OPTIONS.filter(option => {
+      const minGradeIndex = gradeOrder.indexOf(option.minGrade || '5');
+      return currentGradeIndex >= minGradeIndex;
+    });
+  };
+
+  // gradeが変更されたときに、選択中のformatが利用可能かチェック
+  const handleGradeChange = (newGrade: EikenGrade) => {
+    setGrade(newGrade);
+    
+    // 新しいgradeで利用可能なフォーマットを取得
+    const gradeOrder = ['5', '4', '3', 'pre2', '2', 'pre1', '1'];
+    const newGradeIndex = gradeOrder.indexOf(newGrade);
+    
+    // 現在選択中のformatが利用不可の場合、grammar_fillにリセット
+    const currentFormat = FORMAT_OPTIONS.find(opt => opt.value === format);
+    if (currentFormat) {
+      const minGradeIndex = gradeOrder.indexOf(currentFormat.minGrade || '5');
+      if (newGradeIndex < minGradeIndex) {
+        setFormat('grammar_fill');
+      }
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg">
       <div className="mb-6">
@@ -115,15 +145,23 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
 
       <div className="space-y-6">
         {/* グレード選択 */}
-        <GradeSelector value={grade} onChange={setGrade} disabled={loading} />
+        <GradeSelector value={grade} onChange={handleGradeChange} disabled={loading} />
 
         {/* 問題フォーマット選択 (Phase 3対応) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
             問題タイプを選択 <span className="text-xs text-purple-600 ml-2">✨ Phase 3 API - 英検一次試験対応</span>
           </label>
+          {['5', '4'].includes(grade) && (
+            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">💡 5級・4級の方へ:</span> 実際の英検5級・4級にはライティング問題はありません。
+                文法問題と長文読解で練習しましょう。
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {FORMAT_OPTIONS.map((option) => (
+            {getAvailableFormats().map((option) => (
               <button
                 key={option.value}
                 onClick={() => setFormat(option.value)}
