@@ -1865,7 +1865,7 @@ ${targetLevel === 'high_school' ? `
           }, 500)
         }
         
-        response = `素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
+        response = `🔍 DEBUG: lessonFormat="${lessonFormat}", isFocusedFormat=${isFocusedFormat}\n\n素晴らしいですね！それでは今日のテーマは「${themeTitle}」です。\n\n【読み物】\n${themeContent}\n\n読み終えたら「読んだ」と入力して送信してください。`
       }
       // 回答が短すぎる（標準55分モードのみ）
       else if (!isFocusedFormat) {
