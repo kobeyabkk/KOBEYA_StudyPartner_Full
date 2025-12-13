@@ -944,6 +944,16 @@ app.post('/api/essay/generate-pdf', async (c) => {
     const isShortEssayFocus = lessonFormat === 'short_essay_focus'
     const isFocusedFormat = isVocabularyFocus || isShortEssayFocus
     
+    // 🔍 DEBUG: lessonFormat判定
+    console.log('🔍 DEBUG lessonFormat check:', {
+      lessonFormat,
+      isVocabularyFocus,
+      isShortEssayFocus,
+      isFocusedFormat,
+      currentStep,
+      message: message.substring(0, 20)
+    })
+    
     // Focused formatsの場合、ステップ1は導入ではなく練習問題
     // そのため、full_55minのステップ2処理にジャンプする
     
@@ -951,6 +961,13 @@ app.post('/api/essay/generate-pdf', async (c) => {
     // vocabulary_focus: Step 1-3 = 語彙練習①②③
     // short_essay_focus: Step 1-3 = 短文演習①②③
     // 条件式は後のelse ifで統合処理するため、ここでは何もしない
+    
+    // 🔍 DEBUG: Step 1条件チェック
+    console.log('🔍 DEBUG Step 1 condition check:', {
+      'currentStep === 1': currentStep === 1,
+      '!isFocusedFormat': !isFocusedFormat,
+      'will enter Step 1 block': currentStep === 1 && !isFocusedFormat
+    })
     
     if (currentStep === 1 && !isFocusedFormat) {
       console.log('📝 Step 1 (intro) processing, message:', message, 'lessonFormat:', lessonFormat)
