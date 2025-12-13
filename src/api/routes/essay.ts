@@ -1072,6 +1072,23 @@ router.post('/chat', async (c) => {
     if (currentStep === 1) {
       console.log('📝 Step 1 processing, message:', message)
       
+      // vocabulary_focus の場合、パス機能と回答処理を優先
+      if (isVocabularyFocus) {
+        const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+        
+        // パス機能
+        if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+          response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+        }
+        // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
+        else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+          response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+        }
+        // 「OK」で語彙問題を生成（後続の処理で実行）
+      }
+      
       // 画像がアップロードされたかチェック（OCR処理済みの回答）
       const essaySessionData = session?.essaySession
       const uploadedImages = essaySessionData?.uploadedImages ?? []
@@ -2069,11 +2086,11 @@ ${targetLevel === 'high_school' ? `
                 { role: 'user', content: '語彙力強化の問題を5つ生成してください。' }
               ],
               max_tokens: 500,
-              temperature: 0.8
+              temperature: 0.9  // Step 1用：高い多様性
             })
           })
           
-          console.log('📡 OpenAI API response status (vocab):', apiResponse.status)
+          console.log('📡 OpenAI API response status (vocab Step 1):', apiResponse.status)
           
           if (!apiResponse.ok) {
             const errorText = await apiResponse.text()
