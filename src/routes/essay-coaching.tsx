@@ -2505,16 +2505,43 @@ router.get('/session/:sessionId', async (c) => {
             }
             
             const canvas = document.createElement('canvas');
-            canvas.width = preview.videoWidth;
-            canvas.height = preview.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(preview, 0, 0);
+            let targetWidth = preview.videoWidth;
+            let targetHeight = preview.videoHeight;
             
-            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            // 🔧 OCRに適した解像度に自動調整（文字認識可能な品質を維持）
+            // 最大幅: 1920px（Full HD）、アスペクト比維持
+            const MAX_WIDTH = 1920;
+            const MAX_HEIGHT = 1920;
+            
+            if (targetWidth > MAX_WIDTH || targetHeight > MAX_HEIGHT) {
+                const ratio = Math.min(MAX_WIDTH / targetWidth, MAX_HEIGHT / targetHeight);
+                targetWidth = Math.round(targetWidth * ratio);
+                targetHeight = Math.round(targetHeight * ratio);
+                console.log('📏 Resizing image for OCR:', {
+                    original: { width: preview.videoWidth, height: preview.videoHeight },
+                    resized: { width: targetWidth, height: targetHeight },
+                    ratio: ratio.toFixed(2)
+                });
+            }
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // 高品質リサイズ（imageSmoothingEnabled）
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(preview, 0, 0, targetWidth, targetHeight);
+            
+            // 品質85%でJPEG変換（OCRに十分、サイズは約50-70%削減）
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.85);
             originalImageData = capturedImageData;
             
-            console.log('📸 Image captured:', {
+            const estimatedSizeMB = (capturedImageData.length * 0.75) / (1024 * 1024);
+            console.log('📸 Image captured and optimized:', {
                 dataLength: capturedImageData.length,
+                estimatedSizeMB: estimatedSizeMB.toFixed(2),
+                resolution: targetWidth + 'x' + targetHeight,
                 dataPrefix: capturedImageData.substring(0, 50)
             });
             
@@ -2733,16 +2760,42 @@ router.get('/session/:sessionId', async (c) => {
             
             const sourceCanvas = document.getElementById('cropCanvas');
             const resultCanvas = document.createElement('canvas');
-            resultCanvas.width = cropArea.width;
-            resultCanvas.height = cropArea.height;
+            
+            // 🔧 クロップ後も解像度を最適化（OCR品質維持）
+            let targetWidth = cropArea.width;
+            let targetHeight = cropArea.height;
+            const MAX_WIDTH = 1920;
+            const MAX_HEIGHT = 1920;
+            
+            if (targetWidth > MAX_WIDTH || targetHeight > MAX_HEIGHT) {
+                const ratio = Math.min(MAX_WIDTH / targetWidth, MAX_HEIGHT / targetHeight);
+                targetWidth = Math.round(targetWidth * ratio);
+                targetHeight = Math.round(targetHeight * ratio);
+                console.log('📏 Resizing cropped image:', {
+                    original: { width: cropArea.width, height: cropArea.height },
+                    resized: { width: targetWidth, height: targetHeight }
+                });
+            }
+            
+            resultCanvas.width = targetWidth;
+            resultCanvas.height = targetHeight;
             
             const ctx = resultCanvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(sourceCanvas,
                 cropArea.x, cropArea.y, cropArea.width, cropArea.height,
-                0, 0, cropArea.width, cropArea.height
+                0, 0, targetWidth, targetHeight
             );
             
-            capturedImageData = resultCanvas.toDataURL('image/jpeg', 0.9);
+            // 品質85%でJPEG変換
+            capturedImageData = resultCanvas.toDataURL('image/jpeg', 0.85);
+            
+            const estimatedSizeMB = (capturedImageData.length * 0.75) / (1024 * 1024);
+            console.log('✂️ Image cropped and optimized:', {
+                dataLength: capturedImageData.length,
+                estimatedSizeMB: estimatedSizeMB.toFixed(2)
+            });
             
             // 結果を表示
             const img = document.getElementById('capturedImage');
@@ -2802,30 +2855,63 @@ router.get('/session/:sessionId', async (c) => {
             addMessage('📸 画像をアップロード中...', true);
             
             try {
-                // 🔍 画像サイズチェック（Cloudflare Workersの制限: 10MB）
-                const imageSizeMB = (imageDataToUpload.length * 0.75) / (1024 * 1024); // Base64は約33%大きい
-                console.log('📏 Image size check:', {
-                    base64Length: imageDataToUpload.length,
+                // 🔧 画像サイズ最適化（8MB制限に自動対応）
+                let finalImageData = imageDataToUpload;
+                let imageSizeMB = (finalImageData.length * 0.75) / (1024 * 1024);
+                
+                console.log('📏 Initial image size:', {
+                    base64Length: finalImageData.length,
                     estimatedSizeMB: imageSizeMB.toFixed(2)
                 });
                 
-                if (imageSizeMB > 8) {
-                    const sizeWarning = '画像サイズが大きすぎます (約' + imageSizeMB.toFixed(1) + 'MB)。\\n\\n' +
-                        '8MB以下の画像を使用してください。\\n\\n' +
-                        '対処法：\\n' +
-                        '1. カメラの解像度を下げる\\n' +
-                        '2. 画像を圧縮する\\n' +
-                        '3. 別の画像を使用する';
-                    alert(sizeWarning);
-                    console.error('❌ Image too large:', imageSizeMB.toFixed(2), 'MB');
-                    return;
+                // サイズが大きい場合は段階的に圧縮（OCR品質を保ちつつ）
+                if (imageSizeMB > 6) {
+                    console.log('⚙️ Image too large, applying additional compression...');
+                    
+                    const img = new Image();
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = finalImageData;
+                    });
+                    
+                    const canvas = document.createElement('canvas');
+                    let quality = 0.75; // 品質75%で再圧縮
+                    
+                    // 解像度も必要に応じてさらに削減
+                    let targetWidth = img.width;
+                    let targetHeight = img.height;
+                    if (imageSizeMB > 8) {
+                        const ratio = Math.sqrt(6 / imageSizeMB); // 6MBを目標
+                        targetWidth = Math.round(img.width * ratio);
+                        targetHeight = Math.round(img.height * ratio);
+                        console.log('📐 Further reducing resolution:', {
+                            from: img.width + 'x' + img.height,
+                            to: targetWidth + 'x' + targetHeight
+                        });
+                    }
+                    
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                    
+                    finalImageData = canvas.toDataURL('image/jpeg', quality);
+                    imageSizeMB = (finalImageData.length * 0.75) / (1024 * 1024);
+                    
+                    console.log('✅ Compression complete:', {
+                        newSize: imageSizeMB.toFixed(2) + 'MB',
+                        reduction: ((1 - finalImageData.length / imageDataToUpload.length) * 100).toFixed(1) + '%'
+                    });
                 }
                 
                 console.log('🚀 Starting image upload...', {
                     sessionId: sessionId,
-                    imageDataLength: imageDataToUpload.length,
+                    imageDataLength: finalImageData.length,
                     estimatedSizeMB: imageSizeMB.toFixed(2),
-                    imageDataPrefix: imageDataToUpload.substring(0, 50),
+                    imageDataPrefix: finalImageData.substring(0, 50),
                     currentStep: currentStep
                 });
                 
@@ -2835,7 +2921,7 @@ router.get('/session/:sessionId', async (c) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sessionId: sessionId,
-                        imageData: imageDataToUpload,
+                        imageData: finalImageData,
                         currentStep: currentStep
                     })
                 });
@@ -2873,7 +2959,7 @@ router.get('/session/:sessionId', async (c) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sessionId: sessionId,
-                        imageData: imageDataToUpload,
+                        imageData: finalImageData,
                         currentStep: currentStep
                     })
                 });
