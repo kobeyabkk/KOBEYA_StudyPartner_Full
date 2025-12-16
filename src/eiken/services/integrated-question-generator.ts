@@ -444,8 +444,8 @@ export class IntegratedQuestionGenerator {
           questionText
         );
         
-        // Phase 5C: ログ記録
-        await this.logValidation({
+        // Phase 5C: ログ記録（非同期）
+        this.logValidation({
           student_id: request.student_id,
           grade: request.grade,
           format: request.format,
@@ -455,7 +455,7 @@ export class IntegratedQuestionGenerator {
           validation_passed: !isDuplicate,
           model_used: selectedModel,
           generation_mode: mode
-        });
+        }).catch(err => console.error('[Log Error]', err));
         
         if (isDuplicate) {
           console.log(`[Validation Failed] Duplicate question detected`);
@@ -466,8 +466,8 @@ export class IntegratedQuestionGenerator {
         if (request.format !== 'grammar_fill') {
           const grammarValidation = this.validateGrammar(questionData, request.grade);
           
-          // Phase 5C: ログ記録
-          await this.logValidation({
+          // Phase 5C: ログ記録（非同期）
+          this.logValidation({
             student_id: request.student_id,
             grade: request.grade,
             format: request.format,
@@ -478,7 +478,7 @@ export class IntegratedQuestionGenerator {
             validation_details: { violations: grammarValidation.violations },
             model_used: selectedModel,
             generation_mode: mode
-          });
+          }).catch(err => console.error('[Log Error]', err));
           
           if (!grammarValidation.passed) {
             console.log(`[Validation Failed] Grammar complexity:`, grammarValidation.violations);
@@ -498,8 +498,8 @@ export class IntegratedQuestionGenerator {
         vocabularyPassed = vocabValidation.passed;
         vocabularyScore = vocabValidation.score;
 
-        // Phase 5C: ログ記録
-        await this.logValidation({
+        // Phase 5C: ログ記録（非同期）
+        this.logValidation({
           student_id: request.student_id,
           grade: request.grade,
           format: request.format,
@@ -510,7 +510,7 @@ export class IntegratedQuestionGenerator {
           validation_details: { score: vocabularyScore, threshold: vocabValidation.threshold || 'N/A' },
           model_used: selectedModel,
           generation_mode: mode
-        });
+        }).catch(err => console.error('[Log Error]', err));
 
         if (!vocabularyPassed) {
           console.log(`[Validation Failed] Vocabulary (score: ${vocabularyScore})`);
@@ -518,7 +518,8 @@ export class IntegratedQuestionGenerator {
         }
 
         // Phase 2: Essay形式の場合、CEFR-J Wordlistに基づく詳細分析
-        if (request.format === 'essay') {
+        // 最適化: 既存の語彙検証で95%以上ならスキップ（高品質生成時の高速化）
+        if (request.format === 'essay' && vocabularyScore && vocabularyScore < 95) {
           try {
             const { VocabularyListService } = await import('./vocabulary-list-service');
             const vocabService = new VocabularyListService(this.db);
@@ -561,8 +562,8 @@ export class IntegratedQuestionGenerator {
                 continue; // 再生成
               }
               
-              // 成功した場合も記録
-              await this.logValidation({
+              // 成功した場合も記録（非同期で待たない）
+              this.logValidation({
                 student_id: request.student_id,
                 grade: request.grade,
                 format: request.format,
@@ -577,7 +578,7 @@ export class IntegratedQuestionGenerator {
                 },
                 model_used: selectedModel,
                 generation_mode: mode
-              });
+              }).catch(err => console.error('[Log Error]', err));
             }
           } catch (error) {
             console.error(`[Essay Vocab Analysis] Error:`, error);
@@ -593,8 +594,8 @@ export class IntegratedQuestionGenerator {
         copyrightPassed = copyrightValidation.passed;
         copyrightScore = copyrightValidation.score;
 
-        // Phase 5C: ログ記録
-        await this.logValidation({
+        // Phase 5C: ログ記録（非同期）
+        this.logValidation({
           student_id: request.student_id,
           grade: request.grade,
           format: request.format,
@@ -605,7 +606,7 @@ export class IntegratedQuestionGenerator {
           validation_details: { score: copyrightScore },
           model_used: selectedModel,
           generation_mode: mode
-        });
+        }).catch(err => console.error('[Log Error]', err));
 
         if (!copyrightPassed) {
           console.log(`[Validation Failed] Copyright (score: ${copyrightScore})`);
@@ -619,8 +620,8 @@ export class IntegratedQuestionGenerator {
           blueprint.guidelines.grammar_patterns[0] || 'unknown'
         );
         
-        // Phase 5C: ログ記録
-        await this.logValidation({
+        // Phase 5C: ログ記録（非同期）
+        this.logValidation({
           student_id: request.student_id,
           grade: request.grade,
           format: request.format,
@@ -634,7 +635,7 @@ export class IntegratedQuestionGenerator {
           },
           model_used: selectedModel,
           generation_mode: mode
-        });
+        }).catch(err => console.error('[Log Error]', err));
         
         if (!uniquenessValidation.passed) {
           console.log(`[Validation Failed] Multiple correct answers detected`);
@@ -647,8 +648,8 @@ export class IntegratedQuestionGenerator {
         if (request.format === 'grammar_fill' && questionData.explanation) {
           const explanationValidation = this.validate4BlockExplanation(questionData.explanation, request.grade);
           
-          // Phase 5C: ログ記録
-          await this.logValidation({
+          // Phase 5C: ログ記録（非同期）
+          this.logValidation({
             student_id: request.student_id,
             grade: request.grade,
             format: request.format,
@@ -661,7 +662,7 @@ export class IntegratedQuestionGenerator {
             },
             model_used: selectedModel,
             generation_mode: mode
-          });
+          }).catch(err => console.error('[Log Error]', err));
           
           if (!explanationValidation.valid) {
             console.log(`[Validation Warning] 4-block explanation format incomplete`);

@@ -220,7 +220,59 @@ export class VocabularyListService {
   }
 
   /**
-   * テキスト中の語彙レベルを分析
+   * 複数の単語のCEFRレベルを一括検証（バッチ処理）
+   * 
+   * @param words - 検証する単語の配列
+   * @returns 単語とそのCEFRレベルのマップ
+   */
+  async checkWordLevelsBatch(words: string[]): Promise<Map<string, string | null>> {
+    if (words.length === 0) {
+      return new Map();
+    }
+    
+    try {
+      // IN句で一括クエリ（最大100語ずつ）
+      const resultMap = new Map<string, string | null>();
+      const chunkSize = 100;
+      
+      for (let i = 0; i < words.length; i += chunkSize) {
+        const chunk = words.slice(i, i + chunkSize);
+        const placeholders = chunk.map(() => '?').join(',');
+        
+        const result = await this.db.prepare(`
+          SELECT LOWER(word_lemma) as word, cefr_level
+          FROM eiken_vocabulary_lexicon
+          WHERE LOWER(word_lemma) IN (${placeholders})
+        `).bind(...chunk.map(w => w.toLowerCase())).all();
+        
+        if (result.success && result.results) {
+          for (const row of result.results as any[]) {
+            resultMap.set(row.word, row.cefr_level);
+          }
+        }
+      }
+      
+      // クエリ結果にない単語はnullとして追加
+      for (const word of words) {
+        if (!resultMap.has(word.toLowerCase())) {
+          resultMap.set(word.toLowerCase(), null);
+        }
+      }
+      
+      return resultMap;
+    } catch (error) {
+      console.error('[VocabularyListService] Error in checkWordLevelsBatch:', error);
+      // エラー時は全てnullを返す
+      const resultMap = new Map<string, string | null>();
+      for (const word of words) {
+        resultMap.set(word.toLowerCase(), null);
+      }
+      return resultMap;
+    }
+  }
+
+  /**
+   * テキスト中の語彙レベルを分析（バッチ処理版）
    * 
    * @param text - 分析するテキスト
    * @param targetLevel - 目標CEFRレベル
@@ -262,15 +314,19 @@ export class VocabularyListService {
     const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
     const targetLevelIndex = levelOrder.indexOf(targetLevel.toUpperCase());
     
-    // 各単語をチェック
-    for (const word of uniqueWords) {
-      // 3文字未満の単語は除外（a, is, the等）
-      if (word.length < 3) {
-        withinLevel++;
-        continue;
-      }
-      
-      const wordLevel = await this.checkWordLevel(word);
+    // 3文字以上の単語のみをバッチ処理
+    const wordsToCheck = uniqueWords.filter(w => w.length >= 3);
+    const shortWords = uniqueWords.filter(w => w.length < 3);
+    
+    // 短い単語は自動的に合格とカウント
+    withinLevel += shortWords.length;
+    
+    // バッチでCEFRレベルを取得
+    const wordLevelMap = await this.checkWordLevelsBatch(wordsToCheck);
+    
+    // 各単語のレベルを判定
+    for (const word of wordsToCheck) {
+      const wordLevel = wordLevelMap.get(word.toLowerCase());
       
       if (wordLevel === null) {
         unknownWords.push(word);
