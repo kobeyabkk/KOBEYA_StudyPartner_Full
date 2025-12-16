@@ -2697,6 +2697,15 @@ ${targetLevel === 'high_school' ? `
           const step2Answers = session?.essaySession?.vocabAnswersStep2 || ''
           const step3Answers = session?.essaySession?.vocabAnswersStep3 || ''
           
+          console.log('📝 Review test - Loading answers:', {
+            step1Length: step1Answers.length,
+            step2Length: step2Answers.length,
+            step3Length: step3Answers.length,
+            step1Preview: step1Answers.substring(0, 100),
+            step2Preview: step2Answers.substring(0, 100),
+            step3Preview: step3Answers.substring(0, 100)
+          })
+          
           // 全ての語彙問題をパース
           const allProblems: string[] = []
           const allAnswers: string[] = []
@@ -2716,29 +2725,56 @@ ${targetLevel === 'high_school' ? `
           const step2Items = parseVocabAnswers(step2Answers)
           const step3Items = parseVocabAnswers(step3Answers)
           
+          console.log('📝 Review test - Parsed items:', {
+            step1Count: step1Items.length,
+            step2Count: step2Items.length,
+            step3Count: step3Items.length
+          })
+          
           const allItems = [...step1Items, ...step2Items, ...step3Items]
           
-          // ランダムに5-10問を選択（全部の問題が10問未満の場合は全部）
-          const reviewCount = Math.min(10, allItems.length)
-          const shuffled = allItems.sort(() => Math.random() - 0.5)
-          const reviewItems = shuffled.slice(0, reviewCount)
+          console.log('📝 Review test - Total items:', allItems.length)
           
-          // 復習用の問題と解答を保存
-          const reviewProblems = reviewItems.map((item, idx) => `${idx + 1}. ${item.problem.replace(/^\d+\.\s*/, '')}`).join('\n')
-          const reviewAnswers = reviewItems.map((item, idx) => `${idx + 1}. ${item.answer.replace(/^\d+\.\s*/, '')}`).join('\n')
-          
-          if (!session.essaySession) {
-            session.essaySession = {}
+          // 🔧 問題が見つからない場合のフォールバック
+          if (allItems.length === 0) {
+            console.error('❌ No vocabulary items found for review test!')
+            response = `復習テストを準備中ですが、過去の語彙問題が見つかりませんでした。\n\nStep 1-3の問題を完了してから、もう一度お試しください。\n\nまたは、「パス」と入力して次のステップに進んでください。`
+            // フォールバック用の解答も保存
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabReviewAnswers = '【模範解答】\n（語彙問題が見つかりませんでした）'
+          } else {
+            // ランダムに5-10問を選択（全部の問題が10問未満の場合は全部）
+            const reviewCount = Math.min(10, allItems.length)
+            const shuffled = allItems.sort(() => Math.random() - 0.5)
+            const reviewItems = shuffled.slice(0, reviewCount)
+            
+            console.log('📝 Review test - Selected items:', reviewCount)
+            
+            // 復習用の問題と解答を保存
+            const reviewProblems = reviewItems.map((item, idx) => `${idx + 1}. ${item.problem.replace(/^\d+\.\s*/, '')}`).join('\n')
+            const reviewAnswers = reviewItems.map((item, idx) => `${idx + 1}. ${item.answer.replace(/^\d+\.\s*/, '')}`).join('\n')
+            
+            console.log('📝 Review test - Generated problems:', {
+              problemsLength: reviewProblems.length,
+              answersLength: reviewAnswers.length,
+              problemsPreview: reviewProblems.substring(0, 200)
+            })
+            
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabReviewAnswers = `【模範解答】\n${reviewAnswers}`
+            
+            // セッション更新
+            learningSessions.set(sessionId, session)
+            if (db) {
+              await saveSessionToDB(db, sessionId, session)
+            }
+            
+            response = `【まとめ - 語彙力復習テスト】\nこれまでに学習した語彙をランダムに出題します。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${reviewProblems}\n\n全て答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
           }
-          session.essaySession.vocabReviewAnswers = `【模範解答】\n${reviewAnswers}`
-          
-          // セッション更新
-          learningSessions.set(sessionId, session)
-          if (db) {
-            await saveSessionToDB(db, sessionId, session)
-          }
-          
-          response = `【まとめ - 語彙力復習テスト】\nこれまでに学習した語彙をランダムに出題します。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${reviewProblems}\n\n全て答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
         }
         // 「パス」で復習テストの解答を表示
         else if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
