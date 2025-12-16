@@ -24,6 +24,7 @@ export default function EikenPracticePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('generator');
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [results, setResults] = useState<AnswerResult[]>([]);
+  const [generationStatus, setGenerationStatus] = useState<{current: number, total: number, isGenerating: boolean}>({ current: 0, total: 0, isGenerating: false });
   
   // AIチャットフローティングウィンドウの状態
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -138,13 +139,23 @@ export default function EikenPracticePage() {
     console.log('📊 Questions count:', generatedQuestions.length);
     console.log('📝 First question:', generatedQuestions[0]);
     
-    // Clear previous question display progress when new questions are generated
-    localStorage.removeItem('eiken_current_question_index');
-    localStorage.removeItem('eiken_user_answers');
-    localStorage.removeItem('eiken_submitted_questions');
-    localStorage.removeItem('eiken_viewed_explanations');
-    console.log('🗑️ Cleared previous question progress');
+    // 🎯 段階的配信: 1問目が届いたら即座に練習モードに切り替え
+    if (generatedQuestions.length === 1 && viewMode === 'generator') {
+      console.log('🚀 First question arrived! Switching to practice mode immediately...');
+      // Clear previous question display progress when new questions are generated
+      localStorage.removeItem('eiken_current_question_index');
+      localStorage.removeItem('eiken_user_answers');
+      localStorage.removeItem('eiken_submitted_questions');
+      localStorage.removeItem('eiken_viewed_explanations');
+      console.log('🗑️ Cleared previous question progress');
+      
+      setQuestions(generatedQuestions);
+      setViewMode('practice');
+      return;
+    }
     
+    // 🔄 2問目以降: 問題を追加更新（practiceモード中）
+    console.log('🔄 Updating questions in practice mode...');
     setQuestions(generatedQuestions);
     setViewMode('practice');
     console.log('🎬 View mode changed to: practice');
@@ -407,13 +418,17 @@ export default function EikenPracticePage() {
         {/* メインコンテンツ */}
         <main>
           {viewMode === 'generator' && (
-            <QuestionGenerator onQuestionsGenerated={handleQuestionsGenerated} />
+            <QuestionGenerator 
+              onQuestionsGenerated={handleQuestionsGenerated}
+              onGenerationStatusChange={setGenerationStatus}
+            />
           )}
 
           {viewMode === 'practice' && questions.length > 0 && (
             <QuestionDisplay 
               questions={questions} 
               onComplete={handlePracticeComplete}
+              generationStatus={generationStatus}
             />
           )}
 

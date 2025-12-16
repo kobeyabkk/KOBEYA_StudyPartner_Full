@@ -10,6 +10,7 @@ import VocabularyPopup from './VocabularyPopup';
 interface QuestionDisplayProps {
   questions: GeneratedQuestion[];
   onComplete?: (results: AnswerResult[]) => void;
+  generationStatus?: { current: number; total: number; isGenerating: boolean };
 }
 
 interface AnswerResult {
@@ -26,7 +27,7 @@ interface PassageTranslation {
   error?: string;
 }
 
-export default function QuestionDisplay({ questions, onComplete }: QuestionDisplayProps) {
+export default function QuestionDisplay({ questions, onComplete, generationStatus }: QuestionDisplayProps) {
   // Load saved progress from localStorage (only once on mount)
   const [currentIndex, setCurrentIndex] = useState(() => {
     try {
@@ -237,15 +238,35 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
   };
 
   const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
-      const nextQuestion = questions[currentIndex + 1];
-      const nextPassage = (nextQuestion as any).passage || '';
-      // 長文が変わったら自動的に表示
-      if (nextPassage !== currentPassage) {
-        setShowPassage(true);
-      }
-      setCurrentIndex(currentIndex + 1);
+    // 🎯 次の問題がまだ生成中かチェック
+    const nextIndex = currentIndex + 1;
+    const nextQuestionExists = nextIndex < questions.length;
+    
+    // 次の問題がまだ存在しない場合（生成中の可能性）
+    if (!nextQuestionExists && generationStatus?.isGenerating) {
+      const remainingQuestions = (generationStatus.total || 0) - (generationStatus.current || 0);
+      alert(
+        `問題を生成中です。しばらくお待ちください... ⏳\n\n` +
+        `進捗: ${generationStatus.current}/${generationStatus.total}問 完了\n` +
+        `残り: ${remainingQuestions}問`
+      );
+      return;
     }
+    
+    // 次の問題が存在しない＆生成も完了している場合
+    if (!nextQuestionExists) {
+      console.log('✅ All questions completed');
+      return;
+    }
+    
+    // 次の問題に進む
+    const nextQuestion = questions[nextIndex];
+    const nextPassage = (nextQuestion as any).passage || '';
+    // 長文が変わったら自動的に表示
+    if (nextPassage !== currentPassage) {
+      setShowPassage(true);
+    }
+    setCurrentIndex(nextIndex);
   };
 
   const handlePrevious = () => {
@@ -711,6 +732,18 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             style={{ width: `${(submittedQuestions.size / questions.length) * 100}%` }}
           />
         </div>
+        
+        {/* 生成状況表示 */}
+        {generationStatus?.isGenerating && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+              <span className="text-sm text-blue-900 font-medium">
+                残りの問題を生成中... ({generationStatus.current}/{generationStatus.total}問完了)
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 問題カード */}
@@ -1275,14 +1308,17 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
             {/* 次の問題 */}
             <button
               onClick={handleNext}
-              disabled={currentIndex === questions.length - 1}
+              disabled={currentIndex === questions.length - 1 && !generationStatus?.isGenerating}
               className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-                currentIndex === questions.length - 1
+                currentIndex === questions.length - 1 && !generationStatus?.isGenerating
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : currentIndex === questions.length - 1 && generationStatus?.isGenerating
+                  ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg hover:shadow-xl'
                   : 'bg-gray-600 text-white hover:bg-gray-700 shadow-lg hover:shadow-xl'
               }`}
+              title={currentIndex === questions.length - 1 && generationStatus?.isGenerating ? '次の問題を生成中です...' : ''}
             >
-              次の問題 →
+              {currentIndex === questions.length - 1 && generationStatus?.isGenerating ? '生成中... ⏳' : '次の問題 →'}
             </button>
           </div>
           

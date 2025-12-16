@@ -128,7 +128,10 @@ export function useEikenGenerate() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerationResult | null>(null);
 
-  const generateQuestions = async (request: QuestionGenerationRequest) => {
+  const generateQuestions = async (
+    request: QuestionGenerationRequest,
+    onProgressCallback?: (current: number, total: number, question?: GeneratedQuestion) => void
+  ) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -192,6 +195,11 @@ export function useEikenGenerate() {
         totalAttempts++;
         
         console.log(`✅ ${isLongReading ? 'Passage' : 'Question'} ${i + 1}/${passageCount} generated successfully (${allGeneratedQuestions.length} total questions)`);
+        
+        // 🎯 Phase 2: 1問生成されたら即座にコールバックで通知
+        if (onProgressCallback && convertedQuestions.length > 0) {
+          onProgressCallback(allGeneratedQuestions.length, requestedQuestionCount, convertedQuestions[0]);
+        }
         
         // long_readingで要求数に達したら打ち切り
         if (isLongReading && allGeneratedQuestions.length >= requestedQuestionCount) {

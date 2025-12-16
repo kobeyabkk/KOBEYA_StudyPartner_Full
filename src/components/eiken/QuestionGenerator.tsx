@@ -43,33 +43,57 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
 
   const { loading, error, result, generateQuestions } = useEikenGenerate();
   const [progressMessage, setProgressMessage] = useState('');
-  const [estimatedTime, setEstimatedTime] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState<{current: number, total: number, status: string}>({ current: 0, total: 0, status: '' });
 
   const handleGenerate = async () => {
     console.log('🔴 handleGenerate CALLED!');
     
-    // 推定時間を計算
-    const timePerQuestion = format === 'long_reading' ? 12 : format === 'essay' ? 8 : 4;
-    const estimated = Math.ceil(count * timePerQuestion);
-    setEstimatedTime(estimated);
-    setProgressMessage(`問題を生成中... (推定時間: 約${estimated}秒)`)
+    // 進捗状況の初期化
+    setGenerationProgress({ current: 0, total: count, status: 'starting' });
+    setProgressMessage(`問題生成を開始します... (全${count}問)`)
     
     try {
       console.log('🎯 Generating questions with:', { grade, format, count, difficulty });
+      
+      // 🎯 Phase 2: 生成された問題を蓄積
+      const accumulatedQuestions: any[] = [];
+      let firstQuestionSent = false;
+      
       const data = await generateQuestions({
         grade,
         format,  // Phase 3: use format instead of section
         count,
         difficulty,
         topicHints: topicHints.length > 0 ? topicHints : undefined,
+      }, (current, total, question) => {
+        // 進捗更新
+        setGenerationProgress({ current, total, status: 'generating' });
+        setProgressMessage(`問題${current}/${total}を生成しました`);
+        
+        // 問題を蓄積
+        if (question) {
+          accumulatedQuestions.push(question);
+        }
+        
+        // 🚀 1問目が完成したら即座に表示
+        if (current === 1 && !firstQuestionSent && onQuestionsGenerated) {
+          console.log('🚀 First question ready! Showing immediately...');
+          onQuestionsGenerated(accumulatedQuestions);
+          firstQuestionSent = true;
+        }
       });
 
       console.log('✅ API Response:', data);
       console.log('📊 Generated questions:', data.generated);
       console.log('🔗 onQuestionsGenerated callback exists?', !!onQuestionsGenerated);
 
-      if (data.success && onQuestionsGenerated) {
+      // 全問題生成完了後、まだ送信していなければ送信
+      if (data.success && onQuestionsGenerated && !firstQuestionSent) {
         console.log('🚀 Calling onQuestionsGenerated with', data.generated.length, 'questions');
+        onQuestionsGenerated(data.generated);
+      } else if (data.success && onQuestionsGenerated && firstQuestionSent) {
+        // 既に1問目を送信済みなら、全問題で更新
+        console.log('🔄 Updating with all', data.generated.length, 'questions');
         onQuestionsGenerated(data.generated);
       } else {
         console.warn('⚠️ Conditions not met:', { success: data.success, hasCallback: !!onQuestionsGenerated });
@@ -77,6 +101,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
     } catch (err) {
       console.error('❌ Failed to generate questions:', err);
       const errorMessage = err instanceof Error ? err.message : String(err);
+      
+      // 🎯 エラーを通知
+      if (onGenerationStatusChange) {
+        onGenerationStatusChange({ current: 0, total: count, isGenerating: false });
+      }
       
       // ユーザーフレンドリーなエラーメッセージ
       let userMessage = errorMessage;
@@ -316,9 +345,9 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
                 </svg>
                 問題を生成中...
               </div>
-              {estimatedTime > 0 && (
+              {generationProgress.total > 0 && (
                 <span className="text-sm opacity-90">
-                  推定時間: 約{estimatedTime}秒 | {count}問生成中
+                  {generationProgress.current}/{generationProgress.total}問生成完了
                 </span>
               )}
             </span>
