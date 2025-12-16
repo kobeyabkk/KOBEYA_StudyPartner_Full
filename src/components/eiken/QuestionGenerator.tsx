@@ -9,6 +9,7 @@ import GradeSelector from './GradeSelector';
 
 interface QuestionGeneratorProps {
   onQuestionsGenerated?: (questions: any[]) => void;
+  onGenerationStatusChange?: (status: {current: number, total: number, isGenerating: boolean}) => void;
 }
 
 // Phase 3 API対応: 英検の正式な問題形式
@@ -24,7 +25,7 @@ const TOPIC_SUGGESTIONS = [
   'culture', 'science', 'travel', 'sports', 'food'
 ];
 
-export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGeneratorProps) {
+export default function QuestionGenerator({ onQuestionsGenerated, onGenerationStatusChange }: QuestionGeneratorProps) {
   const [grade, setGrade] = useState<EikenGrade>('pre1');
   const [format, setFormat] = useState('grammar_fill');  // Phase 3: format instead of section
   // 長文読解はデフォルト3パッセージ、他は5問
