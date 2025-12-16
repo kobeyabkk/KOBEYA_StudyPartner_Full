@@ -2189,8 +2189,15 @@ ${targetLevel === 'high_school' ? `
       }
     } else if (currentStep === 2) {
       // ステップ2: 語彙力強化
-      // 保存された模範解答を取得（デフォルト値を設定）
-      const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+      // 🔧 Step 2専用の解答を使用（フォールバックとしてStep 1も参照）
+      const savedAnswers = session?.essaySession?.vocabAnswersStep2 || 
+                          session?.essaySession?.vocabAnswers || 
+                          '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+      
+      console.log('📝 Step 2 vocabulary answers check:', {
+        hasStep2Answers: !!session?.essaySession?.vocabAnswersStep2,
+        step2Preview: (session?.essaySession?.vocabAnswersStep2 || '').substring(0, 100)
+      })
       
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
@@ -2534,7 +2541,15 @@ ${targetLevel === 'high_school' ? `
       }
     } else if (currentStep === 3 && isVocabularyFocus) {
       // ステップ3: 語彙力強化③（vocabulary_focusのみ）
-      const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+      // 🔧 Step 3専用の解答を使用（Step 1の解答ではなく）
+      const savedAnswers = session?.essaySession?.vocabAnswersStep3 || 
+                          session?.essaySession?.vocabAnswers || 
+                          '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+      
+      console.log('📝 Step 3 vocabulary answers check:', {
+        hasStep3Answers: !!session?.essaySession?.vocabAnswersStep3,
+        step3Preview: (session?.essaySession?.vocabAnswersStep3 || '').substring(0, 100)
+      })
       
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
