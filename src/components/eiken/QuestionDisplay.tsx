@@ -105,6 +105,16 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     }
   });
   
+  // Learning mode toggle (default: true = show Japanese support)
+  const [learningMode, setLearningMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eiken_learning_mode');
+      return saved !== null ? saved === 'true' : true; // Default to true (learning mode ON)
+    } catch {
+      return true;
+    }
+  });
+  
   // Save vocabulary markers preference
   useEffect(() => {
     try {
@@ -113,6 +123,15 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
       console.error('Failed to save vocabulary markers preference:', error);
     }
   }, [showVocabularyMarkers]);
+  
+  // Save learning mode preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('eiken_learning_mode', learningMode.toString());
+    } catch (error) {
+      console.error('Failed to save learning mode preference:', error);
+    }
+  }, [learningMode]);
 
   // Save reported questions to localStorage
   useEffect(() => {
@@ -734,6 +753,28 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               </span>
             </button>
           )}
+          
+          {/* Learning Mode Toggle (Essay/Writing formats) */}
+          {isWritingFormat && (
+            <button
+              onClick={() => setLearningMode(!learningMode)}
+              className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-between ${
+                learningMode
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600'
+                  : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-xl">{learningMode ? '📖' : '🎯'}</span>
+                <span className="font-semibold">
+                  {learningMode ? '学習モード（日本語サポートON）' : '本番モード（英語のみ）'}
+                </span>
+              </span>
+              <span className="text-sm opacity-90">
+                {learningMode ? '初心者向け' : '上級者向け'}
+              </span>
+            </button>
+          )}
         </div>
         
         {/* 長文パッセージ */}
@@ -846,7 +887,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                 <p className="text-gray-900 font-medium text-lg">
                   {essayPrompt || opinionPrompt || 'No prompt available'}
                 </p>
-                {essayPromptJa && (
+                {learningMode && essayPromptJa && (
                   <p className="text-gray-600 mt-2 text-sm">
                     📖 {essayPromptJa}
                   </p>
@@ -854,7 +895,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
               </div>
               
               {/* Outline Guidance */}
-              {outlineGuidanceJa && Object.keys(outlineGuidanceJa).length > 0 && (
+              {learningMode && outlineGuidanceJa && Object.keys(outlineGuidanceJa).length > 0 && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="font-bold text-blue-900 mb-2">💡 アウトラインガイダンス</h4>
                   {outlineGuidanceJa.introduction && (
@@ -902,7 +943,7 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
                   <summary className="font-bold text-purple-900 cursor-pointer">📄 模範解答を見る</summary>
                   <div className="mt-3 space-y-2">
                     <p className="text-gray-800 whitespace-pre-wrap">{sampleEssay}</p>
-                    {sampleEssayJa && (
+                    {learningMode && sampleEssayJa && (
                       <div className="pt-2 border-t border-purple-200">
                         <p className="text-gray-600 text-sm whitespace-pre-wrap">{sampleEssayJa}</p>
                       </div>
