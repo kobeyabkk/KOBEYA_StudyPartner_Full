@@ -86,11 +86,15 @@ export default function QuestionGenerator({ onQuestionsGenerated, onGenerationSt
           accumulatedQuestions.push(question);
         }
         
-        // 🚀 1問目以上が完成したら即座に表示（初回のみ）
-        if (!firstQuestionSent && accumulatedQuestions.length > 0 && onQuestionsGenerated) {
-          console.log('🚀 First question(s) ready! Showing immediately...');
+        // 🚀 問題が完成したら即座に表示（毎回更新）
+        if (accumulatedQuestions.length > 0 && onQuestionsGenerated) {
+          if (!firstQuestionSent) {
+            console.log('🚀 First question(s) ready! Showing immediately...');
+            firstQuestionSent = true;
+          } else {
+            console.log(`🔄 Question ${current} ready! Updating display (${accumulatedQuestions.length} total)...`);
+          }
           onQuestionsGenerated(accumulatedQuestions);
-          firstQuestionSent = true;
         }
       });
 
@@ -98,14 +102,13 @@ export default function QuestionGenerator({ onQuestionsGenerated, onGenerationSt
       console.log('📊 Generated questions:', data.generated);
       console.log('🔗 onQuestionsGenerated callback exists?', !!onQuestionsGenerated);
 
-      // 全問題生成完了後、まだ送信していなければ送信
+      // 全問題生成完了（コールバックで既に更新済み）
+      // 念のため、コールバックが動作しなかった場合のフォールバック
       if (data.success && onQuestionsGenerated && !firstQuestionSent) {
-        console.log('🚀 Calling onQuestionsGenerated with', data.generated.length, 'questions');
+        console.log('⚠️ Fallback: Sending all questions (callback did not trigger)');
         onQuestionsGenerated(data.generated);
-      } else if (data.success && onQuestionsGenerated && firstQuestionSent) {
-        // 既に1問目を送信済みなら、全問題で更新
-        console.log('🔄 Updating with all', data.generated.length, 'questions');
-        onQuestionsGenerated(data.generated);
+      } else if (data.success && firstQuestionSent) {
+        console.log('✅ All questions already sent via callbacks');
       } else {
         console.warn('⚠️ Conditions not met:', { success: data.success, hasCallback: !!onQuestionsGenerated });
       }
