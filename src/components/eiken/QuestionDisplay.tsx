@@ -917,9 +917,12 @@ export default function QuestionDisplay({ questions, onComplete, generationStatu
               
               {/* Essay/Opinion Prompt */}
               <div className="prose max-w-none">
-                <p className="text-gray-900 font-medium text-lg">
-                  {essayPrompt || opinionPrompt || 'No prompt available'}
-                </p>
+                <div className="text-gray-900 font-medium text-lg">
+                  {renderTextWithAnnotations(
+                    essayPrompt || opinionPrompt || 'No prompt available',
+                    (currentQuestion as any).vocabulary_notes
+                  )}
+                </div>
                 {learningMode && essayPromptJa && (
                   <p className="text-gray-600 mt-2 text-sm">
                     📖 {essayPromptJa}
@@ -975,7 +978,9 @@ export default function QuestionDisplay({ questions, onComplete, generationStatu
                 <details className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                   <summary className="font-bold text-purple-900 cursor-pointer">📄 模範解答を見る</summary>
                   <div className="mt-3 space-y-2">
-                    <p className="text-gray-800 whitespace-pre-wrap">{sampleEssay}</p>
+                    <div className="text-gray-800">
+                      {renderTextWithAnnotations(sampleEssay, (currentQuestion as any).vocabulary_notes)}
+                    </div>
                     {learningMode && sampleEssayJa && (
                       <div className="pt-2 border-t border-purple-200">
                         <p className="text-gray-600 text-sm whitespace-pre-wrap">{sampleEssayJa}</p>
