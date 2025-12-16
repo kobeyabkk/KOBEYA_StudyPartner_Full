@@ -23,8 +23,12 @@ export interface VocabularyListOptions {
  * Vocabulary List Service
  * 
  * Essay生成プロンプト用の語彙リストを提供
+ * 
+ * Phase 2.1: メモリキャッシュによる高速化
  */
 export class VocabularyListService {
+  private static promptCache: Map<string, string> = new Map();
+  
   constructor(private db: D1Database) {}
 
   /**
@@ -166,6 +170,8 @@ export class VocabularyListService {
   /**
    * プロンプト用の語彙リスト文字列を生成
    * 
+   * Phase 2.1: メモリキャッシュによる高速化（DB読み込み時間をゼロに）
+   * 
    * @param level - CEFRレベル
    * @param format - 'inline' | 'categorized'
    * @returns プロンプトに埋め込む文字列
@@ -174,18 +180,32 @@ export class VocabularyListService {
     level: string, 
     format: 'inline' | 'categorized' = 'inline'
   ): Promise<string> {
+    // キャッシュキーを生成
+    const cacheKey = `${level}_${format}`;
+    
+    // キャッシュにあれば即座に返す
+    if (VocabularyListService.promptCache.has(cacheKey)) {
+      console.log(`[Vocabulary Cache] HIT for ${cacheKey}`);
+      return VocabularyListService.promptCache.get(cacheKey)!;
+    }
+    
+    console.log(`[Vocabulary Cache] MISS for ${cacheKey}, fetching from DB...`);
+    
+    // キャッシュにない場合はDBから取得
     const vocab = await this.getCoreVocabularyForEssay(level);
     
     if (vocab.all.length === 0) {
       return `(Vocabulary list unavailable - use standard ${level} words)`;
     }
     
+    let result: string;
+    
     if (format === 'inline') {
       // カンマ区切りの1行形式
-      return vocab.all.slice(0, 200).join(', ');
+      result = vocab.all.slice(0, 200).join(', ');
     } else {
       // 品詞別カテゴリ形式
-      return `
+      result = `
 **Nouns (80)**: ${vocab.nouns.slice(0, 80).join(', ')}
 
 **Verbs (60)**: ${vocab.verbs.slice(0, 60).join(', ')}
@@ -195,6 +215,12 @@ export class VocabularyListService {
 **Adverbs (20)**: ${vocab.adverbs.slice(0, 20).join(', ')}
       `.trim();
     }
+    
+    // キャッシュに保存
+    VocabularyListService.promptCache.set(cacheKey, result);
+    console.log(`[Vocabulary Cache] STORED ${cacheKey} (${result.length} chars)`);
+    
+    return result;
   }
 
   /**

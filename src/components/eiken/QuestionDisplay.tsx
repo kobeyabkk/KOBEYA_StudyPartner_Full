@@ -105,13 +105,13 @@ export default function QuestionDisplay({ questions, onComplete }: QuestionDispl
     }
   });
   
-  // Learning mode toggle (default: true = show Japanese support)
+  // Learning mode toggle (default: false = exam mode, no Japanese support)
   const [learningMode, setLearningMode] = useState(() => {
     try {
       const saved = localStorage.getItem('eiken_learning_mode');
-      return saved !== null ? saved === 'true' : true; // Default to true (learning mode ON)
+      return saved !== null ? saved === 'true' : false; // Default to false (exam mode ON)
     } catch {
-      return true;
+      return false;
     }
   });
   
