@@ -534,9 +534,9 @@ export class IntegratedQuestionGenerator {
               
               console.log(`[Essay Vocab Analysis] Total: ${detailedAnalysis.totalWords}, Within level: ${detailedAnalysis.withinLevel}, Above level: ${detailedAnalysis.aboveLevel}, Unknown: ${detailedAnalysis.unknownWords.length}, Score: ${detailedAnalysis.score}%`);
               
-              // 90%以上の単語がターゲットレベル内であることを確認
-              if (detailedAnalysis.score < 90 && detailedAnalysis.aboveLevel > 3) {
-                console.log(`[Essay Vocab Analysis FAILED] Score ${detailedAnalysis.score}% below 90% threshold`);
+              // 85%以上の単語がターゲットレベル内であることを確認（語彙マーカー表示のため緩和）
+              if (detailedAnalysis.score < 85 && detailedAnalysis.aboveLevel > 5) {
+                console.log(`[Essay Vocab Analysis FAILED] Score ${detailedAnalysis.score}% below 85% threshold`);
                 console.log(`[Essay Vocab Analysis] Above-level words found: ${detailedAnalysis.aboveLevel}`);
                 
                 // 失敗した場合も記録
@@ -724,8 +724,8 @@ export class IntegratedQuestionGenerator {
       if (textToAnnotate) {
         console.log('[Vocabulary Annotation] Generating annotations for text...');
         const vocabularyNotes = await annotator.generateAnnotations(textToAnnotate, {
-          minDifficultyScore: 40,
-          maxAnnotations: 10,
+          minDifficultyScore: 30,  // Lowered from 40 to include more words for Grade 3
+          maxAnnotations: 15,       // Increased from 10 to show more vocabulary
           excludeKatakana: true
         });
         

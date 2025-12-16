@@ -959,8 +959,8 @@ export default function QuestionDisplay({ questions, onComplete, generationStatu
                 </div>
               )}
               
-              {/* Useful Expressions */}
-              {usefulExpressions.length > 0 && (
+              {/* Useful Expressions (Learning Mode Only) */}
+              {learningMode && usefulExpressions.length > 0 && (
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <h4 className="font-bold text-green-900 mb-2">✨ 便利な表現</h4>
                   <div className="flex flex-wrap gap-2">
