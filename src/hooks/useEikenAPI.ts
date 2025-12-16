@@ -140,21 +140,24 @@ export function useEikenGenerate() {
       const requestedQuestionCount = request.count || 1;
       
       // long_reading形式の場合、必要なパッセージ数を計算
-      // 平均3.5問/パッセージと仮定
+      // 平均3.5問/パッセージと仮定（初期推定のみ）
       const isLongReading = request.format === 'long_reading';
-      const passageCount = isLongReading 
+      const initialPassageCount = isLongReading 
         ? Math.ceil(requestedQuestionCount / 3.5) // 5問 → 2パッセージ, 10問 → 3パッセージ
         : requestedQuestionCount;
       
-      console.log(`📊 Generating ${isLongReading ? passageCount + ' passages for ~' + requestedQuestionCount + ' questions' : requestedQuestionCount + ' questions'}...`);
+      console.log(`📊 Generating ${isLongReading ? initialPassageCount + ' passages (estimated) for ' + requestedQuestionCount + ' questions' : requestedQuestionCount + ' questions'}...`);
       
       const allGeneratedQuestions: GeneratedQuestion[] = [];
       let totalAttempts = 0;
       let rejected = 0;
       
-      // 複数問題を順次生成
-      for (let i = 0; i < passageCount; i++) {
-        console.log(`\n🔄 Generating ${isLongReading ? 'passage' : 'question'} ${i + 1}/${passageCount}...`);
+      // 複数問題を順次生成（long_readingは要求数に達するまで続ける）
+      let i = 0;
+      const maxIterations = isLongReading ? 10 : requestedQuestionCount; // 安全装置
+      while (i < maxIterations && allGeneratedQuestions.length < requestedQuestionCount) {
+        i++;
+        console.log(`\n🔄 Generating ${isLongReading ? 'passage' : 'question'} ${i}/${isLongReading ? '?' : requestedQuestionCount} (${allGeneratedQuestions.length}/${requestedQuestionCount} questions so far)...`);
         
         // ✅ Phase 3 API（アクティブAPI）へのリクエスト
         // エンドポイント: /api/eiken/questions/generate
@@ -194,23 +197,24 @@ export function useEikenGenerate() {
         allGeneratedQuestions.push(...convertedQuestions);
         totalAttempts++;
         
-        console.log(`✅ ${isLongReading ? 'Passage' : 'Question'} ${i + 1}/${passageCount} generated successfully (${allGeneratedQuestions.length} total questions)`);
+        console.log(`✅ ${isLongReading ? 'Passage' : 'Question'} ${i} generated successfully (${allGeneratedQuestions.length}/${requestedQuestionCount} questions)`);
         
         // 🎯 Phase 2: 1問生成されたら即座にコールバックで通知
         if (onProgressCallback && convertedQuestions.length > 0) {
           onProgressCallback(allGeneratedQuestions.length, requestedQuestionCount, convertedQuestions[0]);
         }
         
-        // long_readingで要求数に達したら打ち切り
-        if (isLongReading && allGeneratedQuestions.length >= requestedQuestionCount) {
-          console.log(`✅ Reached requested question count (${requestedQuestionCount}), stopping generation`);
-          break;
-        }
-        
-        // API rate limit対策（最後の問題以外は少し待機）
-        if (i < passageCount - 1) {
+        // API rate limit対策（次のパッセージ生成前に少し待機）
+        if (allGeneratedQuestions.length < requestedQuestionCount) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
+      }
+      
+      // While loop終了後のログ
+      if (allGeneratedQuestions.length >= requestedQuestionCount) {
+        console.log(`✅ Reached requested question count (${allGeneratedQuestions.length}/${requestedQuestionCount}), stopping generation`);
+      } else if (i >= maxIterations) {
+        console.warn(`⚠️ Reached maximum iterations (${maxIterations}), generated ${allGeneratedQuestions.length}/${requestedQuestionCount} questions`);
       }
 
       console.log(`\n📊 Generation complete: ${allGeneratedQuestions.length} succeeded, ${rejected} rejected`);
