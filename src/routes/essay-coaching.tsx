@@ -2802,9 +2802,29 @@ router.get('/session/:sessionId', async (c) => {
             addMessage('📸 画像をアップロード中...', true);
             
             try {
+                // 🔍 画像サイズチェック（Cloudflare Workersの制限: 10MB）
+                const imageSizeMB = (imageDataToUpload.length * 0.75) / (1024 * 1024); // Base64は約33%大きい
+                console.log('📏 Image size check:', {
+                    base64Length: imageDataToUpload.length,
+                    estimatedSizeMB: imageSizeMB.toFixed(2)
+                });
+                
+                if (imageSizeMB > 8) {
+                    const sizeWarning = '画像サイズが大きすぎます (約' + imageSizeMB.toFixed(1) + 'MB)。\\n\\n' +
+                        '8MB以下の画像を使用してください。\\n\\n' +
+                        '対処法：\\n' +
+                        '1. カメラの解像度を下げる\\n' +
+                        '2. 画像を圧縮する\\n' +
+                        '3. 別の画像を使用する';
+                    alert(sizeWarning);
+                    console.error('❌ Image too large:', imageSizeMB.toFixed(2), 'MB');
+                    return;
+                }
+                
                 console.log('🚀 Starting image upload...', {
                     sessionId: sessionId,
                     imageDataLength: imageDataToUpload.length,
+                    estimatedSizeMB: imageSizeMB.toFixed(2),
                     imageDataPrefix: imageDataToUpload.substring(0, 50),
                     currentStep: currentStep
                 });
@@ -2824,8 +2844,22 @@ router.get('/session/:sessionId', async (c) => {
                 
                 if (!uploadResponse.ok) {
                     const errorText = await uploadResponse.text();
-                    console.error('❌ Upload failed:', errorText);
-                    throw new Error('アップロードに失敗しました (ステータス: ' + uploadResponse.status + ')');
+                    console.error('❌ Upload failed:', {
+                        status: uploadResponse.status,
+                        statusText: uploadResponse.statusText,
+                        error: errorText
+                    });
+                    
+                    let userMessage = 'アップロードに失敗しました';
+                    if (uploadResponse.status === 413) {
+                        userMessage = '画像サイズが大きすぎます。' + '\\n' + '8MB以下の画像を使用してください。';
+                    } else if (uploadResponse.status === 404) {
+                        userMessage = 'セッションが見つかりません。' + '\\n' + 'ページをリフレッシュしてやり直してください。';
+                    } else if (uploadResponse.status === 500) {
+                        userMessage = 'サーバーエラーが発生しました。' + '\\n' + 'しばらく待ってから再度お試しください。';
+                    }
+                    
+                    throw new Error(userMessage + ' (エラーコード: ' + uploadResponse.status + ')');
                 }
                 
                 const uploadResult = await uploadResponse.json();
