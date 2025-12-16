@@ -200,8 +200,10 @@ export function useEikenGenerate() {
         console.log(`✅ ${isLongReading ? 'Passage' : 'Question'} ${i} generated successfully (${allGeneratedQuestions.length}/${requestedQuestionCount} questions)`);
         
         // 🎯 Phase 2: 1問生成されたら即座にコールバックで通知
+        // 進捗表示は要求数を超えないようにキャップ
         if (onProgressCallback && convertedQuestions.length > 0) {
-          onProgressCallback(allGeneratedQuestions.length, requestedQuestionCount, convertedQuestions[0]);
+          const cappedCurrent = Math.min(allGeneratedQuestions.length, requestedQuestionCount);
+          onProgressCallback(cappedCurrent, requestedQuestionCount, convertedQuestions[0]);
         }
         
         // API rate limit対策（次のパッセージ生成前に少し待機）
@@ -219,12 +221,18 @@ export function useEikenGenerate() {
 
       console.log(`\n📊 Generation complete: ${allGeneratedQuestions.length} succeeded, ${rejected} rejected`);
 
+      // 要求数を超えた場合、正確に要求数だけ返す
+      const finalQuestions = allGeneratedQuestions.slice(0, requestedQuestionCount);
+      if (finalQuestions.length < allGeneratedQuestions.length) {
+        console.log(`✂️ Trimmed to exactly ${requestedQuestionCount} questions (generated ${allGeneratedQuestions.length}, trimmed ${allGeneratedQuestions.length - requestedQuestionCount})`);
+      }
+
       const legacyFormat: GenerationResult = {
         success: true,
-        generated: allGeneratedQuestions,
+        generated: finalQuestions,
         rejected,
         totalAttempts,
-        saved: allGeneratedQuestions.length,
+        saved: finalQuestions.length,
       };
 
       setResult(legacyFormat);
