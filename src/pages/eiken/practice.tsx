@@ -147,7 +147,10 @@ export default function EikenPracticePage() {
       localStorage.removeItem('eiken_user_answers');
       localStorage.removeItem('eiken_submitted_questions');
       localStorage.removeItem('eiken_viewed_explanations');
+      // 🎯 Reset to exam mode (learningMode = false) for new questions
+      localStorage.setItem('eiken_learning_mode', 'false');
       console.log('🗑️ Cleared previous question progress');
+      console.log('🎓 Reset to exam mode (learning mode OFF)');
       
       setQuestions(generatedQuestions);
       setViewMode('practice');
