@@ -86,9 +86,9 @@ export default function QuestionGenerator({ onQuestionsGenerated, onGenerationSt
           accumulatedQuestions.push(question);
         }
         
-        // 🚀 1問目が完成したら即座に表示
-        if (current === 1 && !firstQuestionSent && onQuestionsGenerated) {
-          console.log('🚀 First question ready! Showing immediately...');
+        // 🚀 1問目以上が完成したら即座に表示（初回のみ）
+        if (!firstQuestionSent && accumulatedQuestions.length > 0 && onQuestionsGenerated) {
+          console.log('🚀 First question(s) ready! Showing immediately...');
           onQuestionsGenerated(accumulatedQuestions);
           firstQuestionSent = true;
         }
