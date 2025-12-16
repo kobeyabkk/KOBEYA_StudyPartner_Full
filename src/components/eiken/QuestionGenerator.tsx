@@ -50,7 +50,12 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
     
     // 進捗状況の初期化
     setGenerationProgress({ current: 0, total: count, status: 'starting' });
-    setProgressMessage(`問題生成を開始します... (全${count}問)`)
+    setProgressMessage(`問題生成を開始します... (全${count}問)`);
+    
+    // 🎯 親コンポーネントに生成開始を通知
+    if (onGenerationStatusChange) {
+      onGenerationStatusChange({ current: 0, total: count, isGenerating: true });
+    }
     
     try {
       console.log('🎯 Generating questions with:', { grade, format, count, difficulty });
@@ -69,6 +74,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
         // 進捗更新
         setGenerationProgress({ current, total, status: 'generating' });
         setProgressMessage(`問題${current}/${total}を生成しました`);
+        
+        // 🎯 親コンポーネントに進捗を通知
+        if (onGenerationStatusChange) {
+          onGenerationStatusChange({ current, total, isGenerating: true });
+        }
         
         // 問題を蓄積
         if (question) {
@@ -97,6 +107,11 @@ export default function QuestionGenerator({ onQuestionsGenerated }: QuestionGene
         onQuestionsGenerated(data.generated);
       } else {
         console.warn('⚠️ Conditions not met:', { success: data.success, hasCallback: !!onQuestionsGenerated });
+      }
+      
+      // 🎯 生成完了を通知
+      if (onGenerationStatusChange) {
+        onGenerationStatusChange({ current: data.generated.length, total: count, isGenerating: false });
       }
     } catch (err) {
       console.error('❌ Failed to generate questions:', err);
