@@ -413,9 +413,62 @@ ${instructions.prompt_template}
 /**
  * 長文読解問題のプロンプト生成
  */
-export function buildLongReadingPrompt(blueprint: Blueprint): string {
+/**
+ * Passage Type別の形式指示を生成
+ * Phase 2: 実際の英検に合わせた形式多様化
+ */
+function getPassageTypeInstructions(passageType: 'article' | 'email' | 'notice' | undefined, grade: string): string {
+  if (!passageType || passageType === 'article') {
+    return `## 📄 Passage Format: INFORMATIONAL ARTICLE
+
+Write a clear, informative article about the topic.
+- Use a neutral, educational tone
+- Include facts and explanations
+- Structure: Introduction → Body (2-3 paragraphs) → Conclusion`;
+  }
+  
+  if (passageType === 'email') {
+    return `## ✉️ Passage Format: EMAIL / LETTER
+
+Write a personal email or letter about the topic.
+- **From**: A friend or family member (e.g., "Hi! I'm writing from...")
+- **To**: The student (informal, friendly tone)
+- **Content**: Share personal experiences, ask questions, give advice
+- **Structure**: Greeting → Main content (2-3 paragraphs) → Closing (e.g., "Write back soon!")
+- **Style**: Conversational, use contractions (I'm, don't, we're)
+
+**Example opening**: "Hi! How are you doing? I wanted to tell you about..."
+**Example closing**: "Hope to hear from you soon! Take care, [Name]"`;
+  }
+  
+  if (passageType === 'notice') {
+    return `## 📢 Passage Format: NOTICE / ANNOUNCEMENT
+
+Write a notice or announcement (e.g., school event, store sale, community activity).
+- **Title**: Clear, descriptive (e.g., "Summer Festival", "Library Hours")
+- **Key Information**: What, When, Where, Who, How
+- **Structure**: Title → Date/Time → Location → Details → Contact info
+- **Style**: Direct, clear, easy to scan
+
+**Example**: 
+"**School Sports Day**
+Date: Saturday, May 20th
+Time: 9:00 AM - 3:00 PM
+Place: School Playground
+Come join us for fun games and activities! Bring your water bottle."`;
+  }
+  
+  return '';
+}
+
+export function buildLongReadingPrompt(blueprint: Blueprint, vocabularyPrompt?: string): string {
   const { topic, guidelines, instructions } = blueprint;
   const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
+  
+  // Phase 2: 語彙リストセクションの生成
+  const vocabularyListSection = vocabularyPrompt 
+    ? `\n\n## ✅ ALLOWED VOCABULARY LIST (PRIORITIZE THESE WORDS)\n\n**IMPORTANT**: You should primarily use words from this ${guidelines.vocabulary_level} approved list:\n\n${vocabularyPrompt}\n\n**GUIDELINE**: 70%+ of content words (nouns, verbs, adjectives, adverbs) should come from this list.\n`
+    : '';
   
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
 
@@ -425,7 +478,7 @@ ${grammarInstructions}
 
 **TARGET LEVEL**: ${guidelines.vocabulary_level} ONLY
 **SUCCESS CRITERIA**: 90%+ of words must be within ${guidelines.vocabulary_level}
-**FAILURE CONSEQUENCE**: If too many difficult words, passage will be REJECTED (aim for 85%+ minimum)
+**FAILURE CONSEQUENCE**: If too many difficult words, passage will be REJECTED (aim for 85%+ minimum)${vocabularyListSection}
 
 **⚠️ Phase 3 WARNING**: Previous attempts scored 76.3% - this is TOO LOW and will be REJECTED.
 You MUST use simpler vocabulary throughout the entire passage. Every sentence matters!
@@ -557,6 +610,8 @@ ${topic.scenario_description}
 
 ## Requirements
 ${instructions.prompt_template}
+
+${getPassageTypeInstructions(blueprint.passage_type, blueprint.grade)}
 
 ## Passage Specifications
 - Length: 200-300 words (for ${blueprint.grade} level)
@@ -766,7 +821,7 @@ ${getExplanationTerminologyGuide(blueprint.grade)}
 /**
  * Blueprint に基づいて適切なプロンプトを選択
  * Phase 6 Part 3: Answer diversity tracking support
- * Phase 2: Vocabulary list integration for essay format
+ * Phase 2: Vocabulary list integration for essay & long_reading formats
  */
 export function buildPromptForBlueprint(
   blueprint: Blueprint,
@@ -781,7 +836,7 @@ export function buildPromptForBlueprint(
     case 'reading_aloud':
       return buildReadingAloudPrompt(blueprint);
     case 'long_reading':
-      return buildLongReadingPrompt(blueprint);
+      return buildLongReadingPrompt(blueprint, vocabularyPrompt);
     case 'essay':
       return buildEssayPrompt(blueprint, vocabularyPrompt);
     default:

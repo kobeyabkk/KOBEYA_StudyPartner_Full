@@ -461,6 +461,7 @@ export interface Blueprint {
   guidelines: BlueprintGuidelines;
   instructions: BlueprintInstructions;
   rubric: BlueprintRubric;
+  passage_type?: 'article' | 'email' | 'notice';  // Phase 2: Long reading形式のバリエーション
   created_at?: string;
   metadata?: {
     generator_version: string;

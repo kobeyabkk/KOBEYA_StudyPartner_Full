@@ -885,9 +885,9 @@ export class IntegratedQuestionGenerator {
     
     console.log(`[LLM] Using ${forbiddenWords.length} forbidden words (${recentViolations.length} from recent failures)`);
     
-    // Phase 2: Essay形式の場合、CEFR-J Wordlistから語彙リストを取得
+    // Phase 2: Essay & Long Reading形式の場合、CEFR-J Wordlistから語彙リストを取得
     let vocabularyPrompt: string | undefined;
-    if (blueprint.format === 'essay' && !fixedQuestion) {
+    if ((blueprint.format === 'essay' || blueprint.format === 'long_reading') && !fixedQuestion) {
       try {
         const { VocabularyListService } = await import('./vocabulary-list-service');
         const vocabService = new VocabularyListService(this.db);
@@ -899,7 +899,7 @@ export class IntegratedQuestionGenerator {
         );
         
         if (vocabularyPrompt && vocabularyPrompt.length > 50) {
-          console.log(`[Vocabulary List] Loaded ${vocabularyPrompt.length} chars for ${blueprint.guidelines.vocabulary_level} level`);
+          console.log(`[Vocabulary List] Loaded ${vocabularyPrompt.length} chars for ${blueprint.guidelines.vocabulary_level} level (${blueprint.format})`);
         } else {
           console.log(`[Vocabulary List] Warning: Empty or short vocabulary list, using prompt-only constraints`);
           vocabularyPrompt = undefined;

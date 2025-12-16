@@ -85,6 +85,9 @@ export class BlueprintGenerator {
     const rubric = this.createRubric(options.format);
 
     // Step 6: Assemble blueprint
+    // Phase 2: Long Reading形式の場合、級別にpassage_typeを設定
+    const passageType = this.selectPassageType(options.format, options.grade);
+    
     const blueprint: Blueprint = {
       id: this.generateBlueprintId(),
       format: options.format,
@@ -99,6 +102,7 @@ export class BlueprintGenerator {
       },
       instructions,
       rubric,
+      passage_type: passageType,
       created_at: new Date().toISOString(),
       metadata: {
         generator_version: '2.0.0',
@@ -316,6 +320,37 @@ The prompt should inspire:
       criteria,
       total_score: total,
     };
+  }
+
+  /**
+   * Phase 2: 級別にPassage Typeを選択
+   * 
+   * 実際の英検出題形式に基づく:
+   * - 4級・3級・準2級: article, email, noticeをランダム選択
+   * - 2級以上: articleのみ（説明文・論説文中心）
+   */
+  private selectPassageType(format: QuestionFormat, grade: EikenGrade): 'article' | 'email' | 'notice' | undefined {
+    // Long Reading形式以外はpassage_typeなし
+    if (format !== 'long_reading') {
+      return undefined;
+    }
+    
+    // 2級以上は説明文のみ
+    if (['2', 'pre-1', '1'].includes(grade)) {
+      return 'article';
+    }
+    
+    // 4級・3級・準2級は3つの形式からランダム選択
+    if (['4', '3', 'pre-2'].includes(grade)) {
+      const types: ('article' | 'email' | 'notice')[] = ['article', 'email', 'notice'];
+      const randomIndex = Math.floor(Math.random() * types.length);
+      const selected = types[randomIndex];
+      console.log(`[Passage Type] Grade ${grade}: Selected "${selected}" (random from 3 types)`);
+      return selected;
+    }
+    
+    // デフォルトは説明文
+    return 'article';
   }
 
   /**
