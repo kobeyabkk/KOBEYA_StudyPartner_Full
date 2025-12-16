@@ -719,9 +719,29 @@ export default function QuestionDisplay({ questions, onComplete, generationStatu
       {/* 進捗バー */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-lg font-bold text-gray-900">
-            問題 {currentIndex + 1} / {questions.length}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold text-gray-900">
+              問題 {currentIndex + 1} / {questions.length}
+            </span>
+            {/* 難級バッジ */}
+            {currentQuestion && (currentQuestion as any).grade && (
+              <span className="px-3 py-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-bold rounded-full shadow-sm">
+                {(() => {
+                  const grade = (currentQuestion as any).grade;
+                  const gradeLabels: Record<string, string> = {
+                    '5': '5級',
+                    '4': '4級',
+                    '3': '3級',
+                    'pre2': '準2級',
+                    '2': '2級',
+                    'pre1': '準1級',
+                    '1': '1級'
+                  };
+                  return gradeLabels[grade] || grade;
+                })()}
+              </span>
+            )}
+          </div>
           <span className="text-sm text-gray-600">
             解答済み: {submittedQuestions.size} / {questions.length}
           </span>
