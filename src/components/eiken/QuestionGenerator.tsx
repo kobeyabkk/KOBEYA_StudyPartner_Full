@@ -94,7 +94,8 @@ export default function QuestionGenerator({ onQuestionsGenerated, onGenerationSt
           } else {
             console.log(`🔄 Question ${current} ready! Updating display (${accumulatedQuestions.length} total)...`);
           }
-          onQuestionsGenerated(accumulatedQuestions);
+          // 新しい配列を作成して渡す（Reactが更新を検知できるように）
+          onQuestionsGenerated([...accumulatedQuestions]);
         }
       });
 

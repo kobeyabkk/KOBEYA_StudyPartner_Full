@@ -139,9 +139,9 @@ export default function EikenPracticePage() {
     console.log('📊 Questions count:', generatedQuestions.length);
     console.log('📝 First question:', generatedQuestions[0]);
     
-    // 🎯 段階的配信: 1問目が届いたら即座に練習モードに切り替え
-    if (generatedQuestions.length === 1 && viewMode === 'generator') {
-      console.log('🚀 First question arrived! Switching to practice mode immediately...');
+    // 🎯 段階的配信: 初回の問題が届いたら即座に練習モードに切り替え
+    if (viewMode === 'generator' && generatedQuestions.length > 0) {
+      console.log('🚀 First question(s) arrived! Switching to practice mode immediately...');
       // Clear previous question display progress when new questions are generated
       localStorage.removeItem('eiken_current_question_index');
       localStorage.removeItem('eiken_user_answers');
@@ -158,10 +158,12 @@ export default function EikenPracticePage() {
     }
     
     // 🔄 2問目以降: 問題を追加更新（practiceモード中）
-    console.log('🔄 Updating questions in practice mode...');
-    setQuestions(generatedQuestions);
-    setViewMode('practice');
-    console.log('🎬 View mode changed to: practice');
+    if (viewMode === 'practice') {
+      console.log(`🔄 Updating questions in practice mode (${generatedQuestions.length} questions)...`);
+      setQuestions(generatedQuestions);
+    } else {
+      console.warn('⚠️ Unexpected state: not in generator or practice mode:', viewMode);
+    }
   };
 
   const handlePracticeComplete = (practiceResults: AnswerResult[]) => {
