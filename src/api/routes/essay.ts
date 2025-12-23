@@ -247,9 +247,17 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: S
   try {
     const now = new Date().toISOString()
     
+    // 画像データを除外してD1に保存（サイズ制限回避）
+    const uploadedImagesWithoutData = (sessionData.essaySession?.uploadedImages || []).map(img => ({
+      step: img.step,
+      uploadedAt: img.uploadedAt,
+      sizeMB: img.sizeMB
+      // imageData は除外（D1の1MBカラム制限のため）
+    }))
+    
     // session_data として JSON 保存
     const sessionDataJson = JSON.stringify({
-      uploadedImages: sessionData.essaySession?.uploadedImages || [],
+      uploadedImages: uploadedImagesWithoutData, // 画像本体は除外
       ocrResults: sessionData.essaySession?.ocrResults || [],
       feedbacks: sessionData.essaySession?.feedbacks || [],
       chatHistory: sessionData.chatHistory || [],
@@ -423,6 +431,20 @@ router.post('/upload-image', async (c) => {
       }, 400)
     }
     
+    // 画像サイズチェック（8MBまで）
+    const imageSizeBytes = Math.ceil((imageData.length * 3) / 4) // Base64デコード後のサイズ推定
+    const imageSizeMB = imageSizeBytes / (1024 * 1024)
+    console.log(`📏 Image size: ${imageSizeMB.toFixed(2)} MB`)
+    
+    if (imageSizeMB > 8) {
+      return c.json({
+        ok: false,
+        error: 'image_too_large',
+        message: '画像サイズが大きすぎます（最大8MB）。\nカメラの解像度を下げてお試しください。',
+        timestamp: new Date().toISOString()
+      }, 413)
+    }
+    
     // セッションを取得（D1から復元も試みる）
     const db = c.env?.DB
     let session = await getOrCreateSession(db, sessionId)
@@ -436,21 +458,26 @@ router.post('/upload-image', async (c) => {
       }, 404)
     }
     
-    // 画像を保存
+    // 画像の一時保存（メモリのみ、D1には保存しない）
+    // Note: 画像はメモリに保存し、OCR処理後に破棄する
+    // これにより D1 の 1MB カラム制限を回避
     if (!session.essaySession.uploadedImages) {
       session.essaySession.uploadedImages = []
     }
     
+    // メタデータのみを保存（画像本体は保存しない）
     session.essaySession.uploadedImages.push({
       step: currentStep,
-      imageData: imageData,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      sizeMB: parseFloat(imageSizeMB.toFixed(2))
+      // imageData は D1 保存時に除外
     })
     
-    // インメモリとD1の両方を更新
-    await updateSession(db, sessionId, { essaySession: session.essaySession })
+    // インメモリ更新のみ（D1には画像を保存しない）
+    // OCR APIで画像を直接使用するため、ここでの保存は不要
+    learningSessions.set(sessionId, session)
     
-    console.log('✅ Image uploaded for session:', sessionId)
+    console.log('✅ Image metadata saved (image not persisted to avoid D1 size limits)')
     
     return c.json({
       ok: true,
