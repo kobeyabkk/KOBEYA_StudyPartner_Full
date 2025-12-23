@@ -3057,9 +3057,17 @@ ${targetLevel === 'high_school' ? `
       const hasOCR = session && session.essaySession && session.essaySession.ocrResults && 
                      session.essaySession.ocrResults.some((ocr: OCRResult) => ocr.step === 5)
       
-      if (message.includes('次へ') || message.includes('完了')) {
+      // AI添削が完了しているかチェック（フィードバックが存在するか）
+      const hasFeedback = session && session.essaySession && session.essaySession.feedbacks && 
+                          session.essaySession.feedbacks.length > 0
+      
+      if (message.includes('次へ') || (message.includes('完了') && hasFeedback)) {
         response = 'チャレンジ問題を完了しました！\n\nより難しいテーマの小論文に挑戦し、AI添削を受けることができました。\n次のステップでは、今日の学習をまとめます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
         stepCompleted = true
+      }
+      else if (message.includes('完了') && !hasFeedback) {
+        // 添削結果がまだ表示されていない場合
+        response = '添削結果をご確認ください。\n\n添削内容を確認したら、もう一度「完了」と入力してください。'
       }
       else if (message.includes('確認完了') || message.includes('これで完了')) {
         // OCR確認完了 → AI添削を実行
