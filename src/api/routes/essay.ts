@@ -310,6 +310,21 @@ async function saveSessionToDB(db: D1Database, sessionId: string, sessionData: S
   }
 }
 
+// Update session helper (combines in-memory + D1 updates)
+async function updateSession(db: D1Database | undefined, sessionId: string, updates: Partial<Session>) {
+  // Update in-memory session
+  const currentSession = learningSessions.get(sessionId)
+  if (currentSession) {
+    const updatedSession = { ...currentSession, ...updates }
+    learningSessions.set(sessionId, updatedSession)
+    
+    // Also save to D1 if available
+    if (db) {
+      await saveSessionToDB(db, sessionId, updatedSession)
+    }
+  }
+}
+
 // Utility function
 function toErrorMessage(error: unknown, fallback = '不明なエラー'): string {
   if (error instanceof Error) {
