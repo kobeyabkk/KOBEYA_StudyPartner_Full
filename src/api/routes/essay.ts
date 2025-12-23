@@ -1166,10 +1166,20 @@ router.post('/chat', async (c) => {
 テーマ: ${themeTitle}
 
 【評価基準】
-- 質問への適切な回答
-- 文章の明確さと論理性
-- 小論文らしい丁寧な文体
-- 具体性と説得力
+1. **テーマとの関連性**（最重要）
+   - テーマとズレている場合は0-10点
+   - テーマに沿っていても浅い場合は30-50点
+2. **文字数**
+   - 目標文字数の50%未満の場合は大幅減点（最大50点）
+   - 目標文字数の50-80%は減点（60-80点程度）
+3. **文章の質**
+   - 各文の構造が適切で、日本語として自然か
+   - 主語・述語の対応が明確か
+   - 不自然な表現や冗長な表現がないか
+4. **論理性と説得力**
+   - 文章の明確さと論理性
+   - 小論文らしい丁寧な文体
+   - 具体性と説得力
 
 【重要】以下のJSON形式で必ず返してください：
 {
@@ -1179,7 +1189,7 @@ router.post('/chat', async (c) => {
   "nextSteps": ["次のアクション1", "次のアクション2"]
 }
 
-生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、テーマズレや文字数不足は厳しく評価してください。`
           
           console.log('🤖 Calling OpenAI API for Step 1 feedback...')
           
@@ -1193,7 +1203,7 @@ router.post('/chat', async (c) => {
               model: 'gpt-4o',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${essayText}` }
+                { role: 'user', content: `以下の回答を添削してください。\n\n【テーマ】\n${themeTitle}\n\n【生徒の回答】\n${essayText}\n\n【文字数】\n実際: ${essayText.length}字` }
               ],
               max_tokens: 1000,
               temperature: 0.7,
@@ -2422,13 +2432,28 @@ ${targetLevel === 'high_school' ? `
           
           console.log('🤖 Calling OpenAI API for short essay feedback...')
           
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+          const shortProblem = session?.essaySession?.shortProblem || `${themeTitle}について`
+          
           const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
 
+課題: ${shortProblem}
+
 【評価基準】
-- 論理構成（主張→理由→具体例→結論）
-- 文章の明確さと説得力
-- 語彙の適切さ
-- 文字数（目標: 200字前後）
+1. **課題との関連性**（最重要）
+   - 課題とズレている場合は0-10点
+   - 課題に沿っていても浅い場合は30-50点
+2. **文字数**
+   - 目標200字の50%未満（100字未満）の場合は大幅減点（最大50点）
+   - 150-180字は減点（60-80点程度）
+3. **文章の質**
+   - 各文の構造が適切で、日本語として自然か
+   - 主語・述語の対応が明確か
+   - 不自然な表現や冗長な表現がないか
+4. **論理構成と説得力**
+   - 論理構成（主張→理由→具体例→結論）
+   - 文章の明確さと説得力
+   - 語彙の適切さ
 
 【重要】以下のJSON形式で必ず返してください：
 {
@@ -2437,7 +2462,7 @@ ${targetLevel === 'high_school' ? `
   "overallScore": 75,
   "nextSteps": ["次のアクション1", "次のアクション2"]
 }
-生徒を励ましつつ、実践的なアドバイスを心がけてください。`
+生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、課題ズレや文字数不足は厳しく評価してください。`
           
           const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -2449,7 +2474,7 @@ ${targetLevel === 'high_school' ? `
               model: 'gpt-4o',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `以下の短文小論文を添削してください。\n\n【小論文】\n${message}\n\n【文字数】${message.length}字` }
+                { role: 'user', content: `以下の短文小論文を添削してください。\n\n【課題】\n${shortProblem}\n\n【生徒の小論文】\n${message}\n\n【文字数】\n目標: 200字前後\n実際: ${message.length}字` }
               ],
               max_tokens: 1000,
               temperature: 0.7,
