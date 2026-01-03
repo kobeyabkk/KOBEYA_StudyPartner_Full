@@ -297,7 +297,7 @@ export function generateStage2SystemPrompt(): string {
     "critical": ["改善点1", "改善点2"],
     "nextAction": ["次のアクション1", "次のアクション2"]
   },
-  "exampleImprovement": "【改善例】\\n「元の文」\\n↓\\n「改善後の文」"
+  "exampleImprovement": "【改善例文（全文）】\\n生徒の小論文を参考に、同じ文字数で改善した完全な小論文を作成してください。\\n\\n（改善された小論文全文を記述）"
 }
 
 【注意点】
@@ -305,7 +305,10 @@ export function generateStage2SystemPrompt(): string {
 - overallScoreは必ず5項目の合計であること
 - positive, critical, nextActionは各2つ以上
 - 事実に基づいた具体的なフィードバックを心がけること
-- 「良く書けています」のような抽象的な褒め言葉は避けること`;
+- 「良く書けています」のような抽象的な褒め言葉は避けること
+- **exampleImprovementは生徒の小論文全文を改善した完全版を提供すること**
+- **改善例文は元の文字数と同程度（±50字以内）にすること**
+- **改善例文では、生徒の主張を活かしながら、論理性・具体性・表現力を向上させること**`;
 }
 
 /**
