@@ -2153,7 +2153,9 @@ router.get('/session/:sessionId', async (c) => {
                 messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
                 
                 const icon = isTeacher ? '👨‍🏫' : '👤';
-                const formattedText = text.split('\\n').join('<br>');
+                // Fix: Handle both actual newlines and escaped newlines
+                let formattedText = text.replace(/\\\\n/g, '\n'); // Convert \\n to actual newline
+                formattedText = formattedText.split('\n').join('<br>'); // Convert newlines to <br>
                 console.log('🔍 Formatted text length:', formattedText.length);
                 
                 messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
