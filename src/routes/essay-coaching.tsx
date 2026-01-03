@@ -2646,11 +2646,16 @@ router.get('/session/:sessionId', async (c) => {
         
         // 複数ページの結果を表示
         function displayMultiPageResult() {
+            console.log('🔍 displayMultiPageResult called');
+            console.log('🔍 processedOCRTexts:', processedOCRTexts);
+            console.log('🔍 processedOCRTexts.length:', processedOCRTexts.length);
+            
             const totalText = processedOCRTexts.join('\\\\n');
             const totalChars = totalText.length;
             const pageCount = processedOCRTexts.length;
             
             console.log('📊 全' + pageCount + 'ページ、合計' + totalChars + '文字');
+            console.log('🔍 totalText:', totalText);
             
             // モーダルを閉じる
             closeCamera();
@@ -3225,7 +3230,11 @@ router.get('/session/:sessionId', async (c) => {
                         console.log('✅ ページ ' + pageNum + '/' + total + ' のOCR完了');
                         
                         // OCRテキストを保存
-                        processedOCRTexts.push(ocrResult.result.text || '');
+                        const ocrText = ocrResult.result.text || '';
+                        console.log('🔍 OCR text length:', ocrText.length);
+                        console.log('🔍 OCR text preview:', ocrText.substring(0, 100));
+                        processedOCRTexts.push(ocrText);
+                        console.log('🔍 processedOCRTexts after push:', processedOCRTexts.length, 'items');
                         
                         // 進捗を表示
                         addMessage('📄 ページ ' + pageNum + '/' + total + ' の処理完了（' + (ocrResult.result.charCount || 0) + '文字）', true);
