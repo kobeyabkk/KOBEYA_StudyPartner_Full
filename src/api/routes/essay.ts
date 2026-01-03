@@ -944,26 +944,46 @@ router.post('/feedback', async (c) => {
     let feedback
     try {
       // response_format: json_object を使っているので、直接パース可能
-      feedback = JSON.parse(aiResponse)
+      const stage2Response = JSON.parse(aiResponse)
+      
+      console.log('🔍 Stage 2 raw response:', JSON.stringify(stage2Response).substring(0, 200))
+      
+      // Stage 2のレスポンス形式を変換（feedback.positive → goodPoints）
+      feedback = {
+        goodPoints: stage2Response.feedback?.positive || [],
+        improvements: stage2Response.feedback?.critical || [],
+        nextSteps: stage2Response.feedback?.nextAction || [],
+        exampleImprovement: stage2Response.exampleImprovement || '',
+        overallScore: stage2Response.overallScore || 0,
+        scores: stage2Response.scores || {}
+      }
+      
+      console.log('🔍 Converted feedback:', {
+        goodPointsCount: feedback.goodPoints.length,
+        improvementsCount: feedback.improvements.length,
+        nextStepsCount: feedback.nextSteps.length,
+        hasExample: !!feedback.exampleImprovement,
+        overallScore: feedback.overallScore
+      })
       
       // バリデーション: 必須フィールドの確認
-      if (!feedback.goodPoints || !Array.isArray(feedback.goodPoints)) {
+      if (!feedback.goodPoints || !Array.isArray(feedback.goodPoints) || feedback.goodPoints.length === 0) {
         console.warn('⚠️ Missing or invalid goodPoints, using defaults')
         feedback.goodPoints = ['小論文に取り組んだ姿勢が素晴らしいです。']
       }
-      if (!feedback.improvements || !Array.isArray(feedback.improvements)) {
+      if (!feedback.improvements || !Array.isArray(feedback.improvements) || feedback.improvements.length === 0) {
         console.warn('⚠️ Missing or invalid improvements, using defaults')
         feedback.improvements = ['さらに詳しく展開してみましょう。']
       }
-      if (!feedback.exampleImprovement) {
+      if (!feedback.exampleImprovement || feedback.exampleImprovement.trim() === '') {
         console.warn('⚠️ Missing exampleImprovement, using default')
         feedback.exampleImprovement = '具体例を追加することで、説得力が増します。'
       }
-      if (!feedback.nextSteps || !Array.isArray(feedback.nextSteps)) {
+      if (!feedback.nextSteps || !Array.isArray(feedback.nextSteps) || feedback.nextSteps.length === 0) {
         console.warn('⚠️ Missing or invalid nextSteps, using defaults')
         feedback.nextSteps = ['次回も頑張りましょう。']
       }
-      if (typeof feedback.overallScore !== 'number') {
+      if (typeof feedback.overallScore !== 'number' || feedback.overallScore === 0) {
         console.warn('⚠️ Invalid overallScore, using default')
         feedback.overallScore = 70
       }
@@ -971,7 +991,7 @@ router.post('/feedback', async (c) => {
       // 文字数を追加（OCR結果から取得）
       feedback.charCount = latestOCR.charCount || essayText.length
       
-      console.log('✅ Feedback validated successfully')
+      console.log('✅ Feedback validated and converted successfully')
       
       // 模範解答を生成
       try {
