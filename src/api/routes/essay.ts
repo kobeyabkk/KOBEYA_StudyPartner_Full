@@ -2473,9 +2473,174 @@ ${targetLevel === 'high_school' ? `
     } else if (currentStep === 3 && !isVocabularyFocus) {
       // ステップ3: 短文演習（AI添削付き）（vocabulary_focus以外）
       
-      // 長い回答（200字以上）が送られてきた場合 → AI添削実行
-      if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        console.log('📝 Step 3: Received short essay for feedback')
+      // OCR結果のチェック
+      const essaySessionData = session?.essaySession
+      const uploadedImages = essaySessionData?.uploadedImages ?? []
+      const ocrResults = essaySessionData?.ocrResults ?? []
+      const hasImage = uploadedImages.some((img: UploadedImage) => img.step === 3)
+      const hasOCR = ocrResults.some((ocr: OCRResult) => ocr.step === 3)
+      
+      // OCR結果がある場合、AI添削を実行
+      if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
+        console.log('📝 Step 3: OCR confirmed, generating feedback...')
+        
+        const step3OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 3)
+        const latestOCR = step3OCRs[step3OCRs.length - 1]
+        const essayText = latestOCR.text || ''
+        const charCount = latestOCR.charCount || essayText.length
+        
+        console.log('📏 OCR Essay length:', charCount, 'characters')
+        
+        // 150字未満の場合は再提出を促す
+        if (charCount < 150) {
+          response = '短文小論文は150字以上で書いてください。\n\n主張→理由→具体例→結論の構成を意識しましょう。\n\n書き終えたら、この入力エリアに入力して送信してください。'
+        } else {
+          // AI添削を実行
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            
+            if (!openaiApiKey) {
+              console.error('❌ CRITICAL: OPENAI_API_KEY is not configured for short essay!')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            console.log('🤖 Calling OpenAI API for short essay feedback (OCR)...')
+            
+            const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+            const shortProblem = session?.essaySession?.shortProblem || `${themeTitle}について`
+            
+            const systemPrompt = `あなたは小論文の先生です。生徒が書いた200字程度の短文小論文を添削してください。
+
+課題: ${shortProblem}
+
+【評価基準】
+1. **課題との関連性**（最重要）
+   - 課題とズレている場合は0-10点
+   - 課題に沿っていても浅い場合は30-50点
+2. **文字数**
+   - 目標200字の50%未満（100字未満）の場合は大幅減点（最大50点）
+   - 150-180字は減点（60-80点程度）
+3. **文章の質**
+   - 各文の構造が適切で、日本語として自然か
+   - 主語・述語の対応が明確か
+   - 不自然な表現や冗長な表現がないか
+4. **論理構成と説得力**
+   - 論理構成（主張→理由→具体例→結論）
+   - 文章の明確さと説得力
+   - 語彙の適切さ
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 75,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、課題ズレや文字数不足は厳しく評価してください。`
+            
+            const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: `以下の短文小論文を添削してください。\n\n【課題】\n${shortProblem}\n\n【生徒の回答】\n${essayText}\n\n【文字数】\n実際: ${charCount}字、目標: 200字` }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7,
+                response_format: { type: "json_object" }
+              })
+            })
+            
+            if (!response_api.ok) {
+              const errorText = await response_api.text()
+              console.error('❌ OpenAI API error (Step 3 OCR feedback):', errorText)
+              throw new Error(`OpenAI API error: ${response_api.status}`)
+            }
+            
+            const completion = await response_api.json() as OpenAIChatCompletionResponse
+            const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+              goodPoints?: string[]
+              improvements?: string[]
+              overallScore?: number
+              nextSteps?: string[]
+            }
+            const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+            const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+            const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+            const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
+            
+            console.log('✅ Short essay feedback generated (OCR)')
+            
+            // 模範解答を生成
+            let modelAnswer = ''
+            try {
+              console.log('🤖 Generating model answer for Step 3 short essay...')
+              
+              const modelAnswerPrompt = `あなたは小論文の先生です。以下の課題に対する200字程度の模範解答を作成してください。
+
+課題: ${shortProblem}
+
+要求:
+- 200字程度（180〜220字）
+- 構成: 主張→理由→具体例→結論
+- 「である」調で記述
+- 小論文らしい格調高い表現を使用
+- 論理的で説得力のある内容
+
+出力形式:
+【模範解答】（200字）
+(模範となる短文小論文)`
+              
+              const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o',
+                  messages: [
+                    { role: 'system', content: modelAnswerPrompt },
+                    { role: 'user', content: '課題に対する模範解答を作成してください。' }
+                  ],
+                  max_tokens: 500,
+                  temperature: 0.7
+                })
+              })
+              
+              if (modelAnswerResponse.ok) {
+                const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+                modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
+                console.log('✅ Short essay model answer generated')
+              }
+            } catch (error) {
+              console.error('❌ Model answer generation error:', error)
+            }
+            
+            // フィードバックを整形して表示
+            response = `【短文添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！次のステップでは、より長い小論文に挑戦します。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
+            stepCompleted = true
+            
+          } catch (error) {
+            console.error('❌ Short essay feedback error (OCR):', error)
+            response = '短文を受け付けました。\n\n素晴らしい努力です！次のステップでは、より長い小論文に取り組みます。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+            stepCompleted = true
+          }
+        }
+      }
+      // 画像アップロードがあった場合
+      else if (hasImage && !hasOCR) {
+        response = '画像を受け取りました！\n\nOCR処理を開始しています。読み取りが完了するまで少々お待ちください...\n\n読み取り結果が表示されたら、内容を確認して「確認完了」と入力してください。修正が必要な場合は、正しいテキストを入力して送信してください。'
+      }
+      // テキスト入力で長い回答（150字以上）が送られてきた場合 → AI添削実行
+      else if (message.length >= 150 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('📝 Step 3: Received short essay for feedback (text input)')
         console.log('📏 Essay length:', message.length, 'characters')
         
         try {
