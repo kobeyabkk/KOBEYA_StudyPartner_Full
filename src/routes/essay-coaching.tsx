@@ -2153,8 +2153,7 @@ router.get('/session/:sessionId', async (c) => {
                 messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
                 
                 const icon = isTeacher ? '👨‍🏫' : '👤';
-                // Fix: Handle newlines by splitting on actual newline character
-                // The text may contain literal \n characters from the template
+                // Fix: Handle newlines by splitting on actual newline character (ASCII 10)
                 const parts = [];
                 let currentText = text;
                 let pos = 0;
