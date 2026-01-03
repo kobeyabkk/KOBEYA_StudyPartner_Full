@@ -2153,21 +2153,14 @@ router.get('/session/:sessionId', async (c) => {
                 messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
                 
                 const icon = isTeacher ? '👨‍🏫' : '👤';
-                // Fix: Handle newlines by splitting on actual newline character (ASCII 10)
-                const parts = [];
-                let currentText = text;
-                let pos = 0;
-                
-                // Split by actual newline character
-                for (let i = 0; i < currentText.length; i++) {
-                    if (currentText.charCodeAt(i) === 10) { // newline character
-                        parts.push(currentText.substring(pos, i));
-                        pos = i + 1;
-                    }
+                // Fix: Handle both literal \n and actual newline characters
+                let processedText = text;
+                // First, replace literal backslash-n with actual newlines
+                while (processedText.indexOf('\\n') !== -1) {
+                    processedText = processedText.replace('\\n', '\n');
                 }
-                parts.push(currentText.substring(pos));
-                
-                const formattedText = parts.join('<br>');
+                // Then convert newlines to <br>
+                const formattedText = processedText.split('\n').join('<br>');
                 console.log('🔍 Formatted text length:', formattedText.length);
                 
                 messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
