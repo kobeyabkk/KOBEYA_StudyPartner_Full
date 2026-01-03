@@ -1227,6 +1227,32 @@ router.get('/session/:sessionId', async (c) => {
           box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
         }
         
+        .file-input-btn {
+          background: #10b981;
+          color: white;
+          padding: 0.75rem 1rem;
+          min-width: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+          position: relative;
+        }
+        
+        .file-input-btn:hover {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        .file-input-btn input[type="file"] {
+          position: absolute;
+          opacity: 0;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+        }
+        
         .camera-input-btn i {
           margin: 0;
         }
@@ -1948,8 +1974,12 @@ router.get('/session/:sessionId', async (c) => {
                     <!-- 入力エリア -->
                     <div class="input-area">
                         <textarea id="userInput" placeholder="ここに回答を入力してください..."></textarea>
-                        <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="原稿を撮影">
+                        <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="カメラで撮影">
                             <i class="fas fa-camera"></i>
+                        </button>
+                        <button id="fileInputBtn" class="file-input-btn" title="ファイルから選択">
+                            <i class="fas fa-image"></i>
+                            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" />
                         </button>
                         <button id="sendBtn" onclick="sendMessage()">
                             <i class="fas fa-paper-plane"></i> 送信
@@ -1973,7 +2003,7 @@ router.get('/session/:sessionId', async (c) => {
         <div class="modal" id="cameraModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2><i class="fas fa-camera"></i> 原稿を撮影</h2>
+                    <h2><i class="fas fa-image"></i> 原稿を読み取り</h2>
                     <button class="close-btn" onclick="closeCamera()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1981,7 +2011,7 @@ router.get('/session/:sessionId', async (c) => {
                 
                 <!-- ワークフロー説明 -->
                 <div class="workflow-instructions">
-                    <div class="workflow-step">1️⃣ 原稿を撮影</div>
+                    <div class="workflow-step">1️⃣ 画像を選択</div>
                     <div class="workflow-arrow">→</div>
                     <div class="workflow-step">2️⃣ 範囲を調整</div>
                     <div class="workflow-arrow">→</div>
@@ -2019,9 +2049,10 @@ router.get('/session/:sessionId', async (c) => {
                 </div>
                 
                 <div class="camera-tips" style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
-                    <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 撮影のコツ</h4>
+                    <h4 style="color: #7c3aed; margin-bottom: 0.5rem;">📝 画像のコツ</h4>
                     <ul style="margin-left: 1.5rem; line-height: 1.8;">
-                        <li>原稿用紙全体が画面に入るように撮影してください</li>
+                        <li><strong>カメラ撮影の場合：</strong>原稿用紙全体が画面に入るように撮影してください</li>
+                        <li><strong>ファイル選択の場合：</strong>既に撮影済みの画像を選択できます</li>
                         <li>明るい場所で撮影し、影ができないようにしてください</li>
                         <li>文字がはっきり見えるように、ピントを合わせてください</li>
                         <li>原稿用紙を平らに置いて撮影してください</li>
@@ -2446,6 +2477,71 @@ router.get('/session/:sessionId', async (c) => {
             startCamera();
         }
         
+        // ファイル選択処理
+        async function handleFileSelect(event) {
+            // ファイル機能もStep 1, 3, 4, 5で使用可能
+            if (currentStep !== 1 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
+                alert('画像アップロード機能はStep 1（導入）、Step 3（短文）、Step 4（本練習）、Step 5（チャレンジ）で使用できます。');
+                event.target.value = ''; // リセット
+                return;
+            }
+            
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 画像ファイルかチェック
+            if (!file.type.startsWith('image/')) {
+                alert('画像ファイルを選択してください。');
+                event.target.value = ''; // リセット
+                return;
+            }
+            
+            try {
+                // ファイルを読み込んでData URLに変換
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const imageDataUrl = e.target.result;
+                    
+                    // カメラモーダルを開いて画像を表示
+                    document.getElementById('cameraModal').classList.add('active');
+                    updateCameraStatus('画像を読み込んでいます...', 'info');
+                    
+                    // 画像を表示
+                    const capturedImg = document.getElementById('capturedImage');
+                    const preview = document.getElementById('cameraPreview');
+                    const cropCanvas = document.getElementById('cropCanvas');
+                    
+                    capturedImg.src = imageDataUrl;
+                    capturedImg.classList.remove('hidden');
+                    preview.classList.add('hidden');
+                    cropCanvas.classList.add('hidden');
+                    
+                    // ボタンの表示を調整
+                    document.getElementById('captureBtn').classList.add('hidden');
+                    document.getElementById('retakeBtn').classList.add('hidden');
+                    document.getElementById('cropBtn').classList.remove('hidden');
+                    document.getElementById('uploadBtn').classList.remove('hidden');
+                    document.getElementById('cropConfirmBtn').classList.add('hidden');
+                    
+                    // グローバル変数に保存（既存の処理で使用）
+                    window.currentImageDataUrl = imageDataUrl;
+                    
+                    updateCameraStatus('画像を読み込みました。範囲を調整するか、そのままOCR処理を開始してください。', 'success');
+                };
+                
+                reader.onerror = () => {
+                    alert('ファイルの読み込みに失敗しました。');
+                    event.target.value = ''; // リセット
+                };
+                
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('File select error:', error);
+                alert('画像の読み込みに失敗しました。');
+                event.target.value = ''; // リセット
+            }
+        }
+        
         // ステータス更新
         function updateCameraStatus(message, type) {
             const statusDiv = document.getElementById('cameraStatus');
@@ -2823,26 +2919,31 @@ router.get('/session/:sessionId', async (c) => {
         
         // 画像をアップロードしてOCR処理
         async function uploadAndProcessImage() {
-            console.log('🔍 Checking capturedImageData...', {
-                exists: !!capturedImageData,
-                type: typeof capturedImageData,
-                length: capturedImageData ? capturedImageData.length : 0
+            // ファイル選択からの画像または撮影した画像を使用
+            const imageSource = capturedImageData || window.currentImageDataUrl;
+            
+            console.log('🔍 Checking image data...', {
+                fromCamera: !!capturedImageData,
+                fromFile: !!window.currentImageDataUrl,
+                exists: !!imageSource,
+                type: typeof imageSource,
+                length: imageSource ? imageSource.length : 0
             });
             
-            if (!capturedImageData) {
-                alert('画像が撮影されていません。\\nもう一度撮影してください。');
-                console.error('❌ capturedImageData is null or undefined');
+            if (!imageSource) {
+                alert('画像が選択されていません。\\nもう一度カメラで撮影するか、ファイルから選択してください。');
+                console.error('❌ No image data available');
                 return;
             }
             
-            if (capturedImageData.length < 100) {
-                alert('画像データが不正です。\\nもう一度撮影してください。');
-                console.error('❌ capturedImageData is too small:', capturedImageData.length);
+            if (imageSource.length < 100) {
+                alert('画像データが不正です。\\nもう一度撮影するか、別の画像を選択してください。');
+                console.error('❌ Image data is too small:', imageSource.length);
                 return;
             }
             
             // closeCamera()を呼ぶ前に画像データをローカル変数に保存
-            const imageDataToUpload = capturedImageData;
+            const imageDataToUpload = imageSource;
             
             console.log('💾 Saved image data to local variable:', {
                 length: imageDataToUpload.length,
@@ -3033,6 +3134,10 @@ router.get('/session/:sessionId', async (c) => {
             }
             document.getElementById('cameraModal').classList.remove('active');
             capturedImageData = null;
+            window.currentImageDataUrl = null; // ファイル選択からの画像もクリア
+            // ファイル入力もリセット
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
         }
         
         // Enterキーで改行可能（送信は送信ボタンのみ）
