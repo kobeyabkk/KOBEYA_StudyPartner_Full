@@ -684,8 +684,22 @@ router.post('/ocr', async (c) => {
   }
 })
 // 小論文指導 - AI添削API
+// =====================================
+// 2段階評価システムのインポート
+// =====================================
+import {
+  executeStage1,
+  generateStage2SystemPrompt,
+  generateStage2UserPrompt,
+  generateStage1FailMessage,
+  generateFinalMessage,
+  type EssayInput,
+  type Stage1Result,
+  type Stage2Result
+} from '../../eiken/services/essay-grading-service.js'
+
 router.post('/feedback', async (c) => {
-  console.log('🤖 Essay AI feedback API called')
+  console.log('🤖 Essay AI feedback API called (2-Stage Evaluation)')
   
   try {
     const { sessionId } = await c.req.json()
@@ -732,6 +746,76 @@ router.post('/feedback', async (c) => {
     
     const latestOCR = ocrResults[ocrResults.length - 1]
     const essayText = latestOCR.text || ''
+    
+    // テーマと課題を取得
+    const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
+    const mainProblem = session.essaySession.mainProblem || session.essaySession.challengeProblem || 'SNSが社会に与える影響について、あなたの考えを述べなさい'
+    
+    // 目標文字数を取得（Step 4/5は400-800字）
+    const targetCharCount = 500 // デフォルト
+    
+    // =====================================
+    // Stage 1: 形式チェック
+    // =====================================
+    console.log('🔍 Stage 1: Form checking...')
+    
+    const stage1Input: EssayInput = {
+      essayText,
+      themeTitle,
+      mainProblem,
+      targetCharCount,
+      themeKeywords: [], // TODO: 将来的に設定可能に
+      constraints: []     // TODO: 将来的に設定可能に
+    }
+    
+    const stage1Result: Stage1Result = executeStage1(stage1Input, 4) // Step 4/5
+    
+    console.log('✅ Stage 1 result:', {
+      passed: stage1Result.passed,
+      reasons: stage1Result.reasons
+    })
+    
+    // Stage 1 NG の場合、内容評価をスキップ
+    if (!stage1Result.passed) {
+      console.log('❌ Stage 1 failed - skipping Stage 2')
+      
+      const failMessage = generateStage1FailMessage(stage1Result)
+      
+      const feedback = {
+        stage1: stage1Result,
+        stage2: null,
+        overallScore: stage1Result.scoreUpperLimit,
+        goodPoints: [],
+        improvements: stage1Result.reasons,
+        nextSteps: ['形式要件を満たしてから、もう一度提出してください。'],
+        exampleImprovement: '',
+        displayMessage: failMessage,
+        isStage1Failure: true
+      }
+      
+      // セッションに保存
+      if (!session.essaySession.feedbacks) {
+        session.essaySession.feedbacks = []
+      }
+      session.essaySession.feedbacks.push({
+        ...feedback,
+        createdAt: new Date().toISOString()
+      })
+      
+      await updateSession(db, sessionId, { essaySession: session.essaySession })
+      
+      return c.json({
+        ok: true,
+        feedback,
+        timestamp: new Date().toISOString()
+      }, 200)
+    }
+    
+    console.log('✅ Stage 1 passed - proceeding to Stage 2')
+    
+    // =====================================
+    // Stage 2: 内容評価
+    // =====================================
     
     // OpenAI APIキーを取得
     const openaiApiKey = c.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY
@@ -802,15 +886,19 @@ router.post('/feedback', async (c) => {
       }, 200)
     }
     
-    // テーマと問題文を取得
-    const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
-    const mainProblem = session.essaySession.mainProblem || 'SNSが社会に与える影響について、あなたの考えを述べなさい'
-    
-    // 実際のOpenAI APIを使用
-    console.log('🤖 Calling OpenAI API for feedback...')
+    // 実際のOpenAI APIを使用（Stage 2）
+    console.log('🤖 Stage 2: Calling OpenAI API for content evaluation...')
     console.log('📝 Essay text length:', essayText.length, 'chars')
     console.log('🎯 Theme:', themeTitle)
     console.log('📋 Problem:', mainProblem)
+    
+    const stage2SystemPrompt = generateStage2SystemPrompt()
+    const stage2UserPrompt = generateStage2UserPrompt({
+      essayText,
+      themeTitle,
+      mainProblem,
+      targetCharCount
+    })
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -823,47 +911,15 @@ router.post('/feedback', async (c) => {
         messages: [
           {
             role: 'system',
-            content: `あなたは経験豊富な小論文指導の専門家です。生徒の小論文を読んで、建設的で具体的なフィードバックを提供してください。
-
-【評価基準】
-- 論理構成（序論・本論・結論のバランス）
-- 具体例の質と数
-- 文章の明確さ
-- 語彙の適切さ
-- 文字数（目標: 400〜600字）
-
-【重要】以下のJSON形式で必ず返してください。他の文章は含めないでください：
-{
-  "goodPoints": ["良い点1", "良い点2", "良い点3"],
-  "improvements": ["改善点1", "改善点2", "改善点3"],
-  "exampleImprovement": "【改善例】\\n「元の文」\\n↓\\n「改善後の文」\\n\\n（このように具体的な書き直し例を示す）",
-  "nextSteps": ["次のアクション1", "次のアクション2", "次のアクション3"],
-  "overallScore": 85
-}
-
-【注意点】
-- goodPoints: 必ず3つ、具体的に褒める
-- improvements: 必ず3つ、改善方法も含める
-- exampleImprovement: 実際の文章から1箇所を選んで改善例を示す
-- nextSteps: 今後の学習で取り組むべき具体的なアクション3つ
-- overallScore: 0-100の整数
-
-生徒を励ましつつ、実践的で具体的なアドバイスを心がけてください。`
+            content: stage2SystemPrompt
           },
           {
             role: 'user',
-            content: `以下の小論文を添削してください。
-
-【課題】${mainProblem}（400〜600字）
-
-【小論文】
-${essayText}
-
-【文字数】${essayText.length}字`
+            content: stage2UserPrompt
           }
         ],
         max_tokens: 2000,
-        temperature: 0.7,
+        temperature: 0.2,  // 評価の一貫性を優先
         response_format: { type: "json_object" }
       })
     })
