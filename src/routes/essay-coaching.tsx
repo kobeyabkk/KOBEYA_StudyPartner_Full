@@ -1019,6 +1019,24 @@ router.get('/session/:sessionId', async (c) => {
           }
         </script>
         
+        <!-- Forward declarations for inline event handlers -->
+        <script>
+          // これらの関数は後で定義されますが、HTMLのonclick属性で使用するため先に宣言します
+          function quickAction(text) {
+            // 実装は後のscriptタグで上書きされます
+            console.warn('quickAction called before full initialization');
+          }
+          function openCamera() {
+            console.warn('openCamera called before full initialization');
+          }
+          function sendMessage() {
+            console.warn('sendMessage called before full initialization');
+          }
+          function handleFileSelect(event) {
+            console.warn('handleFileSelect called before full initialization');
+          }
+        </script>
+        
         <style>
         * {
           margin: 0;
