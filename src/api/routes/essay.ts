@@ -702,8 +702,9 @@ router.post('/feedback', async (c) => {
   console.log('🤖 Essay AI feedback API called (2-Stage Evaluation)')
   
   try {
-    const { sessionId } = await c.req.json()
+    const { sessionId, currentStep } = await c.req.json()
     console.log('🤖 Received sessionId:', sessionId)
+    console.log('🤖 Received currentStep:', currentStep)
     
     if (!sessionId) {
       console.error('❌ Missing sessionId')
@@ -733,7 +734,7 @@ router.post('/feedback', async (c) => {
       }, 404)
     }
     
-    // OCR結果を取得
+    // OCR結果を取得（currentStepが指定されている場合、そのステップのOCRのみを対象にする）
     const ocrResults = session.essaySession.ocrResults
     if (!ocrResults || ocrResults.length === 0) {
       return c.json({
@@ -744,8 +745,27 @@ router.post('/feedback', async (c) => {
       }, 400)
     }
     
-    const latestOCR = ocrResults[ocrResults.length - 1]
+    // currentStepが指定されている場合、そのステップのOCRのみフィルタリング
+    let targetOCRs = ocrResults
+    if (currentStep) {
+      targetOCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === currentStep)
+      console.log(`🔍 Filtered OCRs for step ${currentStep}:`, targetOCRs.length, 'results')
+      
+      if (targetOCRs.length === 0) {
+        return c.json({
+          ok: false,
+          error: 'no_ocr_data',
+          message: `Step ${currentStep} のOCR結果が見つかりません。先に原稿を撮影してください。`,
+          timestamp: new Date().toISOString()
+        }, 400)
+      }
+    }
+    
+    const latestOCR = targetOCRs[targetOCRs.length - 1]
     const essayText = latestOCR.text || ''
+    
+    console.log('📝 Using OCR from step:', latestOCR.step)
+    console.log('📏 Essay text length:', essayText.length, 'characters')
     
     // テーマと課題を取得
     const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'

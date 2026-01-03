@@ -2405,7 +2405,10 @@ router.get('/session/:sessionId', async (c) => {
                 const response = await fetch('/api/essay/feedback', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: sessionId })
+                    body: JSON.stringify({ 
+                        sessionId: sessionId,
+                        currentStep: currentStep  // ✅ currentStepを送信
+                    })
                 });
                 
                 console.log('🤖 Feedback API response status:', response.status);
