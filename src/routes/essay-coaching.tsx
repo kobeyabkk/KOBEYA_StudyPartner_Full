@@ -2668,7 +2668,7 @@ router.get('/session/:sessionId', async (c) => {
                 '内容を確認して、「確認完了」と入力してください。',
                 '修正が必要な場合は、正しいテキストを入力して送信してください。'
             ];
-            const resultMessage = messageParts.join('\\n');
+            const resultMessage = messageParts.join('\\\\n');
             
             addMessage(resultMessage, true);
             
