@@ -2670,6 +2670,9 @@ router.get('/session/:sessionId', async (c) => {
             ];
             const resultMessage = messageParts.join('\\\\n');
             
+            console.log('📝 Result message length:', resultMessage.length);
+            console.log('📝 Result message preview:', resultMessage.substring(0, 100));
+            
             addMessage(resultMessage, true);
             
             // リセット
