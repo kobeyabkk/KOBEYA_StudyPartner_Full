@@ -2639,7 +2639,7 @@ router.get('/session/:sessionId', async (c) => {
             
             // 連結されたテキストをメッセージとして表示
             const preview = totalText.substring(0, 200) + (totalText.length > 200 ? '...' : '');
-            const resultMessage = '✅ 全' + pageCount + 'ページの読み取りが完了しました！\\n\\n' +
+            const resultMessage = '全' + pageCount + 'ページの読み取りが完了しました！ ✅\\n\\n' +
                                 '合計文字数: ' + totalChars + '文字\\n\\n' +
                                 '【読み取り内容】\\n' + preview + '\\n\\n' +
                                 '内容を確認して、「確認完了」と入力してください。\\n' +
