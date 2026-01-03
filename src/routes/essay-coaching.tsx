@@ -2136,16 +2136,35 @@ router.get('/session/:sessionId', async (c) => {
         })();
         
         function addMessage(text, isTeacher = false) {
-            const messagesDiv = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
-            
-            const icon = isTeacher ? '👨‍🏫' : '👤';
-            const formattedText = text.split('\\n').join('<br>');
-            messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
-            
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            try {
+                console.log('🔍 addMessage called:', {
+                    textLength: text.length,
+                    textPreview: text.substring(0, 100),
+                    isTeacher: isTeacher
+                });
+                
+                const messagesDiv = document.getElementById('messages');
+                if (!messagesDiv) {
+                    console.error('❌ messages div not found!');
+                    return;
+                }
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
+                
+                const icon = isTeacher ? '👨‍🏫' : '👤';
+                const formattedText = text.split('\\n').join('<br>');
+                console.log('🔍 Formatted text length:', formattedText.length);
+                
+                messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                console.log('✅ Message added successfully');
+            } catch (error) {
+                console.error('❌ Error in addMessage:', error);
+            }
         }
         
         // 重複リクエスト防止フラグ
