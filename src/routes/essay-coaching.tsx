@@ -1977,9 +1977,9 @@ router.get('/session/:sessionId', async (c) => {
                         <button id="cameraInputBtn" onclick="openCamera()" class="camera-input-btn" title="カメラで撮影">
                             <i class="fas fa-camera"></i>
                         </button>
-                        <button id="fileInputBtn" class="file-input-btn" title="ファイルから選択">
+                        <button id="fileInputBtn" class="file-input-btn" title="ファイルから選択（複数可）">
                             <i class="fas fa-image"></i>
-                            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" />
+                            <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileSelect(event)" />
                         </button>
                         <button id="sendBtn" onclick="sendMessage()">
                             <i class="fas fa-paper-plane"></i> 送信
@@ -2467,6 +2467,12 @@ router.get('/session/:sessionId', async (c) => {
         let startX = 0;
         let startY = 0;
         
+        // 📄 複数ページサポート
+        let multiPageMode = false; // 複数ページモード
+        let currentPageNumber = 1; // 現在のページ番号
+        let totalPagesPlanned = 1; // 予定ページ数
+        let processedPages = []; // 処理済みページ情報 [{pageNumber, text, charCount, processedAt}]
+        
         // カメラモーダルを開く
         function openCamera() {
             // カメラ機能はStep 1, 3, 4, 5で使用可能
@@ -2480,7 +2486,11 @@ router.get('/session/:sessionId', async (c) => {
             startCamera();
         }
         
-        // ファイル選択処理
+        // ファイル選択処理（複数ファイル対応）
+        let selectedFiles = [];
+        let currentFileIndex = 0;
+        let processedOCRTexts = [];
+        
         async function handleFileSelect(event) {
             // ファイル機能もStep 1, 3, 4, 5で使用可能
             if (currentStep !== 1 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5) {
@@ -2489,60 +2499,159 @@ router.get('/session/:sessionId', async (c) => {
                 return;
             }
             
-            const file = event.target.files[0];
-            if (!file) return;
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
             
             // 画像ファイルかチェック
-            if (!file.type.startsWith('image/')) {
-                alert('画像ファイルを選択してください。');
+            const invalidFiles = files.filter(f => !f.type.startsWith('image/'));
+            if (invalidFiles.length > 0) {
+                alert('画像ファイルのみを選択してください。');
                 event.target.value = ''; // リセット
                 return;
             }
             
+            // 複数ファイルの場合
+            if (files.length > 1) {
+                selectedFiles = files;
+                currentFileIndex = 0;
+                processedOCRTexts = [];
+                console.log('📚 ' + files.length + '枚の画像が選択されました');
+                processNextFile();
+            } else {
+                // 単一ファイルの場合（既存の処理）
+                processSingleFile(files[0]);
+            }
+        }
+        
+        // 複数ファイルを順番に処理
+        async function processNextFile() {
+            if (currentFileIndex >= selectedFiles.length) {
+                // すべてのファイルを処理完了
+                console.log('✅ すべてのページの処理が完了しました');
+                displayMultiPageResult();
+                return;
+            }
+            
+            const file = selectedFiles[currentFileIndex];
+            const pageNumber = currentFileIndex + 1;
+            const totalPages = selectedFiles.length;
+            
+            console.log('📄 ページ ' + pageNumber + '/' + totalPages + ' を処理中...');
+            
             try {
-                // ファイルを読み込んでData URLに変換
+                const imageDataUrl = await readFileAsDataURL(file);
+                
+                // カメラモーダルを開いて画像を表示
+                document.getElementById('cameraModal').classList.add('active');
+                updateCameraStatus('ページ ' + pageNumber + '/' + totalPages + ' を読み込んでいます...', 'info');
+                
+                // 画像を表示
+                const capturedImg = document.getElementById('capturedImage');
+                const preview = document.getElementById('cameraPreview');
+                const cropCanvas = document.getElementById('cropCanvas');
+                
+                capturedImg.src = imageDataUrl;
+                capturedImg.classList.remove('hidden');
+                preview.classList.add('hidden');
+                cropCanvas.classList.add('hidden');
+                
+                // ボタンの表示を調整
+                document.getElementById('captureBtn').classList.add('hidden');
+                document.getElementById('retakeBtn').classList.add('hidden');
+                document.getElementById('cropBtn').classList.remove('hidden');
+                document.getElementById('uploadBtn').classList.remove('hidden');
+                document.getElementById('cropConfirmBtn').classList.add('hidden');
+                
+                // グローバル変数に保存
+                window.currentImageDataUrl = imageDataUrl;
+                window.currentPageNumber = pageNumber;
+                window.totalPages = totalPages;
+                window.isMultiPageMode = true;
+                
+                updateCameraStatus('ページ ' + pageNumber + '/' + totalPages + ': 範囲を調整するか、そのままOCR処理を開始してください。', 'success');
+                
+            } catch (error) {
+                console.error('File read error:', error);
+                alert('ページ ' + pageNumber + ' の読み込みに失敗しました。');
+                currentFileIndex++;
+                processNextFile();
+            }
+        }
+        
+        // ファイルをData URLとして読み込む
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const imageDataUrl = e.target.result;
-                    
-                    // カメラモーダルを開いて画像を表示
-                    document.getElementById('cameraModal').classList.add('active');
-                    updateCameraStatus('画像を読み込んでいます...', 'info');
-                    
-                    // 画像を表示
-                    const capturedImg = document.getElementById('capturedImage');
-                    const preview = document.getElementById('cameraPreview');
-                    const cropCanvas = document.getElementById('cropCanvas');
-                    
-                    capturedImg.src = imageDataUrl;
-                    capturedImg.classList.remove('hidden');
-                    preview.classList.add('hidden');
-                    cropCanvas.classList.add('hidden');
-                    
-                    // ボタンの表示を調整
-                    document.getElementById('captureBtn').classList.add('hidden');
-                    document.getElementById('retakeBtn').classList.add('hidden');
-                    document.getElementById('cropBtn').classList.remove('hidden');
-                    document.getElementById('uploadBtn').classList.remove('hidden');
-                    document.getElementById('cropConfirmBtn').classList.add('hidden');
-                    
-                    // グローバル変数に保存（既存の処理で使用）
-                    window.currentImageDataUrl = imageDataUrl;
-                    
-                    updateCameraStatus('画像を読み込みました。範囲を調整するか、そのままOCR処理を開始してください。', 'success');
-                };
-                
-                reader.onerror = () => {
-                    alert('ファイルの読み込みに失敗しました。');
-                    event.target.value = ''; // リセット
-                };
-                
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
                 reader.readAsDataURL(file);
+            });
+        }
+        
+        // 単一ファイルの処理（既存の処理）
+        async function processSingleFile(file) {
+            try {
+                const imageDataUrl = await readFileAsDataURL(file);
+                
+                // カメラモーダルを開いて画像を表示
+                document.getElementById('cameraModal').classList.add('active');
+                updateCameraStatus('画像を読み込んでいます...', 'info');
+                
+                // 画像を表示
+                const capturedImg = document.getElementById('capturedImage');
+                const preview = document.getElementById('cameraPreview');
+                const cropCanvas = document.getElementById('cropCanvas');
+                
+                capturedImg.src = imageDataUrl;
+                capturedImg.classList.remove('hidden');
+                preview.classList.add('hidden');
+                cropCanvas.classList.add('hidden');
+                
+                // ボタンの表示を調整
+                document.getElementById('captureBtn').classList.add('hidden');
+                document.getElementById('retakeBtn').classList.add('hidden');
+                document.getElementById('cropBtn').classList.remove('hidden');
+                document.getElementById('uploadBtn').classList.remove('hidden');
+                document.getElementById('cropConfirmBtn').classList.add('hidden');
+                
+                // グローバル変数に保存
+                window.currentImageDataUrl = imageDataUrl;
+                window.isMultiPageMode = false;
+                
+                updateCameraStatus('画像を読み込みました。範囲を調整するか、そのままOCR処理を開始してください。', 'success');
+                
             } catch (error) {
                 console.error('File select error:', error);
                 alert('画像の読み込みに失敗しました。');
-                event.target.value = ''; // リセット
             }
+        }
+        
+        // 複数ページの結果を表示
+        function displayMultiPageResult() {
+            const totalText = processedOCRTexts.join('\n');
+            const totalChars = totalText.length;
+            const pageCount = processedOCRTexts.length;
+            
+            console.log('📊 全' + pageCount + 'ページ、合計' + totalChars + '文字');
+            
+            // モーダルを閉じる
+            closeCamera();
+            
+            // 連結されたテキストをメッセージとして表示
+            const preview = totalText.substring(0, 200) + (totalText.length > 200 ? '...' : '');
+            const resultMessage = '✅ 全' + pageCount + 'ページの読み取りが完了しました！\n\n' +
+                                '合計文字数: ' + totalChars + '文字\n\n' +
+                                '【読み取り内容】\n' + preview + '\n\n' +
+                                '内容を確認して、「確認完了」と入力してください。\n' +
+                                '修正が必要な場合は、正しいテキストを入力して送信してください。';
+            
+            addMessage(resultMessage, true);
+            
+            // リセット
+            selectedFiles = [];
+            currentFileIndex = 0;
+            processedOCRTexts = [];
+            window.isMultiPageMode = false;
         }
         
         // ステータス更新
@@ -3080,7 +3189,34 @@ router.get('/session/:sessionId', async (c) => {
                 console.log('📄 OCR result:', ocrResult);
                 
                 if (ocrResult.ok && ocrResult.result) {
-                    displayOCRResult(ocrResult.result);
+                    // 🔧 Multi-page mode support
+                    if (window.isMultiPageMode && window.currentPageNumber && window.totalPages) {
+                        const pageNum = window.currentPageNumber;
+                        const total = window.totalPages;
+                        
+                        console.log('✅ ページ ' + pageNum + '/' + total + ' のOCR完了');
+                        
+                        // OCRテキストを保存
+                        processedOCRTexts.push(ocrResult.result.text || '');
+                        
+                        // 進捗を表示
+                        addMessage('📄 ページ ' + pageNum + '/' + total + ' の処理完了（' + (ocrResult.result.charCount || 0) + '文字）', true);
+                        
+                        // 次のページへ
+                        currentFileIndex++;
+                        
+                        if (currentFileIndex < selectedFiles.length) {
+                            // 次のページを処理
+                            addMessage('次のページ（' + (currentFileIndex + 1) + '/' + total + '）を読み込んでいます...', true);
+                            setTimeout(() => processNextFile(), 500); // 少し待ってから次へ
+                        } else {
+                            // すべてのページ完了
+                            displayMultiPageResult();
+                        }
+                    } else {
+                        // 単一ページモード（既存の処理）
+                        displayOCRResult(ocrResult.result);
+                    }
                 } else {
                     throw new Error('OCR結果が無効です: ' + JSON.stringify(ocrResult));
                 }
