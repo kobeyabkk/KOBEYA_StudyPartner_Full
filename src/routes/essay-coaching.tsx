@@ -2646,7 +2646,7 @@ router.get('/session/:sessionId', async (c) => {
         
         // 複数ページの結果を表示
         function displayMultiPageResult() {
-            const totalText = processedOCRTexts.join('\n');
+            const totalText = processedOCRTexts.join('\\\\n');
             const totalChars = totalText.length;
             const pageCount = processedOCRTexts.length;
             
