@@ -2153,13 +2153,13 @@ router.get('/session/:sessionId', async (c) => {
                 messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
                 
                 const icon = isTeacher ? '👨‍🏫' : '👤';
-                // Fix: Handle both literal \n and actual newline characters
+                // Handle both literal backslash-n and real newline characters
                 let processedText = text;
-                // First, replace literal backslash-n with actual newlines
+                // Replace literal backslash-n with real newlines
                 while (processedText.indexOf('\\n') !== -1) {
                     processedText = processedText.replace('\\n', '\n');
                 }
-                // Then convert newlines to <br>
+                // Convert newlines to br tags
                 const formattedText = processedText.split('\n').join('<br>');
                 console.log('🔍 Formatted text length:', formattedText.length);
                 
