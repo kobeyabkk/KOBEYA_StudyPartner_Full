@@ -2325,6 +2325,9 @@ router.get('/session/:sessionId', async (c) => {
             
             // 応答内容に応じてボタンを表示
             if (aiResponse.includes('「OK」と入力') || aiResponse.includes('準備ができたら')) {
+                // onclickハンドラーをリセット（quickActionに戻す）
+                btnOK.textContent = 'OK';
+                btnOK.onclick = function() { quickAction('OK'); };
                 btnOK.classList.remove('hidden');
             }
             
