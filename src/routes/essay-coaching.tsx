@@ -2366,7 +2366,9 @@ router.get('/session/:sessionId', async (c) => {
         }
         
         function moveToNextStep() {
+            console.log('🔄 moveToNextStep called, currentStep before:', currentStep);
             currentStep++;
+            console.log('🔄 moveToNextStep, currentStep after increment:', currentStep);
             
             // 授業形式によって最大ステップ数を変える
             const lessonFormat = sessionData?.lessonFormat || 'full_55min';
@@ -2393,6 +2395,7 @@ router.get('/session/:sessionId', async (c) => {
             
             // 新しいステップのメッセージを表示
             const introMessage = getStepIntroMessage(currentStep);
+            console.log('📝 Intro message for step', currentStep, ':', introMessage);
             addMessage(introMessage, true);
             
             // クイックアクションボタンを更新
