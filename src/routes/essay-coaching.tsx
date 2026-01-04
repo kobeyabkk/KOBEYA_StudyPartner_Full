@@ -2343,17 +2343,26 @@ router.get('/session/:sessionId', async (c) => {
         
         function showStepCompletion() {
             console.log('🎯 showStepCompletion called');
-            const messagesDiv = document.getElementById('messages');
             
-            const completionDiv = document.createElement('div');
-            completionDiv.className = 'completion-message';
-            completionDiv.innerHTML = '<i class="fas fa-check-circle"></i> このステップが完了しました。次のステップに進みましょう！';
-            messagesDiv.appendChild(completionDiv);
+            // 完了メッセージを表示
+            const completionMessage = 'このステップが完了しました。次のステップに進みましょう！';
+            addMessage(completionMessage, true);
             
-            // 次へボタンを表示
-            const nextBtn = document.getElementById('nextStepBtn');
-            nextBtn.classList.remove('hidden');
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            // 「次のステップへ」ボタンをquickActionボタンと同じ場所に表示
+            const btnOK = document.getElementById('btnOK');
+            if (btnOK) {
+                btnOK.textContent = '次のステップへ';
+                btnOK.onclick = function() { moveToNextStep(); };
+                btnOK.classList.remove('hidden');
+            }
+            
+            // 他のボタンを非表示
+            const btnYonda = document.getElementById('btnYonda');
+            const btnPass = document.getElementById('btnPass');
+            const btnKanryo = document.getElementById('btnKanryo');
+            if (btnYonda) btnYonda.classList.add('hidden');
+            if (btnPass) btnPass.classList.add('hidden');
+            if (btnKanryo) btnKanryo.classList.add('hidden');
         }
         
         function moveToNextStep() {
@@ -2372,8 +2381,15 @@ router.get('/session/:sessionId', async (c) => {
             // 進捗バーを更新
             updateProgressBar();
             
-            // 次へボタンを非表示
-            document.getElementById('nextStepBtn').classList.add('hidden');
+            // quickActionボタンを非表示（次のステップで適切なボタンが表示される）
+            const btnOK = document.getElementById('btnOK');
+            const btnYonda = document.getElementById('btnYonda');
+            const btnPass = document.getElementById('btnPass');
+            const btnKanryo = document.getElementById('btnKanryo');
+            if (btnOK) btnOK.classList.add('hidden');
+            if (btnYonda) btnYonda.classList.add('hidden');
+            if (btnPass) btnPass.classList.add('hidden');
+            if (btnKanryo) btnKanryo.classList.add('hidden');
             
             // 新しいステップのメッセージを表示
             const introMessage = getStepIntroMessage(currentStep);
@@ -2708,6 +2724,14 @@ router.get('/session/:sessionId', async (c) => {
             console.log('📝 Result message preview:', resultMessage.substring(0, 100));
             
             addMessage(resultMessage, true);
+            
+            // 確認完了ボタンを表示（quickActionボタンと同じ場所）
+            const btnKanryo = document.getElementById('btnKanryo');
+            if (btnKanryo) {
+                btnKanryo.textContent = '確認完了';
+                btnKanryo.onclick = function() { quickAction('確認完了'); };
+                btnKanryo.classList.remove('hidden');
+            }
             
             // リセット
             selectedFiles = [];

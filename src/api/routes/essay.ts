@@ -2524,12 +2524,16 @@ ${targetLevel === 'high_school' ? `
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
         console.log('📝 Step 3: OCR confirmed, generating feedback...')
         
+        // Step 3 のすべてのOCR結果を取得
         const step3OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 3)
-        const latestOCR = step3OCRs[step3OCRs.length - 1]
-        const essayText = latestOCR.text || ''
-        const charCount = latestOCR.charCount || essayText.length
         
-        console.log('📏 OCR Essay length:', charCount, 'characters')
+        // 複数ページの場合、すべてのテキストを連結して文字数を合算
+        const allTexts = step3OCRs.map((ocr: OCRResult) => ocr.text || '')
+        const essayText = allTexts.join('\n')
+        const charCount = essayText.length
+        
+        console.log('📏 Step 3 OCR pages:', step3OCRs.length)
+        console.log('📏 Combined essay length:', charCount, 'characters')
         
         // 150字未満の場合は再提出を促す
         if (charCount < 150) {
