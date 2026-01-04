@@ -2689,15 +2689,14 @@ router.get('/session/:sessionId', async (c) => {
             // モーダルを閉じる
             closeCamera();
             
-            // 連結されたテキストをメッセージとして表示
-            const preview = totalText.substring(0, 200) + (totalText.length > 200 ? '...' : '');
+            // 連結されたテキストをメッセージとして表示（全文を表示）
             const messageParts = [
                 '全' + pageCount + 'ページの読み取りが完了しました！ ✅',
                 '',
                 '合計文字数: ' + totalChars + '文字',
                 '',
                 '【読み取り内容】',
-                preview,
+                totalText,
                 '',
                 '内容を確認して、「確認完了」と入力してください。',
                 '修正が必要な場合は、正しいテキストを入力して送信してください。'
