@@ -2732,11 +2732,16 @@ router.get('/session/:sessionId', async (c) => {
             addMessage(resultMessage, true);
             
             // 確認完了ボタンを表示（quickActionボタンと同じ場所）
+            console.log('🔘 Showing 確認完了 button...');
             const btnKanryo = document.getElementById('btnKanryo');
+            console.log('🔘 btnKanryo element:', btnKanryo);
             if (btnKanryo) {
                 btnKanryo.textContent = '確認完了';
                 btnKanryo.onclick = function() { quickAction('確認完了'); };
                 btnKanryo.classList.remove('hidden');
+                console.log('🔘 btnKanryo displayed, classList:', btnKanryo.classList.toString());
+            } else {
+                console.error('❌ btnKanryo element not found!');
             }
             
             // リセット
