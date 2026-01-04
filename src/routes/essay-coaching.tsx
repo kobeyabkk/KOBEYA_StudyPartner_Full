@@ -1983,10 +1983,10 @@ router.get('/session/:sessionId', async (c) => {
                     
                     <!-- クイックアクションボタン -->
                     <div class="quick-actions" id="quickActions">
-                        <button class="quick-action-btn" id="btnOK" onclick="quickAction('OK')">✓ OK</button>
-                        <button class="quick-action-btn hidden" id="btnYonda" onclick="quickAction('読んだ')">📖 読んだ</button>
-                        <button class="quick-action-btn hidden" id="btnPass" onclick="quickAction('パス')">⏭️ パス</button>
-                        <button class="quick-action-btn hidden" id="btnKanryo" onclick="quickAction('完了')">✅ 完了</button>
+                        <button class="quick-action-btn" id="btnOK">✓ OK</button>
+                        <button class="quick-action-btn hidden" id="btnYonda">📖 読んだ</button>
+                        <button class="quick-action-btn hidden" id="btnPass">⏭️ パス</button>
+                        <button class="quick-action-btn hidden" id="btnKanryo">✅ 完了</button>
                     </div>
                     
                     <!-- 入力エリア -->
@@ -3417,6 +3417,19 @@ router.get('/session/:sessionId', async (c) => {
         
         // URLパラメータで ?dev=true の場合のみクイックジャンプボタンを表示
         window.addEventListener('DOMContentLoaded', function() {
+            // ボタンのイベントハンドラーを初期化
+            const btnOK = document.getElementById('btnOK');
+            const btnYonda = document.getElementById('btnYonda');
+            const btnPass = document.getElementById('btnPass');
+            const btnKanryo = document.getElementById('btnKanryo');
+            
+            if (btnOK) btnOK.onclick = function() { quickAction('OK'); };
+            if (btnYonda) btnYonda.onclick = function() { quickAction('読んだ'); };
+            if (btnPass) btnPass.onclick = function() { quickAction('パス'); };
+            if (btnKanryo) btnKanryo.onclick = function() { quickAction('確認完了'); };
+            
+            console.log('✅ Button event handlers initialized');
+            
             const urlParams = new URLSearchParams(window.location.search);
             const isDevMode = urlParams.get('dev') === 'true';
             const isDebugMode = urlParams.get('debug') === 'true';
