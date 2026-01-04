@@ -2153,14 +2153,16 @@ router.get('/session/:sessionId', async (c) => {
                 messageDiv.className = 'message ' + (isTeacher ? 'teacher' : 'student');
                 
                 const icon = isTeacher ? '👨‍🏫' : '👤';
-                // Handle both literal backslash-n and real newline characters
+                // Handle literal backslash-n by using String.fromCharCode to avoid escaping issues
                 let processedText = text;
-                // Replace literal backslash-n with real newlines
-                while (processedText.indexOf('\\n') !== -1) {
-                    processedText = processedText.replace('\\n', '\n');
+                // Replace literal backslash-n with real newlines using character codes
+                // 92 = backslash, 110 = 'n'
+                const backslashN = String.fromCharCode(92) + 'n';
+                while (processedText.indexOf(backslashN) !== -1) {
+                    processedText = processedText.replace(backslashN, String.fromCharCode(10));
                 }
                 // Convert newlines to br tags
-                const formattedText = processedText.split('\n').join('<br>');
+                const formattedText = processedText.split(String.fromCharCode(10)).join('<br>');
                 console.log('🔍 Formatted text length:', formattedText.length);
                 
                 messageDiv.innerHTML = '<span class="icon">' + icon + '</span><div>' + formattedText + '</div>';
@@ -2676,7 +2678,8 @@ router.get('/session/:sessionId', async (c) => {
             console.log('🔍 processedOCRTexts:', processedOCRTexts);
             console.log('🔍 processedOCRTexts.length:', processedOCRTexts.length);
             
-            const totalText = processedOCRTexts.join('\\\\n');
+            // Use String.fromCharCode(10) for newline to avoid escaping issues in HTML template literal
+            const totalText = processedOCRTexts.join(String.fromCharCode(10));
             const totalChars = totalText.length;
             const pageCount = processedOCRTexts.length;
             
@@ -2699,7 +2702,8 @@ router.get('/session/:sessionId', async (c) => {
                 '内容を確認して、「確認完了」と入力してください。',
                 '修正が必要な場合は、正しいテキストを入力して送信してください。'
             ];
-            const resultMessage = messageParts.join('\\\\n');
+            // Use String.fromCharCode(10) for newline to avoid escaping issues in HTML template literal
+            const resultMessage = messageParts.join(String.fromCharCode(10));
             
             console.log('📝 Result message length:', resultMessage.length);
             console.log('📝 Result message preview:', resultMessage.substring(0, 100));
