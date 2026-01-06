@@ -2913,6 +2913,21 @@ router.get('/session/:sessionId', async (c) => {
             const img = document.getElementById('capturedImage');
             const cropCanvas = document.getElementById('cropCanvas');
             
+            // 画像データを取得（カメラ撮影 or ファイル選択）
+            const imageData = originalImageData || window.currentImageDataUrl;
+            
+            if (!imageData) {
+                console.error('❌ No image data available for cropping');
+                alert('画像データが見つかりません。もう一度撮影またはアップロードしてください。');
+                return;
+            }
+            
+            console.log('🔍 Starting crop with image data:', {
+                hasOriginalImageData: !!originalImageData,
+                hasCurrentImageDataUrl: !!window.currentImageDataUrl,
+                usingData: imageData.substring(0, 50) + '...'
+            });
+            
             // キャンバスに画像を描画
             const image = new Image();
             image.onload = function() {
@@ -2932,8 +2947,18 @@ router.get('/session/:sessionId', async (c) => {
                 };
                 
                 drawCropArea();
+                
+                console.log('✅ Crop canvas initialized:', {
+                    width: cropCanvas.width,
+                    height: cropCanvas.height,
+                    cropArea
+                });
             };
-            image.src = originalImageData;
+            image.onerror = function() {
+                console.error('❌ Failed to load image for cropping');
+                alert('画像の読み込みに失敗しました。もう一度お試しください。');
+            };
+            image.src = imageData;
             
             // UI切り替え
             img.classList.add('hidden');
