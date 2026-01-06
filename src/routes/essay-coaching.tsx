@@ -2319,11 +2319,20 @@ router.get('/session/:sessionId', async (c) => {
             const btnPass = document.getElementById('btnPass');
             const btnKanryo = document.getElementById('btnKanryo');
             
-            // すべてのボタンを非表示にする
+            // OCR完了メッセージの場合、btnKanryoは非表示にしない
+            const isOCRComplete = aiResponse && (
+                aiResponse.includes('すべてのページの処理が完了') ||
+                aiResponse.includes('読み取り内容を確認') ||
+                aiResponse.includes('「確認完了」と入力してください')
+            );
+            
+            // すべてのボタンを非表示にする（OCR完了時はbtnKanryo以外）
             btnOK.classList.add('hidden');
             btnYonda.classList.add('hidden');
             btnPass.classList.add('hidden');
-            btnKanryo.classList.add('hidden');
+            if (!isOCRComplete) {
+                btnKanryo.classList.add('hidden');
+            }
             
             if (!aiResponse) return;
             
@@ -2343,7 +2352,19 @@ router.get('/session/:sessionId', async (c) => {
                 btnPass.classList.remove('hidden');
             }
             
-            if (aiResponse.includes('「完了」と入力') || aiResponse.includes('書いたつもりで')) {
+            if (aiResponse.includes('「完了」と入力') || 
+                aiResponse.includes('書いたつもりで') ||
+                aiResponse.includes('「確認完了」と入力') ||
+                aiResponse.includes('確認完了と入力') ||
+                aiResponse.includes('すべてのページの処理が完了しました')) {
+                // OCR完了後は「確認完了」ボタンとして表示
+                if (aiResponse.includes('確認完了') || aiResponse.includes('すべてのページの処理が完了')) {
+                    btnKanryo.textContent = '確認完了';
+                    btnKanryo.onclick = function() { quickAction('確認完了'); };
+                } else {
+                    btnKanryo.textContent = '✅ 完了';
+                    btnKanryo.onclick = function() { quickAction('完了'); };
+                }
                 btnKanryo.classList.remove('hidden');
             }
         }
