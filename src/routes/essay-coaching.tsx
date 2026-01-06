@@ -3053,6 +3053,14 @@ router.get('/session/:sessionId', async (c) => {
             const canvas = document.getElementById('cropCanvas');
             const ctx = canvas.getContext('2d');
             
+            // 画像データを取得（カメラ撮影 or ファイル選択）
+            const imageData = originalImageData || window.currentImageDataUrl;
+            
+            if (!imageData) {
+                console.error('❌ No image data for drawing crop area');
+                return;
+            }
+            
             // 画像を再描画
             const img = new Image();
             img.onload = function() {
@@ -3108,7 +3116,10 @@ router.get('/session/:sessionId', async (c) => {
                 ctx.lineTo(cropArea.x + cropArea.width, cropArea.y + cropArea.height - cornerSize);
                 ctx.stroke();
             };
-            img.src = originalImageData;
+            img.onerror = function() {
+                console.error('❌ Failed to load image for drawing crop area');
+            };
+            img.src = imageData;
         }
         
         // クロップを適用
