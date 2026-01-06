@@ -1138,7 +1138,18 @@ router.post('/feedback', async (c) => {
     return c.json({
       ok: true,
       feedback,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // 🔍 デバッグ情報を追加
+      debug: {
+        themeTitle,
+        mainProblem,
+        essayTextLength: essayText.length,
+        essayTextPreview: essayText.substring(0, 200),
+        targetCharCount,
+        hasLastThemeTitle: !!session.essaySession.lastThemeTitle,
+        hasMainProblem: !!session.essaySession.mainProblem,
+        hasChallengeProblem: !!session.essaySession.challengeProblem
+      }
     }, 200)
     
   } catch (error) {

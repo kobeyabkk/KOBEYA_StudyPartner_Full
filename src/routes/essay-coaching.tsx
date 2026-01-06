@@ -2488,6 +2488,17 @@ router.get('/session/:sessionId', async (c) => {
                 const result = await response.json();
                 console.log('🤖 Feedback API result:', result);
                 
+                // 🔍 デバッグ情報を表示
+                if (result.debug) {
+                    console.log('🔍 デバッグ情報:', {
+                        テーマ: result.debug.themeTitle,
+                        課題: result.debug.mainProblem,
+                        文字数: result.debug.essayTextLength,
+                        テキストプレビュー: result.debug.essayTextPreview,
+                        目標文字数: result.debug.targetCharCount
+                    });
+                }
+                
                 if (result.ok && result.feedback) {
                     displayFeedback(result.feedback);
                 } else {
