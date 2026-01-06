@@ -2586,6 +2586,15 @@ router.get('/session/:sessionId', async (c) => {
             
             addMessage(feedbackHtml, true);
             addMessage('添削が完了しました！\\n内容を確認して、「完了」と入力してください。', true);
+            
+            // 「完了」ボタンを表示
+            const btnKanryo = document.getElementById('btnKanryo');
+            if (btnKanryo) {
+                btnKanryo.textContent = '完了';
+                btnKanryo.onclick = function() { quickAction('完了'); };
+                btnKanryo.classList.remove('hidden');
+                console.log('✅ btnKanryo (完了) displayed after feedback');
+            }
         }
         
         // カメラ関連の変数

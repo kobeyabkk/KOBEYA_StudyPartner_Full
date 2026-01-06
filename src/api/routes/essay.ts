@@ -1117,6 +1117,19 @@ router.post('/feedback', async (c) => {
       createdAt: new Date().toISOString()
     })
     
+    // ステップごとにフィードバックを保存（Step 6のまとめで使用）
+    if (currentStep === 1) {
+      session.essaySession.step1Feedback = feedback
+    } else if (currentStep === 2) {
+      session.essaySession.step2Feedback = feedback
+    } else if (currentStep === 3) {
+      session.essaySession.step3Feedback = feedback
+    } else if (currentStep === 4) {
+      session.essaySession.step4Feedback = feedback
+    } else if (currentStep === 5) {
+      session.essaySession.step5Feedback = feedback
+    }
+    
     // インメモリとD1の両方を更新
     await updateSession(db, sessionId, { essaySession: session.essaySession })
     
