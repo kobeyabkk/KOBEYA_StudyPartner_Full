@@ -2245,14 +2245,18 @@ router.get('/session/:sessionId', async (c) => {
                     updateQuickActions(result.response);
                     
                     // Step 4 または Step 5で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
-                    if ((currentStep === 4 || currentStep === 5) && 
+                    const willExecuteFeedback = (currentStep === 4 || currentStep === 5) && 
                         (text.includes('確認完了') || text.includes('修正完了') || 
-                         (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')))) {
+                         (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')));
+                    
+                    if (willExecuteFeedback) {
                         // OCR結果があることを確認してからAI添削を実行
                         await requestAIFeedback();
+                        // AI添削を実行する場合、ステップ完了チェックはスキップ（requestAIFeedback内で処理）
+                        return;
                     }
                     
-                    // ステップ完了チェック
+                    // ステップ完了チェック（AI添削を実行しない場合のみ）
                     console.log('🔍 Checking step completion:', result.stepCompleted);
                     if (result.stepCompleted) {
                         console.log('✅ Step completed! Showing completion message');
@@ -2493,6 +2497,32 @@ router.get('/session/:sessionId', async (c) => {
             } catch (error) {
                 console.error('❌ AI feedback error:', error);
                 addMessage('AI添削の通信エラーが発生しました。', true);
+            } finally {
+                // ローディングインジケーターを削除
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+                
+                // 送信ボタンを有効化
+                const sendBtn = document.getElementById('sendBtn');
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+                    sendBtn.style.opacity = '1';
+                    sendBtn.style.cursor = 'pointer';
+                }
+                
+                // 入力エリアを有効化
+                const input = document.getElementById('userInput');
+                if (input) {
+                    input.disabled = false;
+                    input.style.opacity = '1';
+                    input.focus();
+                }
+                
+                // 重複防止フラグをリセット
+                isProcessing = false;
             }
         }
         
