@@ -2782,8 +2782,14 @@ router.get('/session/:sessionId', async (c) => {
                 '【読み取り内容】',
                 totalText,
                 '',
-                '内容を確認して、「確認完了」と入力してください。',
-                '修正が必要な場合は、正しいテキストを入力して送信してください。'
+                '✅ 内容が正しい場合：',
+                '「確認完了」と入力してください。',
+                '→ すぐにAI添削が開始されます',
+                '',
+                '✏️ 修正が必要な場合：',
+                '上の読み取り結果をコピーして、下の回答入力欄に貼り付けてから修正するとやりやすいです。',
+                '修正後の正しいテキスト全文を送信してください。',
+                '→ 修正内容が保存され、AI添削が開始されます'
             ];
             // Use String.fromCharCode(10) for newline to avoid escaping issues in HTML template literal
             const resultMessage = messageParts.join(String.fromCharCode(10));
@@ -3454,11 +3460,21 @@ router.get('/session/:sessionId', async (c) => {
                     '下の入力欄に「<strong>確認完了</strong>」と入力して送信ボタンを押してください。<br>' +
                     '<span style="color: #059669; font-size: 0.9em;">→ すぐにAI添削が開始されます</span><br><br>' +
                     '<strong>✏️ 修正が必要な場合：</strong><br>' +
-                    '修正後の正しいテキスト全文を入力して送信してください。<br>' +
+                    '上の読み取り結果をコピーして、下の回答入力欄に貼り付けてから修正するとやりやすいです。<br>' +
+                    '修正後の正しいテキスト全文を送信してください。<br>' +
                     '<span style="color: #059669; font-size: 0.9em;">→ 修正内容が保存され、AI添削が開始されます</span>' +
                     '</div>' +
                     '</div>';
                 addMessage(instructionHtml, true);
+                
+                // 確認完了ボタンを表示
+                const btnKanryo = document.getElementById('btnKanryo');
+                if (btnKanryo) {
+                    btnKanryo.textContent = '確認完了';
+                    btnKanryo.onclick = function() { quickAction('確認完了'); };
+                    btnKanryo.classList.remove('hidden');
+                    console.log('✅ btnKanryo displayed after OCR completion');
+                }
             } else {
                 addMessage('❌ 画像の読み取りに問題があります。\\n上記の改善点を参考に、カメラボタン（📷）を押してもう一度撮影してください。', true);
             }
