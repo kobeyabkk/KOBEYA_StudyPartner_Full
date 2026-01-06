@@ -761,11 +761,15 @@ router.post('/feedback', async (c) => {
       }
     }
     
+    // 複数ページのOCRがある場合は、全ページのテキストを結合
+    const allTexts = targetOCRs.map((ocr: OCRResult) => ocr.text || '')
+    const essayText = allTexts.join('\n')
+    const totalCharCount = essayText.length
     const latestOCR = targetOCRs[targetOCRs.length - 1]
-    const essayText = latestOCR.text || ''
     
     console.log('📝 Using OCR from step:', latestOCR.step)
-    console.log('📏 Essay text length:', essayText.length, 'characters')
+    console.log('📏 Total OCR pages:', targetOCRs.length)
+    console.log('📏 Essay text length (combined):', totalCharCount, 'characters')
     
     // テーマと課題を取得
     const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
@@ -845,7 +849,7 @@ router.post('/feedback', async (c) => {
       console.warn('⚠️ OPENAI_API_KEY not found - using mock feedback')
       console.log('📝 Essay text for mock:', essayText.substring(0, 100) + '...')
       
-      const actualCharCount = latestOCR.charCount || essayText.length
+      const actualCharCount = totalCharCount
       const targetMin = 400
       const targetMax = 600
       
@@ -1009,7 +1013,7 @@ router.post('/feedback', async (c) => {
       }
       
       // 文字数を追加（OCR結果から取得）
-      feedback.charCount = latestOCR.charCount || essayText.length
+      feedback.charCount = totalCharCount
       
       console.log('✅ Feedback validated and converted successfully')
       
@@ -1087,7 +1091,7 @@ router.post('/feedback', async (c) => {
           '序論・本論・結論の構成を明確にしましょう。'
         ],
         overallScore: 65,
-        charCount: latestOCR.charCount || essayText.length,
+        charCount: totalCharCount,
         isFallback: true
       }
     }
