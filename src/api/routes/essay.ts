@@ -775,6 +775,14 @@ router.post('/feedback', async (c) => {
     const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
     const mainProblem = session.essaySession.mainProblem || session.essaySession.challengeProblem || 'SNSが社会に与える影響について、あなたの考えを述べなさい'
     
+    console.log('🎯 Feedback - Theme and Problem:', {
+      themeTitle,
+      mainProblem,
+      hasLastThemeTitle: !!session.essaySession.lastThemeTitle,
+      hasMainProblem: !!session.essaySession.mainProblem,
+      hasChallengeProblem: !!session.essaySession.challengeProblem
+    })
+    
     // 目標文字数を取得（Step 4/5は400-800字）
     const targetCharCount = 500 // デフォルト
     
@@ -915,6 +923,7 @@ router.post('/feedback', async (c) => {
     console.log('📝 Essay text length:', essayText.length, 'chars')
     console.log('🎯 Theme:', themeTitle)
     console.log('📋 Problem:', mainProblem)
+    console.log('📝 Essay text preview (first 200 chars):', essayText.substring(0, 200))
     
     const stage2SystemPrompt = generateStage2SystemPrompt()
     const stage2UserPrompt = generateStage2UserPrompt({
@@ -923,6 +932,8 @@ router.post('/feedback', async (c) => {
       mainProblem,
       targetCharCount
     })
+    
+    console.log('📤 User prompt preview (first 500 chars):', stage2UserPrompt.substring(0, 500))
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -987,7 +998,8 @@ router.post('/feedback', async (c) => {
         improvementsCount: feedback.improvements.length,
         nextStepsCount: feedback.nextSteps.length,
         hasExample: !!feedback.exampleImprovement,
-        overallScore: feedback.overallScore
+        overallScore: feedback.overallScore,
+        scores: feedback.scores
       })
       
       // バリデーション: 必須フィールドの確認
