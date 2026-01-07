@@ -3539,9 +3539,21 @@ ${targetLevel === 'high_school' ? `
         step5: session?.essaySession?.step5Feedback?.overallScore || 0
       }
       
-      const averageScore = totalSteps > 0 
-        ? Math.round((scores.step1 + scores.step2 + scores.step3 + scores.step5) / 4) 
+      console.log('📊 Step 6 - Retrieved scores:', scores)
+      
+      // スコアが0以外のステップのみで平均を計算
+      const validScores = []
+      if (scores.step1 > 0) validScores.push(scores.step1)
+      if (scores.step2 > 0) validScores.push(scores.step2)
+      if (scores.step3 > 0) validScores.push(scores.step3)
+      if (scores.step5 > 0) validScores.push(scores.step5)
+      
+      const averageScore = validScores.length > 0 
+        ? Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length) 
         : 0
+      
+      console.log('📊 Step 6 - Valid scores:', validScores)
+      console.log('📊 Step 6 - Average score:', averageScore)
       
       response = `🎊 お疲れ様でした！本日の学習を完了しました！
       
