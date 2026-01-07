@@ -3119,7 +3119,14 @@ ${targetLevel === 'high_school' ? `
           } else {
             // ランダムに5-10問を選択（全部の問題が10問未満の場合は全部）
             const reviewCount = Math.min(10, allItems.length)
-            const shuffled = allItems.sort(() => Math.random() - 0.5)
+            
+            // Fisher-Yatesシャッフルアルゴリズムで完全にランダム化
+            const shuffled = [...allItems]
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+            }
+            
             const reviewItems = shuffled.slice(0, reviewCount)
             
             console.log('📝 Review test - Selected items:', reviewCount)
