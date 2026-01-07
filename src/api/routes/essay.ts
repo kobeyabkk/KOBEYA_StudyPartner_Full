@@ -3560,6 +3560,15 @@ ${targetLevel === 'high_school' ? `
       const progressPercentage = Math.round((totalSteps / 5) * 100)
       
       // スコア情報を取得
+      console.log('📊 Step 6 - session.essaySession:', {
+        hasFeedbacks: !!session?.essaySession?.feedbacks,
+        feedbacksLength: session?.essaySession?.feedbacks?.length || 0,
+        hasStep1Feedback: !!session?.essaySession?.step1Feedback,
+        hasStep2Feedback: !!session?.essaySession?.step2Feedback,
+        hasStep3Feedback: !!session?.essaySession?.step3Feedback,
+        hasStep5Feedback: !!session?.essaySession?.step5Feedback
+      })
+      
       const scores = {
         step1: session?.essaySession?.step1Feedback?.overallScore || 0,
         step2: session?.essaySession?.step2Feedback?.overallScore || 0,
