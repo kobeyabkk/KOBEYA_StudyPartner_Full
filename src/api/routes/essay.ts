@@ -2414,6 +2414,7 @@ ${targetLevel === 'high_school' ? `
         // 毎回違う語彙力強化問題を生成
         let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n4. 「ちゃんと」→ ?\n5. 「いっぱい」→ ?'
         let vocabExample = '「すごく大事」→「極めて重要」'
+        let generatedText = '' // デバッグ用
         
         try {
           const openaiApiKey = c.env?.OPENAI_API_KEY
@@ -2480,6 +2481,7 @@ ${targetLevel === 'high_school' ? `
           console.log('✅ OpenAI API call successful for vocab problems')
           
           const generated = result.choices?.[0]?.message?.content || ''
+          generatedText = generated // デバッグ用に保存
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
           console.log('📊 AI Generated vocab content (first 500 chars):', generated?.substring(0, 500))
           
@@ -2560,7 +2562,7 @@ ${targetLevel === 'high_school' ? `
         console.log('✅ Vocab answers saved to session and DB')
         
         // デバッグ: AI生成結果をクライアント側でも確認できるようにする
-        const debugInfo = generated ? `\n\n🔍 DEBUG: AI response length: ${generated.length} chars` : '\n\n⚠️ DEBUG: No AI response'
+        const debugInfo = generatedText ? `\n\n🔍 DEBUG: AI response length: ${generatedText.length} chars` : '\n\n⚠️ DEBUG: No AI response'
         
         // すぐに語彙問題を表示
         response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
