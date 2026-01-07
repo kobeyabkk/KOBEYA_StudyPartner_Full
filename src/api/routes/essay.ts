@@ -2369,7 +2369,10 @@ ${targetLevel === 'high_school' ? `
         const vocabTitle = '【語彙力強化① - 基礎編】'
         const vocabSubtitle = '口語表現を小論文風に言い換える練習をしましょう。'
         
-        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+        // デバッグ: AI生成結果をクライアント側でも確認できるようにする
+        const debugInfo = generated ? `\n\n🔍 DEBUG: AI response length: ${generated.length} chars` : '\n\n⚠️ DEBUG: No AI response'
+        
+        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
         
         // セッション更新
         learningSessions.set(sessionId, session)
@@ -2556,8 +2559,11 @@ ${targetLevel === 'high_school' ? `
         await saveSessionToDB(db, sessionId, session)
         console.log('✅ Vocab answers saved to session and DB')
         
+        // デバッグ: AI生成結果をクライアント側でも確認できるようにする
+        const debugInfo = generated ? `\n\n🔍 DEBUG: AI response length: ${generated.length} chars` : '\n\n⚠️ DEBUG: No AI response'
+        
         // すぐに語彙問題を表示
-        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
+        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
       }
       // 回答が短すぎる
       else {
