@@ -2244,8 +2244,8 @@ router.get('/session/:sessionId', async (c) => {
                     // クイックアクションボタンを更新
                     updateQuickActions(result.response);
                     
-                    // Step 4 または Step 5で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
-                    const willExecuteFeedback = (currentStep === 4 || currentStep === 5) && 
+                    // Step 3, Step 4, Step 5 で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
+                    const willExecuteFeedback = (currentStep === 3 || currentStep === 4 || currentStep === 5) && 
                         (text.includes('確認完了') || text.includes('修正完了') || 
                          (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')));
                     
