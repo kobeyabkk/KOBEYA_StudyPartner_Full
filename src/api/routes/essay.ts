@@ -3592,6 +3592,9 @@ ${targetLevel === 'high_school' ? `
       console.log('📊 Step 6 - Valid scores:', validScores)
       console.log('📊 Step 6 - Average score:', averageScore)
       
+      // デバッグ情報をレスポンスに追加
+      const debugInfo = `\n🔍 DEBUG INFO:\n- scores: ${JSON.stringify(scores)}\n- validScores: ${JSON.stringify(validScores)}\n- averageScore: ${averageScore}\n`
+      
       response = `🎊 お疲れ様でした！本日の学習を完了しました！
       
 ━━━━━━━━━━━━━━━━━━
@@ -3631,7 +3634,7 @@ ${averageScore < 60 ? '💪 まずは基礎を固めましょう。テーマと�
 本日の学習セッションは以上です。
 また次回、新しいテーマでお会いしましょう！
 
-「完了」と入力すると、セッションを終了します。`
+「完了」と入力すると、セッションを終了します。${debugInfo}`
       
       if (message.includes('完了')) {
         stepCompleted = true
