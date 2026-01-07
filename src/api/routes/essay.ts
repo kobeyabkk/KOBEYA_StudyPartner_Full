@@ -2295,15 +2295,19 @@ ${targetLevel === 'high_school' ? `
           
           const generated = result.choices?.[0]?.message?.content || ''
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
+          console.log('📊 AI Generated vocab content (first 500 chars):', generated?.substring(0, 500))
           
           let vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱりそう」→「やはりそのとおり」または「確かにそうだ」\n3. 「だから必要」→「したがって必要」または「それゆえ必要」\n4. 「ちゃんと確認」→「適切に確認」または「正確に確認」\n5. 「いっぱいある」→「多数存在する」または「数多く存在する」'
           
           if (generated && generated.length > 20) {
+            console.log('🔍 Attempting to parse vocab answers from generated content...')
             const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
             
             if (answerMatch) {
+              console.log('✅ Found 【模範解答】 section')
               const answerText = answerMatch[1].trim()
               vocabAnswers = '【模範解答】\n' + answerText
+              console.log('✅ Using AI-generated vocab answers')
               
               const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
               if (exampleMatch) {
@@ -2323,6 +2327,9 @@ ${targetLevel === 'high_school' ? `
                 vocabProblems = problemLines.join('\n')
                 console.log('✅ Generated problems from answers:', vocabProblems)
               }
+            } else {
+              console.warn('⚠️ Could not find 【模範解答】 section in generated content')
+              console.warn('⚠️ Using fallback vocab answers')
             }
             
             if (!session.essaySession) {
@@ -2331,7 +2338,7 @@ ${targetLevel === 'high_school' ? `
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep1 = vocabAnswers  // Step 1用に保存
             
-            console.log('✅ Using AI-generated vocab problems and answers')
+            console.log('✅ Using vocab problems and answers')
           } else {
             console.warn('⚠️ AI vocab too short, using fallback')
             vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱりそう」→ ?\n3. 「だから必要」→ ?\n4. 「ちゃんと確認」→ ?\n5. 「いっぱいある」→ ?'
@@ -2471,17 +2478,20 @@ ${targetLevel === 'high_school' ? `
           
           const generated = result.choices?.[0]?.message?.content || ''
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
-          console.log('📝 Generated vocab preview:', generated?.substring(0, 200) || 'EMPTY')
+          console.log('📊 AI Generated vocab content (first 500 chars):', generated?.substring(0, 500))
           
           let vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱりそう」→「やはりそのとおり」または「確かにそうだ」\n3. 「だから必要」→「したがって必要」または「それゆえ必要」\n4. 「ちゃんと確認」→「適切に確認」または「正確に確認」\n5. 「いっぱいある」→「多数存在する」または「数多く存在する」'
           
           if (generated && generated.length > 20) {
+            console.log('🔍 Attempting to parse vocab answers from generated content...')
             // 模範解答を抽出
             const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
             
             if (answerMatch) {
+              console.log('✅ Found 【模範解答】 section')
               const answerText = answerMatch[1].trim()
               vocabAnswers = '【模範解答】\n' + answerText
+              console.log('✅ Using AI-generated vocab answers')
               
               // 例を抽出
               const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
@@ -2504,6 +2514,9 @@ ${targetLevel === 'high_school' ? `
                 vocabProblems = problemLines.join('\n')
                 console.log('✅ Generated problems from answers:', vocabProblems)
               }
+            } else {
+              console.warn('⚠️ Could not find 【模範解答】 section in generated content')
+              console.warn('⚠️ Using fallback vocab answers')
             }
             
             // セッションに解答を保存
@@ -2513,7 +2526,7 @@ ${targetLevel === 'high_school' ? `
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
             
-            console.log('✅ Using AI-generated vocab problems and answers')
+            console.log('✅ Using vocab problems and answers')
             console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
           } else {
             console.warn('⚠️ AI vocab too short, using fallback')
