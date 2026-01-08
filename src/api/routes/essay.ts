@@ -2369,8 +2369,8 @@ ${targetLevel === 'high_school' ? `
         const vocabTitle = '【語彙力強化① - 基礎編】'
         const vocabSubtitle = '口語表現を小論文風に言い換える練習をしましょう。'
         
-        // デバッグ: AI生成結果をクライアント側でも確認できるようにする
-        const debugInfo = generated ? `\n\n🔍 DEBUG: AI response length: ${generated.length} chars` : '\n\n⚠️ DEBUG: No AI response'
+        // デバッグ情報は表示しない（生成は成功しているため）
+        const debugInfo = ''
         
         response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
         
