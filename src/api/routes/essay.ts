@@ -343,6 +343,108 @@ function toErrorMessage(error: unknown, fallback = '不明なエラー'): string
   return String(error ?? fallback) || fallback
 }
 
+// AI vocabulary answer validation function
+async function validateVocabularyAnswer(
+  openaiApiKey: string,
+  userAnswer: string,
+  problems: string,
+  modelAnswers: string
+): Promise<{ isValid: boolean; feedback: string }> {
+  try {
+    console.log('🤖 Validating vocabulary answer with AI...')
+    
+    const systemPrompt = `あなたは小論文の先生です。生徒の語彙力強化の回答を評価してください。
+
+【問題】
+${problems}
+
+【模範解答】
+${modelAnswers}
+
+【評価基準】
+1. 生徒が5つの問題すべてに答えているか
+2. 各回答が口語表現から書き言葉への適切な言い換えになっているか
+3. 無意味な繰り返しや適当な回答ではないか（例：「すごく大事なことすごく大事なこと...」のような繰り返し）
+4. 模範解答と完全一致でなくても、適切な言い換えであれば正解とする
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "isValid": true または false,
+  "feedback": "評価コメント"
+}
+
+isValid: 真剣に取り組んでいて、概ね適切な回答なら true。明らかに適当な回答（繰り返しだけ、無意味な文字列など）なら false。
+feedback: 良い点と改善点を簡潔に（3-4行程度）`
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `以下の生徒の回答を評価してください。\n\n【生徒の回答】\n${userAnswer}` }
+        ],
+        max_tokens: 500,
+        temperature: 0.3
+      })
+    })
+    
+    if (!response.ok) {
+      console.error('❌ OpenAI API error:', response.status)
+      // APIエラー時はフォールバック：長さチェックのみ
+      const lines = userAnswer.split('\n').filter(line => line.trim().length > 0)
+      const isValid = lines.length >= 3 && userAnswer.length >= 30
+      return {
+        isValid,
+        feedback: isValid 
+          ? 'よく取り組めていますね！' 
+          : 'もう少し詳しく答えてみましょう。各問題について、適切な言い換えを考えてください。'
+      }
+    }
+    
+    const data = await response.json() as OpenAIChatCompletionResponse
+    const aiResponse = data.choices?.[0]?.message?.content || ''
+    console.log('✅ AI validation response:', aiResponse)
+    
+    // JSONをパース
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0])
+        return {
+          isValid: result.isValid === true,
+          feedback: result.feedback || 'よく取り組めていますね！'
+        }
+      }
+    } catch (parseError) {
+      console.warn('⚠️ JSON parse error, using fallback')
+    }
+    
+    // JSONパース失敗時のフォールバック
+    const isValid = !aiResponse.includes('適当') && !aiResponse.includes('不適切') && aiResponse.length > 20
+    return {
+      isValid,
+      feedback: aiResponse.substring(0, 200) || 'よく取り組めていますね！'
+    }
+    
+  } catch (error) {
+    console.error('❌ Vocabulary validation error:', error)
+    // エラー時はフォールバック：基本的な長さチェック
+    const lines = userAnswer.split('\n').filter(line => line.trim().length > 0)
+    const isValid = lines.length >= 3 && userAnswer.length >= 30
+    return {
+      isValid,
+      feedback: isValid 
+        ? 'よく取り組めていますね！' 
+        : 'もう少し詳しく答えてみましょう。'
+    }
+  }
+}
+
 router.post('/init-session', async (c) => {
   console.log('📝 Essay session init API called')
   
@@ -1262,11 +1364,36 @@ router.post('/chat', async (c) => {
         }
         // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
         else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-          // セッションから最新の模範解答を取得
+          // セッションから最新の模範解答と問題を取得
           const savedAnswers = session?.essaySession?.vocabAnswers || '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+          const vocabProblems = session?.essaySession?.lastVocabProblems || '語彙力強化問題'
           
-          response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
-          stepCompleted = true
+          // AI validation
+          try {
+            const openaiApiKey = c.env?.OPENAI_API_KEY
+            if (!openaiApiKey) {
+              console.error('❌ OPENAI_API_KEY not configured for vocab validation')
+              throw new Error('OpenAI API key not configured')
+            }
+            
+            const validation = await validateVocabularyAnswer(openaiApiKey, message, vocabProblems, savedAnswers)
+            
+            if (validation.isValid) {
+              response = `${validation.feedback}\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+              stepCompleted = true
+            } else {
+              response = `${validation.feedback}\n\nもう一度チャレンジしてみましょう。\n\n各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）`
+            }
+          } catch (error) {
+            console.error('❌ Vocab validation error:', error)
+            // フォールバック：基本的な長さチェック
+            if (message.length >= 30) {
+              response = `よく取り組めていますね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+              stepCompleted = true
+            } else {
+              response = 'もう少し詳しく答えてみましょう。各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）'
+            }
+          }
         }
         // 「OK」で語彙問題を生成（後続の処理で実行）
       }
@@ -2337,6 +2464,7 @@ ${targetLevel === 'high_school' ? `
             }
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep1 = vocabAnswers  // Step 1用に保存
+            session.essaySession.lastVocabProblems = vocabProblems  // 問題も保存
             
             console.log('✅ Using vocab problems and answers')
           } else {
@@ -2347,6 +2475,7 @@ ${targetLevel === 'high_school' ? `
             }
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep1 = vocabAnswers  // Step 1用に保存
+            session.essaySession.lastVocabProblems = vocabProblems  // 問題も保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
@@ -2363,6 +2492,7 @@ ${targetLevel === 'high_school' ? `
           }
           session.essaySession.vocabAnswers = fallbackAnswers
           session.essaySession.vocabAnswersStep1 = fallbackAnswers  // Step 1用に保存
+          session.essaySession.lastVocabProblems = vocabProblems  // 問題も保存
         }
         
         // 語彙問題を表示
@@ -2404,8 +2534,38 @@ ${targetLevel === 'high_school' ? `
       }
       // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
       else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
-        stepCompleted = true
+        // セッションから最新の模範解答と問題を取得
+        const savedAnswers = session?.essaySession?.vocabAnswersStep2 || 
+                            session?.essaySession?.vocabAnswers || 
+                            '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+        const vocabProblems = session?.essaySession?.lastVocabProblemsStep2 || '語彙力強化問題②'
+        
+        // AI validation
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for vocab validation')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const validation = await validateVocabularyAnswer(openaiApiKey, message, vocabProblems, savedAnswers)
+          
+          if (validation.isValid) {
+            response = `${validation.feedback}\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+            stepCompleted = true
+          } else {
+            response = `${validation.feedback}\n\nもう一度チャレンジしてみましょう。\n\n各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）`
+          }
+        } catch (error) {
+          console.error('❌ Vocab validation error:', error)
+          // フォールバック：基本的な長さチェック
+          if (message.length >= 30) {
+            response = `よく取り組めていますね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+            stepCompleted = true
+          } else {
+            response = 'もう少し詳しく答えてみましょう。各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）'
+          }
+        }
       }
       // 「OK」または「はい」で演習開始
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
@@ -2530,6 +2690,7 @@ ${targetLevel === 'high_school' ? `
             }
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
+            session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
             
             console.log('✅ Using vocab problems and answers')
             console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
@@ -2543,17 +2704,20 @@ ${targetLevel === 'high_school' ? `
             }
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
+            session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
           console.log('🔄 Using fallback vocab problems')
           // エラー時も解答を保存
           const vocabAnswers = '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱりそう」→「やはりそのとおり」または「確かにそうだ」\n3. 「だから必要」→「したがって必要」または「それゆえ必要」\n4. 「ちゃんと確認」→「適切に確認」または「正確に確認」\n5. 「いっぱいある」→「多数存在する」または「数多く存在する」'
+          vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱりそう」→ ?\n3. 「だから必要」→ ?\n4. 「ちゃんと確認」→ ?\n5. 「いっぱいある」→ ?'
           if (!session.essaySession) {
             session.essaySession = {}
           }
           session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
           session.essaySession.vocabAnswers = vocabAnswers
+          session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
         }
         
         // セッションを保存
@@ -2949,10 +3113,40 @@ ${targetLevel === 'high_school' ? `
         response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
-      // 答えを入力した場合
+      // 答えを入力した場合（10文字以上、かつ「ok」「はい」を含まない）
       else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        response = `素晴らしい言い換えですね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
-        stepCompleted = true
+        // セッションから最新の模範解答と問題を取得
+        const savedAnswers = session?.essaySession?.vocabAnswersStep3 || 
+                            session?.essaySession?.vocabAnswers || 
+                            '【模範解答】\n1. 「すごく大事」→「極めて重要」または「非常に重要」\n2. 「やっぱり」→「やはり」または「結局」\n3. 「だから」→「したがって」または「それゆえ」\n4. 「ちゃんと」→「適切に」または「正確に」\n5. 「いっぱい」→「多数」または「数多く」'
+        const vocabProblems = session?.essaySession?.lastVocabProblemsStep3 || '語彙力強化問題③'
+        
+        // AI validation
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for vocab validation')
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const validation = await validateVocabularyAnswer(openaiApiKey, message, vocabProblems, savedAnswers)
+          
+          if (validation.isValid) {
+            response = `${validation.feedback}\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+            stepCompleted = true
+          } else {
+            response = `${validation.feedback}\n\nもう一度チャレンジしてみましょう。\n\n各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）`
+          }
+        } catch (error) {
+          console.error('❌ Vocab validation error:', error)
+          // フォールバック：基本的な長さチェック
+          if (message.length >= 30) {
+            response = `よく取り組めていますね！\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\n語彙力が向上しています。このステップは完了です。「次のステップへ」ボタンを押してください。`
+            stepCompleted = true
+          } else {
+            response = 'もう少し詳しく答えてみましょう。各問題について、適切な言い換えを考えてください。\n（わからない場合は「パス」と入力すると解説します）'
+          }
+        }
       }
       // 「OK」で語彙問題③を生成
       else if (message.toLowerCase().trim() === 'ok' || message.includes('はい')) {
@@ -3054,6 +3248,7 @@ ${targetLevel === 'high_school' ? `
             }
             session.essaySession.vocabAnswers = vocabAnswers
             session.essaySession.vocabAnswersStep3 = vocabAnswers  // Step 3用に保存
+            session.essaySession.lastVocabProblemsStep3 = vocabProblems  // 問題も保存
           }
         } catch (error) {
           console.error('❌ Vocab problems generation error (Step 3):', error)
@@ -3066,6 +3261,7 @@ ${targetLevel === 'high_school' ? `
           }
           session.essaySession.vocabAnswers = fallbackAnswers
           session.essaySession.vocabAnswersStep3 = fallbackAnswers  // Step 3用に保存
+          session.essaySession.lastVocabProblemsStep3 = vocabProblems  // 問題も保存
         }
         
         response = `【語彙力強化③ - 実践編】\n実践的な表現に挑戦しましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
