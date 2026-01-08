@@ -2256,6 +2256,13 @@ router.get('/session/:sessionId', async (c) => {
                         return;
                     }
                     
+                    // Step 3 で「完了」を送信した場合、ステップを完了させる
+                    if (currentStep === 3 && text === '完了') {
+                        console.log('✅ Step 3: 完了 received, completing step');
+                        showStepCompletion();
+                        return;
+                    }
+                    
                     // ステップ完了チェック（AI添削を実行しない場合のみ）
                     console.log('🔍 Checking step completion:', result.stepCompleted);
                     if (result.stepCompleted) {
