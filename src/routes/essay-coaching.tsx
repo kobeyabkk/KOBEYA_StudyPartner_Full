@@ -2244,12 +2244,18 @@ router.get('/session/:sessionId', async (c) => {
                     // クイックアクションボタンを更新
                     updateQuickActions(result.response);
                     
-                    // Step 3, Step 4, Step 5 で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
+                    // Step 3, Step 4, Step 5 で「確認完了」「修正完了」の場合、AI添削を実行
                     // ただし、vocabulary_focus モードの Step 3, 4 は除外（語彙問題はAI添削不要）
+                    // Step 3 では修正テキスト入力時はサーバー側で添削済みのため、クライアント側では呼ばない
                     const isVocabStep = ((currentStep === 3 || currentStep === 4) && sessionData?.lessonFormat === 'vocabulary_focus');
-                    const willExecuteFeedback = !isVocabStep && (currentStep === 3 || currentStep === 4 || currentStep === 5) && 
-                        (text.includes('確認完了') || text.includes('修正完了') || 
-                         (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')));
+                    const willExecuteFeedback = !isVocabStep && (
+                        // Step 3: 確認完了/修正完了のみ（修正テキスト送信時はサーバー側で処理済み）
+                        (currentStep === 3 && (text.includes('確認完了') || text.includes('修正完了'))) ||
+                        // Step 4, 5: 確認完了/修正完了 + 修正テキスト入力
+                        ((currentStep === 4 || currentStep === 5) && 
+                         (text.includes('確認完了') || text.includes('修正完了') || 
+                          (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい'))))
+                    );
                     
                     if (willExecuteFeedback) {
                         // OCR結果があることを確認してからAI添削を実行
