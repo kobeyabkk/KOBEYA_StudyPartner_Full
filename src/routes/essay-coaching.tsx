@@ -2245,9 +2245,9 @@ router.get('/session/:sessionId', async (c) => {
                     updateQuickActions(result.response);
                     
                     // Step 3, Step 4, Step 5 で「確認完了」「修正完了」または修正テキスト入力の場合、AI添削を実行
-                    // ただし、vocabulary_focus モードの Step 3 は除外（語彙問題はAI添削不要）
-                    const isVocabStep3 = (currentStep === 3 && sessionData?.lessonFormat === 'vocabulary_focus');
-                    const willExecuteFeedback = !isVocabStep3 && (currentStep === 3 || currentStep === 4 || currentStep === 5) && 
+                    // ただし、vocabulary_focus モードの Step 3, 4 は除外（語彙問題はAI添削不要）
+                    const isVocabStep = ((currentStep === 3 || currentStep === 4) && sessionData?.lessonFormat === 'vocabulary_focus');
+                    const willExecuteFeedback = !isVocabStep && (currentStep === 3 || currentStep === 4 || currentStep === 5) && 
                         (text.includes('確認完了') || text.includes('修正完了') || 
                          (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい')));
                     
