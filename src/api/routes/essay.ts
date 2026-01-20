@@ -1413,111 +1413,20 @@ router.post('/chat', async (c) => {
       const hasImage = uploadedImages.some((img: UploadedImage) => img.step === 1)
       const hasOCR = ocrResults.some((ocr: OCRResult) => ocr.step === 1)
       
-      // OCR結果がある場合、AI添削を実行
+      // OCR結果がある場合、簡易確認のみ
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
-        console.log('📝 Step 1: OCR confirmed, generating feedback...')
+        console.log('📝 Step 1: OCR confirmed')
         
-        try {
-          const step1OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 1)
-          const latestOCR = step1OCRs[step1OCRs.length - 1]
-          const essayText = latestOCR.text || ''
-          
-          const openaiApiKey = c.env?.OPENAI_API_KEY
-          
-          if (!openaiApiKey) {
-            console.error('❌ OPENAI_API_KEY not configured for Step 1 feedback')
-            throw new Error('OpenAI API key not configured')
+        response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        stepCompleted = true
+        
+        // Step 1完了フラグをセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.step1Completed = true
+          learningSessions.set(sessionId, session)
+          if (db) {
+            await saveSessionToDB(db, sessionId, session)
           }
-          
-          // 質問を取得（セッションに保存されているはず）
-          const themeTitle = session.essaySession.lastThemeTitle || customInput || 'テーマ'
-          
-          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対して手書きで回答した内容を添削してください。
-
-テーマ: ${themeTitle}
-
-【評価基準】
-1. **テーマとの関連性**（最重要）
-   - テーマとズレている場合は0-10点
-   - テーマに沿っていても浅い場合は30-50点
-2. **文字数**
-   - 目標文字数の50%未満の場合は大幅減点（最大50点）
-   - 目標文字数の50-80%は減点（60-80点程度）
-3. **文章の質**
-   - 各文の構造が適切で、日本語として自然か
-   - 主語・述語の対応が明確か
-   - 不自然な表現や冗長な表現がないか
-4. **論理性と説得力**
-   - 文章の明確さと論理性
-   - 小論文らしい丁寧な文体
-   - 具体性と説得力
-
-【重要】以下のJSON形式で必ず返してください：
-{
-  "goodPoints": ["良い点1", "良い点2"],
-  "improvements": ["改善点1", "改善点2"],
-  "overallScore": 80,
-  "nextSteps": ["次のアクション1", "次のアクション2"]
-}
-
-生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、テーマズレや文字数不足は厳しく評価してください。`
-          
-          console.log('🤖 Calling OpenAI API for Step 1 feedback...')
-          
-          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `以下の回答を添削してください。\n\n【テーマ】\n${themeTitle}\n\n【生徒の回答】\n${essayText}\n\n【文字数】\n実際: ${essayText.length}字` }
-              ],
-              max_tokens: 1000,
-              temperature: 0.7,
-              response_format: { type: "json_object" }
-            })
-          })
-          
-          if (!response_api.ok) {
-            const errorText = await response_api.text()
-            console.error('❌ OpenAI API error (Step 1 feedback):', errorText)
-            throw new Error(`OpenAI API error: ${response_api.status}`)
-          }
-          
-            const completion = await response_api.json() as OpenAIChatCompletionResponse
-          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
-            goodPoints?: string[]
-            improvements?: string[]
-            overallScore?: number
-            nextSteps?: string[]
-          }
-          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
-          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
-          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
-          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
-          
-          console.log('✅ Step 1 feedback generated')
-          
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
-          stepCompleted = true
-          
-          // Step 1完了フラグをセッションに保存
-          if (session && session.essaySession) {
-            session.essaySession.step1Completed = true
-            learningSessions.set(sessionId, session)
-            if (db) {
-              await saveSessionToDB(db, sessionId, session)
-            }
-          }
-          
-        } catch (error) {
-          console.error('❌ Step 1 feedback error:', error)
-          response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-          stepCompleted = true
         }
       }
       // 画像アップロードがあった場合
@@ -1628,152 +1537,20 @@ ${themeContent}
           }
         }
       }
-      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
+      // 長い回答（100文字以上、かつ「ok」を含まない）→ 簡易フィードバックのみ
       else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        console.log('✅ Matched: Long answer - generating feedback')
+        console.log('✅ Matched: Long answer - simple acknowledgement')
         
-        try {
-          const openaiApiKey = c.env?.OPENAI_API_KEY
-          
-          if (!openaiApiKey) {
-            console.error('❌ OPENAI_API_KEY not configured for Step 1 text feedback')
-            throw new Error('OpenAI API key not configured')
-          }
-          
-          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
-          
-          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対してテキストで回答した内容を添削してください。
-
-テーマ: ${themeTitle}
-
-【評価基準】
-- 質問への適切な回答
-- 文章の明確さと論理性
-- 小論文らしい丁寧な文体
-- 具体性と説得力
-
-【重要】以下のJSON形式で必ず返してください：
-{
-  "goodPoints": ["良い点1", "良い点2"],
-  "improvements": ["改善点1", "改善点2"],
-  "overallScore": 80,
-  "nextSteps": ["次のアクション1", "次のアクション2"]
-}
-
-生徒を励ましつつ、実践的なアドバイスを心がけてください。`
-          
-          console.log('🤖 Calling OpenAI API for Step 1 text feedback...')
-          
-          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${message}` }
-              ],
-              max_tokens: 1000,
-              temperature: 0.7,
-              response_format: { type: "json_object" }
-            })
-          })
-          
-          if (!response_api.ok) {
-            const errorText = await response_api.text()
-            console.error('❌ OpenAI API error (Step 1 text feedback):', errorText)
-            throw new Error(`OpenAI API error: ${response_api.status}`)
-          }
-          
-          const completion = await response_api.json() as OpenAIChatCompletionResponse
-          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
-            goodPoints?: string[]
-            improvements?: string[]
-            overallScore?: number
-            nextSteps?: string[]
-          }
-          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
-          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
-          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
-          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
-          
-          console.log('✅ Step 1 text feedback generated')
-          
-          // 模範解答を生成
-          let modelAnswer = ''
-          try {
-            console.log('🤖 Generating model answer for Step 1...')
-            
-            const themeContent = session?.essaySession?.lastThemeContent || ''
-            const questionText = `理解度確認の質問（テーマ: ${themeTitle}）`
-            
-            const modelAnswerPrompt = `あなたは小論文の先生です。生徒が答えた質問に対する模範解答を作成してください。
-
-テーマ: ${themeTitle}
-
-読み物の内容:
-${themeContent}
-
-要求:
-- 質問に対する完璧な模範解答を作成
-- 「です・ます」調で記述
-- 各質問に対して丁寧に回答
-- 読み物の内容を踏まえつつ、自分の考えも含める
-- 小論文らしい文体を使用
-
-出力形式:
-【模範解答】
-1. (質問1への完璧な回答)
-
-2. (質問2への完璧な回答)
-
-3. (質問3への完璧な回答)`
-            
-            const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiApiKey}`
-              },
-              body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: [
-                  { role: 'system', content: modelAnswerPrompt },
-                  { role: 'user', content: '質問に対する模範解答を作成してください。' }
-                ],
-                max_tokens: 1000,
-                temperature: 0.7
-              })
-            })
-            
-            if (modelAnswerResponse.ok) {
-              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
-              modelAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
-              console.log('✅ Model answer generated')
-            }
-          } catch (error) {
-            console.error('❌ Model answer generation error:', error)
-          }
-          
-          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
-          stepCompleted = true
-          
-          // Step 1完了フラグをセッションに保存
-          if (session && session.essaySession) {
-            session.essaySession.step1Completed = true
-            learningSessions.set(sessionId, session)
-            if (db) {
-              await saveSessionToDB(db, sessionId, session)
-            }
-          }
-          
-        } catch (error) {
-          console.error('❌ Step 1 text feedback error:', error)
-          response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+        response = `素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
+        
+        // Step 1完了フラグをセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.step1Completed = true
+          learningSessions.set(sessionId, session)
+          if (db) {
+            await saveSessionToDB(db, sessionId, session)
+          }
         }
       }
       // 「読んだ」
@@ -2534,10 +2311,10 @@ ${targetLevel === 'high_school' ? `
         const vocabTitle = '【語彙力強化① - 基礎編】'
         const vocabSubtitle = '口語表現を小論文風に言い換える練習をしましょう。'
         
-        // デバッグ情報は表示しない（生成は成功しているため）
-        const debugInfo = ''
         
-        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
+        // デバッグ情報は表示しない（生成は成功しているため）
+        
+        response = `${vocabTitle}\n${vocabSubtitle}\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n5つすべてをチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
         
         // セッション更新
         learningSessions.set(sessionId, session)
@@ -2768,11 +2545,9 @@ ${targetLevel === 'high_school' ? `
         await saveSessionToDB(db, sessionId, session)
         console.log('✅ Vocab answers saved to session and DB')
         
-        // デバッグ: AI生成結果をクライアント側でも確認できるようにする
-        const debugInfo = generatedText ? `\n\n🔍 DEBUG: AI response length: ${generatedText.length} chars` : '\n\n⚠️ DEBUG: No AI response'
         
         // すぐに語彙問題を表示
-        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）${debugInfo}`
+        response = `【語彙力強化】\n口語表現を小論文風に言い換える練習をしましょう。\n\n以下の口語表現を小論文風の表現に言い換えてください：\n\n${vocabProblems}\n\n（例：${vocabExample}）\n\n3つの言い換えをすべてチャットで答えて、送信ボタンを押してください。\n（わからない場合は「パス」と入力すると解答例を見られます）`
       }
       // 回答が短すぎる
       else {
