@@ -1643,52 +1643,70 @@ Always respond with valid JSON.`;
       return { passed: true };
     }
 
-    const validationPrompt = `You are an English grammar expert. Analyze this Eiken grammar question for ambiguity.
+    const validationPrompt = `You are an expert English test validator specializing in detecting ambiguous questions. Your job is to ensure ONLY ONE answer is correct.
 
-Question: "${question_text}"
-Stated correct answer: "${correct_answer}"
-All options: ${allOptions.join(', ')}
-Target grammar: "${grammarPoint}"
+【Question to validate】
+${question_text}
 
-Task: Determine if MULTIPLE options are grammatically correct in this context.
+【Stated correct answer】
+${correct_answer}
 
-Analysis criteria:
-1. Is each option grammatically valid in this sentence?
-2. Does the context make the answer unambiguous?
-3. Could a native speaker reasonably choose a different answer?
+【All options】
+${allOptions.join(', ')}
 
-Examples of PROBLEMS to detect:
+【Target grammar point】
+${grammarPoint}
 
-❌ AMBIGUOUS (reject):
+## Your Task
+
+Analyze if MULTIPLE options could be grammatically and semantically correct in this context.
+
+## Analysis Steps
+
+1. **Grammar check**: Test each option in the blank - is it grammatically valid?
+2. **Meaning check**: Does each option make semantic sense in this context?
+3. **Natural usage**: Would a native speaker accept multiple answers?
+4. **Context clues**: Are there time markers, situation descriptions, or other clues that eliminate wrong answers?
+
+## Critical Examples
+
+❌ **AMBIGUOUS** (REJECT - multiple correct answers):
 Q: "_____ you say hello to her?"
 Options: Can, Do, Is, Are
-Problem: Both "Can" (ability) and "Do" (habit) are grammatically correct without context
-Result: {"is_ambiguous": true, "potentially_correct": ["Can", "Do"]}
+Problem: Both "Can" (ability) and "Do" (habit) are grammatically correct
+→ {"is_ambiguous": true, "potentially_correct": ["Can", "Do"], "issue": "Missing context - both Can and Do work", "suggestion": "Add dialogue format or time marker"}
 
-❌ AMBIGUOUS (reject):
-Q: "I _____ play soccer every weekend."
-Options: usually, always, play, often
-Problem: Multiple adverbs work, and "play" creates duplicate
-Result: {"is_ambiguous": true, "potentially_correct": ["usually", "always", "often"]}
+❌ **AMBIGUOUS** (REJECT):
+Q: "She _____ to school every day."
+Options: go, goes, went, going
+Problem: Both "goes" (present habit) and "went" (past habit) could work
+→ {"is_ambiguous": true, "potentially_correct": ["goes", "went"], "issue": "Time period unclear", "suggestion": "Add 'usually' or 'yesterday' to clarify"}
 
-✅ CLEAR (accept):
+✅ **CLEAR** (ACCEPT - only one correct):
 Q: "A: Look! Ms. Green is over there.\\nB: Oh, _____ you say hello to her?"
 Options: Can, Do, Is, Are
-Clear: "Can" is natural (ability), "Do" is unnatural in this excited context
-Result: {"is_ambiguous": false, "potentially_correct": ["Can"]}
+Clear: "Can" (ability) is natural in excited context, "Do" sounds unnatural
+→ {"is_ambiguous": false, "potentially_correct": ["Can"]}
 
-✅ CLEAR (accept):
+✅ **CLEAR** (ACCEPT):
 Q: "Yesterday, I _____ to the park."
 Options: go, goes, went, going
 Clear: "Yesterday" requires past tense, only "went" works
-Result: {"is_ambiguous": false, "potentially_correct": ["went"]}
+→ {"is_ambiguous": false, "potentially_correct": ["went"]}
 
-Return ONLY valid JSON (no markdown, no explanation outside JSON):
+## Be Strict!
+
+- If you have ANY doubt, mark as ambiguous
+- Even if one answer is "more natural", if another is grammatically possible, mark as ambiguous
+- Context must CLEARLY eliminate all wrong answers
+
+## Output Format (JSON only, no markdown)
+
 {
   "is_ambiguous": boolean,
-  "potentially_correct": ["option1", "option2"],
-  "issue": "brief description if ambiguous",
-  "suggestion": "how to fix (add context, change options, use dialogue format)"
+  "potentially_correct": ["option1", "option2", ...],
+  "issue": "description of ambiguity (if ambiguous)",
+  "suggestion": "specific fix recommendation (if ambiguous)"
 }`;
 
     try {
