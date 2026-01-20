@@ -32,7 +32,7 @@ app.get('/stats', async (c) => {
           format,
           COUNT(*) as count,
           DATE(created_at) as date
-        FROM validation_logs
+        FROM question_validation_logs
         WHERE validation_stage = 'uniqueness'
           AND created_at >= datetime('now', '-7 days')
         GROUP BY validation_stage, validation_passed, grade, format, DATE(created_at)
@@ -50,7 +50,7 @@ app.get('/stats', async (c) => {
           topic_code,
           validation_details,
           created_at
-        FROM validation_logs
+        FROM question_validation_logs
         WHERE validation_stage = 'uniqueness'
           AND validation_passed = 0
           AND created_at >= datetime('now', '-7 days')
@@ -152,7 +152,7 @@ app.get('/recent-failures', async (c) => {
           validation_details,
           model_used,
           created_at
-        FROM validation_logs
+        FROM question_validation_logs
         WHERE validation_stage = 'uniqueness'
           AND validation_passed = 0
         ORDER BY created_at DESC
