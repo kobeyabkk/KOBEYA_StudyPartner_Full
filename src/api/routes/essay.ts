@@ -906,8 +906,19 @@ router.post('/feedback', async (c) => {
       hasChallengeProblem: !!session.essaySession.challengeProblem
     })
     
-    // 目標文字数を取得（Step 4/5は400-800字）
-    const targetCharCount = 500 // デフォルト
+    // 目標文字数を取得（targetLevelとcurrentStepに応じて設定）
+    const targetLevel = session.essaySession.targetLevel || 'high_school'
+    let targetCharCount = 500 // デフォルト
+    
+    if (currentStep === 4) {
+      // Step 4（本練習）の文字数
+      targetCharCount = targetLevel === 'high_school' ? 400 : targetLevel === 'vocational' ? 500 : 600
+    } else if (currentStep === 5) {
+      // Step 5（チャレンジ）の文字数
+      targetCharCount = targetLevel === 'high_school' ? 500 : targetLevel === 'vocational' ? 600 : 800
+    }
+    
+    console.log('🎯 Target character count:', targetCharCount, 'for', targetLevel, 'step', currentStep)
     
     // =====================================
     // Stage 1: 形式チェック
