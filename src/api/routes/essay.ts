@@ -2665,6 +2665,110 @@ ${targetLevel === 'high_school' ? `
       }
     } else if (currentStep === 2) {
       // ステップ2: 語彙力強化
+      
+      // 🔧 Step 2の問題と解答が未生成の場合、自動生成する
+      if (!session?.essaySession?.vocabAnswersStep2 || !session?.essaySession?.lastVocabProblemsStep2) {
+        console.log('⚠️ Step 2 vocab problems not found, auto-generating...')
+        
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          if (!openaiApiKey) {
+            throw new Error('OpenAI API key not configured')
+          }
+          
+          const timestamp = Date.now()
+          const systemPrompt = `あなたは小論文の先生です。口語表現を小論文風の表現に言い換える練習問題を5つ作成してください。
+
+対象レベル: ${targetLevel === 'high_school' ? '高校生' : targetLevel === 'vocational' ? '専門学校生' : '大学受験生'}
+タイムスタンプ: ${timestamp}
+
+重要な指示：
+1. フレーズ全体を含めること（口語表現の部分だけでなく、その前後も含める）
+2. 問題のフレーズと模範解答のフレーズは完全に一致させること
+3. 例：問題が「すごく大事なこと」なら、解答も「極めて重要なこと」とフレーズ全体を言い換える
+
+要求:
+- よく使う口語表現を含む完全なフレーズを5つ選ぶ（4-8文字程度）
+  良い例：「すごく大事なこと」「やっぱりそうだと思った」「だから必要なんだ」
+  悪い例：「すごく大事」「やっぱり」「だから」（短すぎる、文脈がない）
+- 毎回異なる表現を出題すること
+- フレーズ全体を言い換えること（一部だけではなく）
+
+出力形式（この形式を厳守）：
+【模範解答】
+1. 「口語表現を含む完全なフレーズ1」→「フレーズ1全体を小論文風に言い換えた表現」または「別の言い換え表現」
+2. 「口語表現を含む完全なフレーズ2」→「フレーズ2全体を小論文風に言い換えた表現」または「別の言い換え表現」
+3. 「口語表現を含む完全なフレーズ3」→「フレーズ3全体を小論文風に言い換えた表現」または「別の言い換え表現」
+4. 「口語表現を含む完全なフレーズ4」→「フレーズ4全体を小論文風に言い換えた表現」または「別の言い換え表現」
+5. 「口語表現を含む完全なフレーズ5」→「フレーズ5全体を小論文風に言い換えた表現」または「別の言い換え表現」
+
+正しい例：
+「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」
+「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」
+「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」`
+          
+          const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '語彙力強化の問題と模範解答を生成してください。' }
+              ],
+              max_tokens: 1000,
+              temperature: 0.8
+            })
+          })
+          
+          if (!apiResponse.ok) {
+            throw new Error(`OpenAI API error: ${apiResponse.status}`)
+          }
+          
+          const apiData = await apiResponse.json()
+          const generatedText = apiData.choices[0].message.content
+          
+          // 模範解答を抽出
+          const answerMatch = generatedText.match(/【模範解答】\s*([\s\S]+)/)
+          if (answerMatch) {
+            const answerText = answerMatch[1].trim()
+            const vocabAnswers = '【模範解答】\n' + answerText
+            
+            // 解答から問題を生成
+            const answerLines = answerText.split('\n').filter((line: string) => line.trim())
+            const problemLines = answerLines
+              .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
+              .map((line: string) => {
+                const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
+                return match ? `${match[1]} → ?` : null
+              })
+              .filter(Boolean)
+            
+            const vocabProblems = problemLines.join('\n')
+            
+            // セッションに保存
+            if (!session.essaySession) {
+              session.essaySession = {}
+            }
+            session.essaySession.vocabAnswersStep2 = vocabAnswers
+            session.essaySession.lastVocabProblemsStep2 = vocabProblems
+            
+            learningSessions.set(sessionId, session)
+            await saveSessionToDB(db, sessionId, session)
+            
+            console.log('✅ Auto-generated Step 2 vocab problems and answers')
+            console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
+            console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers.substring(0, 300))
+          }
+        } catch (error) {
+          console.error('❌ Failed to auto-generate Step 2 vocab:', error)
+          // フォールバックは後続の処理で設定される
+        }
+      }
+      
       // 🔧 Step 2専用の解答を使用（フォールバックとしてStep 1も参照）
       const savedAnswers = session?.essaySession?.vocabAnswersStep2 || 
                           session?.essaySession?.vocabAnswers || 
@@ -2672,11 +2776,45 @@ ${targetLevel === 'high_school' ? `
       
       console.log('📝 Step 2 vocabulary answers check:', {
         hasStep2Answers: !!session?.essaySession?.vocabAnswersStep2,
-        step2Preview: (session?.essaySession?.vocabAnswersStep2 || '').substring(0, 100)
+        hasStep2Problems: !!session?.essaySession?.lastVocabProblemsStep2,
+        step2Preview: (session?.essaySession?.vocabAnswersStep2 || '').substring(0, 100),
+        problemsPreview: (session?.essaySession?.lastVocabProblemsStep2 || '').substring(0, 100)
       })
+      
+      // 🔍 問題と解答の一致を検証
+      const vocabProblemsForCheck = session?.essaySession?.lastVocabProblemsStep2
+      const vocabAnswersForCheck = session?.essaySession?.vocabAnswersStep2
+      
+      if (vocabProblemsForCheck && vocabAnswersForCheck) {
+        console.log('🔍 Verifying problem-answer consistency...')
+        
+        // 問題からフレーズを抽出
+        const problemPhrases = (vocabProblemsForCheck.match(/「[^」]+」/g) || []).map(p => p.replace(/[「」]/g, ''))
+        
+        // 解答からフレーズを抽出
+        const answerPhrases = (vocabAnswersForCheck.match(/「[^」]+」\s*→/g) || []).map(a => a.replace(/[「」→\s]/g, ''))
+        
+        console.log('🔍 Problem phrases:', problemPhrases)
+        console.log('🔍 Answer phrases:', answerPhrases)
+        
+        // 一致チェック
+        const mismatch = problemPhrases.some((phrase, idx) => phrase !== answerPhrases[idx])
+        
+        if (mismatch) {
+          console.warn('⚠️ PROBLEM-ANSWER MISMATCH DETECTED!')
+          console.warn('⚠️ This may cause confusion for students')
+          console.warn('⚠️ Consider regenerating vocab problems')
+        } else {
+          console.log('✅ Problem-answer consistency verified')
+        }
+      }
       
       // パス機能
       if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
+        console.log('🔍 Step 2: パス selected, showing model answers')
+        console.log('🔍 DEBUG: savedAnswers =', savedAnswers)
+        console.log('🔍 DEBUG: lastVocabProblemsStep2 =', session?.essaySession?.lastVocabProblemsStep2 || 'NOT SET')
+        
         response = `わかりました。解答例をお見せしますね。\n\n${savedAnswers}\n\n小論文では、話し言葉ではなく書き言葉を使うことが大切です。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
@@ -2862,6 +3000,8 @@ ${targetLevel === 'high_school' ? `
             
             console.log('✅ Using vocab problems and answers')
             console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
+            console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
+            console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers.substring(0, 300))
           } else {
             console.warn('⚠️ AI vocab too short, using fallback')
             // フォールバックの問題を生成
