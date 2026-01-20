@@ -2251,10 +2251,10 @@ router.get('/session/:sessionId', async (c) => {
                     const willExecuteFeedback = !isVocabStep && (
                         // Step 3: 確認完了/修正完了のみ（修正テキスト送信時はサーバー側で処理済み）
                         (currentStep === 3 && (text.includes('確認完了') || text.includes('修正完了'))) ||
-                        // Step 4, 5: 確認完了/修正完了 + 修正テキスト入力
+                        // Step 4, 5: 確認完了/修正完了 + 長文テキスト入力（100文字以上）
                         ((currentStep === 4 || currentStep === 5) && 
                          (text.includes('確認完了') || text.includes('修正完了') || 
-                          (text.length > 10 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい'))))
+                          (text.length > 100 && !text.includes('OK') && !text.includes('ok') && !text.includes('はい'))))
                     );
                     
                     if (willExecuteFeedback) {

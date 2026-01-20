@@ -836,42 +836,63 @@ router.post('/feedback', async (c) => {
       }, 404)
     }
     
-    // OCR結果を取得（currentStepが指定されている場合、そのステップのOCRのみを対象にする）
-    const ocrResults = session.essaySession.ocrResults
-    if (!ocrResults || ocrResults.length === 0) {
-      return c.json({
-        ok: false,
-        error: 'no_ocr_data',
-        message: 'OCR結果が見つかりません。先に原稿を撮影してください。',
-        timestamp: new Date().toISOString()
-      }, 400)
-    }
+    // OCR結果またはマニュアル入力を取得
+    let essayText = ''
+    let totalCharCount = 0
+    let dataSource = ''
     
-    // currentStepが指定されている場合、そのステップのOCRのみフィルタリング
-    let targetOCRs = ocrResults
-    if (currentStep) {
-      targetOCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === currentStep)
-      console.log(`🔍 Filtered OCRs for step ${currentStep}:`, targetOCRs.length, 'results')
-      
-      if (targetOCRs.length === 0) {
-        return c.json({
-          ok: false,
-          error: 'no_ocr_data',
-          message: `Step ${currentStep} のOCR結果が見つかりません。先に原稿を撮影してください。`,
-          timestamp: new Date().toISOString()
-        }, 400)
+    // まずマニュアル入力をチェック
+    if (session.essaySession.manualEssayText && session.essaySession.manualEssayText.length > 100) {
+      // Step指定がある場合、manualEssayStepと一致するか確認
+      if (!currentStep || !session.essaySession.manualEssayStep || session.essaySession.manualEssayStep === currentStep) {
+        essayText = session.essaySession.manualEssayText
+        totalCharCount = essayText.length
+        dataSource = 'manual_input'
+        console.log('📝 Using manual text input:', totalCharCount, 'characters')
       }
     }
     
-    // 複数ページのOCRがある場合は、全ページのテキストを結合
-    const allTexts = targetOCRs.map((ocr: OCRResult) => ocr.text || '')
-    const essayText = allTexts.join('\n')
-    const totalCharCount = essayText.length
-    const latestOCR = targetOCRs[targetOCRs.length - 1]
+    // マニュアル入力がない場合、OCR結果を使用
+    if (!essayText) {
+      const ocrResults = session.essaySession.ocrResults
+      if (!ocrResults || ocrResults.length === 0) {
+        return c.json({
+          ok: false,
+          error: 'no_data',
+          message: '小論文データが見つかりません。原稿を撮影するか、テキストを入力してください。',
+          timestamp: new Date().toISOString()
+        }, 400)
+      }
+      
+      // currentStepが指定されている場合、そのステップのOCRのみフィルタリング
+      let targetOCRs = ocrResults
+      if (currentStep) {
+        targetOCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === currentStep)
+        console.log(`🔍 Filtered OCRs for step ${currentStep}:`, targetOCRs.length, 'results')
+        
+        if (targetOCRs.length === 0) {
+          return c.json({
+            ok: false,
+            error: 'no_data',
+            message: `Step ${currentStep} のデータが見つかりません。原稿を撮影するか、テキストを入力してください。`,
+            timestamp: new Date().toISOString()
+          }, 400)
+        }
+      }
+      
+      // 複数ページのOCRがある場合は、全ページのテキストを結合
+      const allTexts = targetOCRs.map((ocr: OCRResult) => ocr.text || '')
+      essayText = allTexts.join('\n')
+      totalCharCount = essayText.length
+      const latestOCR = targetOCRs[targetOCRs.length - 1]
+      dataSource = 'ocr'
+      
+      console.log('📝 Using OCR from step:', latestOCR.step)
+      console.log('📏 Total OCR pages:', targetOCRs.length)
+    }
     
-    console.log('📝 Using OCR from step:', latestOCR.step)
-    console.log('📏 Total OCR pages:', targetOCRs.length)
-    console.log('📏 Essay text length (combined):', totalCharCount, 'characters')
+    console.log('📏 Essay text length:', totalCharCount, 'characters')
+    console.log('📊 Data source:', dataSource)
     
     // テーマと課題を取得
     const themeTitle = session.essaySession.lastThemeTitle || 'テーマ'
@@ -3238,29 +3259,35 @@ ${targetLevel === 'high_school' ? `
           // クライアント側でAI添削APIを呼び出すフラグを返す
         }
       }
-      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
-        // ユーザーが修正したテキストを入力した場合
-        // OCR結果を修正版で上書き
-        if (session && session.essaySession && session.essaySession.ocrResults) {
-          const latestOCR = session.essaySession.ocrResults[session.essaySession.ocrResults.length - 1]
-          
-          // 修正後のテキストを保存
-          session.essaySession.ocrResults.push({
-            ...latestOCR,
-            text: message,
-            charCount: message.length,
-            processedAt: new Date().toISOString(),
-            isCorrected: true
-          })
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && message.length > 100)) {
+        // ユーザーがテキストを入力した場合（OCRの修正 または 直接入力）
+        if (session && session.essaySession) {
+          // OCR結果がある場合は修正として扱い、ない場合は直接入力として扱う
+          if (hasOCR && session.essaySession.ocrResults) {
+            const latestOCR = session.essaySession.ocrResults[session.essaySession.ocrResults.length - 1]
+            
+            // 修正後のテキストを保存
+            session.essaySession.ocrResults.push({
+              ...latestOCR,
+              text: message,
+              charCount: message.length,
+              processedAt: new Date().toISOString(),
+              isCorrected: true
+            })
+            console.log('✏️ OCR text corrected by user:', message.substring(0, 50) + '...')
+          } else {
+            // OCRがない場合、直接入力として保存
+            session.essaySession.manualEssayText = message
+            console.log('📝 Manual text input saved for Step 4:', message.substring(0, 50) + '...')
+          }
           
           // インメモリとD1の両方を更新
           const db = c.env?.DB
           await updateSession(db, sessionId, { essaySession: session.essaySession })
-          console.log('✏️ OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
           
-          response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+          response = 'テキストを受け取りました。\n\nAI添削を実行中です。少々お待ちください...'
         } else {
-          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+          response = 'エラーが発生しました。もう一度お試しください。'
         }
       }
       else if (hasImage) {
@@ -3386,10 +3413,10 @@ ${targetLevel === 'high_school' ? `
           console.log('✅ Main problem saved to session:', mainProblem)
         }
         
-        response = `【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「${mainProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります\n※ OCR処理は自動的に文字を読み取ります`
+        response = `【本練習】\nより長い小論文に挑戦しましょう。\n\n＜課題＞\n「${mainProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（賛成意見・反対意見）→結論（自分の意見）\n- 具体例を2つ以上含めること\n\n━━━━━━━━━━━━━━━━━━\n📝 提出方法（2つの方法から選択）\n━━━━━━━━━━━━━━━━━━\n\n【方法1】手書き原稿をカメラで撮影\n1️⃣ 原稿用紙に手書きで小論文を書く\n2️⃣ 📷カメラボタンを押す\n3️⃣ 「撮影する」で原稿を撮影\n4️⃣ 「OCR処理を開始」ボタンを押す\n5️⃣ 読み取り結果を確認して「確認完了」と送信\n\n【方法2】テキストを直接入力\n1️⃣ 小論文を書く（Wordなど）\n2️⃣ 完成したテキストをコピー\n3️⃣ このチャット欄に貼り付けて送信\n→ すぐにAI添削が開始されます\n\n※ どちらの方法でも、同じようにAI添削を受けられます`
       }
       else {
-        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+        response = '小論文を準備してください。\n\n【方法1】手書き原稿を📷カメラで撮影してOCR\n【方法2】完成したテキストを直接このチャットに入力\n\nどちらの方法でも、AI添削を受けられます。'
       }
       }  // 標準55分モードの else ブロック終了
     } else if (currentStep === 5) {
@@ -3424,34 +3451,45 @@ ${targetLevel === 'high_school' ? `
           response = 'OCR内容を確認しました。\n\nAI添削を実行中です。少々お待ちください...'
         }
       }
-      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && hasOCR && message.length > 10)) {
-        // ユーザーが修正したテキストを入力した場合
-        if (session && session.essaySession && session.essaySession.ocrResults) {
-          const step5OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 5)
-          if (step5OCRs.length > 0) {
-            const latestOCR = step5OCRs[step5OCRs.length - 1]
-            
-            // 修正後のテキストを保存
-            session.essaySession.ocrResults.push({
-              ...latestOCR,
-              text: message,
-              charCount: message.length,
-              processedAt: new Date().toISOString(),
-              isCorrected: true,
-              step: 5
-            })
-            
-            // インメモリとD1の両方を更新
-            const db = c.env?.DB
-            await updateSession(db, sessionId, { essaySession: session.essaySession })
-            console.log('✏️ Step 5 OCR text corrected by user and saved to D1:', message.substring(0, 50) + '...')
-            
-            response = '修正内容を保存しました。\n\nAI添削を実行中です。少々お待ちください...'
+      else if (message.includes('修正完了') || (!message.includes('確認完了') && !message.includes('OK') && !message.includes('ok') && !message.includes('はい') && message.length > 100)) {
+        // ユーザーがテキストを入力した場合（OCRの修正 または 直接入力）
+        if (session && session.essaySession) {
+          // OCR結果がある場合は修正として扱い、ない場合は直接入力として扱う
+          if (hasOCR && session.essaySession.ocrResults) {
+            const step5OCRs = session.essaySession.ocrResults.filter((ocr: OCRResult) => ocr.step === 5)
+            if (step5OCRs.length > 0) {
+              const latestOCR = step5OCRs[step5OCRs.length - 1]
+              
+              // 修正後のテキストを保存
+              session.essaySession.ocrResults.push({
+                ...latestOCR,
+                text: message,
+                charCount: message.length,
+                processedAt: new Date().toISOString(),
+                isCorrected: true,
+                step: 5
+              })
+              console.log('✏️ Step 5 OCR text corrected by user:', message.substring(0, 50) + '...')
+            } else {
+              // Step 5のOCRが見つからない場合、直接入力として保存
+              session.essaySession.manualEssayText = message
+              session.essaySession.manualEssayStep = 5
+              console.log('📝 Manual text input saved for Step 5:', message.substring(0, 50) + '...')
+            }
           } else {
-            response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+            // OCRがない場合、直接入力として保存
+            session.essaySession.manualEssayText = message
+            session.essaySession.manualEssayStep = 5
+            console.log('📝 Manual text input saved for Step 5:', message.substring(0, 50) + '...')
           }
+          
+          // インメモリとD1の両方を更新
+          const db = c.env?.DB
+          await updateSession(db, sessionId, { essaySession: session.essaySession })
+          
+          response = 'テキストを受け取りました。\n\nAI添削を実行中です。少々お待ちください...'
         } else {
-          response = 'OCR結果が見つかりません。先に原稿を撮影してください。'
+          response = 'エラーが発生しました。もう一度お試しください。'
         }
       }
       else if (hasImage) {
@@ -3553,10 +3591,10 @@ ${targetLevel === 'high_school' ? `
           }
         }
         
-        response = `【チャレンジ問題】\nさらに難しいテーマの小論文に挑戦しましょう。\n\n＜課題＞\n「${challengeProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（メリット・デメリット）→結論（自分の意見）\n- 具体例を3つ以上含めること\n- 客観的なデータや事例を引用すること\n\n━━━━━━━━━━━━━━━━━━\n📝 手書き原稿の提出方法\n━━━━━━━━━━━━━━━━━━\n\n1️⃣ 原稿用紙に手書きで小論文を書く\n\n2️⃣ 書き終えたら、下の入力欄の横にある📷カメラボタンを押す\n\n3️⃣ 「撮影する」で原稿を撮影\n\n4️⃣ 必要に応じて「範囲を調整」で読み取り範囲を調整\n\n5️⃣ 「OCR処理を開始」ボタンを押す\n\n6️⃣ 読み取り結果を確認\n\n━━━━━━━━━━━━━━━━━━\n✅ OCR結果が正しい場合\n━━━━━━━━━━━━━━━━━━\n「確認完了」と入力して送信\n→ すぐにAI添削が開始されます\n\n✏️ OCR結果を修正したい場合\n━━━━━━━━━━━━━━━━━━\n正しいテキストを入力して送信\n→ 修正内容が保存され、AI添削が開始されます\n\n※ カメラボタンは入力欄の右側にあります`
+        response = `【チャレンジ問題】\nさらに難しいテーマの小論文に挑戦しましょう。\n\n＜課題＞\n「${challengeProblem}」\n\n＜条件＞\n- 文字数：${charCount}\n- 構成：序論（問題提起）→本論（メリット・デメリット）→結論（自分の意見）\n- 具体例を3つ以上含めること\n- 客観的なデータや事例を引用すること\n\n━━━━━━━━━━━━━━━━━━\n📝 提出方法（2つの方法から選択）\n━━━━━━━━━━━━━━━━━━\n\n【方法1】手書き原稿をカメラで撮影\n1️⃣ 原稿用紙に手書きで小論文を書く\n2️⃣ 📷カメラボタンを押す\n3️⃣ 「撮影する」で原稿を撮影\n4️⃣ 「OCR処理を開始」ボタンを押す\n5️⃣ 読み取り結果を確認して「確認完了」と送信\n\n【方法2】テキストを直接入力\n1️⃣ 小論文を書く（Wordなど）\n2️⃣ 完成したテキストをコピー\n3️⃣ このチャット欄に貼り付けて送信\n→ すぐにAI添削が開始されます\n\n※ どちらの方法でも、同じようにAI添削を受けられます`
       }
       else {
-        response = '原稿用紙に小論文を書き終えたら、下の入力欄の横にある📷カメラボタンを押して撮影してください。\n\n📷カメラボタン → 撮影 → 範囲調整（任意） → OCR処理を開始 → 結果確認\n\n✅ 結果が正しい → 「確認完了」と送信\n✏️ 修正が必要 → 正しいテキストを入力して送信\n\nまだ準備中の場合は、書き終えてからアップロードしてください。'
+        response = '小論文を準備してください。\n\n【方法1】手書き原稿を📷カメラで撮影してOCR\n【方法2】完成したテキストを直接このチャットに入力\n\nどちらの方法でも、AI添削を受けられます。'
       }
     } else if (currentStep === 6) {
       // Step 6: 今日の学習のまとめ
