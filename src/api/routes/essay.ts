@@ -1434,20 +1434,176 @@ router.post('/chat', async (c) => {
       const hasImage = uploadedImages.some((img: UploadedImage) => img.step === 1)
       const hasOCR = ocrResults.some((ocr: OCRResult) => ocr.step === 1)
       
-      // OCR結果がある場合、簡易確認のみ
+      // OCR結果がある場合、AI添削を実行
       if (hasOCR && (message.includes('確認完了') || message.includes('これで完了'))) {
-        console.log('📝 Step 1: OCR confirmed')
+        console.log('📝 Step 1: OCR confirmed, generating feedback...')
         
-        response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
-        stepCompleted = true
-        
-        // Step 1完了フラグをセッションに保存
-        if (session && session.essaySession) {
-          session.essaySession.step1Completed = true
-          learningSessions.set(sessionId, session)
-          if (db) {
-            await saveSessionToDB(db, sessionId, session)
+        try {
+          const step1OCRs = ocrResults.filter((ocr: OCRResult) => ocr.step === 1)
+          const latestOCR = step1OCRs[step1OCRs.length - 1]
+          const essayText = latestOCR.text || ''
+          
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 feedback')
+            throw new Error('OpenAI API key not configured')
           }
+          
+          // 質問を取得（セッションに保存されているはず）
+          const themeTitle = session.essaySession.lastThemeTitle || customInput || 'テーマ'
+          const themeContent = session.essaySession.lastThemeContent || ''
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対して手書きで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+1. **テーマとの関連性**（最重要）
+   - テーマと完全に無関係な場合は0-20点
+   - テーマに関連しているが浅い場合は40-60点
+   - テーマに深く関連している場合は70-100点
+2. **文字数**
+   - 目標文字数の50%未満の場合は減点（最大60点）
+3. **文章の質**
+   - 日本語として自然で適切か
+4. **論理性と説得力**
+   - 文章の明確さと論理性
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、テーマズレや無関係な内容は厳しく評価してください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【テーマ】\n${themeTitle}\n\n【生徒の回答】\n${essayText}\n\n【文字数】\n実際: ${essayText.length}字` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
+          
+          console.log('✅ Step 1 feedback generated, score:', overallScore)
+          
+          // 模範解答を生成（プロンプトを改善して「もちろんです...」を防ぐ）
+          let modelAnswer = ''
+          try {
+            console.log('🤖 Generating model answer for Step 1...')
+            
+            const modelAnswerPrompt = `【指示】あなたは小論文の先生です。以下のテーマについて、生徒に示す模範解答を作成してください。
+
+【重要】挨拶や前置きは一切不要です。直接、模範解答のみを出力してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+質問（これらに答える必要があります）:
+1. ${themeTitle}の基本的な概念や定義について
+2. ${themeTitle}に関する現代社会における問題点や課題
+3. ${themeTitle}について、自分自身の考えや意見
+
+要求:
+- 3つの質問すべてに答える
+- 読み物の内容に基づいた具体的な解答
+- 小論文で使うような丁寧な文体（「です・ます」調）
+- 各解答は2-3文程度
+- 番号付きリストで出力
+- 【模範解答】から始める
+
+出力形式（この形式を厳守）：
+【模範解答】
+1. （1つ目の質問への解答）
+2. （2つ目の質問への解答）
+3. （3つ目の質問への解答）`
+            
+            const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: modelAnswerPrompt },
+                  { role: 'user', content: '上記の形式で模範解答を作成してください。' }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+              })
+            })
+            
+            if (modelAnswerResponse.ok) {
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              let rawAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
+              
+              // 「もちろんです」などの前置きを除去
+              rawAnswer = rawAnswer.replace(/^(もちろんです。?|わかりました。?|承知しました。?|かしこまりました。?)[^\n]*\n*/gi, '')
+              rawAnswer = rawAnswer.replace(/^(質問を提供してください。?)[^\n]*/gi, '')
+              rawAnswer = rawAnswer.trim()
+              
+              if (rawAnswer.length > 50) {
+                modelAnswer = rawAnswer
+                console.log('✅ Model answer generated')
+              }
+            }
+          } catch (error) {
+            console.error('❌ Model answer generation error:', error)
+          }
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+          // Step 1完了フラグをセッションに保存
+          if (session && session.essaySession) {
+            session.essaySession.step1Completed = true
+            learningSessions.set(sessionId, session)
+            if (db) {
+              await saveSessionToDB(db, sessionId, session)
+            }
+          }
+          
+        } catch (error) {
+          console.error('❌ Step 1 feedback error:', error)
+          response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
         }
       }
       // 画像アップロードがあった場合
@@ -1558,20 +1714,168 @@ ${themeContent}
           }
         }
       }
-      // 長い回答（100文字以上、かつ「ok」を含まない）→ 簡易フィードバックのみ
+      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
       else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        console.log('✅ Matched: Long answer - simple acknowledgement')
+        console.log('✅ Matched: Long answer - generating feedback')
         
-        response = `素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
-        stepCompleted = true
-        
-        // Step 1完了フラグをセッションに保存
-        if (session && session.essaySession) {
-          session.essaySession.step1Completed = true
-          learningSessions.set(sessionId, session)
-          if (db) {
-            await saveSessionToDB(db, sessionId, session)
+        try {
+          const openaiApiKey = c.env?.OPENAI_API_KEY
+          
+          if (!openaiApiKey) {
+            console.error('❌ OPENAI_API_KEY not configured for Step 1 text feedback')
+            throw new Error('OpenAI API key not configured')
           }
+          
+          const themeTitle = session?.essaySession?.lastThemeTitle || customInput || 'テーマ'
+          const themeContent = session?.essaySession?.lastThemeContent || ''
+          
+          const systemPrompt = `あなたは小論文の先生です。生徒がStep 1の質問に対してテキストで回答した内容を添削してください。
+
+テーマ: ${themeTitle}
+
+【評価基準】
+1. **テーマとの関連性**（最重要）
+   - テーマと完全に無関係な場合は0-20点
+   - テーマに関連しているが浅い場合は40-60点
+   - テーマに深く関連している場合は70-100点
+2. **質問への適切な回答**
+3. **文章の明確さと論理性**
+4. **小論文らしい丁寧な文体**
+
+【重要】以下のJSON形式で必ず返してください：
+{
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善点1", "改善点2"],
+  "overallScore": 80,
+  "nextSteps": ["次のアクション1", "次のアクション2"]
+}
+
+生徒を励ましつつ、実践的なアドバイスを心がけてください。ただし、テーマと無関係な内容には低評価を与えてください。`
+          
+          console.log('🤖 Calling OpenAI API for Step 1 text feedback...')
+          
+          const response_api = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `以下の回答を添削してください。\n\n【生徒の回答】\n${message}` }
+              ],
+              max_tokens: 1000,
+              temperature: 0.7,
+              response_format: { type: "json_object" }
+            })
+          })
+          
+          if (!response_api.ok) {
+            const errorText = await response_api.text()
+            console.error('❌ OpenAI API error (Step 1 text feedback):', errorText)
+            throw new Error(`OpenAI API error: ${response_api.status}`)
+          }
+          
+          const completion = await response_api.json() as OpenAIChatCompletionResponse
+          const feedback = JSON.parse(completion.choices?.[0]?.message?.content || '{}') as {
+            goodPoints?: string[]
+            improvements?: string[]
+            overallScore?: number
+            nextSteps?: string[]
+          }
+          const goodPoints = Array.isArray(feedback.goodPoints) ? feedback.goodPoints : []
+          const improvements = Array.isArray(feedback.improvements) ? feedback.improvements : []
+          const nextSteps = Array.isArray(feedback.nextSteps) ? feedback.nextSteps : []
+          const overallScore = typeof feedback.overallScore === 'number' ? feedback.overallScore : 0
+          
+          console.log('✅ Step 1 text feedback generated, score:', overallScore)
+          
+          // 模範解答を生成（プロンプトを改善して「もちろんです...」を防ぐ）
+          let modelAnswer = ''
+          try {
+            console.log('🤖 Generating model answer for Step 1...')
+            
+            const modelAnswerPrompt = `【指示】あなたは小論文の先生です。以下のテーマについて、生徒に示す模範解答を作成してください。
+
+【重要】挨拶や前置きは一切不要です。直接、模範解答のみを出力してください。
+
+テーマ: ${themeTitle}
+
+読み物の内容:
+${themeContent}
+
+質問（これらに答える必要があります）:
+1. ${themeTitle}の基本的な概念や定義について
+2. ${themeTitle}に関する現代社会における問題点や課題
+3. ${themeTitle}について、自分自身の考えや意見
+
+要求:
+- 3つの質問すべてに答える
+- 読み物の内容に基づいた具体的な解答
+- 小論文で使うような丁寧な文体（「です・ます」調）
+- 各解答は2-3文程度
+- 番号付きリストで出力
+- 【模範解答】から始める
+
+出力形式（この形式を厳守）：
+【模範解答】
+1. （1つ目の質問への解答）
+2. （2つ目の質問への解答）
+3. （3つ目の質問への解答）`
+            
+            const modelAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: modelAnswerPrompt },
+                  { role: 'user', content: '上記の形式で模範解答を作成してください。' }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+              })
+            })
+            
+            if (modelAnswerResponse.ok) {
+              const modelAnswerData = await modelAnswerResponse.json() as OpenAIChatCompletionResponse
+              let rawAnswer = modelAnswerData.choices?.[0]?.message?.content || ''
+              
+              // 「もちろんです」などの前置きを除去
+              rawAnswer = rawAnswer.replace(/^(もちろんです。?|わかりました。?|承知しました。?|かしこまりました。?)[^\n]*\n*/gi, '')
+              rawAnswer = rawAnswer.replace(/^(質問を提供してください。?)[^\n]*/gi, '')
+              rawAnswer = rawAnswer.trim()
+              
+              if (rawAnswer.length > 50) {
+                modelAnswer = rawAnswer
+                console.log('✅ Model answer generated')
+              }
+            }
+          } catch (error) {
+            console.error('❌ Model answer generation error:', error)
+          }
+          
+          response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
+          stepCompleted = true
+          
+          // Step 1完了フラグをセッションに保存
+          if (session && session.essaySession) {
+            session.essaySession.step1Completed = true
+            learningSessions.set(sessionId, session)
+            if (db) {
+              await saveSessionToDB(db, sessionId, session)
+            }
+          }
+          
+        } catch (error) {
+          console.error('❌ Step 1 text feedback error:', error)
+          response = '素晴らしい回答ですね！よく理解されています。\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
+          stepCompleted = true
         }
       }
       // 「読んだ」
