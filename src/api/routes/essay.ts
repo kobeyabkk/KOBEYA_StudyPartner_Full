@@ -1352,8 +1352,16 @@ router.post('/chat', async (c) => {
     if (currentStep === 1) {
       console.log('📝 Step 1 processing, message:', message)
       
+      // Step 1が既に完了している場合は、追加質問を受け付けない
+      const isStep1Completed = session?.essaySession?.step1Completed || false
+      if (isStep1Completed) {
+        console.log('✅ Step 1 already completed, ignoring additional message')
+        response = 'このステップは既に完了しています。\n\n「次のステップへ」ボタンを押して、次に進みましょう！'
+        // stepCompletedはtrueのまま維持（次のステップへボタンを表示）
+        stepCompleted = true
+      }
       // vocabulary_focus の場合、パス機能と回答処理を優先
-      if (isVocabularyFocus) {
+      else if (isVocabularyFocus) {
         // パス機能
         if (message.toLowerCase().includes('パス') || message.toLowerCase().includes('pass')) {
           // セッションから最新の模範解答を取得
@@ -1497,6 +1505,15 @@ router.post('/chat', async (c) => {
           response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
           
+          // Step 1完了フラグをセッションに保存
+          if (session && session.essaySession) {
+            session.essaySession.step1Completed = true
+            learningSessions.set(sessionId, session)
+            if (db) {
+              await saveSessionToDB(db, sessionId, session)
+            }
+          }
+          
         } catch (error) {
           console.error('❌ Step 1 feedback error:', error)
           response = '回答を受け付けました。素晴らしい努力です！\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。'
@@ -1601,6 +1618,15 @@ ${themeContent}
         
         response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
+        
+        // Step 1完了フラグをセッションに保存
+        if (session && session.essaySession) {
+          session.essaySession.step1Completed = true
+          learningSessions.set(sessionId, session)
+          if (db) {
+            await saveSessionToDB(db, sessionId, session)
+          }
+        }
       }
       // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
       else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
@@ -1734,6 +1760,15 @@ ${themeContent}
           
           response = `【質問への回答 添削結果】\n\n✨ 良かった点：\n${goodPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📝 改善点：\n${improvements.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n📊 総合評価：${overallScore}点\n\n🎯 次のステップ：\n${nextSteps.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n${modelAnswer ? `\n${modelAnswer}\n\n` : ''}素晴らしい取り組みでした！このステップは完了です。「次のステップへ」ボタンを押してください。`
           stepCompleted = true
+          
+          // Step 1完了フラグをセッションに保存
+          if (session && session.essaySession) {
+            session.essaySession.step1Completed = true
+            learningSessions.set(sessionId, session)
+            if (db) {
+              await saveSessionToDB(db, sessionId, session)
+            }
+          }
           
         } catch (error) {
           console.error('❌ Step 1 text feedback error:', error)
