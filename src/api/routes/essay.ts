@@ -2794,6 +2794,7 @@ ${targetLevel === 'high_school' ? `
           
           if (generated && generated.length > 20) {
             console.log('🔍 Attempting to parse vocab answers from generated content...')
+            console.log('🔍 Generated content preview:', generated.substring(0, 300))
             // 模範解答を抽出
             const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
             
@@ -2802,6 +2803,7 @@ ${targetLevel === 'high_school' ? `
               const answerText = answerMatch[1].trim()
               vocabAnswers = '【模範解答】\n' + answerText
               console.log('✅ Using AI-generated vocab answers')
+              console.log('📝 VocabAnswers content:', vocabAnswers.substring(0, 200))
               
               // 例を抽出
               const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
@@ -2811,18 +2813,28 @@ ${targetLevel === 'high_school' ? `
               
               // 解答から問題を生成（左側のフレーズを抽出して「→ ?」に置き換え）
               const answerLines = answerText.split('\n').filter((line: string) => line.trim())
+              console.log('🔍 Answer lines:', answerLines.length, 'lines')
+              console.log('🔍 Answer lines content:', JSON.stringify(answerLines.slice(0, 5)))
+              
               const problemLines = answerLines
                 .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
                 .map((line: string) => {
                   // 「フレーズ」→「解答」の形式から「フレーズ」→ ? を生成
                   const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
+                  console.log('🔍 Matching line:', line, '→ match:', match ? match[1] : 'NO MATCH')
                   return match ? `${match[1]} → ?` : null
                 })
                 .filter(Boolean)
               
+              console.log('🔍 Generated problem lines:', problemLines.length)
+              console.log('🔍 Problem lines content:', JSON.stringify(problemLines))
+              
               if (problemLines.length >= 3) {
                 vocabProblems = problemLines.join('\n')
                 console.log('✅ Generated problems from answers:', vocabProblems)
+              } else {
+                console.warn('⚠️ Not enough problem lines generated, using fallback')
+                console.warn('⚠️ Expected >= 3, got:', problemLines.length)
               }
             } else {
               console.warn('⚠️ Could not find 【模範解答】 section in generated content')
