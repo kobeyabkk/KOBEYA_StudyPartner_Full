@@ -2249,8 +2249,8 @@ router.get('/session/:sessionId', async (c) => {
                     // Step 3 では修正テキスト入力時はサーバー側で添削済みのため、クライアント側では呼ばない
                     const isVocabStep = ((currentStep === 3 || currentStep === 4) && sessionData?.lessonFormat === 'vocabulary_focus');
                     const willExecuteFeedback = !isVocabStep && (
-                        // Step 3: 確認完了/修正完了のみ（修正テキスト送信時はサーバー側で処理済み）
-                        (currentStep === 3 && (text.includes('確認完了') || text.includes('修正完了'))) ||
+                        // Step 3: サーバー側で添削済みのため、クライアント側では実行しない
+                        // (currentStep === 3 && ...) は削除
                         // Step 4, 5: 確認完了/修正完了 + 長文テキスト入力（100文字以上）
                         ((currentStep === 4 || currentStep === 5) && 
                          (text.includes('確認完了') || text.includes('修正完了') || 
