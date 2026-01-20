@@ -2684,8 +2684,8 @@ ${targetLevel === 'high_school' ? `
 
 重要な指示：
 1. フレーズ全体を含めること（口語表現の部分だけでなく、その前後も含める）
-2. 問題のフレーズと模範解答のフレーズは完全に一致させること
-3. 例：問題が「すごく大事なこと」なら、解答も「極めて重要なこと」とフレーズ全体を言い換える
+2. 【問題】セクションと【模範解答】セクションを別々に生成すること
+3. 【問題】と【模範解答】のフレーズは完全に一致させること（1番は1番、2番は2番...）
 
 要求:
 - よく使う口語表現を含む完全なフレーズを5つ選ぶ（4-8文字程度）
@@ -2695,6 +2695,13 @@ ${targetLevel === 'high_school' ? `
 - フレーズ全体を言い換えること（一部だけではなく）
 
 出力形式（この形式を厳守）：
+【問題】
+1. 「口語表現を含む完全なフレーズ1」 → ?
+2. 「口語表現を含む完全なフレーズ2」 → ?
+3. 「口語表現を含む完全なフレーズ3」 → ?
+4. 「口語表現を含む完全なフレーズ4」 → ?
+5. 「口語表現を含む完全なフレーズ5」 → ?
+
 【模範解答】
 1. 「口語表現を含む完全なフレーズ1」→「フレーズ1全体を小論文風に言い換えた表現」または「別の言い換え表現」
 2. 「口語表現を含む完全なフレーズ2」→「フレーズ2全体を小論文風に言い換えた表現」または「別の言い換え表現」
@@ -2703,9 +2710,17 @@ ${targetLevel === 'high_school' ? `
 5. 「口語表現を含む完全なフレーズ5」→「フレーズ5全体を小論文風に言い換えた表現」または「別の言い換え表現」
 
 正しい例：
-「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」
-「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」
-「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」`
+【問題】
+1. 「すごく大事なこと」 → ?
+2. 「やっぱりそうだと思った」 → ?
+3. 「だから必要なんだ」 → ?
+
+【模範解答】
+1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」
+2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」
+3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」
+
+注意: 【問題】の各番号のフレーズと【模範解答】の各番号のフレーズは必ず同じフレーズにしてください！`
           
           const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -2731,23 +2746,46 @@ ${targetLevel === 'high_school' ? `
           const apiData = await apiResponse.json()
           const generatedText = apiData.choices[0].message.content
           
-          // 模範解答を抽出
+          console.log('🔍 DEBUG: Generated text from OpenAI:')
+          console.log(generatedText)
+          
+          // 問題を抽出
+          const problemMatch = generatedText.match(/【問題】\s*([\s\S]*?)(?=【模範解答】|$)/)
           const answerMatch = generatedText.match(/【模範解答】\s*([\s\S]+)/)
-          if (answerMatch) {
+          
+          if (problemMatch && answerMatch) {
+            const problemText = problemMatch[1].trim()
             const answerText = answerMatch[1].trim()
+            
+            const vocabProblems = '【問題】\n' + problemText
             const vocabAnswers = '【模範解答】\n' + answerText
             
-            // 解答から問題を生成
-            const answerLines = answerText.split('\n').filter((line: string) => line.trim())
-            const problemLines = answerLines
-              .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
-              .map((line: string) => {
-                const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
-                return match ? `${match[1]} → ?` : null
-              })
-              .filter(Boolean)
+            console.log('✅ Extracted problems and answers')
+            console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
+            console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers)
             
-            const vocabProblems = problemLines.join('\n')
+            // 🔍 問題と解答の一致を検証
+            const problemPhrases = (problemText.match(/「[^」]+」/g) || []).map(p => p.replace(/[「」]/g, ''))
+            const answerPhrases = (answerText.match(/「[^」]+」\s*→/g) || []).map(a => a.replace(/[「」→\s]/g, ''))
+            
+            console.log('🔍 Problem phrases:', problemPhrases)
+            console.log('🔍 Answer phrases:', answerPhrases)
+            
+            let mismatch = false
+            for (let i = 0; i < Math.max(problemPhrases.length, answerPhrases.length); i++) {
+              if (problemPhrases[i] !== answerPhrases[i]) {
+                console.warn(`⚠️ MISMATCH at index ${i}:`)
+                console.warn(`   Problem: "${problemPhrases[i]}"`)
+                console.warn(`   Answer:  "${answerPhrases[i]}"`)
+                mismatch = true
+              }
+            }
+            
+            if (mismatch) {
+              console.warn('⚠️ PROBLEM-ANSWER MISMATCH DETECTED!')
+            } else {
+              console.log('✅ Problem-answer consistency verified')
+            }
             
             // セッションに保存
             if (!session.essaySession) {
@@ -2760,8 +2798,9 @@ ${targetLevel === 'high_school' ? `
             await saveSessionToDB(db, sessionId, session)
             
             console.log('✅ Auto-generated Step 2 vocab problems and answers')
-            console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
-            console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers.substring(0, 300))
+          } else {
+            console.error('❌ Failed to extract problems or answers from generated text')
+            console.error('Generated text:', generatedText)
           }
         } catch (error) {
           console.error('❌ Failed to auto-generate Step 2 vocab:', error)
@@ -2859,6 +2898,7 @@ ${targetLevel === 'high_school' ? `
         
         // 毎回違う語彙力強化問題を生成
         let vocabProblems = '1. 「すごく大事」→ ?\n2. 「やっぱり」→ ?\n3. 「だから」→ ?\n4. 「ちゃんと」→ ?\n5. 「いっぱい」→ ?'
+        let vocabAnswers = '【模範解答】\n1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」\n2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」\n3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」\n4. 「ちゃんと確認して」→「適切に確認して」または「正確に確認して」\n5. 「いっぱいあるよ」→「多数存在する」または「数多くある」'
         let vocabExample = '「すごく大事」→「極めて重要」'
         let generatedText = '' // デバッグ用
         
@@ -2881,8 +2921,8 @@ ${targetLevel === 'high_school' ? `
 
 重要な指示：
 1. フレーズ全体を含めること（口語表現の部分だけでなく、その前後も含める）
-2. 問題のフレーズと模範解答のフレーズは完全に一致させること
-3. 例：問題が「すごく大事なこと」なら、解答も「極めて重要なこと」とフレーズ全体を言い換える
+2. 【問題】セクションと【模範解答】セクションを別々に生成すること
+3. 【問題】と【模範解答】のフレーズは完全に一致させること（1番は1番、2番は2番...）
 
 要求:
 - よく使う口語表現を含む完全なフレーズを5つ選ぶ（4-8文字程度）
@@ -2892,6 +2932,13 @@ ${targetLevel === 'high_school' ? `
 - フレーズ全体を言い換えること（一部だけではなく）
 
 出力形式（この形式を厳守）：
+【問題】
+1. 「口語表現を含む完全なフレーズ1」 → ?
+2. 「口語表現を含む完全なフレーズ2」 → ?
+3. 「口語表現を含む完全なフレーズ3」 → ?
+4. 「口語表現を含む完全なフレーズ4」 → ?
+5. 「口語表現を含む完全なフレーズ5」 → ?
+
 【模範解答】
 1. 「口語表現を含む完全なフレーズ1」→「フレーズ1全体を小論文風に言い換えた表現」または「別の言い換え表現」
 2. 「口語表現を含む完全なフレーズ2」→「フレーズ2全体を小論文風に言い換えた表現」または「別の言い換え表現」
@@ -2900,9 +2947,17 @@ ${targetLevel === 'high_school' ? `
 5. 「口語表現を含む完全なフレーズ5」→「フレーズ5全体を小論文風に言い換えた表現」または「別の言い換え表現」
 
 正しい例：
-「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」
-「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」
-「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」`
+【問題】
+1. 「すごく大事なこと」 → ?
+2. 「やっぱりそうだと思った」 → ?
+3. 「だから必要なんだ」 → ?
+
+【模範解答】
+1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」
+2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」
+3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」
+
+注意: 【問題】の各番号のフレーズと【模範解答】の各番号のフレーズは必ず同じフレーズにしてください！`
           
           console.log('🤖 Calling OpenAI API for vocab problems...')
           
@@ -2939,86 +2994,92 @@ ${targetLevel === 'high_school' ? `
           console.log('📊 AI Generated vocab length:', generated?.length || 0)
           console.log('📊 AI Generated vocab content (first 500 chars):', generated?.substring(0, 500))
           
-          let vocabAnswers = '【模範解答】\n1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」\n2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」\n3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」\n4. 「ちゃんと確認して」→「適切に確認して」または「正確に確認して」\n5. 「いっぱいあるよ」→「多数存在する」または「数多くある」'
-          
           if (generated && generated.length > 20) {
-            console.log('🔍 Attempting to parse vocab answers from generated content...')
+            console.log('🔍 Attempting to parse problems and answers from generated content...')
             console.log('🔍 Generated content preview:', generated.substring(0, 300))
-            // 模範解答を抽出
-            const answerMatch = generated.match(/【模範解答】([\s\S]*)/)
             
-            if (answerMatch) {
-              console.log('✅ Found 【模範解答】 section')
+            // 問題と模範解答を別々に抽出
+            const problemMatch = generated.match(/【問題】\s*([\s\S]*?)(?=【模範解答】|$)/)
+            const answerMatch = generated.match(/【模範解答】\s*([\s\S]+)/)
+            
+            if (problemMatch && answerMatch) {
+              console.log('✅ Found both 【問題】 and 【模範解答】 sections')
+              
+              const problemText = problemMatch[1].trim()
               const answerText = answerMatch[1].trim()
+              
+              vocabProblems = problemText
               vocabAnswers = '【模範解答】\n' + answerText
-              console.log('✅ Using AI-generated vocab answers')
+              
+              console.log('✅ Using AI-generated vocab problems and answers')
+              console.log('📝 VocabProblems content:', vocabProblems.substring(0, 200))
               console.log('📝 VocabAnswers content:', vocabAnswers.substring(0, 200))
               
               // 例を抽出
               const exampleMatch = answerText.match(/例[：:]\s*(.+)/)
               if (exampleMatch) {
                 vocabExample = exampleMatch[1].trim()
+              } else {
+                // 最初の問題から例を生成
+                const firstAnswerLine = answerText.split('\n').find((line: string) => /^\d+\./.test(line.trim()))
+                if (firstAnswerLine) {
+                  const exampleParts = firstAnswerLine.match(/「([^」]+)」→「([^」]+)」/)
+                  if (exampleParts) {
+                    vocabExample = `「${exampleParts[1]}」→「${exampleParts[2]}」`
+                  }
+                }
               }
               
-              // 解答から問題を生成（左側のフレーズを抽出して「→ ?」に置き換え）
-              const answerLines = answerText.split('\n').filter((line: string) => line.trim())
-              console.log('🔍 Answer lines:', answerLines.length, 'lines')
-              console.log('🔍 Answer lines content:', JSON.stringify(answerLines.slice(0, 5)))
+              // 🔍 問題と解答の一致を検証
+              const problemPhrases = (problemText.match(/「[^」]+」/g) || []).map(p => p.replace(/[「」]/g, ''))
+              const answerPhrases = (answerText.match(/「[^」]+」\s*→/g) || []).map(a => a.replace(/[「」→\s]/g, ''))
               
-              const problemLines = answerLines
-                .filter((line: string) => /^\d+\./.test(line.trim()) && line.includes('→'))
-                .map((line: string) => {
-                  // 「フレーズ」→「解答」の形式から「フレーズ」→ ? を生成
-                  const match = line.match(/^(\d+\.\s*「[^」]+」)\s*→/)
-                  console.log('🔍 Matching line:', line, '→ match:', match ? match[1] : 'NO MATCH')
-                  return match ? `${match[1]} → ?` : null
-                })
-                .filter(Boolean)
+              console.log('🔍 Problem phrases:', problemPhrases)
+              console.log('🔍 Answer phrases:', answerPhrases)
               
-              console.log('🔍 Generated problem lines:', problemLines.length)
-              console.log('🔍 Problem lines content:', JSON.stringify(problemLines))
+              let mismatch = false
+              for (let i = 0; i < Math.max(problemPhrases.length, answerPhrases.length); i++) {
+                if (problemPhrases[i] !== answerPhrases[i]) {
+                  console.warn(`⚠️ MISMATCH at index ${i}:`)
+                  console.warn(`   Problem: "${problemPhrases[i]}"`)
+                  console.warn(`   Answer:  "${answerPhrases[i]}"`)
+                  mismatch = true
+                }
+              }
               
-              if (problemLines.length >= 3) {
-                vocabProblems = problemLines.join('\n')
-                console.log('✅ Generated problems from answers:', vocabProblems)
+              if (mismatch) {
+                console.warn('⚠️ PROBLEM-ANSWER MISMATCH DETECTED! Using fallback.')
+                // 不一致の場合はフォールバックを使用
+                vocabProblems = '1. 「すごく大事なこと」→ ?\n2. 「やっぱりそうだと思った」→ ?\n3. 「だから必要なんだ」→ ?\n4. 「ちゃんと確認して」→ ?\n5. 「いっぱいあるよ」→ ?'
+                vocabAnswers = '【模範解答】\n1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」\n2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」\n3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」\n4. 「ちゃんと確認して」→「適切に確認して」または「正確に確認して」\n5. 「いっぱいあるよ」→「多数存在する」または「数多くある」'
               } else {
-                console.warn('⚠️ Not enough problem lines generated, using fallback')
-                console.warn('⚠️ Expected >= 3, got:', problemLines.length)
+                console.log('✅ Problem-answer consistency verified')
               }
             } else {
-              console.warn('⚠️ Could not find 【模範解答】 section in generated content')
-              console.warn('⚠️ Using fallback vocab answers')
+              console.warn('⚠️ Could not find 【問題】 or 【模範解答】 section in generated content')
+              console.warn('⚠️ Using fallback vocab problems and answers')
             }
-            
-            // セッションに解答を保存
-            if (!session.essaySession) {
-              session.essaySession = {}
-            }
-            session.essaySession.vocabAnswers = vocabAnswers
-            session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
-            session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
-            
-            console.log('✅ Using vocab problems and answers')
-            console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
-            console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
-            console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers.substring(0, 300))
           } else {
-            console.warn('⚠️ AI vocab too short, using fallback')
-            // フォールバックの問題を生成
-            vocabProblems = '1. 「すごく大事なこと」→ ?\n2. 「やっぱりそうだと思った」→ ?\n3. 「だから必要なんだ」→ ?\n4. 「ちゃんと確認して」→ ?\n5. 「いっぱいあるよ」→ ?'
-            // フォールバックの解答も保存
-            if (!session.essaySession) {
-              session.essaySession = {}
-            }
-            session.essaySession.vocabAnswers = vocabAnswers
-            session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
-            session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
+            console.warn('⚠️ Generated content too short or empty, using fallback')
           }
+          
+          // セッションに解答を保存
+          if (!session.essaySession) {
+            session.essaySession = {}
+          }
+          session.essaySession.vocabAnswers = vocabAnswers
+          session.essaySession.vocabAnswersStep2 = vocabAnswers  // Step 2用に保存
+          session.essaySession.lastVocabProblemsStep2 = vocabProblems  // 問題も保存
+          
+          console.log('✅ Using vocab problems and answers')
+          console.log('📝 Vocab answers saved:', vocabAnswers.substring(0, 100))
+          console.log('🔍 DEBUG: vocabProblems =', vocabProblems)
+          console.log('🔍 DEBUG: vocabAnswers =', vocabAnswers.substring(0, 300))
         } catch (error) {
           console.error('❌ Vocab problems generation error:', error)
           console.log('🔄 Using fallback vocab problems')
           // エラー時も解答を保存
-          const vocabAnswers = '【模範解答】\n1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」\n2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」\n3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」\n4. 「ちゃんと確認して」→「適切に確認して」または「正確に確認して」\n5. 「いっぱいあるよ」→「多数存在する」または「数多くある」'
+          vocabAnswers = '【模範解答】\n1. 「すごく大事なこと」→「極めて重要な事柄」または「非常に大切なこと」\n2. 「やっぱりそうだと思った」→「やはりそうであると考えた」または「確かにそうであると思われた」\n3. 「だから必要なんだ」→「したがって必要である」または「それゆえ必要なのである」\n4. 「ちゃんと確認して」→「適切に確認して」または「正確に確認して」\n5. 「いっぱいあるよ」→「多数存在する」または「数多くある」'
           vocabProblems = '1. 「すごく大事なこと」→ ?\n2. 「やっぱりそうだと思った」→ ?\n3. 「だから必要なんだ」→ ?\n4. 「ちゃんと確認して」→ ?\n5. 「いっぱいあるよ」→ ?'
           if (!session.essaySession) {
             session.essaySession = {}
