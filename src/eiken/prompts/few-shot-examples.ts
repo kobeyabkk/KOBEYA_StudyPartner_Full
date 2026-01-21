@@ -240,3 +240,105 @@ export function formatFewShotExamples(examples: FewShotExample[]): string {
   
   return sections.join('\n');
 }
+
+/**
+ * Grade 3 (A2レベル) Ambiguity Prevention Examples
+ * 実際の検証失敗から学んだパターン
+ */
+export const grade3AmbiguityPreventionExamples: FewShotExample[] = [
+  // ❌ BAD: Multiple modals can fit
+  {
+    type: 'bad',
+    questionText: "A: I want to buy a new bag.\nB: You ( ) go to that store.",
+    choices: ["can", "may", "should", "must"],
+    correctIndex: 0,
+    explanation: "AMBIGUOUS - can (ability), may (permission), should (recommendation) all work",
+    vocabularyNotes: "❌ PROBLEM: No context to specify ability/permission/recommendation",
+    grammarPoint: "modal verbs - ambiguous context"
+  },
+  
+  // ✅ GOOD: Clear ability context
+  {
+    type: 'corrected',
+    questionText: "A: I want to buy a new bag, but I don't know any good stores.\nB: You ( ) go to that store. They have many nice bags.",
+    choices: ["can", "may", "should", "must"],
+    correctIndex: 0,
+    explanation: "CLEAR - 'don't know any good stores' + 'they have' = giving information (ability)",
+    vocabularyNotes: "✅ SOLUTION: Added context that clarifies this is about ability/possibility",
+    grammarPoint: "modal verbs - ability/suggestion"
+  },
+  
+  // ❌ BAD: Multiple tenses can fit
+  {
+    type: 'bad',
+    questionText: "A: Our school has a sports day.\nB: That ( ) fun!",
+    choices: ["is", "was", "will be", "can be"],
+    correctIndex: 0,
+    explanation: "AMBIGUOUS - is (present), was (past), will be (future) all work",
+    vocabularyNotes: "❌ PROBLEM: No time marker to specify when the event is",
+    grammarPoint: "tense - ambiguous time"
+  },
+  
+  // ✅ GOOD: Clear time marker
+  {
+    type: 'corrected',
+    questionText: "A: Our school has a sports day tomorrow.\nB: That ( ) fun!",
+    choices: ["is", "was", "will be", "can be"],
+    correctIndex: 2,
+    explanation: "CLEAR - 'tomorrow' = future, so only 'will be' works",
+    vocabularyNotes: "✅ SOLUTION: Added 'tomorrow' to make future tense the only answer",
+    grammarPoint: "future tense with time marker"
+  },
+  
+  // ❌ BAD: Multiple verbs can fit
+  {
+    type: 'bad',
+    questionText: "A: What kind of food do you like?\nB: I ( ) Japanese food.",
+    choices: ["like", "love", "enjoy", "want"],
+    correctIndex: 0,
+    explanation: "AMBIGUOUS - like, love, enjoy all work for preferences",
+    vocabularyNotes: "❌ PROBLEM: All three verbs express preference",
+    grammarPoint: "preference verbs - overlapping meaning"
+  },
+  
+  // ✅ GOOD: Specific context
+  {
+    type: 'corrected',
+    questionText: "A: What kind of food do you usually eat?\nB: I usually ( ) Japanese food for dinner.",
+    choices: ["eat", "cook", "buy", "make"],
+    correctIndex: 0,
+    explanation: "CLEAR - 'usually' + 'for dinner' = habitual eating action",
+    vocabularyNotes: "✅ SOLUTION: Changed to specific action verb with frequency",
+    grammarPoint: "present simple - habitual action"
+  },
+  
+  // ❌ BAD: do/are/can all fit
+  {
+    type: 'bad',
+    questionText: "A: ( ) you like apples or oranges?\nB: I like apples.",
+    choices: ["Do", "Are", "Can", "Will"],
+    correctIndex: 0,
+    explanation: "AMBIGUOUS - 'Do you like' (preference) and 'Can you' (ability) both make sense",
+    vocabularyNotes: "❌ PROBLEM: Both preference and ability questions work",
+    grammarPoint: "question forms - ambiguous intent"
+  },
+  
+  // ✅ GOOD: Clear preference question
+  {
+    type: 'corrected',
+    questionText: "A: ( ) you like apples or oranges better?\nB: I like apples better.",
+    choices: ["Do", "Are", "Can", "Will"],
+    correctIndex: 0,
+    explanation: "CLEAR - 'better' makes this clearly a preference question",
+    vocabularyNotes: "✅ SOLUTION: Added 'better' to eliminate ability interpretation",
+    grammarPoint: "present simple - preferences"
+  }
+];
+
+/**
+ * Export all ambiguity prevention examples for Grade 3
+ */
+export const grade3WithAmbiguityPrevention = [
+  ...grade3GrammarExamples,
+  ...grade3AmbiguityPreventionExamples
+];

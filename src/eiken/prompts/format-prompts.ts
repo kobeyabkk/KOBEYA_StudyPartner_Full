@@ -4,10 +4,12 @@
  * 5つの問題形式それぞれに最適化されたプロンプトテンプレート
  * Phase 4: Few-shot Examples with Good/Bad comparison for vocabulary quality
  * Phase 4B: Grammar complexity constraints per grade level
+ * Phase 6.9: Ambiguity prevention with real failure examples
  */
 
 import type { Blueprint, EikenGrade } from '../types';
 import { getGrammarPromptInstructions, getExplanationTerminologyGuide } from '../config/grammar-constraints';
+import { grade3AmbiguityPreventionExamples, formatFewShotExamples } from './few-shot-examples';
 
 // ====================
 // Few-shot Examples for Vocabulary Control
@@ -247,6 +249,14 @@ Solutions:
 ✓ Make sure distractors are clearly wrong in THIS context
 ✓ Include specific details that eliminate ambiguity
 ✓ Test mentally: "Could another answer also work here?"
+
+${blueprint.grade === '3' ? `
+## 📚 LEARN FROM REAL FAILURES (Ambiguity Prevention Examples)
+
+${formatFewShotExamples(grade3AmbiguityPreventionExamples)}
+
+**KEY LESSON**: Every bad example above failed our validation system. Follow the corrected versions!
+` : ''}
 
 ## Output Format (JSON)
 {
