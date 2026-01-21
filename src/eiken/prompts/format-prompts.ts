@@ -221,12 +221,32 @@ Common mistakes to avoid:
 ❌ "_____ you like pizza?" (Both "Do" and "Would" work)
 ❌ "She _____ to school." (Both "goes" and "went" could work)
 ❌ "I _____ play soccer every weekend." (Both "usually" and nothing work)
+❌ "You _____ eat more vegetables." (should/can/must/may all work)
+❌ "I _____ reading books." (like/enjoy/love all work)
+
+**MANDATORY Context Requirements:**
+1. **Time markers are REQUIRED** for tense questions:
+   - Past: "yesterday", "last week", "in 2020"
+   - Present: "every day", "usually", "now"
+   - Future: "tomorrow", "next week", "soon"
+
+2. **Specific situations for modal verbs:**
+   - Permission: "Can I...?" "May I...?"
+   - Ability: "I can swim 100 meters."
+   - Obligation: "You must finish homework by 5 PM."
+   - Advice: "You should study if you want to pass."
+
+3. **Clear subject-verb agreement markers:**
+   - Include explicit subjects: "He/She/It" vs "I/You/We/They"
+   - Add frequency words that require specific forms
 
 Solutions:
 ✓ Use dialogue format (recommended for ${blueprint.grade})
 ✓ Add time markers: "yesterday", "every day", "tomorrow"
 ✓ Add context that specifies the grammar
 ✓ Make sure distractors are clearly wrong in THIS context
+✓ Include specific details that eliminate ambiguity
+✓ Test mentally: "Could another answer also work here?"
 
 ## Output Format (JSON)
 {
@@ -305,6 +325,13 @@ Before submitting your JSON, verify:
 3. ✓ explanation_ja contains "＜当てはめ＞"
 4. ✓ explanation_ja contains "＜誤答の理由＞"
 5. ✓ There are empty lines (\\n\\n) between each block
+6. ✓ **AMBIGUITY CHECK**: Could more than one answer be grammatically correct?
+   - If YES: Add time markers, context, or specific details
+   - Test each distractor: "Would this also work in this sentence?"
+   - Ensure the correct answer is the ONLY one that fits
+7. ✓ Time markers present for tense questions (yesterday/every day/tomorrow)
+8. ✓ Clear context for modal verbs (permission/ability/obligation)
+9. ✓ Subject-verb agreement is unambiguous
 6. ✓ explanation_ja is at least 100 characters long
 
 ❌ REJECT if explanation_ja looks like:
