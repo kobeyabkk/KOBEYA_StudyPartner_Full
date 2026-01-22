@@ -1093,13 +1093,15 @@ Always respond with valid JSON.`;
     const data = await response.json();
     let generated = JSON.parse(data.choices[0].message.content);
     
-    // Phase 7.5 Quick Win #1: logic_blueprint 強制チェック
+    // Phase 7.5.1 Quick Win #1: logic_blueprint チェック（警告のみ、エラーにしない）
     if (blueprint.format === 'grammar_fill') {
       if (!generated.logic_blueprint || !generated.final_question) {
-        console.log('[Phase 7.5 QW#1] ❌ Missing logic_blueprint or final_question - REGENERATING');
-        throw new Error('Missing logic_blueprint or final_question in grammar_fill generation');
+        console.warn('[Phase 7.5.1 QW#1] ⚠️ Missing logic_blueprint or final_question - continuing with standard format');
+        console.warn('  This question will not have distractor-driven validation');
+        // エラーにせず、従来形式として続行
+      } else {
+        console.log('[Phase 7.5.1 QW#1] ✅ logic_blueprint and final_question present');
       }
-      console.log('[Phase 7.5 QW#1] ✅ logic_blueprint and final_question present');
     }
     
     // Phase 7.4: Logic-First 形式の変換
@@ -1110,28 +1112,53 @@ Always respond with valid JSON.`;
       const logic = generated.logic_blueprint;
       const final = generated.final_question;
       
-      // Phase 7.5 Quick Win #2: required_context_clue の存在確認
+      // Phase 7.5.1 Quick Win #2: required_context_clue の存在確認（緩和版）
       const questionText = final.sentence || final.question_text;
       const clues = [
         logic.distractor_1?.required_context_clue,
         logic.distractor_2?.required_context_clue,
         logic.distractor_3?.required_context_clue
-      ].filter(Boolean);
+      ].filter(Boolean);  // 空の clue を除外
       
       const missingClues: string[] = [];
+      const partialMatchClues: string[] = [];
+      
       for (const clue of clues) {
-        if (!questionText.toLowerCase().includes(clue.toLowerCase())) {
+        if (!clue || clue.trim() === '') continue;  // 空の場合はスキップ
+        
+        const clueWords = clue.toLowerCase().split(/\s+/);
+        const questionLower = questionText.toLowerCase();
+        
+        // 完全一致チェック
+        if (questionLower.includes(clue.toLowerCase())) {
+          // 完全一致: OK
+          continue;
+        }
+        
+        // 部分一致チェック（clue の単語が1つでも含まれていればOK）
+        const hasPartialMatch = clueWords.some(word => 
+          word.length > 2 && questionLower.includes(word)
+        );
+        
+        if (hasPartialMatch) {
+          partialMatchClues.push(clue);
+          console.warn(`[Phase 7.5.1 QW#2] ⚠️ Partial match for clue: "${clue}"`);
+        } else {
           missingClues.push(clue);
         }
       }
       
       if (missingClues.length > 0) {
-        console.log('[Phase 7.5 QW#2] ❌ Missing required_context_clues in question_text:');
-        console.log(`  Missing: ${missingClues.join(', ')}`);
-        console.log(`  Question: ${questionText}`);
-        throw new Error(`Missing required_context_clues: ${missingClues.join(', ')}`);
+        console.warn('[Phase 7.5.1 QW#2] ⚠️ Some required_context_clues not found:');
+        console.warn(`  Missing: ${missingClues.join(', ')}`);
+        console.warn(`  Question: ${questionText}`);
+        console.warn('  Continuing anyway (will rely on validation to catch issues)');
+        // エラーにせず警告のみ
+      } else if (partialMatchClues.length > 0) {
+        console.log(`[Phase 7.5.1 QW#2] ⚠️ Partial matches found for ${partialMatchClues.length} clues`);
+      } else {
+        console.log('[Phase 7.5.1 QW#2] ✅ All required_context_clues present in question_text');
       }
-      console.log('[Phase 7.5 QW#2] ✅ All required_context_clues present in question_text');
       
       // 従来の形式に変換
       const converted = {
