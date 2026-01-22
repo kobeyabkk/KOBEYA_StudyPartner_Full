@@ -887,8 +887,9 @@ app.post('/api/essay/generate-pdf', async (c) => {
   console.log('📝 Essay chat API called')
   
   try {
-    const { sessionId, message, currentStep } = await c.req.json()
-    console.log('📝 Received:', { sessionId, message, currentStep })
+    const requestBody = await c.req.json()
+    const { sessionId, message, currentStep, lessonFormat: requestLessonFormat } = requestBody
+    console.log('📝 Received:', { sessionId, message, currentStep, requestLessonFormat })
     
     if (!sessionId || !message) {
       console.log('❌ Missing parameters')
@@ -915,11 +916,24 @@ app.post('/api/essay/generate-pdf', async (c) => {
     }
     
     const essaySession = session.essaySession
+    
+    // ⚠️ CRITICAL FIX: lessonFormatの優先順位: リクエストボディ > セッション > デフォルト
+    const lessonFormat = requestLessonFormat || essaySession?.lessonFormat || 'full_55min'
+    
+    // ⚠️ CRITICAL: セッションにlessonFormatが保存されていない場合は更新
+    if (!essaySession.lessonFormat && requestLessonFormat) {
+      essaySession.lessonFormat = requestLessonFormat
+      console.log('🔧 FIXED: lessonFormat was missing in session, updated from request:', requestLessonFormat)
+      // セッションを更新
+      if (db) {
+        await saveSessionToDB(db, sessionId, session)
+      }
+    }
+    
     const problemMode = essaySession?.problemMode || 'ai'
     const customInput = essaySession?.customInput || null
     const learningStyle = essaySession?.learningStyle || 'auto'
     const targetLevel = essaySession?.targetLevel || 'high_school'
-    const lessonFormat = essaySession?.lessonFormat || 'full_55min'
     
     // 🔍 CRITICAL DEBUG: lessonFormatの値を確認
     console.log('🔍 CRITICAL: lessonFormat value:', {
@@ -1408,11 +1422,21 @@ ${themeContent}
         response = `理解度を確認します。以下の質問に、小論文で書くような丁寧な文体で答えてください：\n\n${questions}\n\n【回答方法】\n・3つの質問すべてに答えてください\n・「です・ます」調または「である」調で記述\n・箇条書きではなく、文章として答えてください\n・すべて答え終えたら、送信ボタンを押してください\n\n（わからない場合は「パス」と入力すると解説します）`
       }
       // 「OK」のみ（標準55分モードのみ、focused formatは除外）
+      // ⚠️ CRITICAL: vocabulary_focusの場合は絶対にこの条件をスキップ
       else if (!isFocusedFormat && (message.toLowerCase().trim() === 'ok' || message.includes('はい'))) {
-        console.log('✅ Matched: OK/はい (standard 55min mode)')
-        console.log('🔍 Lesson format:', lessonFormat)
-        console.log('🚨 DEBUG: This branch should NOT execute for vocabulary_focus!')
-        console.log('🚨 DEBUG: lessonFormat =', lessonFormat, '| isFocusedFormat =', isFocusedFormat)
+        // ⚠️ SAFETY CHECK: vocabulary_focusの場合はこのブロックを完全にスキップ
+        if (lessonFormat === 'vocabulary_focus' || lessonFormat === 'short_essay_focus') {
+          console.error('❌ CRITICAL BUG DETECTED: vocabulary_focus/short_essay_focusなのに標準55分モードの処理に入ってしまいました！')
+          console.error('❌ lessonFormat:', lessonFormat, '| isFocusedFormat:', isFocusedFormat)
+          console.error('❌ isVocabularyFocus:', isVocabularyFocus, '| isShortEssayFocus:', isShortEssayFocus)
+          console.error('❌ essaySession?.lessonFormat:', essaySession?.lessonFormat)
+          // このブロックを完全にスキップして、語彙練習処理に進む
+          // responseは空のままにして、次の条件で処理される
+        } else {
+          console.log('✅ Matched: OK/はい (standard 55min mode)')
+          console.log('🔍 Lesson format:', lessonFormat)
+          console.log('🚨 DEBUG: This branch should NOT execute for vocabulary_focus!')
+          console.log('🚨 DEBUG: lessonFormat =', lessonFormat, '| isFocusedFormat =', isFocusedFormat)
         
         // 標準55分モードの場合のみ読み物を生成
         
@@ -1884,7 +1908,11 @@ ${targetLevel === 'high_school' ? `
         response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
       }
       // Focused formatでStep 1の場合、Step 2/3処理に任せるため何もしない（fall through）
-    } else if (currentStep === 2 || (isVocabularyFocus && currentStep >= 1 && currentStep <= 3)) {
+    } 
+    
+    // ⚠️ CRITICAL FIX: vocabulary_focusの場合は、Step 1でも語彙練習処理に入る
+    // responseが空の場合（vocabulary_focusで誤って標準55分モードの処理に入った場合）も処理する
+    if (response === '' || currentStep === 2 || (isVocabularyFocus && currentStep >= 1 && currentStep <= 3)) {
       // ステップ2: 語彙力強化
       // vocabulary_focusの場合、ステップ1-3をすべて語彙練習として扱う
       const vocabStepLabel = isVocabularyFocus ? 
@@ -4504,6 +4532,16 @@ ${targetLevel === 'high_school' ? `
         const sessionId = '${sessionId}';
         let currentStep = 1;
         
+        // ⚠️ CRITICAL FIX: essaySessionのデータをwindowに保存（lessonFormatを含む）
+        window.essaySessionData = {
+          sessionId: sessionId,
+          problemMode: '${essaySession.problemMode}',
+          customInput: '${essaySession.customInput || ''}',
+          learningStyle: '${essaySession.learningStyle}',
+          targetLevel: '${essaySession.targetLevel}',
+          lessonFormat: '${essaySession.lessonFormat || 'full_55min'}'
+        };
+        
         // セッション設定をコンソールに表示（デバッグ用）
         console.log('🔍 Essay Session Configuration:', {
           sessionId: sessionId,
@@ -4511,6 +4549,7 @@ ${targetLevel === 'high_school' ? `
           customInput: '${essaySession.customInput || '(empty)'}',
           learningStyle: '${essaySession.learningStyle}',
           targetLevel: '${essaySession.targetLevel}',
+          lessonFormat: '${essaySession.lessonFormat || 'full_55min'}',
           timestamp: new Date().toISOString()
         });
         
@@ -4585,7 +4624,8 @@ ${targetLevel === 'high_school' ? `
                     body: JSON.stringify({
                         sessionId,
                         message: text,
-                        currentStep
+                        currentStep,
+                        lessonFormat: window.essaySessionData?.lessonFormat || 'full_55min'
                     })
                 });
                 
