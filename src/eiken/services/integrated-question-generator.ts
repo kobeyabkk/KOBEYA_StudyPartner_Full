@@ -225,7 +225,7 @@ export class IntegratedQuestionGenerator {
   private getOptimalLLMConfig(format: QuestionFormat): LLMConfig {
     const configs: Record<QuestionFormat, LLMConfig> = {
       'grammar_fill': {
-        temperature: 0.2,  // Phase 7.3: Lowered to 0.2 to prevent ambiguous answers (Claude recommendation)
+        temperature: 0.35,  // Phase 7.7: Increased from 0.2 to 0.35 for diversity (100% validation rate maintained)
         top_p: 0.9,
         reasoning: '曖昧性を最小化するため最も厳格に制御（Phase 7.3: 0.3→0.2）'
       },
@@ -245,7 +245,7 @@ export class IntegratedQuestionGenerator {
         reasoning: '長文なので最も厳格に制御'
       },
       'long_reading': {
-        temperature: 0.2,
+        temperature: 0.35,  // Phase 7.7: Diversity improvement
         top_p: 0.65,
         reasoning: '超長文なので極めて厳格に（Phase 3改善: 0.25→0.2, top_p: 0.7→0.65）'
       },
@@ -1958,7 +1958,7 @@ Clear: "Yesterday" requires past tense, only "went" works
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: validationPrompt }],
-          temperature: 0.2,
+          temperature: 0.35,  // Phase 7.7: Diversity improvement
           response_format: { type: 'json_object' }
         }),
       });
@@ -2050,7 +2050,7 @@ Return ONLY valid JSON:
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: validationPrompt }],
-            temperature: 0.2,
+            temperature: 0.35,  // Phase 7.7: Diversity improvement
             response_format: { type: 'json_object' }
           }),
         });
@@ -2141,7 +2141,7 @@ Return ONLY valid JSON:
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: validationPrompt }],
-          temperature: 0.2,
+          temperature: 0.35,  // Phase 7.7: Diversity improvement
           response_format: { type: 'json_object' }
         }),
       });
@@ -2248,7 +2248,7 @@ Return ONLY valid JSON:
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: validationPrompt }],
-            temperature: 0.2,
+            temperature: 0.35,  // Phase 7.7: Diversity improvement
             response_format: { type: 'json_object' }
           }),
         });

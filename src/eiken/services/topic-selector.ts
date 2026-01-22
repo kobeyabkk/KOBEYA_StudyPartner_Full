@@ -33,6 +33,7 @@ export class TopicSelector {
   /**
    * Main topic selection method
    * Implements ε-greedy + weighted random + LRU + blacklist + fallback
+   * Phase 7.7: Added session-level topic diversity enforcement
    */
   async selectTopic(options: TopicSelectionOptions): Promise<TopicSelectionResult> {
     const startTime = Date.now();
@@ -40,10 +41,14 @@ export class TopicSelector {
     console.log(`[TopicSelector] ===== STARTING TOPIC SELECTION =====`);
     console.log(`[TopicSelector] Options:`, JSON.stringify(options, null, 2));
     
+    // Phase 7.7: Get recently used topics in this session (last 5 questions)
+    const recentTopics = await this.getRecentTopicsInSession(options.student_id, 5);
+    console.log(`[Phase 7.7] Recently used topics in session: ${recentTopics.join(', ')}`);
+    
     // 7-stage fallback strategy
     for (let stage = 0; stage <= 6; stage++) {
       try {
-        const result = await this.selectTopicAtStage(options, stage);
+        const result = await this.selectTopicAtStage(options, stage, recentTopics);
         if (result) {
           result.fallback_stage = stage;
           result.metadata.selection_timestamp = new Date().toISOString();
@@ -69,10 +74,12 @@ export class TopicSelector {
 
   /**
    * Select topic at specific fallback stage
+   * Phase 7.7: Added recentTopics parameter for diversity
    */
   private async selectTopicAtStage(
     options: TopicSelectionOptions,
-    stage: number
+    stage: number,
+    recentTopics: string[] = []
   ): Promise<TopicSelectionResult | null> {
     console.log(`[TopicSelector] Stage ${stage} starting for grade=${options.grade}, question_type=${options.question_type}`);
     
@@ -87,6 +94,19 @@ export class TopicSelector {
     }
 
     const initialCount = candidates.length;
+
+    // Phase 7.7: Filter out recently used topics (except at final fallback stages)
+    if (stage < 4 && recentTopics.length > 0) {
+      const beforeFilter = candidates.length;
+      candidates = candidates.filter(t => !recentTopics.includes(t.topic_code));
+      const filtered = beforeFilter - candidates.length;
+      console.log(`[Phase 7.7] Stage ${stage}: Filtered ${filtered} recently used topics, remaining: ${candidates.length}`);
+      
+      if (candidates.length === 0) {
+        console.warn(`[Phase 7.7] Stage ${stage}: All candidates were recently used, moving to next stage`);
+        return null;
+      }
+    }
 
     // Apply filters based on stage
     if (stage === 0) {
@@ -623,5 +643,33 @@ export class TopicSelector {
 
     const result = await this.db.prepare(query).bind(...bindings).all();
     return result.results || [];
+  }
+
+  /**
+   * Phase 7.7: Get recently used topics in current session
+   * Returns topic codes used in the last N questions for this student
+   */
+  private async getRecentTopicsInSession(
+    studentId: string,
+    limit: number = 5
+  ): Promise<string[]> {
+    try {
+      const result = await this.db
+        .prepare(
+          `SELECT DISTINCT topic_code 
+           FROM eiken_generated_questions 
+           WHERE student_id = ? 
+           ORDER BY created_at DESC 
+           LIMIT ?`
+        )
+        .bind(studentId, limit)
+        .all();
+      
+      const topics = (result.results || []).map((row: any) => row.topic_code).filter(Boolean);
+      return topics;
+    } catch (error) {
+      console.error('[Phase 7.7] Failed to get recent topics:', error);
+      return []; // Fail gracefully
+    }
   }
 }
