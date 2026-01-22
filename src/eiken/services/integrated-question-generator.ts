@@ -1817,6 +1817,16 @@ Always respond with valid JSON.`;
 
     const validationPrompt = `You are an expert English test validator specializing in detecting ambiguous questions. Your job is to ensure ONLY ONE answer is correct.
 
+🎯 PHASE 7.6: SAME VERB VALIDATION
+
+CRITICAL CHECK #1: Are all options forms of the SAME base verb?
+- ✅ GOOD: go, goes, went, going (all from "go")
+- ✅ GOOD: am, is, are, was, were (all from "be")
+- ❌ BAD: can, may, should, will (different modal verbs)
+- ❌ BAD: like, love, enjoy, prefer (different verbs)
+
+If options are NOT forms of the same verb, this is a PHASE 7.6 VIOLATION → mark as ambiguous immediately.
+
 【Question to validate】
 ${question_text}
 
@@ -1831,21 +1841,25 @@ ${grammarPoint}
 
 ${logicBlueprint ? `
 【Logic Blueprint (Context clues that MUST eliminate wrong answers)】
+Base verb: ${logicBlueprint.base_verb || 'Not specified'}
 Correct answer: ${logicBlueprint.correct_answer}
 
 Distractor 1: ${logicBlueprint.distractor_1?.word}
   - Required context clue to KILL this option: "${logicBlueprint.distractor_1?.required_context_clue}"
-  - Why invalid: ${logicBlueprint.distractor_1?.reason_invalid}
+  - Why invalid: ${logicBlueprint.distractor_1?.reason_why_invalid || logicBlueprint.distractor_1?.reason_invalid}
 
 Distractor 2: ${logicBlueprint.distractor_2?.word}
   - Required context clue to KILL this option: "${logicBlueprint.distractor_2?.required_context_clue}"
-  - Why invalid: ${logicBlueprint.distractor_2?.reason_invalid}
+  - Why invalid: ${logicBlueprint.distractor_2?.reason_why_invalid || logicBlueprint.distractor_2?.reason_invalid}
 
 Distractor 3: ${logicBlueprint.distractor_3?.word}
   - Required context clue to KILL this option: "${logicBlueprint.distractor_3?.required_context_clue}"
-  - Why invalid: ${logicBlueprint.distractor_3?.reason_invalid}
+  - Why invalid: ${logicBlueprint.distractor_3?.reason_why_invalid || logicBlueprint.distractor_3?.reason_invalid}
 
-⚠️ CHECK: Does the question text contain ALL required context clues? If not, mark as ambiguous!
+⚠️ PHASE 7.6 CHECK: 
+1. Are all options forms of the same base verb?
+2. Does the question contain the required time markers/context clues?
+3. Do the time markers make only ONE form grammatically correct?
 ` : ''}
 
 ## Your Task

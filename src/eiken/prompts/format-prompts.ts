@@ -88,61 +88,79 @@ export function buildGrammarFillPrompt(
 ): string {
   const { topic, guidelines, instructions } = blueprint;
   
-  // Phase 7.4: Distractor-Driven Generation (Gemini推奨)
-  // Logic-First アプローチ: 誤答を先に定義し、それを無効化する文脈を作る
+  // Phase 7.6: Same Verb Different Forms (根本的解決策)
+  // 戦略: 選択肢を同一動詞の異なる形態に統一することで、曖昧性を数学的に排除
   
   // System Message: ロールと制約
   const systemMessage = `You are a strict logic engine for generating English grammar questions (Eiken ${blueprint.grade}).
-Your goal is to generate questions where the distractors are MATHEMATICALLY IMPOSSIBLE due to explicit context clues.
 
-RULE 1: LOGIC FIRST
-You must define the "Context Clue" that kills each distractor BEFORE generating the sentence.
+🎯 PHASE 7.6: SAME VERB DIFFERENT FORMS STRATEGY
 
-RULE 2: THE "ONLY ONE" LAW
-- If the answer is "can" (ability), the sentence MUST contain words like "well", "fast", "100 meters", "without help".
-- If the answer is Time-based, the sentence MUST contain a specific time marker (yesterday, tomorrow, now, every day).
-- If the answer is modal verb, the sentence MUST contain explicit situation (permission/ability/obligation/advice).
-- Implicit context is FORBIDDEN.
+CRITICAL RULE #1: SAME VERB ONLY
+ALL answer choices MUST be different forms of the SAME VERB.
 
-RULE 3: DISTRACTOR-DRIVEN
-For each distractor, you MUST specify:
-1. Why it is grammatically/contextually invalid
-2. What context clue makes it impossible
+✅ CORRECT Examples:
+- go, goes, went, going (all forms of "go")
+- am, is, are, was, were (all forms of "be")
+- have, has, had, having (all forms of "have")
+- study, studies, studied, studying (all forms of "study")
+- can swim, could swim, will swim, swims (same verb "swim" with tense/modal variations)
+
+❌ FORBIDDEN Examples:
+- can, may, should, will (different modal verbs)
+- like, love, enjoy, prefer (different verbs)
+- go, come, run, walk (different verbs)
+- good, better, best, well (adjectives/adverbs, not verbs)
+
+CRITICAL RULE #2: TIME MARKER REQUIRED
+Every question MUST include an explicit time marker that eliminates wrong answers:
+- Past: yesterday, last week, last night, ago, in 2020
+- Present: now, right now, today, every day, usually, always
+- Future: tomorrow, next week, will, going to, soon
+- Progressive: now, right now, at the moment, currently
+
+CRITICAL RULE #3: LOGIC-FIRST APPROACH
+Define the context clue that kills each distractor BEFORE generating the sentence.
+
+For each distractor, specify:
+1. Why it is grammatically invalid (tense/form mismatch)
+2. What time marker/context makes it impossible
 3. That context clue MUST appear in the final sentence
 
 Output JSON format:
 {
-  "target_grammar": "string",
+  "target_grammar": "string (e.g., 'Past tense', 'Present continuous', 'Be verb forms')",
+  "base_verb": "string (e.g., 'go', 'be', 'study')",
   "logic_blueprint": {
-    "correct_answer": "string",
-    "why_correct": "explicit reason with context requirement",
+    "correct_answer": "string (one form of base_verb)",
+    "why_correct": "explicit reason with time marker requirement",
     "distractor_1": {
-      "word": "string",
-      "reason_why_invalid": "specific grammatical/contextual reason",
-      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+      "word": "string (another form of base_verb)",
+      "reason_why_invalid": "tense/form mismatch with time marker",
+      "required_context_clue": "time marker that eliminates this option"
     },
     "distractor_2": {
-      "word": "string",
-      "reason_why_invalid": "specific grammatical/contextual reason",
-      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+      "word": "string (another form of base_verb)",
+      "reason_why_invalid": "tense/form mismatch with time marker",
+      "required_context_clue": "time marker that eliminates this option"
     },
     "distractor_3": {
-      "word": "string",
-      "reason_why_invalid": "specific grammatical/contextual reason",
-      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+      "word": "string (another form of base_verb)",
+      "reason_why_invalid": "tense/form mismatch with time marker",
+      "required_context_clue": "time marker that eliminates this option"
     }
   },
   "final_question": {
-    "sentence": "string (MUST include ALL required_context_clues from logic_blueprint)",
+    "sentence": "string (MUST include ALL required time markers/context clues)",
     "dialogue_format": true/false
   },
   "explanation": "Japanese explanation (4-block format)",
   "translation_ja": "Japanese translation",
   "vocabulary_meanings": {
-    "correct_answer": "meaning",
-    "distractor_1": "meaning",
-    "distractor_2": "meaning",
-    "distractor_3": "meaning"
+    "correct_answer": "meaning in Japanese",
+    "distractor_1": "meaning in Japanese",
+    "distractor_2": "meaning in Japanese",
+    "distractor_3": "meaning in Japanese"
   }
 }`;
   
@@ -167,30 +185,30 @@ ${finalUseDialogFormat
 
 ${diversityGuidance || ''}
 
-## CRITICAL EXAMPLES
+## PHASE 7.6: SAME VERB DIFFERENT FORMS EXAMPLES
 
-### GOOD: Logic-First Approach
+### ✅ PERFECT Example 1: Past tense (Same verb "go")
 
-Example 1 (Time-based):
 {
-  "target_grammar": "Past tense vs Present",
+  "target_grammar": "Past tense",
+  "base_verb": "go",
   "logic_blueprint": {
     "correct_answer": "went",
     "why_correct": "Past tense required by time marker 'yesterday'",
     "distractor_1": {
       "word": "go",
-      "reason_why_invalid": "Present tense - conflicts with past time marker",
+      "reason_why_invalid": "Present tense - conflicts with 'yesterday'",
       "required_context_clue": "yesterday"
     },
     "distractor_2": {
-      "word": "will go",
-      "reason_why_invalid": "Future tense - conflicts with past time marker",
+      "word": "goes",
+      "reason_why_invalid": "Present simple 3rd person - conflicts with 'yesterday'",
       "required_context_clue": "yesterday"
     },
     "distractor_3": {
       "word": "going",
-      "reason_why_invalid": "Progressive form - requires 'was/were' + cannot stand alone",
-      "required_context_clue": "went (past simple required)"
+      "reason_why_invalid": "Progressive form - needs auxiliary verb + conflicts with 'yesterday'",
+      "required_context_clue": "yesterday"
     }
   },
   "final_question": {
@@ -198,68 +216,128 @@ Example 1 (Time-based):
     "dialogue_format": true
   }
 }
-→ "yesterday" KILLS "go", "will go", "going"
+→ ONLY "went" fits with "yesterday" ✅
 
-Example 2 (Modal ability):
+### ✅ PERFECT Example 2: Present continuous (Same verb "study")
+
 {
-  "target_grammar": "Can (ability) vs other modals",
+  "target_grammar": "Present continuous",
+  "base_verb": "study",
   "logic_blueprint": {
-    "correct_answer": "can",
-    "why_correct": "Ability statement with measurable achievement",
+    "correct_answer": "am studying",
+    "why_correct": "Present continuous required by 'right now'",
     "distractor_1": {
-      "word": "may",
-      "reason_why_invalid": "May = permission, not ability. '100 meters' shows achievement, not permission",
-      "required_context_clue": "100 meters"
+      "word": "study",
+      "reason_why_invalid": "Simple present - doesn't match 'right now' ongoing action",
+      "required_context_clue": "right now"
     },
     "distractor_2": {
-      "word": "should",
-      "reason_why_invalid": "Should = advice. Context shows ability fact, not recommendation",
-      "required_context_clue": "fast"
+      "word": "studied",
+      "reason_why_invalid": "Past tense - conflicts with 'right now'",
+      "required_context_clue": "right now"
     },
     "distractor_3": {
-      "word": "will",
-      "reason_why_invalid": "Will = future intention. 'can swim' shows present ability",
-      "required_context_clue": "can (present ability)"
+      "word": "will study",
+      "reason_why_invalid": "Future tense - conflicts with 'right now'",
+      "required_context_clue": "right now"
     }
   },
   "final_question": {
-    "sentence": "A: Wow! You are really fast in the water!\\nB: Yes, I _____ swim 100 meters in two minutes.",
+    "sentence": "A: Can you come to the park?\\nB: Sorry, I _____ for my test right now.",
     "dialogue_format": true
   }
 }
-→ "fast" + "100 meters" KILLS "may", "should", "will"
+→ ONLY "am studying" fits with "right now" ✅
 
-### BAD: What NOT to do
+### ✅ PERFECT Example 3: Be verb forms (Same verb "be")
 
-❌ BAD: Vague context
 {
+  "target_grammar": "Be verb - subject-verb agreement",
+  "base_verb": "be",
+  "logic_blueprint": {
+    "correct_answer": "is",
+    "why_correct": "Singular 3rd person subject 'My brother' requires 'is'",
+    "distractor_1": {
+      "word": "am",
+      "reason_why_invalid": "First person singular only - conflicts with 'My brother'",
+      "required_context_clue": "My brother"
+    },
+    "distractor_2": {
+      "word": "are",
+      "reason_why_invalid": "Plural or 2nd person - conflicts with singular 'My brother'",
+      "required_context_clue": "My brother"
+    },
+    "distractor_3": {
+      "word": "was",
+      "reason_why_invalid": "Past tense - conflicts with present context 'Look!'",
+      "required_context_clue": "Look!"
+    }
+  },
   "final_question": {
-    "sentence": "You _____ eat more vegetables."
+    "sentence": "A: Look! That's my brother over there.\\nB: Oh, he _____ very tall!",
+    "dialogue_format": true
   }
 }
-→ "should", "can", "must", "may" all work!
+→ ONLY "is" fits with "my brother" + present context ✅
 
-❌ BAD: Missing time marker
+### ❌ FORBIDDEN Examples (Different verbs - DO NOT USE)
+
+❌ BAD Example 1: Different modal verbs
 {
-  "final_question": {
-    "sentence": "I _____ to school."
-  }
+  "correct_answer": "can",
+  "distractor_1": {"word": "may"},
+  "distractor_2": {"word": "should"},
+  "distractor_3": {"word": "will"}
 }
-→ "go", "went", "will go" all work!
+→ These are DIFFERENT verbs, not forms of the same verb!
+
+❌ BAD Example 2: Different verbs
+{
+  "correct_answer": "like",
+  "distractor_1": {"word": "love"},
+  "distractor_2": {"word": "enjoy"},
+  "distractor_3": {"word": "prefer"}
+}
+→ These are DIFFERENT verbs, not forms of the same verb!
+
+❌ BAD Example 3: Comparative adjectives (not verbs)
+{
+  "correct_answer": "better",
+  "distractor_1": {"word": "good"},
+  "distractor_2": {"word": "best"},
+  "distractor_3": {"word": "well"}
+}
+→ These are adjectives/adverbs, not verb forms!
 
 ## YOUR TASK
 
-Follow the LOGIC-FIRST process:
-1. Choose grammar target
-2. Define correct answer
-3. Choose 3 distractors
-4. For EACH distractor, define:
-   - Why it's invalid
-   - What context clue kills it
-5. Create sentence that includes ALL context clues
-6. Verify: Each distractor is IMPOSSIBLE given the context
+🎯 PHASE 7.6 WORKFLOW:
 
-CRITICAL: The sentence MUST contain all required_context_clues!`;
+Step 1: Choose a BASE VERB (SAME VERB for all options)
+- Examples: go, be, have, study, play, eat, etc.
+
+Step 2: Choose different FORMS of that verb
+- go → go, goes, went, going
+- be → am, is, are, was, were
+- study → study, studies, studied, studying
+
+Step 3: Define TIME MARKER that makes only ONE form correct
+- Past: yesterday, last week, ago
+- Present: now, right now, every day, usually
+- Future: tomorrow, next week, will
+- Progressive: now, right now, at the moment
+
+Step 4: Create sentence with the TIME MARKER clearly visible
+
+Step 5: Verify ALL distractors are IMPOSSIBLE due to tense/form mismatch
+
+⚠️ CRITICAL VALIDATION CHECKLIST:
+- [ ] All 4 options are forms of the SAME base verb
+- [ ] Time marker is explicitly stated in the sentence
+- [ ] Only ONE option grammatically fits with the time marker
+- [ ] All 3 distractors are IMPOSSIBLE due to tense/form mismatch
+
+Generate ONE question following this Phase 7.6 strategy NOW.`;
 
   // 完全なプロンプト（System + User を含む特別な形式）
   // Phase 7.4: Logic-First approach では、プロンプト自体がSystem Messageの役割を持つ
