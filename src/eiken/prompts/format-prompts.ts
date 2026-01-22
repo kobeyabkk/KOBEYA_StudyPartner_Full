@@ -87,279 +87,210 @@ export function buildGrammarFillPrompt(
   diversityGuidance?: string
 ): string {
   const { topic, guidelines, instructions } = blueprint;
-  const grammarInstructions = getGrammarPromptInstructions(blueprint.grade);
+  
+  // Phase 7.4: Distractor-Driven Generation (Gemini推奨)
+  // Logic-First アプローチ: 誤答を先に定義し、それを無効化する文脈を作る
+  
+  // System Message: ロールと制約
+  const systemMessage = `You are a strict logic engine for generating English grammar questions (Eiken ${blueprint.grade}).
+Your goal is to generate questions where the distractors are MATHEMATICALLY IMPOSSIBLE due to explicit context clues.
+
+RULE 1: LOGIC FIRST
+You must define the "Context Clue" that kills each distractor BEFORE generating the sentence.
+
+RULE 2: THE "ONLY ONE" LAW
+- If the answer is "can" (ability), the sentence MUST contain words like "well", "fast", "100 meters", "without help".
+- If the answer is Time-based, the sentence MUST contain a specific time marker (yesterday, tomorrow, now, every day).
+- If the answer is modal verb, the sentence MUST contain explicit situation (permission/ability/obligation/advice).
+- Implicit context is FORBIDDEN.
+
+RULE 3: DISTRACTOR-DRIVEN
+For each distractor, you MUST specify:
+1. Why it is grammatically/contextually invalid
+2. What context clue makes it impossible
+3. That context clue MUST appear in the final sentence
+
+Output JSON format:
+{
+  "target_grammar": "string",
+  "logic_blueprint": {
+    "correct_answer": "string",
+    "why_correct": "explicit reason with context requirement",
+    "distractor_1": {
+      "word": "string",
+      "reason_why_invalid": "specific grammatical/contextual reason",
+      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+    },
+    "distractor_2": {
+      "word": "string",
+      "reason_why_invalid": "specific grammatical/contextual reason",
+      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+    },
+    "distractor_3": {
+      "word": "string",
+      "reason_why_invalid": "specific grammatical/contextual reason",
+      "required_context_clue": "word/phrase that MUST be in sentence to kill this option"
+    }
+  },
+  "final_question": {
+    "sentence": "string (MUST include ALL required_context_clues from logic_blueprint)",
+    "dialogue_format": true/false
+  },
+  "explanation": "Japanese explanation (4-block format)",
+  "translation_ja": "Japanese translation",
+  "vocabulary_meanings": {
+    "correct_answer": "meaning",
+    "distractor_1": "meaning",
+    "distractor_2": "meaning",
+    "distractor_3": "meaning"
+  }
+}`;
   
   // Phase 7.4: 実際の英検に合わせた形式判定
-  // 5級・4級・3級: 会話文形式（A/B dialogue）
-  // 準2級: 会話文と短文の混在（徐々に移行）
-  // 2級・準1級・1級: 短文形式（non-dialogue）
   const useDialogFormat = ['5', '4', '3', 'pre2'].includes(blueprint.grade);
-  
-  // 準2級は50%の確率で会話文を使用（実際の英検に近づける）
   const isPre2 = blueprint.grade === 'pre2';
   const shouldUseDialogForPre2 = isPre2 && Math.random() < 0.5;
-  
-  // 最終判定: 準2級は50%、それ以外は級に応じて決定
   const finalUseDialogFormat = isPre2 ? shouldUseDialogForPre2 : useDialogFormat;
   
-  const formatInstruction = finalUseDialogFormat
-    ? `
-## 🎯 QUESTION FORMAT: A/B Dialogue (Eiken ${blueprint.grade} Standard)
+  // User Message: 具体的なタスク
+  const userMessage = `Topic: ${topic.topic_label_en} (${topic.topic_label_ja})
+Context: ${topic.scenario_description}
 
-**REAL EIKEN EXAM FORMAT**:
-- Grades 5, 4, 3: Always use dialogue format (realistic conversations)
-- Grade Pre-2: Mix of dialogue and single sentences (transition period)
-- Grades 2, Pre-1, 1: Single sentence format (academic/formal context)
-
-**CRITICAL**: This question should use dialogue format!
-
-Format structure (MUST use line break after A:):
-A: [Context/situation statement]
-B: [Response with blank _____]
-
-**CRITICAL**: In your JSON output, use actual newline character \\n between A: and B: lines!
-
-**Why dialogue format?**
-- Provides natural context automatically
-- Eliminates multiple correct answers
-- Matches actual Eiken exam format
-- Makes grammar point unambiguous
-
-**GOOD Example** (Clear, unambiguous - note the line break!):
-A: Look! Ms. Green is over there.
-B: Oh, _____ you say hello to her?
-
-In JSON: "question_text": "A: Look! Ms. Green is over there.\\nB: Oh, _____ you say hello to her?"
-
-Choices: Can, Do, Is, Are
-✓ Answer: Can (ability question - context makes this clear)
-✗ "Do" would be unnatural in this context ("Oh, do you..." sounds wrong)
-
-**BAD Example** (Ambiguous - DO NOT CREATE):
-_____ you say hello to her?
-
-Choices: Can, Do, Is, Are
-Problem: Both "Can" (ability) and "Do" (habit) are grammatically correct!
-This creates confusion and multiple valid answers.
-
-**Rules for creating dialogue**:
-1. Speaker A provides situation/context
-2. Speaker B's response contains the blank
-3. Context must make only ONE answer natural
-4. Test grammar naturally through conversation
-5. Both speakers use appropriate ${blueprint.grade} level language
-
-**Context examples for different grammar**:
-- Can (ability): "Look! Ms. Green..." → Natural ability question
-- Will (future): "Tomorrow is Sunday..." → Natural future plan
-- Present continuous: "Where is Tom?" → Natural "He is playing..."
-- Past simple: "What did you do yesterday?" → Natural past response
-`
-    : `
-## 🎯 QUESTION FORMAT: Single Sentence (Eiken ${blueprint.grade} Standard)
-
-**REAL EIKEN EXAM FORMAT**:
-- Grades 5, 4, 3: Dialogue format (see conversational context)
-- Grade Pre-2: Mix of dialogue and single sentences
-- Grades 2, Pre-1, 1: **Single sentence format** (academic/formal)
-
-**CRITICAL**: This question should use single sentence format!
-
-**For Grades 2, Pre-1, 1:**
-- Use formal, academic, or business context
-- One complete sentence with clear grammatical structure
-- More sophisticated vocabulary and complex grammar
-- Context should be clear from the sentence itself
-
-**IMPORTANT**: Add sufficient context to eliminate ambiguous answers!
-
-**Good Example (Grade 2)**:
-The company decided to _____ a new policy to improve employee satisfaction.
-Choices: implement, neglect, postpone, ignore
-✓ Answer: implement (formal business context)
-
-**Good Example (Pre-1)**:
-It is essential that the board _____ this proposal before making a final decision.
-Choices: reviews, review, reviewed, will review
-✓ Answer: review (subjunctive mood with "essential that")
-
-If a question could have multiple correct answers:
-- Provide clear contextual clues within the sentence
-- Use formal/academic vocabulary appropriate for ${blueprint.grade}
-- Ensure only ONE answer is both grammatically AND contextually correct
-`;
-
-  return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
-
-${blueprint.grade === '3' ? `
-## 🚨 CRITICAL: LEARN FROM REAL FAILURES FIRST
-
-Before creating your question, study these ACTUAL FAILURES from our validation system:
-
-${formatFewShotExamples(grade3AmbiguityPreventionExamples)}
-
-**YOUR QUESTION MUST AVOID THESE EXACT PATTERNS!**
-Every question above FAILED validation. Follow the corrected versions, not the bad ones.
-
----
-` : ''}
-
-## Task
-Create ONE grammar fill-in-the-blank question about "${topic.topic_label_en}" (${topic.topic_label_ja}).
-
-## Topic Context
-${topic.scenario_description}
-
-## Requirements
-${instructions.prompt_template}
-
-## Vocabulary Level
-- CEFR Level: ${guidelines.vocabulary_level}
-- Use only words appropriate for ${blueprint.grade} level
-- Sentence length: ${guidelines.sentence_length.target} words (±3)
-
-${grammarInstructions}
-
-## Grammar Focus
-Target one of these grammar patterns:
-${guidelines.grammar_patterns.map(g => `- ${g}`).join('\n')}
+Grammar Target: ${guidelines.grammar_patterns.join(' OR ')}
+Vocabulary Level: ${guidelines.vocabulary_level}
+Dialogue Format Required: ${finalUseDialogFormat ? 'YES (A: ... B: ...)' : 'NO (single sentence)'}
 
 ${diversityGuidance || ''}
 
-${formatInstruction}
+## CRITICAL EXAMPLES
 
-## 🚨 CRITICAL: Prevent Multiple Correct Answers
+### GOOD: Logic-First Approach
 
-**Your question MUST have EXACTLY ONE correct answer!**
-
-Common mistakes to avoid:
-❌ "_____ you like pizza?" (Both "Do" and "Would" work)
-❌ "She _____ to school." (Both "goes" and "went" could work)
-❌ "I _____ play soccer every weekend." (Both "usually" and nothing work)
-❌ "You _____ eat more vegetables." (should/can/must/may all work)
-❌ "I _____ reading books." (like/enjoy/love all work)
-
-**MANDATORY Context Requirements:**
-1. **Time markers are REQUIRED** for tense questions:
-   - Past: "yesterday", "last week", "in 2020"
-   - Present: "every day", "usually", "now"
-   - Future: "tomorrow", "next week", "soon"
-
-2. **Specific situations for modal verbs:**
-   - Permission: "Can I...?" "May I...?"
-   - Ability: "I can swim 100 meters."
-   - Obligation: "You must finish homework by 5 PM."
-   - Advice: "You should study if you want to pass."
-
-3. **Clear subject-verb agreement markers:**
-   - Include explicit subjects: "He/She/It" vs "I/You/We/They"
-   - Add frequency words that require specific forms
-
-Solutions:
-✓ Use dialogue format (recommended for ${blueprint.grade})
-✓ Add time markers: "yesterday", "every day", "tomorrow"
-✓ Add context that specifies the grammar
-✓ Make sure distractors are clearly wrong in THIS context
-✓ Include specific details that eliminate ambiguity
-✓ Test mentally: "Could another answer also work here?"
-
-## Output Format (JSON)
+Example 1 (Time-based):
 {
-  "question_text": "${finalUseDialogFormat ? 'A: [context]\\nB: [sentence with _____] (MUST include \\\\n line break!)' : 'The sentence with _____ (blank)'}",
-  "correct_answer": "the correct form",
-  "distractors": ["wrong option 1", "wrong option 2", "wrong option 3"],
-  "grammar_point": "what grammar is being tested",
-  "explanation": "なぜこれが正解か（日本語で詳しく説明）。全ての選択肢の意味と文法的な理由を含めること。",
-  "translation_ja": "問題文の日本語訳（会話形式の場合は両方のセリフを訳すこと）",
-  "vocabulary_meanings": {
-    "correct_answer": "meaning in Japanese",
-    "distractor_1": "meaning in Japanese",
-    "distractor_2": "meaning in Japanese",
-    "distractor_3": "meaning in Japanese",
-    "key_phrase_1": "問題文に出てくる重要な熟語や表現の意味（例: keep in touch with = 〜と連絡を取り合う）",
-    "key_phrase_2": "別の重要表現があれば追加"
+  "target_grammar": "Past tense vs Present",
+  "logic_blueprint": {
+    "correct_answer": "went",
+    "why_correct": "Past tense required by time marker 'yesterday'",
+    "distractor_1": {
+      "word": "go",
+      "reason_why_invalid": "Present tense - conflicts with past time marker",
+      "required_context_clue": "yesterday"
+    },
+    "distractor_2": {
+      "word": "will go",
+      "reason_why_invalid": "Future tense - conflicts with past time marker",
+      "required_context_clue": "yesterday"
+    },
+    "distractor_3": {
+      "word": "going",
+      "reason_why_invalid": "Progressive form - requires 'was/were' + cannot stand alone",
+      "required_context_clue": "went (past simple required)"
+    }
+  },
+  "final_question": {
+    "sentence": "A: What did you do yesterday?\\nB: I _____ to the park with my friends.",
+    "dialogue_format": true
   }
 }
+→ "yesterday" KILLS "go", "will go", "going"
 
-## IMPORTANT: explanation field MUST be in JAPANESE using APPROPRIATE GRADE-LEVEL TERMS
+Example 2 (Modal ability):
+{
+  "target_grammar": "Can (ability) vs other modals",
+  "logic_blueprint": {
+    "correct_answer": "can",
+    "why_correct": "Ability statement with measurable achievement",
+    "distractor_1": {
+      "word": "may",
+      "reason_why_invalid": "May = permission, not ability. '100 meters' shows achievement, not permission",
+      "required_context_clue": "100 meters"
+    },
+    "distractor_2": {
+      "word": "should",
+      "reason_why_invalid": "Should = advice. Context shows ability fact, not recommendation",
+      "required_context_clue": "fast"
+    },
+    "distractor_3": {
+      "word": "will",
+      "reason_why_invalid": "Will = future intention. 'can swim' shows present ability",
+      "required_context_clue": "can (present ability)"
+    }
+  },
+  "final_question": {
+    "sentence": "A: Wow! You are really fast in the water!\\nB: Yes, I _____ swim 100 meters in two minutes.",
+    "dialogue_format": true
+  }
+}
+→ "fast" + "100 meters" KILLS "may", "should", "will"
 
-${getExplanationTerminologyGuide(blueprint.grade)}
+### BAD: What NOT to do
 
-## 🏫 CRITICAL: Use 4-Block Teacher-Style Explanation Format
+❌ BAD: Vague context
+{
+  "final_question": {
+    "sentence": "You _____ eat more vegetables."
+  }
+}
+→ "should", "can", "must", "may" all work!
 
-Your explanation MUST follow this structure:
+❌ BAD: Missing time marker
+{
+  "final_question": {
+    "sentence": "I _____ to school."
+  }
+}
+→ "go", "went", "will go" all work!
 
-**＜着眼点＞**
-Point out key hints in the question (keywords, time markers, context clues)
-Example: "if（もし〜なら）と tomorrow（明日）があるので、『未来の条件』の文です。"
+## YOUR TASK
 
-**＜${blueprint.grade === '5' || blueprint.grade === '4' ? 'Point！' : '鉄則！'}＞**
-State the grammar rule clearly and concisely (1-2 sentences)
-Example: "時・条件の副詞節（if / when など）では、未来のことでも現在形を使います。"
+Follow the LOGIC-FIRST process:
+1. Choose grammar target
+2. Define correct answer
+3. Choose 3 distractors
+4. For EACH distractor, define:
+   - Why it's invalid
+   - What context clue kills it
+5. Create sentence that includes ALL context clues
+6. Verify: Each distractor is IMPOSSIBLE given the context
 
-**＜当てはめ＞**
-Apply the rule to this specific question
-Example: "if の中は現在形にするので、主語が it（3単現）なので、rains になります。"
+CRITICAL: The sentence MUST contain all required_context_clues!`;
 
-**＜誤答の理由＞**
-Explain why each wrong choice is incorrect (one line per choice, end with ×)
-Example: "rain：動詞の原形。3単現のsがついていないので ×"
+  // 完全なプロンプト（System + User を含む特別な形式）
+  // Phase 7.4: Logic-First approach では、プロンプト自体がSystem Messageの役割を持つ
+  return `${systemMessage}
 
-**CRITICAL**: 
-- Use age-appropriate terminology as specified in the guide above!
-- DO NOT use vague phrases like "未来を表す文なので will を使います" without explaining the rule
-- DO specify grammar forms: 動詞の原形、過去形、現在進行形、3単現のs, etc.
+---
 
-## Important Notes
-- ONE blank per sentence only
-- ${finalUseDialogFormat ? '**CRITICAL**: Use A/B dialogue format with actual line break (\\n) between speakers! Example: "A: text\\nB: text"' : 'Provide clear context clues'}
-- Distractors should be plausible but clearly wrong IN THIS CONTEXT
-- Use natural, authentic English
-- The sentence must relate to the topic: ${topic.topic_label_en}
-- **MUST provide**:
-  1. Japanese translation of the ENTIRE question (translation_ja)
-  2. Japanese meanings for ALL vocabulary choices (correct answer + all distractors)
-  3. Japanese meanings for KEY PHRASES and IDIOMS in the question text (e.g., "keep in touch with" = 「〜と連絡を取り合う」)
-- **CRITICAL**: Ensure ONLY ONE answer is correct - no ambiguity allowed!
-${finalUseDialogFormat ? '- **LINE BREAK REQUIREMENT**: Your question_text MUST contain \\n character: "A: ... \\nB: ..."' : ''}
-
-## 🌐 Translation & Vocabulary Requirements
-**CRITICAL**: Students need to understand the question to answer it!
-- translation_ja: Provide COMPLETE Japanese translation of question_text
-  ${finalUseDialogFormat ? '- If dialogue format, translate BOTH A: and B: lines' : ''}
-- vocabulary_meanings: Include ALL important words/phrases:
-  * All answer choices (correct + distractors)
-  * Key phrases/idioms in question (e.g., "keep in touch with", "used to", "look forward to")
-  * Any difficult vocabulary that ${blueprint.grade} students might not know
-
-🚨🚨🚨 MANDATORY SELF-CHECK BEFORE RESPONDING 🚨🚨🚨
-
-Before submitting your JSON, verify:
-1. ✓ explanation_ja starts with "＜着眼点＞"
-2. ✓ explanation_ja contains "＜鉄則！＞" or "＜Point！＞"
-3. ✓ explanation_ja contains "＜当てはめ＞"
-4. ✓ explanation_ja contains "＜誤答の理由＞"
-5. ✓ There are empty lines (\\n\\n) between each block
-6. ✓ **AMBIGUITY CHECK**: Could more than one answer be grammatically correct?
-   - If YES: Add time markers, context, or specific details
-   - Test each distractor: "Would this also work in this sentence?"
-   - Ensure the correct answer is the ONLY one that fits
-7. ✓ Time markers present for tense questions (yesterday/every day/tomorrow)
-8. ✓ Clear context for modal verbs (permission/ability/obligation)
-9. ✓ Subject-verb agreement is unambiguous
-6. ✓ explanation_ja is at least 100 characters long
-
-❌ REJECT if explanation_ja looks like:
-"この文は過去の文なので、動詞は過去形を使います。主語はyouなので、didが正解です。"
-
-✅ ACCEPT if explanation_ja looks like:
-"＜着眼点＞\\n過去のことを聞く疑問文です。\\n\\n＜鉄則！＞\\n過去のことを聞く疑問文では、文の最初に Did を使います。\\n\\n＜当てはめ＞\\n'yesterday'という言葉があるので、過去のことです。だから Did が正解です。\\n\\n＜誤答の理由＞\\ndo/doesは現在形、areはbe動詞なので×。"
-
-If ANY check fails, FIX your explanation_ja before responding!`;
+${userMessage}`;
 }
 
 /**
- * 意見スピーチ問題のプロンプト生成
+ * Phase 7.4: プロンプトからSystem MessageとUser Messageを分離抽出
+ */
+export function extractSystemAndUserMessages(fullPrompt: string): {
+  systemMessage: string;
+  userMessage: string;
+} {
+  // "---" で分割
+  const parts = fullPrompt.split('\n---\n');
+  
+  if (parts.length >= 2) {
+    return {
+      systemMessage: parts[0].trim(),
+      userMessage: parts.slice(1).join('\n---\n').trim()
+    };
+  }
+  
+  // フォールバック: 分割できない場合は全てUser Messageとして扱う
+  return {
+    systemMessage: '',
+    userMessage: fullPrompt
+  };
+}
+
+/**
+ * Opinion Speech形式のプロンプトビルダー
  */
 export function buildOpinionSpeechPrompt(blueprint: Blueprint): string {
   const { topic, guidelines, instructions } = blueprint;

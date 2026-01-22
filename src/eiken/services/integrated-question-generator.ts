@@ -1011,6 +1011,10 @@ Output as JSON:
       basePrompt = buildPromptForBlueprint(blueprint, diversityGuidance, vocabularyPrompt);
     }
     
+    // Phase 7.4: Logic-First approach - System/User Message 分離
+    const { extractSystemAndUserMessages } = await import('../prompts/format-prompts');
+    const { systemMessage: logicFirstSystem, userMessage: logicFirstUser } = extractSystemAndUserMessages(basePrompt);
+    
     // Phase 7.4: 解説スタイルの追加
     const style = explanationStyle || 'standard';
     const { getExplanationStyleModifier } = await import('../prompts/format-prompts');
@@ -1021,11 +1025,18 @@ Output as JSON:
       ? `\n\n## ⚠️ ADDITIONAL FORBIDDEN WORDS (from recent generation failures)\nThese words were used in previous attempts and caused vocabulary level violations:\n${recentViolations.join(', ')}\n\n**YOU MUST AVOID THESE WORDS!**`
       : '';
     
-    // 完全なプロンプト（解説スタイルを含む）
-    const enhancedPrompt = `${basePrompt}${styleModifier}${forbiddenWordsContext}`;
-    
-    // システムプロンプトに禁止語を含める
-    const systemContent = `You are a vocabulary-constrained English test creator for Eiken (英検) ${blueprint.grade} preparation.
+    // Phase 7.4: System Message の統合（Logic-First が優先、既存のシステムメッセージは補足として追加）
+    const finalSystemMessage = logicFirstSystem 
+      ? `${logicFirstSystem}
+
+---
+
+ADDITIONAL CONSTRAINTS:
+- CEFR Level: ${blueprint.guidelines.vocabulary_level}
+- Forbidden words: ${forbiddenWords.slice(0, 30).join(', ')}
+- Always respond with valid JSON
+- For grammar_fill: explanation_ja MUST contain 4 blocks (着眼点/鉄則 or Point/当てはめ/誤答の理由)`
+      : `You are a vocabulary-constrained English test creator for Eiken (英検) ${blueprint.grade} preparation.
 
 CRITICAL VOCABULARY CONSTRAINT: Use ONLY CEFR ${blueprint.guidelines.vocabulary_level} vocabulary.
 
@@ -1044,6 +1055,11 @@ For grammar_fill questions, the "explanation_ja" field MUST ALWAYS contain ALL 4
 ✅ MANDATORY: Use \\n\\n between blocks
 
 Always respond with valid JSON.`;
+    
+    // Phase 7.4: User Message の統合
+    const finalUserMessage = logicFirstUser 
+      ? `${logicFirstUser}${styleModifier}${forbiddenWordsContext}`
+      : `${basePrompt}${styleModifier}${forbiddenWordsContext}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1056,9 +1072,9 @@ Always respond with valid JSON.`;
         messages: [
           { 
             role: 'system', 
-            content: systemContent
+            content: finalSystemMessage
           },
-          { role: 'user', content: enhancedPrompt },
+          { role: 'user', content: finalUserMessage },
         ],
         response_format: { type: 'json_object' },
         temperature: llmConfig.temperature,
@@ -1073,7 +1089,44 @@ Always respond with valid JSON.`;
     }
 
     const data = await response.json();
-    const generated = JSON.parse(data.choices[0].message.content);
+    let generated = JSON.parse(data.choices[0].message.content);
+    
+    // Phase 7.4: Logic-First 形式の変換
+    // logic_blueprint形式の場合、従来の形式に変換
+    if (generated.logic_blueprint && generated.final_question) {
+      console.log('[Logic-First] Converting logic_blueprint format to standard format');
+      
+      const logic = generated.logic_blueprint;
+      const final = generated.final_question;
+      
+      // 従来の形式に変換
+      const converted = {
+        question_text: final.sentence || final.question_text,
+        correct_answer: logic.correct_answer,
+        distractors: [
+          logic.distractor_1?.word,
+          logic.distractor_2?.word,
+          logic.distractor_3?.word
+        ].filter(Boolean),
+        grammar_point: generated.target_grammar || 'unknown',
+        explanation: generated.explanation || '',
+        explanation_ja: generated.explanation || '',  // 日本語の場合
+        translation_ja: generated.translation_ja || '',
+        vocabulary_meanings: generated.vocabulary_meanings || {},
+        // Logic-First メタデータを保存（デバッグ用）
+        _logic_blueprint: generated.logic_blueprint
+      };
+      
+      console.log('[Logic-First] Conversion complete');
+      console.log(`  Correct: ${converted.correct_answer}`);
+      console.log(`  Distractors: ${converted.distractors.join(', ')}`);
+      console.log(`  Context clues enforced:`);
+      console.log(`    - ${logic.distractor_1?.required_context_clue}`);
+      console.log(`    - ${logic.distractor_2?.required_context_clue}`);
+      console.log(`    - ${logic.distractor_3?.required_context_clue}`);
+      
+      generated = converted;
+    }
 
     // デバッグログ: 生成された解説をチェック
     console.log(`[LLM Response Debug] Grade: ${blueprint.grade}`);
