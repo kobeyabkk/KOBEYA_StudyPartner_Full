@@ -641,7 +641,63 @@ export class IntegratedQuestionGenerator {
           console.log(`[Validation Failed] Multiple correct answers detected`);
           console.log(`  Issue: ${uniquenessValidation.issue}`);
           console.log(`  Suggestion: ${uniquenessValidation.suggestion}`);
-          continue;
+          
+          // Phase 7.3: Repair attempt (最大2回まで修復を試行)
+          if (attempts <= 2) {  // 最初の2回は修復を試行
+            console.log(`[Repair Attempt] Trying to fix the question...`);
+            const repairedQuestion = await this.repairQuestion(
+              blueprint,
+              questionData,
+              uniquenessValidation,
+              selectedModel,
+              request.format
+            );
+            
+            if (repairedQuestion) {
+              console.log('[Repair Success] Using repaired question');
+              questionData = repairedQuestion;
+              
+              // 修復後に再検証
+              const revalidation = await this.validateUniqueness(
+                repairedQuestion,
+                request.format,
+                blueprint.guidelines.grammar_patterns[0] || 'unknown'
+              );
+              
+              // 再検証ログ
+              this.logValidation({
+                student_id: request.student_id,
+                grade: request.grade,
+                format: request.format,
+                topic_code: blueprint.topic.topic_code,
+                attempt_number: attempts,
+                validation_stage: 'uniqueness_after_repair',
+                validation_passed: revalidation.passed,
+                validation_details: revalidation.passed ? null : {
+                  issue: revalidation.issue,
+                  suggestion: revalidation.suggestion
+                },
+                model_used: selectedModel,
+                generation_mode: mode
+              }).catch(err => console.error('[Log Error]', err));
+              
+              if (revalidation.passed) {
+                console.log('[Repair Validation Passed] Repaired question is valid!');
+                // 修復成功、次の検証ステップへ
+              } else {
+                console.log('[Repair Validation Failed] Repaired question still ambiguous, regenerating...');
+                continue;
+              }
+            } else {
+              console.log('[Repair Failed] Could not repair, regenerating...');
+              continue;
+            }
+          } else {
+            // 3回目以降は修復せずに再生成
+            console.log('[Skipping Repair] Max repair attempts reached, regenerating...');
+            continue;
+          }
+
         }
 
         // 検証6: 4ブロック解説形式チェック（Phase 6）- grammar_fill のみ
@@ -2287,6 +2343,131 @@ Return ONLY valid JSON:
     } catch (error) {
       console.error('[Session Stats Error]', error);
       // 統計更新の失敗は致命的ではない
+    }
+  }
+
+  /**
+   * Phase 7.3: Generate-Validate-Repair Loop
+   * 曖昧性検証失敗時に問題を修復して再生成
+   */
+  private async repairQuestion(
+    blueprint: Blueprint,
+    questionData: any,
+    validation: { issue?: string; suggestion?: string },
+    model: string,
+    format: QuestionFormat
+  ): Promise<any> {
+    console.log('[Question Repair] Attempting to fix ambiguity...');
+    console.log(`  Original issue: ${validation.issue}`);
+    console.log(`  Suggestion: ${validation.suggestion}`);
+
+    // 修復用プロンプト
+    const repairPrompt = `
+【重要】この問題は曖昧性があるため修正が必要です
+
+## 元の問題
+${format === 'grammar_fill' ? `
+問題文: ${questionData.question_text}
+正解: ${questionData.correct_answer}
+選択肢: ${JSON.stringify(questionData.distractors)}
+文法ポイント: ${questionData.grammar_point}
+` : ''}
+
+## 検証結果
+❌ 曖昧性が検出されました:
+${validation.issue}
+
+## 修正指示
+${validation.suggestion}
+
+## 修正方法
+1. **文脈を具体化**: 時間、場所、状況を明確に
+2. **主語を明示**: 単数/複数、人称を明確に
+3. **時間マーカー追加**: yesterday/every day/tomorrow など
+4. **状況を限定**: 能力/許可/義務/助言を明確に区別
+
+## 修正の例
+
+❌ 悪い例:
+"You ___ go to that store."
+→ can/may/should 全て可能
+
+✅ 良い例:
+"A: Can I borrow your bike?
+B: Yes, you ___ use it until 5 PM."
+→ "can" のみ正解（許可の文脈）
+
+❌ 悪い例:
+"I ___ reading books."
+→ like/enjoy/love 全て可能
+
+✅ 良い例:
+"A: Do you read books every day?
+B: Yes, I ___ reading before bed."
+→ "enjoy" のみ正解（現在形 + 習慣）
+
+## 出力形式
+以下のJSON形式で、**修正後の問題**を生成してください：
+
+${format === 'grammar_fill' ? `
+{
+  "question_text": "修正後の問題文（会話形式推奨：A: ...\\nB: ...）",
+  "correct_answer": "${questionData.correct_answer}",
+  "distractors": ${JSON.stringify(questionData.distractors)},
+  "grammar_point": "${questionData.grammar_point}",
+  "explanation": "日本語の解説（4ブロック形式）",
+  "translation_ja": "問題文の日本語訳",
+  "vocabulary_meanings": {
+    "${questionData.correct_answer}": "意味",
+    ${questionData.distractors.map((d: string) => `"${d}": "意味"`).join(',\n    ')}
+  }
+}
+` : ''}
+
+**重要**: 選択肢は変更せず、問題文と文脈のみを修正してください。
+**必須**: 修正後は正解が唯一になるように文脈を追加してください。
+`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'あなたは英検の問題作成専門家です。曖昧な問題を修正して、正解が唯一になるようにしてください。'
+            },
+            {
+              role: 'user',
+              content: repairPrompt
+            }
+          ],
+          temperature: 0.1,  // 修復時は更に低く
+          response_format: { type: 'json_object' }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('[Question Repair] API Error:', response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      const repairedQuestion = JSON.parse(data.choices[0].message.content || '{}');
+
+      console.log('[Question Repair] Repair successful');
+      console.log(`  New question: ${repairedQuestion.question_text?.substring(0, 100)}...`);
+
+      return repairedQuestion;
+
+    } catch (error) {
+      console.error('[Question Repair Error]', error);
+      return null;
     }
   }
 }
