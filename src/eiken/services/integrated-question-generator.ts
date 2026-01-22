@@ -1091,13 +1091,41 @@ Always respond with valid JSON.`;
     }
 
     const data = await response.json();
-    let generated = JSON.parse(data.choices[0].message.content);
+    const rawContent = data.choices[0].message.content;
+    
+    // Phase 7.6.1: Critical debugging - log raw GPT-4o response
+    console.log('========================================');
+    console.log('[Phase 7.6.1 DEBUG] RAW GPT-4o OUTPUT:');
+    console.log(rawContent);
+    console.log('========================================');
+    
+    let generated = JSON.parse(rawContent);
+    
+    // Phase 7.6.1: Log parsed structure
+    console.log('[Phase 7.6.1 DEBUG] Parsed keys:', Object.keys(generated));
+    console.log('[Phase 7.6.1 DEBUG] Has logic_blueprint:', !!generated.logic_blueprint);
+    console.log('[Phase 7.6.1 DEBUG] Has final_question:', !!generated.final_question);
+    console.log('[Phase 7.6.1 DEBUG] Has base_verb:', generated.base_verb);
     
     // Phase 7.5.1 Quick Win #1: logic_blueprint チェック（警告のみ、エラーにしない）
     if (blueprint.format === 'grammar_fill') {
       if (!generated.logic_blueprint || !generated.final_question) {
         console.warn('[Phase 7.5.1 QW#1] ⚠️ Missing logic_blueprint or final_question - continuing with standard format');
         console.warn('  This question will not have distractor-driven validation');
+        
+        // Phase 7.6.1: Check what fields ARE present in fallback case
+        console.log('[Phase 7.6.1 DEBUG] Fallback mode - checking available fields:');
+        console.log('  question_text:', generated.question_text ? 'OK' : '❌ UNDEFINED');
+        console.log('  correct_answer:', generated.correct_answer ? 'OK' : '❌ UNDEFINED');
+        console.log('  distractors:', generated.distractors ? `OK (${generated.distractors.length})` : '❌ UNDEFINED');
+        
+        // If critical fields are missing, this is a GENERATION FAILURE
+        if (!generated.question_text || !generated.correct_answer || !generated.distractors) {
+          console.error('[Phase 7.6.1 ERROR] ❌ CRITICAL: GPT-4o returned invalid structure');
+          console.error('  Available keys:', Object.keys(generated));
+          throw new Error('GPT-4o returned invalid JSON structure - missing critical fields');
+        }
+        
         // エラーにせず、従来形式として続行
       } else {
         console.log('[Phase 7.5.1 QW#1] ✅ logic_blueprint and final_question present');
@@ -1185,6 +1213,12 @@ Always respond with valid JSON.`;
       console.log(`    - ${logic.distractor_1?.required_context_clue}`);
       console.log(`    - ${logic.distractor_2?.required_context_clue}`);
       console.log(`    - ${logic.distractor_3?.required_context_clue}`);
+      
+      // Phase 7.6.1: Verify converted data integrity
+      console.log('[Phase 7.6.1 DEBUG] Converted data check:');
+      console.log('  question_text:', converted.question_text ? 'OK' : '❌ UNDEFINED');
+      console.log('  correct_answer:', converted.correct_answer ? 'OK' : '❌ UNDEFINED');
+      console.log('  distractors:', converted.distractors.length > 0 ? `OK (${converted.distractors.length})` : '❌ EMPTY/UNDEFINED');
       
       generated = converted;
     }
