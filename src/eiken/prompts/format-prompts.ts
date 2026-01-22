@@ -191,6 +191,19 @@ If a question could have multiple correct answers:
 
   return `You are an expert English test creator for Japanese students preparing for Eiken (英検) ${blueprint.grade} level.
 
+${blueprint.grade === '3' ? `
+## 🚨 CRITICAL: LEARN FROM REAL FAILURES FIRST
+
+Before creating your question, study these ACTUAL FAILURES from our validation system:
+
+${formatFewShotExamples(grade3AmbiguityPreventionExamples)}
+
+**YOUR QUESTION MUST AVOID THESE EXACT PATTERNS!**
+Every question above FAILED validation. Follow the corrected versions, not the bad ones.
+
+---
+` : ''}
+
 ## Task
 Create ONE grammar fill-in-the-blank question about "${topic.topic_label_en}" (${topic.topic_label_ja}).
 
@@ -249,14 +262,6 @@ Solutions:
 ✓ Make sure distractors are clearly wrong in THIS context
 ✓ Include specific details that eliminate ambiguity
 ✓ Test mentally: "Could another answer also work here?"
-
-${blueprint.grade === '3' ? `
-## 📚 LEARN FROM REAL FAILURES (Ambiguity Prevention Examples)
-
-${formatFewShotExamples(grade3AmbiguityPreventionExamples)}
-
-**KEY LESSON**: Every bad example above failed our validation system. Follow the corrected versions!
-` : ''}
 
 ## Output Format (JSON)
 {
