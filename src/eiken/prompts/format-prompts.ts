@@ -146,11 +146,14 @@ Output JSON format:
   }
 }`;
   
-  // Phase 7.4: 実際の英検に合わせた形式判定
-  const useDialogFormat = ['5', '4', '3', 'pre2'].includes(blueprint.grade);
+  // Phase 7.5 Quick Win #4: Dialogue format 強制
+  // Grade 3/4/5 では必ず Dialogue、Pre-2 では 50%、2/Pre-1/1 では単文
+  const useDialogFormat = ['5', '4', '3'].includes(blueprint.grade);  // 強制
   const isPre2 = blueprint.grade === 'pre2';
   const shouldUseDialogForPre2 = isPre2 && Math.random() < 0.5;
   const finalUseDialogFormat = isPre2 ? shouldUseDialogForPre2 : useDialogFormat;
+  
+  console.log(`[Phase 7.5 QW#4] Grade: ${blueprint.grade}, Force Dialogue: ${finalUseDialogFormat}`);
   
   // User Message: 具体的なタスク
   const userMessage = `Topic: ${topic.topic_label_en} (${topic.topic_label_ja})
@@ -158,7 +161,9 @@ Context: ${topic.scenario_description}
 
 Grammar Target: ${guidelines.grammar_patterns.join(' OR ')}
 Vocabulary Level: ${guidelines.vocabulary_level}
-Dialogue Format Required: ${finalUseDialogFormat ? 'YES (A: ... B: ...)' : 'NO (single sentence)'}
+${finalUseDialogFormat 
+  ? '⚠️ MANDATORY FORMAT: A: ... \\nB: ... (dialogue format)' 
+  : 'Format: Single sentence'}
 
 ${diversityGuidance || ''}
 

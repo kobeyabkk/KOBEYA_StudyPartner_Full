@@ -617,7 +617,8 @@ export class IntegratedQuestionGenerator {
         const uniquenessValidation = await this.validateUniqueness(
           questionData,
           request.format,
-          blueprint.guidelines.grammar_patterns[0] || 'unknown'
+          blueprint.guidelines.grammar_patterns[0] || 'unknown',
+          questionData._logic_blueprint  // Phase 7.5 QW#3: logic_blueprintを渡す
         );
         
         // Phase 5C: ログ記録（非同期）
@@ -661,7 +662,8 @@ export class IntegratedQuestionGenerator {
               const revalidation = await this.validateUniqueness(
                 repairedQuestion,
                 request.format,
-                blueprint.guidelines.grammar_patterns[0] || 'unknown'
+                blueprint.guidelines.grammar_patterns[0] || 'unknown',
+                repairedQuestion._logic_blueprint  // Phase 7.5 QW#3
               );
               
               // 再検証ログ
@@ -1091,6 +1093,15 @@ Always respond with valid JSON.`;
     const data = await response.json();
     let generated = JSON.parse(data.choices[0].message.content);
     
+    // Phase 7.5 Quick Win #1: logic_blueprint 強制チェック
+    if (blueprint.format === 'grammar_fill') {
+      if (!generated.logic_blueprint || !generated.final_question) {
+        console.log('[Phase 7.5 QW#1] ❌ Missing logic_blueprint or final_question - REGENERATING');
+        throw new Error('Missing logic_blueprint or final_question in grammar_fill generation');
+      }
+      console.log('[Phase 7.5 QW#1] ✅ logic_blueprint and final_question present');
+    }
+    
     // Phase 7.4: Logic-First 形式の変換
     // logic_blueprint形式の場合、従来の形式に変換
     if (generated.logic_blueprint && generated.final_question) {
@@ -1099,9 +1110,32 @@ Always respond with valid JSON.`;
       const logic = generated.logic_blueprint;
       const final = generated.final_question;
       
+      // Phase 7.5 Quick Win #2: required_context_clue の存在確認
+      const questionText = final.sentence || final.question_text;
+      const clues = [
+        logic.distractor_1?.required_context_clue,
+        logic.distractor_2?.required_context_clue,
+        logic.distractor_3?.required_context_clue
+      ].filter(Boolean);
+      
+      const missingClues: string[] = [];
+      for (const clue of clues) {
+        if (!questionText.toLowerCase().includes(clue.toLowerCase())) {
+          missingClues.push(clue);
+        }
+      }
+      
+      if (missingClues.length > 0) {
+        console.log('[Phase 7.5 QW#2] ❌ Missing required_context_clues in question_text:');
+        console.log(`  Missing: ${missingClues.join(', ')}`);
+        console.log(`  Question: ${questionText}`);
+        throw new Error(`Missing required_context_clues: ${missingClues.join(', ')}`);
+      }
+      console.log('[Phase 7.5 QW#2] ✅ All required_context_clues present in question_text');
+      
       // 従来の形式に変換
       const converted = {
-        question_text: final.sentence || final.question_text,
+        question_text: questionText,
         correct_answer: logic.correct_answer,
         distractors: [
           logic.distractor_1?.word,
@@ -1706,12 +1740,13 @@ Always respond with valid JSON.`;
   private async validateUniqueness(
     questionData: any,
     format: QuestionFormat,
-    grammarPoint: string
+    grammarPoint: string,
+    logicBlueprint?: any  // Phase 7.5 Quick Win #3: logic_blueprint を追加
   ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
     
     // 形式別の検証ロジック
     if (format === 'grammar_fill') {
-      return this.validateGrammarFillUniqueness(questionData, grammarPoint);
+      return this.validateGrammarFillUniqueness(questionData, grammarPoint, logicBlueprint);
     } else if (format === 'long_reading') {
       return this.validateLongReadingUniqueness(questionData);
     } else if (format === 'essay' || format === 'opinion_speech') {
@@ -1734,7 +1769,8 @@ Always respond with valid JSON.`;
    */
   private async validateGrammarFillUniqueness(
     questionData: any,
-    grammarPoint: string
+    grammarPoint: string,
+    logicBlueprint?: any  // Phase 7.5 Quick Win #3: logic_blueprint を受け取る
   ): Promise<{ passed: boolean; issue?: string; suggestion?: string }> {
     
     const { question_text, correct_answer, distractors } = questionData;
@@ -1765,6 +1801,25 @@ ${allOptions.join(', ')}
 
 【Target grammar point】
 ${grammarPoint}
+
+${logicBlueprint ? `
+【Logic Blueprint (Context clues that MUST eliminate wrong answers)】
+Correct answer: ${logicBlueprint.correct_answer}
+
+Distractor 1: ${logicBlueprint.distractor_1?.word}
+  - Required context clue to KILL this option: "${logicBlueprint.distractor_1?.required_context_clue}"
+  - Why invalid: ${logicBlueprint.distractor_1?.reason_invalid}
+
+Distractor 2: ${logicBlueprint.distractor_2?.word}
+  - Required context clue to KILL this option: "${logicBlueprint.distractor_2?.required_context_clue}"
+  - Why invalid: ${logicBlueprint.distractor_2?.reason_invalid}
+
+Distractor 3: ${logicBlueprint.distractor_3?.word}
+  - Required context clue to KILL this option: "${logicBlueprint.distractor_3?.required_context_clue}"
+  - Why invalid: ${logicBlueprint.distractor_3?.reason_invalid}
+
+⚠️ CHECK: Does the question text contain ALL required context clues? If not, mark as ambiguous!
+` : ''}
 
 ## Your Task
 
