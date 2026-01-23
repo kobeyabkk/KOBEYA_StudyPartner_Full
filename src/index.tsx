@@ -42,6 +42,7 @@ import translateRoute from './eiken/routes/translate'  // Translation API
 import vocabularyRoute from './eiken/routes/vocabulary'  // Phase 4A: Vocabulary System
 import vocabularyApiRoute from './eiken/routes/vocabulary-api'  // CEFR-J Wordlist API
 import validationStatsRoute from './eiken/routes/validation-stats'  // Phase 6.9: Validation Statistics
+import monitoringRoutes from './eiken/routes/monitoring-routes'  // Option 6: Monitoring Dashboard
 import unifiedAIChatRoute from './api/unified-ai-chat'  // Unified AI Chat System
 import dashboardRoute from './routes/dashboard'  // Dashboard Route
 import staticRoutes from './routes/static'  // Static files (sitemap, robots, favicon)
@@ -3280,6 +3281,10 @@ app.route('/api/eiken/vocabulary', vocabularyApiRoute)
 
 // Phase 6.9: Validation Statistics API エンドポイント
 app.route('/api/eiken/validation', validationStatsRoute)
+
+// Option 6: Monitoring Dashboard API エンドポイント
+app.route('/api/eiken/monitoring', monitoringRoutes)
+
 
 // Dashboard Route
 app.route('/dashboard', dashboardRoute)
