@@ -462,6 +462,7 @@ export interface Blueprint {
   instructions: BlueprintInstructions;
   rubric: BlueprintRubric;
   passage_type?: 'article' | 'email' | 'notice';  // Phase 2: Long reading形式のバリエーション
+  preferred_tense?: 'past' | 'present' | 'future';  // Phase 7.8: Tense distribution improvement
   created_at?: string;
   metadata?: {
     generator_version: string;

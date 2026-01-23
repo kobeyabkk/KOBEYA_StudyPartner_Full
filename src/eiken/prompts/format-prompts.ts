@@ -173,6 +173,23 @@ Output JSON format:
   
   console.log(`[Phase 7.5 QW#4] Grade: ${blueprint.grade}, Force Dialogue: ${finalUseDialogFormat}`);
   
+  // Phase 7.8: Tense preference hint
+  const tenseHint = blueprint.preferred_tense 
+    ? `\n🎯 PHASE 7.8: TENSE PREFERENCE
+Preferred tense for this question: ${blueprint.preferred_tense.toUpperCase()}
+
+${blueprint.preferred_tense === 'past' 
+  ? '- Use time markers: yesterday, last week, last night, ago, in 2020\n- Examples: went, studied, played, ate, visited'
+  : blueprint.preferred_tense === 'future'
+  ? '- Use time markers: tomorrow, next week, will, going to, soon\n- Examples: will play, will study, will eat, will visit'
+  : '- Use time markers: now, every day, usually, always, today\n- Examples: play/plays, study/studies, eat/eats, visit/visits'}
+
+⚠️ IMPORTANT: While ${blueprint.preferred_tense} is preferred, you MUST still ensure only ONE correct answer.
+` 
+    : '';
+  
+  console.log(`[Phase 7.8] Preferred tense: ${blueprint.preferred_tense || 'none'}`);
+  
   // User Message: 具体的なタスク
   const userMessage = `Topic: ${topic.topic_label_en} (${topic.topic_label_ja})
 Context: ${topic.scenario_description}
@@ -182,7 +199,7 @@ Vocabulary Level: ${guidelines.vocabulary_level}
 ${finalUseDialogFormat 
   ? '⚠️ MANDATORY FORMAT: A: ... \\nB: ... (dialogue format)' 
   : 'Format: Single sentence'}
-
+${tenseHint}
 ${diversityGuidance || ''}
 
 ## PHASE 7.6: SAME VERB DIFFERENT FORMS EXAMPLES

@@ -672,4 +672,63 @@ export class TopicSelector {
       return []; // Fail gracefully
     }
   }
+
+  /**
+   * Phase 7.8: Get recently used tenses in current session
+   * Returns tense patterns used in the last N questions for this student
+   * Tense detection based on correct_answer field
+   */
+  async getRecentTensesInSession(
+    studentId: string,
+    limit: number = 6
+  ): Promise<{ past: number; present: number; future: number }> {
+    try {
+      const result = await this.db
+        .prepare(
+          `SELECT question_data 
+           FROM eiken_generated_questions 
+           WHERE student_id = ? AND format = 'grammar_fill'
+           ORDER BY created_at DESC 
+           LIMIT ?`
+        )
+        .bind(studentId, limit)
+        .all();
+      
+      const tenses = { past: 0, present: 0, future: 0 };
+      
+      for (const row of (result.results || [])) {
+        try {
+          const questionData = typeof row.question_data === 'string' 
+            ? JSON.parse(row.question_data) 
+            : row.question_data;
+          
+          const correctAnswer = questionData?.correct_answer || '';
+          const questionText = questionData?.question_text || '';
+          
+          // Detect tense from correct answer and question text
+          if (
+            correctAnswer.match(/ed$/i) || 
+            correctAnswer.match(/was|were|did|had/i) ||
+            questionText.match(/yesterday|last |ago|last night/i)
+          ) {
+            tenses.past++;
+          } else if (
+            correctAnswer.match(/will |going to|'ll /i) ||
+            questionText.match(/tomorrow|next |will |going to|soon/i)
+          ) {
+            tenses.future++;
+          } else {
+            tenses.present++;
+          }
+        } catch (err) {
+          // Skip invalid data
+        }
+      }
+      
+      return tenses;
+    } catch (error) {
+      console.error('[Phase 7.8] Failed to get recent tenses:', error);
+      return { past: 0, present: 0, future: 0 }; // Fail gracefully
+    }
+  }
 }

@@ -70,6 +70,15 @@ export class BlueprintGenerator {
     const gradeSpec = GRADE_SPECIFICATIONS[options.grade];
     const formatSpec = FORMAT_SPECIFICATIONS[options.format];
 
+    // Phase 7.8: Get tense distribution recommendation (only for grammar_fill)
+    let preferredTense: 'past' | 'present' | 'future' | undefined;
+    if (options.format === 'grammar_fill' && options.student_id) {
+      const recentTenses = await this.topicSelector.getRecentTensesInSession(options.student_id, 6);
+      preferredTense = this.selectPreferredTense(recentTenses);
+      console.log(`[Phase 7.8] Recent tenses: Past=${recentTenses.past}, Present=${recentTenses.present}, Future=${recentTenses.future}`);
+      console.log(`[Phase 7.8] Preferred tense for next question: ${preferredTense}`);
+    }
+
     // Step 3: Apply difficulty adjustment
     const adjustedSpec = this.adjustDifficulty(gradeSpec, options.difficulty_adjustment || 0);
 
@@ -103,6 +112,7 @@ export class BlueprintGenerator {
       instructions,
       rubric,
       passage_type: passageType,
+      preferred_tense: preferredTense,  // Phase 7.8: Add tense preference
       created_at: new Date().toISOString(),
       metadata: {
         generator_version: '2.0.0',
@@ -358,5 +368,42 @@ The prompt should inspire:
    */
   private generateBlueprintId(): string {
     return `bp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Phase 7.8: Select preferred tense based on recent usage
+   * Target distribution: Past 30%, Present 40%, Future 30%
+   */
+  private selectPreferredTense(
+    recentTenses: { past: number; present: number; future: number }
+  ): 'past' | 'present' | 'future' {
+    const total = recentTenses.past + recentTenses.present + recentTenses.future;
+    
+    // If no recent data, rotate evenly
+    if (total === 0) {
+      const random = Math.random();
+      if (random < 0.3) return 'past';
+      if (random < 0.7) return 'present';
+      return 'future';
+    }
+    
+    // Calculate current percentages
+    const pastPct = recentTenses.past / total;
+    const presentPct = recentTenses.present / total;
+    const futurePct = recentTenses.future / total;
+    
+    // Target: Past 30%, Present 40%, Future 30%
+    // Select the tense that is most underrepresented
+    const pastGap = 0.30 - pastPct;
+    const presentGap = 0.40 - presentPct;
+    const futureGap = 0.30 - futurePct;
+    
+    if (pastGap > presentGap && pastGap > futureGap) {
+      return 'past';
+    } else if (futureGap > presentGap) {
+      return 'future';
+    } else {
+      return 'present';
+    }
   }
 }
