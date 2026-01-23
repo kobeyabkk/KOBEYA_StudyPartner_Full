@@ -23,6 +23,7 @@ import { validateGrammarComplexity } from '../config/grammar-constraints';
 import { VocabularyAnnotator } from './vocabulary-annotator';
 import { GrammarAnalyzer } from './grammar/grammar-analyzer';
 import { getAnswerDiversityTracker } from './answer-diversity-tracker';
+import { MonitoringService } from './monitoring-service';
 
 export interface QuestionGenerationRequest {
   student_id: string;
@@ -100,11 +101,13 @@ export class IntegratedQuestionGenerator {
   private db: D1Database;
   private blueprintGenerator: BlueprintGenerator;
   private openaiApiKey: string;
+  private monitoringService: MonitoringService;
 
   constructor(db: D1Database, openaiApiKey: string) {
     this.db = db;
     this.blueprintGenerator = new BlueprintGenerator(db);
     this.openaiApiKey = openaiApiKey;
+    this.monitoringService = new MonitoringService(db);
   }
 
   /**
@@ -884,6 +887,35 @@ export class IntegratedQuestionGenerator {
 
     const endTime = Date.now();
     console.log(`[Question Generation] Completed in ${endTime - startTime}ms`);
+
+    // Option 6 Phase 1.6: メトリクス収集
+    try {
+      await this.monitoringService.logMetric({
+        request_id: `${request.student_id}-${Date.now()}`,
+        student_id: request.student_id,
+        session_id: request.session_id || null,
+        grade: request.grade,
+        format: request.format,
+        topic_code: blueprint.topic.topic_code,
+        blueprint_id: blueprint.id || '',
+        status: 'success',
+        generation_time_ms: endTime - startTime,
+        model_used: selectedModel,
+        validation_passed: true,
+        vocabulary_score: vocabularyScore || null,
+        copyright_score: copyrightScore || null,
+        // Phase 7 メトリクス
+        same_verb_check: this.calculateSameVerbScore(questionData),
+        time_marker_check: this.calculateTimeMarkerScore(questionData),
+        topic_diversity_score: this.calculateTopicDiversity(questionData),
+        verb_diversity_score: this.calculateVerbDiversity(questionData),
+        tense_distribution: this.calculateTenseDistribution(questionData),
+      });
+      console.log('[Monitoring] Metrics logged successfully');
+    } catch (metricsError) {
+      console.error('[Monitoring] Failed to log metrics:', metricsError);
+      // メトリクス記録失敗は致命的エラーではない
+    }
 
     return {
       success: true,
@@ -2652,5 +2684,89 @@ ${format === 'grammar_fill' ? `
       console.error('[Question Repair Error]', error);
       return null;
     }
+  }
+
+  // Option 6 Phase 1.6: メトリクス計算ヘルパー
+  
+  /**
+   * Phase 7.6: 同一動詞の異なる形態チェック
+   */
+  private calculateSameVerbScore(questionData: any): number | null {
+    if (!questionData.correct_answer || !questionData.distractors) {
+      return null;
+    }
+    // 簡易的な実装: 基本形が同じ単語の数をカウント
+    const allOptions = [questionData.correct_answer, ...questionData.distractors];
+    const baseWords = allOptions.map((opt: string) => 
+      opt.toLowerCase().replace(/ing|ed|s$/i, '')
+    );
+    const uniqueBase = new Set(baseWords);
+    return baseWords.length === uniqueBase.size ? 1.0 : 0.5;
+  }
+
+  /**
+   * Phase 7.8.1: 時制マーカーチェック
+   */
+  private calculateTimeMarkerScore(questionData: any): number | null {
+    if (!questionData.question_text) {
+      return null;
+    }
+    const text = questionData.question_text.toLowerCase();
+    const timeMarkers = ['yesterday', 'tomorrow', 'now', 'last', 'next', 'ago', 'in', 'at'];
+    const hasMarker = timeMarkers.some(marker => text.includes(marker));
+    return hasMarker ? 1.0 : 0.5;
+  }
+
+  /**
+   * Phase 7.7: トピック多様性スコア
+   */
+  private calculateTopicDiversity(questionData: any): number | null {
+    // 簡易実装: question_textの語彙の多様性を測定
+    if (!questionData.question_text) {
+      return null;
+    }
+    const words = questionData.question_text.toLowerCase().split(/\s+/);
+    const uniqueWords = new Set(words);
+    return Math.min(uniqueWords.size / words.length, 1.0);
+  }
+
+  /**
+   * Phase 7.7: 動詞多様性スコア
+   */
+  private calculateVerbDiversity(questionData: any): number | null {
+    if (!questionData.correct_answer || !questionData.distractors) {
+      return null;
+    }
+    const allOptions = [questionData.correct_answer, ...questionData.distractors];
+    const uniqueOptions = new Set(allOptions.map((opt: string) => opt.toLowerCase()));
+    return uniqueOptions.size / allOptions.length;
+  }
+
+  /**
+   * Phase 7.8.1: 時制分布計算
+   */
+  private calculateTenseDistribution(questionData: any): string | null {
+    if (!questionData.question_text) {
+      return null;
+    }
+    const text = questionData.question_text.toLowerCase();
+    
+    // 簡易的な時制検出
+    const pastMarkers = ['yesterday', 'last', 'ago', 'was', 'were', 'did'];
+    const presentMarkers = ['now', 'today', 'is', 'are', 'do', 'does'];
+    const futureMarkers = ['tomorrow', 'next', 'will', 'going to'];
+    
+    const pastCount = pastMarkers.filter(m => text.includes(m)).length;
+    const presentCount = presentMarkers.filter(m => text.includes(m)).length;
+    const futureCount = futureMarkers.filter(m => text.includes(m)).length;
+    
+    const total = pastCount + presentCount + futureCount;
+    if (total === 0) return null;
+    
+    return JSON.stringify({
+      past: Math.round((pastCount / total) * 100),
+      present: Math.round((presentCount / total) * 100),
+      future: Math.round((futureCount / total) * 100)
+    });
   }
 }
