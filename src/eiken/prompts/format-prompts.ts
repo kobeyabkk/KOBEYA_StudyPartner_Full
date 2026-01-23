@@ -173,22 +173,23 @@ Output JSON format:
   
   console.log(`[Phase 7.5 QW#4] Grade: ${blueprint.grade}, Force Dialogue: ${finalUseDialogFormat}`);
   
-  // Phase 7.8: Tense preference hint
+  // Phase 7.8.1: Softer tense suggestion (not mandatory)
   const tenseHint = blueprint.preferred_tense 
-    ? `\n🎯 PHASE 7.8: TENSE PREFERENCE
-Preferred tense for this question: ${blueprint.preferred_tense.toUpperCase()}
+    ? `\n💡 TENSE BALANCE SUGGESTION (optional, not mandatory):
+To maintain balanced tense practice, consider ${blueprint.preferred_tense.toUpperCase()} tense:
 
 ${blueprint.preferred_tense === 'past' 
-  ? '- Use time markers: yesterday, last week, last night, ago, in 2020\n- Examples: went, studied, played, ate, visited'
+  ? '- Time markers: yesterday, last week, last night, ago\n- Example forms: went, studied, played, ate'
   : blueprint.preferred_tense === 'future'
-  ? '- Use time markers: tomorrow, next week, will, going to, soon\n- Examples: will play, will study, will eat, will visit'
-  : '- Use time markers: now, every day, usually, always, today\n- Examples: play/plays, study/studies, eat/eats, visit/visits'}
+  ? '- Time markers: tomorrow, next week, will, going to, soon\n- Example forms: will play, will study, will eat'
+  : '- Time markers: now, every day, usually, always, today\n- Example forms: play/plays, study/studies, eat/eats'}
 
-⚠️ IMPORTANT: While ${blueprint.preferred_tense} is preferred, you MUST still ensure only ONE correct answer.
+⚠️ IMPORTANT: Feel free to use other tenses if they fit the context better.
+The priority is maintaining Phase 7.6 rules (same verb, only one correct answer).
 ` 
     : '';
   
-  console.log(`[Phase 7.8] Preferred tense: ${blueprint.preferred_tense || 'none'}`);
+  console.log(`[Phase 7.8.1] Preferred tense (suggestion): ${blueprint.preferred_tense || 'none'}`);
   
   // User Message: 具体的なタスク
   const userMessage = `Topic: ${topic.topic_label_en} (${topic.topic_label_ja})

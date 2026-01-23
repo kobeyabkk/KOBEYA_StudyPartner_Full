@@ -371,19 +371,20 @@ The prompt should inspire:
   }
 
   /**
-   * Phase 7.8: Select preferred tense based on recent usage
+   * Phase 7.8.1: Select preferred tense based on recent usage (weighted random)
    * Target distribution: Past 30%, Present 40%, Future 30%
+   * Uses weighted random selection to avoid over-correction
    */
   private selectPreferredTense(
     recentTenses: { past: number; present: number; future: number }
   ): 'past' | 'present' | 'future' {
     const total = recentTenses.past + recentTenses.present + recentTenses.future;
     
-    // If no recent data, rotate evenly
+    // If no recent data, use target distribution directly
     if (total === 0) {
       const random = Math.random();
-      if (random < 0.3) return 'past';
-      if (random < 0.7) return 'present';
+      if (random < 0.30) return 'past';
+      if (random < 0.70) return 'present';  // 0.30 + 0.40
       return 'future';
     }
     
@@ -393,17 +394,25 @@ The prompt should inspire:
     const futurePct = recentTenses.future / total;
     
     // Target: Past 30%, Present 40%, Future 30%
-    // Select the tense that is most underrepresented
-    const pastGap = 0.30 - pastPct;
-    const presentGap = 0.40 - presentPct;
-    const futureGap = 0.30 - futurePct;
+    // Calculate gaps (positive = underrepresented)
+    const pastGap = Math.max(0, 0.30 - pastPct);
+    const presentGap = Math.max(0, 0.40 - presentPct);
+    const futureGap = Math.max(0, 0.30 - futurePct);
     
-    if (pastGap > presentGap && pastGap > futureGap) {
-      return 'past';
-    } else if (futureGap > presentGap) {
-      return 'future';
-    } else {
-      return 'present';
-    }
+    // Phase 7.8.1: Weighted random selection instead of forced selection
+    // Add base weights to prevent zero weights
+    const baseWeight = 0.1;
+    const totalWeight = (pastGap + baseWeight) + (presentGap + baseWeight) + (futureGap + baseWeight);
+    
+    const random = Math.random() * totalWeight;
+    let cumulative = 0;
+    
+    cumulative += (pastGap + baseWeight);
+    if (random < cumulative) return 'past';
+    
+    cumulative += (presentGap + baseWeight);
+    if (random < cumulative) return 'present';
+    
+    return 'future';
   }
 }
