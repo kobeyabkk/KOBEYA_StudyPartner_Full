@@ -1204,9 +1204,9 @@ ${themeContent}
         response = `わかりました。解説しますね。\n\n${passAnswer}\n\nこのステップは完了です。「次のステップへ」ボタンを押してください。`
         stepCompleted = true
       }
-      // 長い回答（100文字以上、かつ「ok」を含まない）→ AI添削
-      else if (message.length > 100 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
-        console.log('✅ Matched: Long answer - generating feedback')
+      // 理解度確認質問への回答（10文字以上、かつ「ok」を含まない）→ AI添削
+      else if (message.length > 10 && !message.toLowerCase().includes('ok') && !message.includes('はい')) {
+        console.log('✅ Matched: Comprehension answer - generating feedback')
         
         try {
           const openaiApiKey = c.env?.OPENAI_API_KEY
@@ -1905,7 +1905,7 @@ ${targetLevel === 'high_school' ? `
       // 回答が短すぎる（標準55分モードのみ）
       else if (!isFocusedFormat) {
         console.log('⚠️ Answer too short')
-        response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、15文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
+        response = '回答が短すぎるようです。もう少し詳しく答えてください。\n\n各質問について、10文字以上で答えてみましょう。\n（わからない場合は「パス」と入力すると解説します）'
       }
       // Focused formatでStep 1の場合、Step 2/3処理に任せるため何もしない（fall through）
     } 

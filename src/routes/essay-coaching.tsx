@@ -2081,7 +2081,8 @@ router.get('/session/:sessionId', async (c) => {
         
         <script>
         const sessionId = '${sessionId}';
-        let currentStep = 1;
+        // セッションから currentStep を復元（デフォルトは1）
+        let currentStep = ${session.currentStep || 1};
         
         // セッションデータをクライアントサイドに渡す
         const sessionData = {
@@ -2133,6 +2134,38 @@ router.get('/session/:sessionId', async (c) => {
               '準備ができたら「OK」と入力して、送信ボタンを押してください。';
           }
           // full_55minの場合はデフォルトのまま（6ステップ）
+        })();
+        
+        // セッション復元時のメッセージ表示
+        (function showSessionRestoredMessage() {
+          const restoredStep = ${session.currentStep || 1};
+          if (restoredStep > 1) {
+            // プログレスバーを更新
+            for (let i = 1; i < restoredStep; i++) {
+              const stepElement = document.getElementById('step-' + i);
+              if (stepElement) {
+                stepElement.classList.add('completed');
+              }
+            }
+            const currentStepElement = document.getElementById('step-' + restoredStep);
+            if (currentStepElement) {
+              currentStepElement.classList.add('active');
+            }
+            
+            // ステップ2以降の場合、復元メッセージを表示
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message teacher';
+            messageDiv.style.backgroundColor = '#e3f2fd'; // 軽い青色で目立たせる
+            messageDiv.innerHTML = '<span class="icon">🔄</span><div>' + 
+              '<strong>前回の続きから再開します</strong><br>' +
+              '現在のステップ: ステップ${session.currentStep}<br>' +
+              '「OK」と入力するか、質問に答えてください。<br>' +
+              '<em>※ページを離れても、このURLから続きを再開できます</em>' +
+              '</div>';
+            messagesDiv.appendChild(messageDiv);
+            console.log('🔄 Session restored from Step ${session.currentStep}');
+          }
         })();
         
         function addMessage(text, isTeacher = false) {
