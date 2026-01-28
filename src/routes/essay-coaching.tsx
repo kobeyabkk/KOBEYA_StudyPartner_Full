@@ -103,6 +103,7 @@ type Session = {
     learningStyle?: string
     currentStep?: number
     stepStatus?: Record<string, string>
+    completed?: boolean  // セッション完了フラグ
     createdAt?: string
     lastThemeContent?: string | null
     lastThemeTitle?: string | null
@@ -2139,6 +2140,25 @@ router.get('/session/:sessionId', async (c) => {
         // セッション復元時のメッセージ表示
         (function showSessionRestoredMessage() {
           const restoredStep = ${session.currentStep || 1};
+          const isCompleted = ${session.essaySession?.completed ? 'true' : 'false'};
+          
+          // セッションが完了している場合は、新規セッション推奨メッセージを表示
+          if (isCompleted) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message teacher';
+            messageDiv.style.backgroundColor = '#fff3e0'; // オレンジ色で目立たせる
+            messageDiv.innerHTML = '<span class="icon">✅</span><div>' + 
+              '<strong>前回のセッションは完了しています</strong><br>' +
+              '新しいセッションを開始する場合は、<br>' +
+              '画面上部の「戻る」ボタンを押してください。<br>' +
+              '<em>※このセッションのデータは保存されています</em>' +
+              '</div>';
+            messagesDiv.appendChild(messageDiv);
+            console.log('✅ Session completed - showing new session recommendation');
+            return; // 完了済みの場合は、復元処理をスキップ
+          }
+          
           if (restoredStep > 1) {
             // プログレスバーを更新
             for (let i = 1; i < restoredStep; i++) {

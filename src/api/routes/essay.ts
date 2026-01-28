@@ -4218,6 +4218,14 @@ ${averageScore < 60 ? '💪 まずは基礎を固めましょう。テーマと�
       
       if (message.includes('完了')) {
         stepCompleted = true
+        // セッションを完了状態にする
+        if (session && session.essaySession) {
+          session.essaySession.completed = true
+          learningSessions.set(sessionId, session)
+          if (db) {
+            await saveSessionToDB(db, sessionId, session)
+          }
+        }
         response += '\n\n✅ セッションを終了しました。また次回お会いしましょう！'
       }
     } else {
