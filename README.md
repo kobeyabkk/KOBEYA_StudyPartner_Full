@@ -1,417 +1,307 @@
-# AI & プログラミングのKOBEYA - Study Partner System
+# KOBEYA Study Partner
 
-バンコク在住の日本人小中学生向けプログラミング教室のAI学習パートナーシステム
+**AI-Powered Personalized Learning Platform for Japanese Students in Bangkok**
 
-## 🎯 プロジェクト概要
+🌐 **Live Demo**: https://kobeyabkk-studypartner.pages.dev/  
+🇯🇵 **日本語版**: [README.ja.md](./README.ja.md)  
+📖 **Documentation**: See `/docs` folder
 
-### 目的
-- **Primary Goal**: AI学習パートナーによる個別最適化学習支援
-- バンコクの日本人学生向け画像解析・段階的学習システム
-- 保護者への学習進捗レポート自動生成機能
+[![Deploy Status](https://img.shields.io/badge/deploy-cloudflare%20pages-orange)](https://kobeyabkk-studypartner.pages.dev/)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-### ターゲット
-- バンコク在住の日本人家庭
-- 小学1年生〜中学3年生の子どもを持つ保護者
-- プログラミング教育に関心のある家庭
+---
 
-## 🏗️ 技術スタック
+## 🎯 About
 
-- **Framework**: Hono (Cloudflare Workers)
-- **Language**: TypeScript/JSX
-- **Database**: Cloudflare D1 (SQLite)
-- **AI**: OpenAI GPT-4o, GPT-4o Vision
-- **Styling**: Tailwind CSS (CDN) + Custom CSS
-- **Deployment**: Cloudflare Pages
-- **Frontend**: Vanilla JavaScript (ES6+)
-- **Process Manager**: PM2 (development)
+KOBEYA Study Partner is an AI-powered educational platform designed specifically for Japanese elementary and junior high school students studying programming in Bangkok, Thailand. The system provides:
 
-## 📖 現在実装されている機能
+- **Personalized AI Learning**: Adaptive step-by-step learning with real-time feedback
+- **Image Analysis**: AI analyzes student work photos and generates customized lessons
+- **Progress Tracking**: Automatic learning logs and weekly parent reports
+- **Eiken Exam Prep**: AI-generated practice questions for English proficiency tests
+- **Essay Writing**: AI-assisted essay coaching with step-by-step guidance
 
-### ✅ AI学習パートナー機能
+---
 
-#### 1. **画像解析・段階学習システム**
-- OpenAI GPT-4o Vision による画像解析
-- 問題の複雑さに応じた4-7ステップの動的段階学習生成
-- **5-8問の類似問題自動生成**（easy→medium→hard）
-  - **混合形式対応**: 選択問題（60%）と記述問題（40%）をミックス
-  - **段階的学習・確認問題**: 必ず選択肢形式で統一表示
-  - **類似問題**: choice形式とinput形式の柔軟な組み合わせ
-- ステップバイステップの確認問題
-- リアルタイム回答チェックとフィードバック
+## ✨ Features
 
-#### 2. **AI質問チャット機能**
-- テキスト・画像対応の質問受付
-- 文部科学省学習指導要領準拠の回答生成
-- 学習コンテキストを考慮した個別サポート
-- 別ウィンドウでの専用チャット環境
+### 🤖 AI Learning Assistant
+- ✅ **Image-based Problem Analysis**: Upload photos of homework/textbooks for AI analysis
+- ✅ **Dynamic Step-by-Step Learning**: 4-7 adaptive learning steps based on problem complexity
+- ✅ **Automated Similar Questions**: 5-8 questions with progressive difficulty (easy → medium → hard)
+- ✅ **Real-time Answer Checking**: Instant feedback with detailed explanations
+- ✅ **AI Q&A Chat**: Separate chat window for asking questions anytime
 
-#### 3. **学習ログ記録システム**
-- 学習セッション自動記録
-- 学習時間・正答率・弱点タグの自動集計
-- 数値正規化（全角→半角、文字列→数値変換）
-- 教材マスターデータによるタグ推定
+### 📊 Learning Analytics
+- ✅ **Automatic Session Logging**: Records study time, accuracy, and weak areas
+- ✅ **Weekly Parent Reports**: Automated generation of progress summaries
+- ✅ **Personalized Recommendations**: AI suggests next learning actions
+- ✅ **Master Data Integration**: Aligns with Japanese curriculum standards
 
-#### 4. **保護者レポート生成機能**
-- 週次学習レポート自動生成
-- 学習時間、正答率、弱点分析の集計
-- 次回推奨アクション提案
-- Webhook Secret認証によるセキュア通信
+### 🎓 Eiken Exam Preparation (Production Ready)
+- ✅ **5 Question Formats**: Grammar fill-in, Opinion speech, Reading aloud, Essay, Long reading
+- ✅ **CEFR-Compliant Vocabulary**: A1-C2 level validation with 10,000+ word database
+- ✅ **Copyright Protection**: Similarity check against past exam questions
+- ✅ **61 Topic Areas**: Covers grades 5 to 1 (elementary to advanced)
+- ✅ **Vocabulary Explanations**: Definitions for all answer choices (correct + incorrect)
 
-### ✅ ユーザーインターフェース
+### 📝 Essay Coaching System
+- ✅ **Step-by-Step Guidance**: From reading comprehension to final essay
+- ✅ **AI-Powered Feedback**: GPT-4o analyzes and scores essay drafts
+- ✅ **Vocabulary Enhancement**: Practice converting casual to formal Japanese
+- ✅ **Flexible Formats**: 55-minute full course or focused mini-lessons
+- ✅ **Session Persistence**: Resume from where you left off after page reload
 
-#### メイン学習画面
-- ✅ ログイン認証システム（APP_KEY + 生徒ID）
-- ✅ AIに質問ボタン
-- ✅ カメラ撮影・ファイル選択機能
-- ✅ 画像クロップ機能（Cropper.js）
-- ✅ アップロード進行表示
-- ✅ 段階学習・類似問題インターフェース
+---
 
-#### 🆕 英検対策機能（Phase 3-4 本番稼働中）
-- ✅ **5形式の問題生成**: grammar_fill, opinion_speech, reading_aloud, **essay**, **long_reading**
-- ✅ **語彙レベル検証**: CEFR準拠の語彙チェック（A1-C2）
-- ✅ **著作権検証**: 過去問類似度チェック
-- ✅ **トピック管理**: 61トピック（5級-1級）
-- ✅ **Blueprint システム**: AIプロンプト最適化
-- ✅ **全選択肢の語彙解説**: 正解・不正解全ての意味を表示
+## 🛠️ Tech Stack
 
-#### 🚀 Phase 4 語彙品質改善（本番稼働）
-- ✅ **VocabularyFailureTracker**: 動的禁止語学習システム
-- ✅ **Few-shot Examples**: Good/Bad対比による語彙制御
-- ✅ **Optimal Temperature**: 形式別LLMパラメータ調整（0.25-0.5）
-- ✅ **Adaptive Thresholds**: 形式・長さに応じた語彙検証基準
-- 🎉 **実績**: essay 64%→80%, long_reading 69%→84% (Phase 4完了)
+| Component | Technology |
+|-----------|-----------|
+| **Runtime** | Cloudflare Workers |
+| **Framework** | Hono.js |
+| **Language** | TypeScript/JSX |
+| **Frontend** | React 19, Vite |
+| **Database** | Cloudflare D1 (SQLite) |
+| **AI Models** | OpenAI GPT-4o, GPT-4o Vision |
+| **Styling** | Tailwind CSS + Custom CSS |
+| **Deployment** | Cloudflare Pages |
+| **Process Manager** | PM2 (development) |
 
-#### 新機能プレースホルダー
-- ✅ 小論文対策（実装予定）
-- ✅ インター生用（実装予定）
+---
 
-### ✅ バックエンド・データベース機能
+## 🚀 Quick Start
 
-#### API エンドポイント
-- ✅ `/api/health` - システムヘルスチェック
-- ✅ `/api/login` - 生徒認証
-- ✅ `/api/analyze-and-learn` - 画像解析・学習開始
-- ✅ `/api/step/check` - 段階学習ステップ確認
-- ✅ `/api/confirmation/check` - 確認問題チェック
-- ✅ `/api/similar/check` - 類似問題チェック
-- ✅ `/api/ai/chat` - AI質問チャット
-- ✅ `/api/logs` - 学習ログ記録（Webhook Secret認証）
-- ✅ `/api/logs/health` - ログシステムヘルスチェック
-- ✅ `/api/reports/weekly` - 週次レポート生成
-- ✅ `/api/eiken/questions/generate` - 英検問題生成（4形式対応）
-- ✅ `/api/eiken/questions/list` - 生成済み問題一覧
-- ✅ `/api/eiken/questions/:id` - 問題詳細取得
+### Prerequisites
+- Node.js 20.x or higher
+- npm 10.x or higher
+- Cloudflare account (for deployment)
 
-#### データベーススキーマ（Cloudflare D1）
-- ✅ `logs` - 学習ログデータ
-- ✅ `students` - 生徒マスターデータ
-- ✅ `master_materials` - 教材マスターデータ
-- ✅ `eiken_generated_questions` - 英検生成問題
-- ✅ `eiken_vocabulary_lexicon` - 英検語彙データベース（10,000+語）
-- ✅ `eiken_topic_areas` - トピック管理（61トピック）
-- ✅ `eiken_topic_question_type_suitability` - 形式適性スコア
-- ✅ `eiken_topic_usage_history` - トピック使用履歴
+### Installation
 
-## 🎨 デザインシステム
+```bash
+# Clone repository
+git clone https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full.git
+cd KOBEYA_StudyPartner_Full
 
-### カラーパレット
-- **Primary Blue**: #2563eb
-- **Primary Yellow**: #fbbf24 (CTA)
-- **Accent Green**: #10b981 (LINE)
-- **Accent Purple**: #8b5cf6 (AI)
-- **Text**: #1f2937, #6b7280
-- **Background**: #ffffff, #f8fafc
+# Install dependencies
+npm install
 
-### タイポグラフィ
-- **日本語**: Noto Sans JP (300, 400, 500, 600, 700)
-- **英語**: Inter (300, 400, 500, 600, 700)
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your API keys:
+# - OPENAI_API_KEY: Your OpenAI API key
+# - WEBHOOK_SECRET: For logging API authentication
+```
 
-## 📱 主要URI一覧
+### Development
 
-### 🎓 学習システム
-| Path | Method | 説明 | 主な機能 |
-|------|--------|------|----------|
-| `/` | GET | メイン学習画面 | ログイン、画像アップロード、AI学習 |
-| `/ai-chat/:sessionId` | GET | AI質問チャット | 別ウィンドウでの質問・回答 |
+```bash
+# Build the project
+npm run build
 
-### 🔧 学習API
-| Path | Method | 認証 | 説明 |
-|------|--------|------|------|
-| `/api/health` | GET | なし | システムヘルスチェック |
-| `/api/login` | POST | APP_KEY | 生徒認証 |
-| `/api/analyze-and-learn` | POST | なし | 画像解析・学習開始 |
-| `/api/step/check` | POST | なし | 段階学習ステップ確認 |
-| `/api/confirmation/check` | POST | なし | 確認問題チェック |
-| `/api/similar/check` | POST | なし | 類似問題チェック |
-| `/api/ai/chat` | POST | なし | AI質問チャット |
+# Run local development server with D1 database
+npm run dev:sandbox
 
-### 📊 ログ・レポートAPI
-| Path | Method | 認証 | 説明 |
-|------|--------|------|------|
-| `/api/logs/health` | GET | なし | ログシステムヘルスチェック |
-| `/api/logs` | POST | Webhook Secret | 学習ログ記録 |
-| `/api/reports/weekly` | POST | Webhook Secret | 週次レポート生成 |
+# Access at http://localhost:3000
+```
 
-### 🎓 英検対策API（Phase 3）
-| Path | Method | 説明 | 対応形式 |
-|------|--------|------|----------|
-| `/api/eiken/questions/generate` | POST | 問題生成 | grammar_fill, opinion_speech, reading_aloud |
-| `/api/eiken/questions/list` | GET | 問題一覧 | 全形式 |
-| `/api/eiken/questions/:id` | GET | 問題詳細 | 全形式 |
+### Database Setup
 
-#### 問題生成リクエスト例
+```bash
+# Apply migrations locally
+npm run db:migrate:local
+
+# Access D1 console locally
+npm run db:console:local
+
+# Reset database (caution: deletes all data)
+npm run db:reset
+```
+
+### Deployment
+
+```bash
+# Deploy to production
+npm run deploy:prod
+
+# Deploy to staging
+npm run deploy
+```
+
+---
+
+## 📖 API Endpoints
+
+### Learning System APIs
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/health` | GET | None | System health check |
+| `/api/login` | POST | APP_KEY | Student authentication |
+| `/api/analyze-and-learn` | POST | None | Start image analysis & learning |
+| `/api/step/check` | POST | None | Check step-by-step learning answer |
+| `/api/ai/chat` | POST | None | AI Q&A chat |
+
+### Logging & Reports APIs
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/logs` | POST | Webhook Secret | Record learning session |
+| `/api/reports/weekly` | POST | Webhook Secret | Generate weekly report |
+
+### Eiken Exam APIs
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/eiken/questions/generate` | POST | Generate practice question |
+| `/api/eiken/questions/list` | GET | List all generated questions |
+| `/api/eiken/questions/:id` | GET | Get question details |
+
+**Example Request:**
 ```json
 {
   "student_id": "12345",
-  "grade": "pre2",
+  "grade": "3",
   "format": "grammar_fill",
   "mode": "practice"
 }
 ```
 
-#### 対応形式（Production Ready）
-- ✅ `grammar_fill` - 文法穴埋め問題（4択、語彙解説付き）
-- ✅ `opinion_speech` - 意見スピーチ問題（質問+模範解答）
-- ✅ `reading_aloud` - 音読問題（50-80語パッセージ、発音ガイド）
+**Supported Formats:**
+- `grammar_fill` - Grammar fill-in-the-blank (4 choices)
+- `opinion_speech` - Opinion speech with model answer
+- `reading_aloud` - Reading aloud passage (50-80 words)
+- `essay` - Essay writing with prompt
+- `long_reading` - Long reading comprehension
 
-#### Coming Soon（語彙レベル調整中）
-- 🚧 `essay` - エッセイ問題（語彙スコア64% → 目標95%）
-- 🚧 `long_reading` - 長文読解問題（語彙スコア69% → 目標95%）
+**Supported Grades:**
+`5`, `4`, `3`, `pre2`, `2`, `pre1`, `1`
 
-#### 利用可能グレード
-`5`, `4`, `3`, `pre2`, `2`, `pre1`, `1` (小文字)
+---
 
-## 🗄️ データ構造
+## 🗄️ Database Schema
 
-### 学習ログデータ
-```typescript
-interface LogRequest {
-  student_id: string;
-  student_name?: string;
-  date: string; // YYYY-MM-DD
-  subject: string;
-  textbook_code?: string;
-  page?: number | null;
-  problem_id?: string;
-  error_tags?: string[];
-  tasks_done?: string;
-  problems_attempted?: string;
-  correct?: string;
-  incorrect?: string;
-  mini_quiz_score?: string;
-  weak_tags?: string[];
-  next_action?: string;
-  started_at?: string; // ISO datetime
-  ended_at?: string; // ISO datetime
-  flag_teacher_review?: boolean;
-  request_id?: string; // 冪等性キー
-}
+### Main Tables
+
+| Table | Description |
+|-------|-------------|
+| `logs` | Learning session records |
+| `students` | Student master data |
+| `master_materials` | Curriculum materials |
+| `learning_sessions` | Session state management |
+| `eiken_generated_questions` | Generated Eiken questions |
+| `eiken_vocabulary_lexicon` | 10,000+ vocabulary database |
+| `eiken_topic_areas` | 61 topic areas for questions |
+| `eiken_generation_metrics` | Question generation analytics |
+| `eiken_alert_config` | Monitoring alert configuration |
+
+See [DATABASE_FIX_INSTRUCTIONS.md](./DATABASE_FIX_INSTRUCTIONS.md) for migration details.
+
+---
+
+## 📊 Project Structure
+
+```
+KOBEYA_StudyPartner_Full/
+├── src/
+│   ├── api/              # API route handlers
+│   ├── eiken/            # Eiken exam system
+│   │   ├── services/     # Business logic
+│   │   ├── routes/       # API endpoints
+│   │   └── types/        # Type definitions
+│   ├── routes/           # Frontend routes
+│   ├── handlers/         # Request handlers
+│   └── components/       # React components
+├── migrations/           # D1 database migrations
+├── public/               # Static assets
+├── docs/                 # Documentation
+└── scripts/              # Build scripts
 ```
 
-### 週次レポートデータ
-```typescript
-interface WeeklyReport {
-  student_id: string;
-  period: {
-    start: string; // YYYY-MM-DD
-    end: string; // YYYY-MM-DD
-  };
-  summary: {
-    sessions: number; // セッション数
-    minutes: number; // 学習時間（分）
-    avg_score: number; // 平均点
-    weak_tags_top3: string[]; // 弱点タグTOP3
-    student_name: string;
-    next_action: string;
-  };
-  logs_count: number;
-}
-```
+---
 
-### 生徒データ
-```typescript
-interface StudentInfo {
-  student_id: string;
-  student_name: string;
-  grade: number;
-  subjects: string[];
-  weakSubjects: string[];
-  lastLogin: string;
-}
-```
+## 🎓 Educational Framework
 
-## 🎓 教育方針フレームワーク (ninsoku.json)
+Based on **Japanese Ministry of Education Curriculum Guidelines**:
 
-### 文部科学省学習指導要領準拠
-- **主体的・対話的で深い学び（アクティブラーニング）**: 段階的思考プロセス支援
-- **3つの観点評価**: 知識・技能、思考・判断・表現、学習態度の統合指導
-- **教科横断的能力**: 言語能力、情報活用能力、問題解決能力の育成
-- **個別最適化支援**: 学習履歴と理解度に応じた説明方法選択
-- **安全性・倫理**: デジタル・シティズンシップ、教育倫理の遵守
+- **Active Learning**: Encourages student-led, dialogue-rich, deep learning
+- **Three Assessment Perspectives**: Knowledge/Skills, Thinking/Judgment/Expression, Attitude
+- **Cross-curricular Competencies**: Language, Information literacy, Problem-solving
+- **Personalized Support**: Adaptive explanations based on learning history
+- **Safety & Ethics**: Digital citizenship and educational ethics
 
-### AI指導プロトコル
-- **コミュニケーションスタイル**: 中学生に適した敬語、励ましと支援姿勢
-- **質問技法**: ソクラテス式問答法、スキャフォールディング活用
-- **エラーハンドリング**: 失敗を学習機会として前向きに活用
+---
 
-## 🚀 デプロイ状況
+## 📈 Recent Updates
 
-### 本番環境
-- **Status**: ✅ 稼働中
-- **URL**: https://kobeyabkk-studypartner.pages.dev/
-- **Platform**: Cloudflare Pages
+### v2.1.0 - Essay Coaching Improvements (2026-01-23)
+- ✅ Reduced minimum answer length from 15 to 10 characters
+- ✅ Added session restoration on page reload
+- ✅ Distinguish completed sessions from in-progress sessions
+- ✅ Orange notification for completed sessions
+- ✅ Blue notification for mid-session restoration
 
-### 開発環境
-- **Status**: ✅ 動作中
-- **Command**: `npm run build && npm run dev:sandbox`
-- **Local URL**: http://localhost:3000
+### v2.0.0 - Learning Analytics System (2025-10-12)
+- ✅ Implemented logging and weekly parent report generation
+- ✅ Introduced Cloudflare D1 database
+- ✅ Automated weak area detection and recommendations
+- ✅ Webhook Secret authentication for secure API access
 
-## 📋 次のステップ
+### v1.1.0 - Dynamic Learning Generation (2025-01-11)
+- ✅ Dynamic 4-7 step generation based on problem complexity
+- ✅ 5-8 similar questions with progressive difficulty
+- ✅ Enhanced AI prompts for quality assurance
 
-### 🔄 今後の実装予定
+See [CHANGELOG.md](./CHANGELOG.md) for full history.
 
-#### 1. 画像最適化
-- [ ] 全ページの画像を実際の教室写真に差し替え
-- [ ] WebP形式への変換
-- [ ] 適切なalt属性の設定
+---
 
-#### 2. 機能拡張
-- [ ] Google Maps埋め込み
-- [ ] LINE Bot連携
-- [ ] Google Analytics 4設定
-- [ ] 送信フォームの通知機能強化
+## 🧪 Testing
 
-#### 3. コンテンツ充実
-- [ ] 生徒作品ギャラリー
-- [ ] 保護者の声の追加
-- [ ] ブログ機能の拡張
-
-#### 4. パフォーマンス最適化
-- [ ] 画像の遅延読み込み
-- [ ] CDNキャッシュ最適化
-- [ ] Core Web Vitals改善
-
-## 🛠️ 開発・デプロイ手順
-
-### ローカル開発
 ```bash
-# 依存関係インストール
-npm install
+# Check API health
+curl http://localhost:3000/api/health
 
-# 開発サーバー起動
-npm run build
-npm run dev:sandbox
+# Test Eiken question generation
+curl -X POST http://localhost:3000/api/eiken/questions/generate \
+  -H "Content-Type: application/json" \
+  -d '{"student_id":"test","grade":"3","format":"grammar_fill","count":1}'
 ```
 
-### デプロイ
-```bash
-# ビルド
-npm run build
+---
 
-# Cloudflare Pages デプロイ
-npm run deploy:prod
-```
+## 📄 License
 
-## 📞 サポート情報
-
-### 連絡先
-- **教室名**: AI & プログラミングのKOBEYA
-- **代表**: 鈴木政路（すずき まさみち）
-- **所在地**: フジスーパー2号店2階
-- **電話**: 066-123-4567
-- **LINE**: @kobeya
-- **メール**: info@kobeya-programming.com
-
-### 開講時間
-- **平日**: 16:00-20:00
-- **土日**: 9:00-17:00
-- **定休日**: なし（祝日は要確認）
-
-## 🔄 最新の更新履歴
-
-### v2.1.0 - 類似問題混合形式対応実装 (2025-10-13)
-
-#### ✅ 類似問題形式多様化
-**新機能**: 類似問題で選択問題と記述問題を混合表示する機能を実装
-
-#### 📚 学習体験の改善
-- **段階的学習**: 必ず選択肢形式で統一（学習効果の確実性重視）
-- **確認問題**: 必ず選択肢形式で統一（復習効果の確実性重視） 
-- **類似問題**: 選択問題（60%）+ 記述問題（40%）の混合形式
-  - choice形式: 4つの選択肢から選択
-  - input形式: テキストエリアでの自由記述回答
-
-#### 🤖 AI生成プロンプト強化
-- OpenAI GPT-4o に類似問題の混合形式生成を指示
-- easy問題の60%をchoice、40%をinputで自動配分
-- 各問題タイプに応じた適切な正答パターン生成
-
-#### 💻 フロントエンド・バックエンド対応
-- **フロントエンド**: choice/input両形式のUI自動切替
-- **バックエンド**: 両形式の回答検証と採点ロジック
-- **既存機能保護**: 段階学習・確認問題の動作維持
-
-#### 🎯 将来対応準備
-- 記述問題での写真アップロード機能（手書き回答のAI採点）
-- チャット形式での対話型回答機能
-- より高度なAI採点アルゴリズム
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-### v2.0.0 - 学習ログ・保護者レポートシステム実装 (2025-10-12)
+## 👤 Author
 
-#### ✅ 新機能実装
-**追加機能**: 生徒の学習ログ記録と保護者向け週次レポート自動生成システム
+**Masamichi Suzuki**  
+Founder of KOBEYA Programming School, Bangkok  
+20+ years of education experience | AI Engineer
 
-#### 🗄️ データベース機能
-- **Cloudflare D1データベース導入**: SQLite ベースの分散データベース
-- **3つのテーブル**: logs（学習ログ）、students（生徒マスター）、master_materials（教材マスター）
-- **自動マイグレーション**: 開発・本番環境の自動スキーマ同期
-
-#### 📊 ログ収集システム
-- **数値正規化**: 全角→半角、文字列→数値の自動変換
-- **タグ推定**: 教材マスターデータに基づく弱点タグ自動推定
-- **時間計算**: 学習開始・終了時刻からの自動時間計算
-- **冪等性保証**: request_id による重複防止機能
-
-#### 📈 レポート生成機能
-- **週次サマリ**: セッション数、学習時間、平均点の自動集計
-- **弱点分析**: 頻度TOP3の弱点タグ自動抽出
-- **推奨アクション**: 学習成果に基づく次回アクション提案
-- **保護者通知**: JSON形式での構造化レポート生成
-
-#### 🔐 セキュリティ機能
-- **Webhook Secret認証**: X-Webhook-Secret ヘッダーによる認証
-- **環境変数管理**: WEBHOOK_SECRET、VERSION の設定
-- **API分離**: 認証不要の学習API と認証必要なログAPI の分離
-
-#### 🔧 技術的改善
-- **TypeScript型安全性**: 全APIの型定義強化
-- **エラーハンドリング**: 包括的なエラー処理とログ出力
-- **開発環境最適化**: PM2 + D1 ローカル環境の構築
-- **ユーティリティ関数**: 再利用可能なログ処理関数群
-
-#### 📋 新しいプレースホルダー機能
-- **英検対策（実装予定）**: 英語能力試験対応学習
-- **小論文対策（実装予定）**: 論文・作文指導機能
-- **インター生用（実装予定）**: 国際学校生向けサポート
-
-#### 🧪 テスト・検証
-- **API動作確認**: ヘルスチェック、ログ収集、週次レポート生成
-- **データ正規化検証**: 「練習３問完了」→ tasks_done=3 の自動変換
-- **タグ推定検証**: MATH2A-25ページ → 「二次方程式」「因数分解」「代数」推定
-- **既存機能保護**: 画像解析・AI学習機能の動作維持確認
+- 🌐 Website: [kobeya.com](https://kobeya.com)
+- 📧 Email: info@kobeya-programming.com
+- 📱 LINE: @kobeya
+- 📍 Location: Fuji Supermarket 2nd Branch, 2nd Floor, Bangkok, Thailand
 
 ---
 
-### v1.1.0 - AI段階学習の動的生成機能強化 (2025-01-11)
-- 段階学習: 4-7ステップの動的生成
-- 類似問題: 5-8問の段階的難易度生成
-- AIプロンプト強化と品質保証機能
+## 🙏 Acknowledgments
+
+- OpenAI for GPT-4o and Vision API
+- Cloudflare for Workers and Pages platform
+- The Hono.js team for the lightweight framework
+- All students and parents at KOBEYA Programming School
 
 ---
 
-**Last Updated**: 2025-10-13
-**Version**: 2.1.0
-**Status**: ✅ Mixed Format Similar Problems Implemented & Learning Analytics System Active# ビルドテスト
+Made with ❤️ in Bangkok, Thailand
+
+**Last Updated**: 2026-01-23  
+**Version**: 2.1.0  
+**Status**: ✅ Production Ready
