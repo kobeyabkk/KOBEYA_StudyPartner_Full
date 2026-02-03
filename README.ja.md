@@ -267,6 +267,53 @@ interface StudentInfo {
 - **Command**: `npm run build && npm run dev:sandbox`
 - **Local URL**: http://localhost:3000
 
+### ⚠️ 重要：環境変数の設定
+
+デプロイ前に、以下のシークレットをCloudflare PagesダッシュボードまたはWrangler CLIで設定してください：
+
+```bash
+# 必須のシークレットを設定（ターミナルで実行）
+wrangler secret put OPENAI_API_KEY
+wrangler secret put WEBHOOK_SECRET
+wrangler secret put ADMIN_EMAIL
+```
+
+または**Cloudflare Pagesダッシュボード**から設定：
+1. プロジェクト設定を開く
+2. 「環境変数」に移動
+3. 以下の変数を追加：
+   - `OPENAI_API_KEY`: OpenAI APIキー
+   - `WEBHOOK_SECRET`: Webhook認証用シークレット
+   - `ADMIN_EMAIL`: 管理者メールアドレス
+
+---
+
+## 🔒 セキュリティ
+
+### 環境変数
+
+このプロジェクトには以下の環境変数が必要です：
+
+| 変数名 | 説明 | 必須 |
+|--------|------|------|
+| `OPENAI_API_KEY` | OpenAI API キー (GPT-4o用) | ✅ 必須 |
+| `WEBHOOK_SECRET` | Webhook認証用シークレット | ✅ 必須 |
+| `ADMIN_EMAIL` | 管理者メールアドレス | ✅ 必須 |
+
+**これらの値は絶対にGitにコミットしないでください。** 必ず以下を使用してください：
+- ローカル開発: `.env` ファイル（gitignore済み）
+- 本番環境: Cloudflare Pages環境変数
+- 機密データ: `wrangler secret` コマンド
+
+### セキュリティ問題の報告
+
+セキュリティ脆弱性を発見した場合は、以下にご連絡ください：  
+📧 info@kobeya-programming.com
+
+48時間以内に返信し、問題解決に向けて協力させていただきます。
+
+---
+
 ## 📋 次のステップ
 
 ### 🔄 今後の実装予定

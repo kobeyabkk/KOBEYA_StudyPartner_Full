@@ -13,7 +13,6 @@ binding = "KV"
 id = "4ba8baa37cb94b9fac7e28792bb81a1a"
 
 [vars]
-WEBHOOK_SECRET = "kobeya-dev-secret-2024"
 VERSION = "1.0.0"
 
 # Hybrid Validator Configuration
@@ -26,5 +25,8 @@ ENABLE_SAMPLING = "true"  # Only call LLM for X% of cases during testing
 SAMPLING_RATE = "0.05"  # 5% sampling rate
 CACHE_TTL = "3600000"  # 1 hour cache
 
-# Note: LLM_API_KEY should be set via wrangler secret:
+# Security: Sensitive values should be set via wrangler secret:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put WEBHOOK_SECRET
+# wrangler secret put ADMIN_EMAIL
 # wrangler secret put LLM_API_KEY

@@ -4,6 +4,7 @@ type Bindings = {
   OPENAI_API_KEY: string
   DB: D1Database
   WEBHOOK_SECRET: string
+  ADMIN_EMAIL: string
   VERSION: string
 }
 
@@ -122,7 +123,14 @@ router.post('/request-password-reset', async (c) => {
     }
     
     // Verify email matches registered email
-    const ADMIN_EMAIL = 'kobeyabkk@gmail.com'
+    const ADMIN_EMAIL = c.env?.ADMIN_EMAIL
+    
+    if (!ADMIN_EMAIL) {
+      return c.json({ 
+        success: false, 
+        error: 'Server configuration error: ADMIN_EMAIL not set' 
+      }, 500)
+    }
     
     if (email !== ADMIN_EMAIL) {
       return c.json({ 

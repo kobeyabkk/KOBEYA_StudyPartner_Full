@@ -122,6 +122,27 @@ npm run db:reset
 
 ### Deployment
 
+**⚠️ Important: Set Environment Variables First**
+
+Before deploying, configure the following secrets in Cloudflare Pages dashboard or via Wrangler CLI:
+
+```bash
+# Set required secrets (run these commands in your terminal)
+wrangler secret put OPENAI_API_KEY
+wrangler secret put WEBHOOK_SECRET
+wrangler secret put ADMIN_EMAIL
+```
+
+Alternatively, set them in **Cloudflare Pages Dashboard**:
+1. Go to your project settings
+2. Navigate to "Environment Variables"
+3. Add the following variables:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `WEBHOOK_SECRET`: Secret for webhook authentication
+   - `ADMIN_EMAIL`: Administrator email address
+
+**Deploy Commands:**
+
 ```bash
 # Deploy to production
 npm run deploy:prod
@@ -258,6 +279,31 @@ See [CHANGELOG.md](./CHANGELOG.md) for full history.
 
 ---
 
+## 🔒 Security
+
+### Environment Variables
+
+This project requires the following environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4o | ✅ Yes |
+| `WEBHOOK_SECRET` | Authentication secret for webhooks | ✅ Yes |
+| `ADMIN_EMAIL` | Administrator email address | ✅ Yes |
+
+**Never commit these values to Git.** Always use:
+- `.env` file for local development (gitignored)
+- Cloudflare Pages environment variables for production
+- `wrangler secret` commands for sensitive data
+
+### Reporting Security Issues
+
+If you discover a security vulnerability, please email: info@kobeya-programming.com
+
+We will respond within 48 hours and work with you to resolve the issue promptly.
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -285,7 +331,7 @@ Founder of KOBEYA Programming School, Bangkok
 20+ years of education experience | AI Engineer
 
 - 🌐 Website: [kobeya.com](https://kobeya.com)
-- 📧 Email: info@kobeya-programming.com
+- 📧 Contact: info@kobeya-programming.com
 - 📱 LINE: @kobeya
 - 📍 Location: Fuji Supermarket 2nd Branch, 2nd Floor, Bangkok, Thailand
 
@@ -302,6 +348,6 @@ Founder of KOBEYA Programming School, Bangkok
 
 Made with ❤️ in Bangkok, Thailand
 
-**Last Updated**: 2026-01-23  
+**Last Updated**: 2026-02-03  
 **Version**: 2.1.0  
 **Status**: ✅ Production Ready
