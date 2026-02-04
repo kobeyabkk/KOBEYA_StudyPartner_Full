@@ -13,7 +13,7 @@
         .choice-button {
             transition: all 0.3s ease;
         }
-        .choice-button:hover {
+        .choice-button:hover:not(:disabled) {
             transform: translateX(5px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
@@ -60,6 +60,26 @@
                 transform: translateY(0);
             }
         }
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .progress-step.active {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        .progress-step.completed {
+            background: #10b981;
+            color: white;
+        }
+        .progress-step.pending {
+            background: #e5e7eb;
+            color: #9ca3af;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -96,8 +116,8 @@
                                 <i class="fas fa-book-open text-2xl text-blue-600"></i>
                             </div>
                             <div>
-                                <h1 class="text-2xl font-bold text-gray-800">英検3級 文法問題</h1>
-                                <p class="text-sm text-gray-500">Grammar Fill-in-the-blank</p>
+                                <h1 class="text-2xl font-bold text-gray-800">英検3級 総合問題</h1>
+                                <p class="text-sm text-gray-500">3つの問題形式を体験</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -112,51 +132,33 @@
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                         <p class="text-sm text-yellow-800">
                             <i class="fas fa-info-circle mr-2"></i>
-                            <strong>デモ版:</strong> 固定の問題1問を体験できます。実際のシステムでは、AIが学生のレベルに応じて動的に問題を生成します。
+                            <strong>デモ版:</strong> 英検3級の3つの問題形式（短文語句補充・長文読解・ライティング）を1問ずつ体験できます。
                         </p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="font-semibold mb-4 text-gray-700">進捗</h3>
+                    <div class="flex gap-2" id="progressBar">
+                        <div class="progress-step active">
+                            <i class="fas fa-spell-check text-xl mb-2"></i>
+                            <div class="text-sm">短文語句補充</div>
+                        </div>
+                        <div class="progress-step pending">
+                            <i class="fas fa-book-reader text-xl mb-2"></i>
+                            <div class="text-sm">長文読解</div>
+                        </div>
+                        <div class="progress-step pending">
+                            <i class="fas fa-pen text-xl mb-2"></i>
+                            <div class="text-sm">ライティング</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Question Area -->
                 <div id="questionArea" class="bg-white rounded-xl shadow-lg p-8 mb-6">
-                    <div class="mb-8">
-                        <h2 class="text-lg font-semibold text-gray-700 mb-4">問題</h2>
-                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-                            <p class="text-xl text-gray-800 leading-relaxed">
-                                My sister <span class="inline-block mx-2 px-4 py-1 bg-blue-200 border-2 border-blue-400 rounded">( )</span> to the library every Saturday.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Choices -->
-                    <div class="space-y-4 mb-8">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">選択肢を選んでください</h3>
-                        
-                        <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="A">
-                            <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">A</span>
-                            <span class="text-lg">go</span>
-                        </button>
-                        
-                        <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="B">
-                            <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">B</span>
-                            <span class="text-lg">goes</span>
-                        </button>
-                        
-                        <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="C">
-                            <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">C</span>
-                            <span class="text-lg">going</span>
-                        </button>
-                        
-                        <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="D">
-                            <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">D</span>
-                            <span class="text-lg">went</span>
-                        </button>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
-                        <i class="fas fa-check-circle mr-2"></i>解答する
-                    </button>
+                    <!-- Will be populated by JavaScript -->
                 </div>
 
                 <!-- Result Area (Hidden initially) -->
@@ -164,11 +166,9 @@
                     <div id="resultContent"></div>
                 </div>
 
-                <!-- Try Again Button (Hidden initially) -->
-                <div id="tryAgainArea" class="hidden">
-                    <button id="tryAgainBtn" class="w-full bg-gray-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-700 transition">
-                        <i class="fas fa-redo mr-2"></i>もう一度試す
-                    </button>
+                <!-- Navigation Area -->
+                <div id="navigationArea" class="flex gap-4">
+                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
 
@@ -179,12 +179,31 @@
                         <h2 class="text-xl font-bold text-gray-800">
                             <i class="fas fa-cogs text-blue-600 mr-2"></i>技術解説
                         </h2>
-                        <button id="toggleTechPanel" class="text-gray-500 hover:text-gray-700 lg:hidden">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
                     </div>
 
-                    <!-- Section 1: 問題生成フロー -->
+                    <!-- Section 1: 問題形式 -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-list text-purple-600 mr-2"></i>
+                            3つの問題形式
+                        </h3>
+                        <div class="text-sm text-gray-600 space-y-2">
+                            <div class="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
+                                <strong>1. 短文語句補充</strong>
+                                <p class="text-xs mt-1">文法・語彙の4択問題<br>空所に適切な語句を選択</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                                <strong>2. 長文読解</strong>
+                                <p class="text-xs mt-1">100-150語の文章<br>内容理解の4択問題</p>
+                            </div>
+                            <div class="bg-orange-50 p-3 rounded border-l-4 border-orange-500">
+                                <strong>3. ライティング</strong>
+                                <p class="text-xs mt-1">25-35語の英作文<br>意見とその理由を記述</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: 問題生成フロー -->
                     <div class="mb-6">
                         <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
                             <i class="fas fa-robot text-purple-600 mr-2"></i>
@@ -193,19 +212,19 @@
                         <div class="text-sm text-gray-600 space-y-2">
                             <div class="bg-gray-50 p-3 rounded">
                                 <strong>1. トピック選択</strong>
-                                <p class="text-xs mt-1">61種類のトピックエリアから選択</p>
+                                <p class="text-xs mt-1">61種類から自動選択</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <strong>2. 語彙選定</strong>
-                                <p class="text-xs mt-1">CEFR-J 10,000語データベースから適切な語彙を選択</p>
+                                <p class="text-xs mt-1">CEFR-J 10,000語データベース</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <strong>3. 文章生成</strong>
-                                <p class="text-xs mt-1">GPT-4oで自然な英文を生成</p>
+                                <p class="text-xs mt-1">GPT-4oで自然な英文生成</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <strong>4. 著作権チェック</strong>
-                                <p class="text-xs mt-1">過去問との類似度チェック（閾値: 0.85）</p>
+                                <p class="text-xs mt-1">類似度チェック（閾値: 0.85）</p>
                             </div>
                             <div class="bg-gray-50 p-3 rounded">
                                 <strong>5. 選択肢生成</strong>
@@ -214,7 +233,7 @@
                         </div>
                     </div>
 
-                    <!-- Section 2: データベース -->
+                    <!-- Section 3: データベース -->
                     <div class="mb-6">
                         <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
                             <i class="fas fa-database text-green-600 mr-2"></i>
@@ -234,15 +253,14 @@ eiken_vocabulary_lexicon
   ├─ japanese_meaning
   └─ example_sentence
 
-eiken_topic_areas (61 topics)
+eiken_topic_areas (61)
   ├─ topic_code
   ├─ topic_name_ja
-  ├─ cefr_range
   └─ grade_range</pre>
                         </div>
                     </div>
 
-                    <!-- Section 3: API -->
+                    <!-- Section 4: API -->
                     <div class="mb-6">
                         <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
                             <i class="fas fa-code text-blue-600 mr-2"></i>
@@ -252,7 +270,6 @@ eiken_topic_areas (61 topics)
 <pre>// 問題生成
 POST /api/eiken/questions/generate
 {
-  "student_id": "demo-user",
   "grade": "3",
   "format": "grammar_fill",
   "count": 1
@@ -266,7 +283,7 @@ POST /api/eiken/questions/:id/answer
                         </div>
                     </div>
 
-                    <!-- Section 4: 技術スタック -->
+                    <!-- Section 5: 使用技術 -->
                     <div class="mb-6">
                         <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
                             <i class="fas fa-layer-group text-orange-600 mr-2"></i>
@@ -292,7 +309,7 @@ POST /api/eiken/questions/:id/answer
                         </div>
                     </div>
 
-                    <!-- Section 5: パフォーマンス -->
+                    <!-- Section 6: パフォーマンス -->
                     <div>
                         <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
                             <i class="fas fa-tachometer-alt text-red-600 mr-2"></i>
@@ -301,7 +318,7 @@ POST /api/eiken/questions/:id/answer
                         <div class="grid grid-cols-2 gap-3 text-center">
                             <div class="bg-green-50 p-3 rounded">
                                 <div class="text-2xl font-bold text-green-600">2-3s</div>
-                                <div class="text-xs text-gray-600">問題生成時間</div>
+                                <div class="text-xs text-gray-600">問題生成</div>
                             </div>
                             <div class="bg-blue-50 p-3 rounded">
                                 <div class="text-2xl font-bold text-blue-600">0.85</div>
@@ -323,85 +340,350 @@ POST /api/eiken/questions/:id/answer
     </div>
 
     <script>
-        // Demo data (完全に固定)
-        const DEMO_DATA = {
-            question: "My sister ( ) to the library every Saturday.",
-            choices: [
-                { 
-                    id: 'A', 
-                    text: 'go',
-                    explanation: '主語が "My sister" で三人称単数なので、"go" は不適切です。三人称単数現在形では動詞に "-s" または "-es" をつける必要があります。'
-                },
-                { 
-                    id: 'B', 
-                    text: 'goes',
-                    explanation: '正解！主語 "My sister" は三人称単数で、"every Saturday" は習慣的な行動を表しているため、現在形の三人称単数形 "goes" が正しい形です。'
-                },
-                { 
-                    id: 'C', 
-                    text: 'going',
-                    explanation: '"going" は現在進行形や動名詞で使用される形です。この文では "every Saturday" という習慣的な表現があるため、進行形ではなく現在形を使います。'
-                },
-                { 
-                    id: 'D', 
-                    text: 'went',
-                    explanation: '"went" は "go" の過去形です。"every Saturday"（毎週土曜日）という表現は習慣的な行動を示しており、過去の一度きりの行動ではないため、過去形は不適切です。'
-                }
-            ],
-            correctAnswer: 'B',
-            topic: 'daily-life',
-            grammarPoint: '三人称単数現在形',
-            cefr: 'A2'
-        };
+        // Demo data - 3つの問題形式
+        const DEMO_QUESTIONS = [
+            // Question 1: 短文語句補充
+            {
+                type: 'grammar_fill',
+                title: '短文の語句補充',
+                question: "My sister ( ) to the library every Saturday.",
+                choices: [
+                    { 
+                        id: 'A', 
+                        text: 'go',
+                        explanation: '主語が "My sister" で三人称単数なので、"go" は不適切です。三人称単数現在形では動詞に "-s" または "-es" をつける必要があります。'
+                    },
+                    { 
+                        id: 'B', 
+                        text: 'goes',
+                        explanation: '正解！主語 "My sister" は三人称単数で、"every Saturday" は習慣的な行動を表しているため、現在形の三人称単数形 "goes" が正しい形です。'
+                    },
+                    { 
+                        id: 'C', 
+                        text: 'going',
+                        explanation: '"going" は現在進行形や動名詞で使用される形です。この文では "every Saturday" という習慣的な表現があるため、進行形ではなく現在形を使います。'
+                    },
+                    { 
+                        id: 'D', 
+                        text: 'went',
+                        explanation: '"went" は "go" の過去形です。"every Saturday"（毎週土曜日）という表現は習慣的な行動を示しており、過去の一度きりの行動ではないため、過去形は不適切です。'
+                    }
+                ],
+                correctAnswer: 'B',
+                grammarPoint: '三人称単数現在形',
+                cefr: 'A2'
+            },
+            // Question 2: 長文読解
+            {
+                type: 'reading',
+                title: '長文の内容一致選択',
+                passage: `Sarah loves cooking. Every weekend, she makes a special dinner for her family. Last Sunday, she decided to try a new recipe for chocolate cake. She looked for the recipe online and found an easy one. It only needed five ingredients: flour, sugar, eggs, butter, and chocolate.
 
+Sarah went to the supermarket to buy everything. When she came home, she started baking. Her little brother Tom helped her mix the ingredients. It took them about one hour to finish. The cake looked delicious!
+
+At dinner time, Sarah's family tried the cake. Everyone said it was the best cake they had ever eaten. Sarah was very happy and proud of herself. She decided to make more cakes in the future.`,
+                question: "What did Sarah do last Sunday?",
+                choices: [
+                    {
+                        id: 'A',
+                        text: 'She went shopping with her brother.',
+                        explanation: 'Sarahは弟と一緒に買い物に行ったわけではありません。彼女は一人でスーパーに行き、その後、弟と一緒にケーキを作りました。'
+                    },
+                    {
+                        id: 'B',
+                        text: 'She looked for a cake recipe and made a cake.',
+                        explanation: '正解！文章には "she decided to try a new recipe for chocolate cake" と "She looked for the recipe online" とあり、その後ケーキを作ったことが書かれています。'
+                    },
+                    {
+                        id: 'C',
+                        text: 'She bought five different kinds of chocolate.',
+                        explanation: 'Sarahが買ったのは5種類のチョコレートではなく、5つの材料（flour, sugar, eggs, butter, chocolate）です。'
+                    },
+                    {
+                        id: 'D',
+                        text: 'She ate the best cake at a restaurant.',
+                        explanation: 'Sarahはレストランでケーキを食べたのではなく、自分で作ったケーキを家族と一緒に食べました。'
+                    }
+                ],
+                correctAnswer: 'B',
+                readingSkill: '要旨把握',
+                cefr: 'A2'
+            },
+            // Question 3: ライティング
+            {
+                type: 'writing',
+                title: 'ライティング',
+                question: `以下のQUESTIONについて、あなたの考えとその理由を2つ、英文で書きなさい。
+
+QUESTION:
+What is your favorite season?
+
+【条件】
+• 語数の目安は25語～35語です
+• 自分の意見とその理由を2つ書いてください
+• 理由は because や so などを使って説明してください`,
+                placeholder: 'My favorite season is...',
+                sampleAnswer: `My favorite season is spring. I like it for two reasons. First, the weather is warm and comfortable. Second, I can see beautiful cherry blossoms in the park. (30 words)`,
+                evaluation: {
+                    content: '内容: 自分の好きな季節とその理由が2つ明確に述べられています。',
+                    structure: '構成: 意見→理由1→理由2の流れが論理的です。',
+                    vocabulary: '語彙: 適切な語彙が使用されています（comfortable, beautiful, cherry blossoms）。',
+                    grammar: '文法: 文法的に正確で、接続詞（for two reasons, First, Second）を効果的に使用しています。',
+                    wordCount: '語数: 30語で適切な長さです。'
+                },
+                cefr: 'A2'
+            }
+        ];
+
+        let currentQuestion = 0;
         let selectedChoice = null;
+        let userAnswer = '';
 
-        // Choice button click handlers
-        document.querySelectorAll('.choice-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove selected class from all buttons
-                document.querySelectorAll('.choice-button').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
-                
-                // Add selected class to clicked button
-                this.classList.add('selected');
-                selectedChoice = this.dataset.choice;
-                
-                // Enable submit button
-                document.getElementById('submitBtn').disabled = false;
+        // Initialize
+        function init() {
+            renderQuestion();
+        }
+
+        // Update progress bar
+        function updateProgressBar() {
+            const steps = document.querySelectorAll('.progress-step');
+            steps.forEach((step, index) => {
+                step.classList.remove('active', 'completed', 'pending');
+                if (index < currentQuestion) {
+                    step.classList.add('completed');
+                } else if (index === currentQuestion) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.add('pending');
+                }
             });
-        });
+        }
 
-        // Submit button handler
-        document.getElementById('submitBtn').addEventListener('click', function() {
-            if (!selectedChoice) return;
+        // Render current question
+        function renderQuestion() {
+            updateProgressBar();
+            const question = DEMO_QUESTIONS[currentQuestion];
+            const questionArea = document.getElementById('questionArea');
             
-            const isCorrect = selectedChoice === DEMO_DATA.correctAnswer;
-            const choiceData = DEMO_DATA.choices.find(c => c.id === selectedChoice);
+            let html = `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800">${question.title}</h2>
+                        <span class="text-sm text-gray-500">問題 ${currentQuestion + 1} / 3</span>
+                    </div>
+            `;
             
-            // Disable all choice buttons
+            if (question.type === 'grammar_fill') {
+                html += `
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+                        <p class="text-xl text-gray-800 leading-relaxed">
+                            ${question.question.replace('( )', '<span class="inline-block mx-2 px-4 py-1 bg-blue-200 border-2 border-blue-400 rounded">( )</span>')}
+                        </p>
+                    </div>
+                    <div class="space-y-4 mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">選択肢を選んでください</h3>
+                        ${question.choices.map(choice => `
+                            <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="${choice.id}">
+                                <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">${choice.id}</span>
+                                <span class="text-lg">${choice.text}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <button id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-check-circle mr-2"></i>解答する
+                    </button>
+                `;
+            } else if (question.type === 'reading') {
+                html += `
+                    <div class="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800">
+                            <i class="fas fa-book-open text-green-600 mr-2"></i>本文
+                        </h3>
+                        <div class="text-gray-700 leading-relaxed space-y-3">
+                            ${question.passage.split('\n\n').map(p => `<p>${p}</p>`).join('')}
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-800">Question: ${question.question}</h3>
+                        <div class="space-y-4">
+                            ${question.choices.map(choice => `
+                                <button class="choice-button w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500" data-choice="${choice.id}">
+                                    <span class="inline-block w-8 h-8 bg-gray-200 rounded-full text-center leading-8 font-bold mr-3">${choice.id}</span>
+                                    <span class="text-base">${choice.text}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-check-circle mr-2"></i>解答する
+                    </button>
+                `;
+            } else if (question.type === 'writing') {
+                html += `
+                    <div class="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 mb-6">
+                        <div class="text-gray-700 leading-relaxed whitespace-pre-line">${question.question}</div>
+                    </div>
+                    <div class="mb-4">
+                        <textarea 
+                            id="writingInput"
+                            class="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                            rows="6"
+                            placeholder="${question.placeholder}"
+                        ></textarea>
+                        <div class="flex justify-between mt-2 text-sm text-gray-500">
+                            <span id="wordCount">0 words</span>
+                            <span>目安: 25-35 words</span>
+                        </div>
+                    </div>
+                    <button id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-check-circle mr-2"></i>解答する
+                    </button>
+                `;
+            }
+            
+            html += `</div>`;
+            questionArea.innerHTML = html;
+            
+            // Setup event listeners
+            if (question.type === 'writing') {
+                const textarea = document.getElementById('writingInput');
+                const wordCount = document.getElementById('wordCount');
+                textarea.addEventListener('input', function() {
+                    const words = this.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+                    wordCount.textContent = `${words} words`;
+                    userAnswer = this.value;
+                });
+            } else {
+                document.querySelectorAll('.choice-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.choice-button').forEach(btn => {
+                            btn.classList.remove('selected');
+                        });
+                        this.classList.add('selected');
+                        selectedChoice = this.dataset.choice;
+                        document.getElementById('submitBtn').disabled = false;
+                    });
+                });
+            }
+            
+            document.getElementById('submitBtn').addEventListener('click', submitAnswer);
+            
+            // Hide result and navigation
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('navigationArea').innerHTML = '';
+        }
+
+        // Submit answer
+        function submitAnswer() {
+            const question = DEMO_QUESTIONS[currentQuestion];
+            
+            if (question.type === 'writing') {
+                showWritingResult();
+            } else {
+                showMultipleChoiceResult();
+            }
+        }
+
+        // Show multiple choice result
+        function showMultipleChoiceResult() {
+            const question = DEMO_QUESTIONS[currentQuestion];
+            const isCorrect = selectedChoice === question.correctAnswer;
+            const choiceData = question.choices.find(c => c.id === selectedChoice);
+            
+            // Disable all choice buttons and highlight
             document.querySelectorAll('.choice-button').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.remove('hover:border-blue-500');
                 
-                // Highlight correct/incorrect
-                if (btn.dataset.choice === DEMO_DATA.correctAnswer) {
+                if (btn.dataset.choice === question.correctAnswer) {
                     btn.classList.add('correct');
                 } else if (btn.dataset.choice === selectedChoice && !isCorrect) {
                     btn.classList.add('incorrect');
                 }
             });
             
-            // Hide submit button
-            this.style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
             
-            // Show result
-            showResult(isCorrect, choiceData);
-        });
+            showResult(isCorrect, choiceData, question);
+        }
 
-        // Show result function
-        function showResult(isCorrect, choiceData) {
+        // Show writing result
+        function showWritingResult() {
+            const question = DEMO_QUESTIONS[currentQuestion];
+            
+            const resultArea = document.getElementById('resultArea');
+            const resultContent = document.getElementById('resultContent');
+            
+            let html = `
+                <div class="text-center mb-6">
+                    <div class="inline-block bg-blue-100 p-4 rounded-full mb-4">
+                        <i class="fas fa-pencil-alt text-6xl text-blue-600"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-blue-600 mb-2">解答ありがとうございます！</h2>
+                    <p class="text-gray-600">ライティング問題の評価を見てみましょう。</p>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>注意:</strong> 本番環境では、AIがあなたの解答を個別に添削し、詳細なフィードバックを提供します。このデモでは模範解答例と評価ポイントを表示しています。
+                    </p>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                    <h3 class="font-bold text-lg mb-2 text-gray-800">あなたの解答:</h3>
+                    <p class="text-gray-700 italic">${userAnswer || '（解答が入力されていません）'}</p>
+                </div>
+                
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+                    <h3 class="font-bold text-lg mb-2 text-gray-800">模範解答例:</h3>
+                    <p class="text-gray-700 italic">${question.sampleAnswer}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold text-lg mb-4 text-gray-800">評価ポイント</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-50 border-l-4 border-blue-500 p-3 rounded-r">
+                            <p class="text-sm text-gray-700">${question.evaluation.content}</p>
+                        </div>
+                        <div class="bg-gray-50 border-l-4 border-purple-500 p-3 rounded-r">
+                            <p class="text-sm text-gray-700">${question.evaluation.structure}</p>
+                        </div>
+                        <div class="bg-gray-50 border-l-4 border-green-500 p-3 rounded-r">
+                            <p class="text-sm text-gray-700">${question.evaluation.vocabulary}</p>
+                        </div>
+                        <div class="bg-gray-50 border-l-4 border-orange-500 p-3 rounded-r">
+                            <p class="text-sm text-gray-700">${question.evaluation.grammar}</p>
+                        </div>
+                        <div class="bg-gray-50 border-l-4 border-red-500 p-3 rounded-r">
+                            <p class="text-sm text-gray-700">${question.evaluation.wordCount}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                    <h3 class="font-bold mb-2 text-gray-800">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>ライティングのコツ
+                    </h3>
+                    <ul class="text-sm text-gray-700 space-y-1">
+                        <li>• 意見を明確に述べる（I think... / My favorite... is...）</li>
+                        <li>• 理由を2つ書く（First, ... Second, ...）</li>
+                        <li>• because や so などで理由を説明する</li>
+                        <li>• 語数に注意する（25-35語が目安）</li>
+                        <li>• 簡単な単語で正確に書く</li>
+                    </ul>
+                </div>
+            `;
+            
+            resultContent.innerHTML = html;
+            resultArea.classList.remove('hidden');
+            
+            renderNavigation();
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Show result for multiple choice
+        function showResult(isCorrect, choiceData, question) {
             const resultArea = document.getElementById('resultArea');
             const resultContent = document.getElementById('resultContent');
             
@@ -424,28 +706,24 @@ POST /api/eiken/questions/:id/answer
                             <i class="fas fa-times-circle text-6xl text-red-600"></i>
                         </div>
                         <h2 class="text-3xl font-bold text-red-600 mb-2">不正解です</h2>
-                        <p class="text-gray-600">正解は <strong>${DEMO_DATA.correctAnswer}. ${DEMO_DATA.choices.find(c => c.id === DEMO_DATA.correctAnswer).text}</strong> でした。</p>
+                        <p class="text-gray-600">正解は <strong>${question.correctAnswer}. ${question.choices.find(c => c.id === question.correctAnswer).text}</strong> でした。</p>
                     </div>
                 `;
             }
             
-            // 選択した解答の解説
             resultHTML += `
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
                     <h3 class="font-bold text-lg mb-2 text-gray-800">あなたの選択: ${selectedChoice}. ${choiceData.text}</h3>
                     <p class="text-gray-700">${choiceData.explanation}</p>
                 </div>
-            `;
-            
-            // 全選択肢の解説
-            resultHTML += `
+                
                 <div class="mb-6">
                     <h3 class="font-bold text-lg mb-4 text-gray-800">各選択肢の解説</h3>
                     <div class="space-y-4">
             `;
             
-            DEMO_DATA.choices.forEach(choice => {
-                const isThisCorrect = choice.id === DEMO_DATA.correctAnswer;
+            question.choices.forEach(choice => {
+                const isThisCorrect = choice.id === question.correctAnswer;
                 const borderColor = isThisCorrect ? 'border-green-500' : 'border-gray-300';
                 const bgColor = isThisCorrect ? 'bg-green-50' : 'bg-gray-50';
                 const icon = isThisCorrect ? '<i class="fas fa-check-circle text-green-600 mr-2"></i>' : '';
@@ -466,31 +744,152 @@ POST /api/eiken/questions/:id/answer
                 </div>
             `;
             
-            // 文法ポイント
-            resultHTML += `
-                <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
-                    <h3 class="font-bold text-lg mb-2 text-gray-800">
-                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>文法ポイント
-                    </h3>
-                    <p class="text-gray-700 mb-2"><strong>${DEMO_DATA.grammarPoint}</strong></p>
-                    <p class="text-sm text-gray-600">
-                        三人称単数現在形では、主語が he, she, it や単数名詞の場合、動詞に "-s" または "-es" をつけます。
-                        "every Saturday" のような習慣を表す表現と一緒によく使われます。
-                    </p>
-                </div>
-            `;
+            if (question.grammarPoint) {
+                resultHTML += `
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
+                        <h3 class="font-bold text-lg mb-2 text-gray-800">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>${question.grammarPoint}
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            三人称単数現在形では、主語が he, she, it や単数名詞の場合、動詞に "-s" または "-es" をつけます。
+                            "every Saturday" のような習慣を表す表現と一緒によく使われます。
+                        </p>
+                    </div>
+                `;
+            } else if (question.readingSkill) {
+                resultHTML += `
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
+                        <h3 class="font-bold text-lg mb-2 text-gray-800">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>読解スキル: ${question.readingSkill}
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            長文読解では、本文の要旨を正確に把握することが重要です。
+                            各段落の主要な情報に注目し、質問に関連する部分を探しましょう。
+                        </p>
+                    </div>
+                `;
+            }
             
             resultContent.innerHTML = resultHTML;
             resultArea.classList.remove('hidden');
             
-            // Show try again button
-            document.getElementById('tryAgainArea').classList.remove('hidden');
+            renderNavigation();
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Try again button
-        document.getElementById('tryAgainBtn').addEventListener('click', function() {
-            location.reload();
-        });
+        // Render navigation
+        function renderNavigation() {
+            const navigationArea = document.getElementById('navigationArea');
+            let html = '';
+            
+            if (currentQuestion < DEMO_QUESTIONS.length - 1) {
+                html += `
+                    <button onclick="nextQuestion()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">
+                        次の問題へ
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                `;
+            } else {
+                html += `
+                    <button onclick="showSummary()" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition">
+                        まとめを見る
+                        <i class="fas fa-flag-checkered ml-2"></i>
+                    </button>
+                `;
+            }
+            
+            navigationArea.innerHTML = html;
+        }
+
+        // Next question
+        function nextQuestion() {
+            if (currentQuestion < DEMO_QUESTIONS.length - 1) {
+                currentQuestion++;
+                selectedChoice = null;
+                userAnswer = '';
+                renderQuestion();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Show summary
+        function showSummary() {
+            const questionArea = document.getElementById('questionArea');
+            questionArea.innerHTML = `
+                <div class="text-center mb-8">
+                    <div class="inline-block bg-green-100 p-6 rounded-full mb-4">
+                        <i class="fas fa-trophy text-8xl text-green-600"></i>
+                    </div>
+                    <h2 class="text-4xl font-bold text-green-600 mb-4">お疲れ様でした！</h2>
+                    <p class="text-xl text-gray-600">英検3級の3つの問題形式を体験しました</p>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-blue-50 p-6 rounded-lg text-center">
+                        <i class="fas fa-spell-check text-4xl text-blue-600 mb-3"></i>
+                        <h3 class="font-bold text-lg mb-2">短文語句補充</h3>
+                        <p class="text-sm text-gray-600">文法・語彙の基礎力</p>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg text-center">
+                        <i class="fas fa-book-reader text-4xl text-green-600 mb-3"></i>
+                        <h3 class="font-bold text-lg mb-2">長文読解</h3>
+                        <p class="text-sm text-gray-600">内容理解力</p>
+                    </div>
+                    <div class="bg-orange-50 p-6 rounded-lg text-center">
+                        <i class="fas fa-pen text-4xl text-orange-600 mb-3"></i>
+                        <h3 class="font-bold text-lg mb-2">ライティング</h3>
+                        <p class="text-sm text-gray-600">英作文力</p>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+                    <h3 class="font-bold text-xl mb-4 text-gray-800">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        本番システムの特徴
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-700">
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>AIが学生のレベルに応じて問題を動的生成</span>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>CEFR-J 10,000語の語彙データベース</span>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>61のトピックエリアから自動選択</span>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>著作権チェックで過去問と重複なし</span>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>詳細な解説で理解を深める</span>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span>学習履歴を記録して進捗管理</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="location.reload()" class="bg-purple-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition">
+                        <i class="fas fa-redo mr-2"></i>もう一度試す
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('navigationArea').innerHTML = '';
+            updateProgressBar();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
