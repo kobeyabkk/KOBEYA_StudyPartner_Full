@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小論文コーチングデモ - KOBEYA Study Partner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .step-dot.completed {
+            background: #10b981;
+            color: white;
+        }
+        .step-dot.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+        .step-dot.pending {
+            background: #e5e7eb;
+            color: #9ca3af;
+        }
+        .step-line {
+            flex: 1;
+            height: 4px;
+            background: #e5e7eb;
+            margin: 0 0.5rem;
+        }
+        .step-line.completed {
+            background: #10b981;
+        }
+        .tech-panel {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        textarea {
+            resize: vertical;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-green-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="/demo/index.html" class="hover:opacity-80">
+                        <i class="fas fa-arrow-left mr-2"></i>デモトップに戻る
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="/demo/eiken.html" class="hover:opacity-80">英検デモ</a>
+                    <a href="/demo/essay.html" class="font-semibold border-b-2 border-white">小論文デモ</a>
+                    <a href="https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full" target="_blank" class="hover:opacity-80">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Left: Demo Area (2/3) -->
+            <div class="lg:col-span-2">
+                <!-- Title & Info -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <i class="fas fa-pen-fancy text-2xl text-green-600"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-800">小論文コーチング - 段階的学習</h1>
+                            <p class="text-sm text-gray-500">Step-by-step Essay Writing Guidance</p>
+                        </div>
+                    </div>
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>デモ版:</strong> 7ステップ全てを体験できます。各ステップで入力した内容に関わらず、固定のフィードバックが表示されます。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="font-semibold mb-4 text-gray-700">学習進捗</h3>
+                    <div class="flex items-center justify-between" id="progressBar">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Theme Display -->
+                <div id="themeArea" class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                        <i class="fas fa-book-open text-green-600 mr-2"></i>お題
+                    </h2>
+                    <div class="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+                        <h3 class="text-2xl font-bold mb-3 text-gray-800">あなたの好きな季節について</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            四季の中で、あなたが最も好きな季節はどれですか？<br>
+                            その季節が好きな理由を、具体的な例を挙げて説明してください。<br>
+                            （300〜400字程度）
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step Content Area -->
+                <div id="stepArea" class="bg-white rounded-xl shadow-lg p-8 mb-6 fade-in">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <!-- Feedback Area -->
+                <div id="feedbackArea" class="hidden bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-lg p-8 mb-6 fade-in">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                        <i class="fas fa-robot text-blue-600 mr-3"></i>
+                        AIフィードバック
+                    </h3>
+                    <div id="feedbackContent" class="text-gray-700"></div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div id="navigationArea" class="flex gap-4">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Right: Technical Explanation (1/3) -->
+            <div class="lg:col-span-1">
+                <div class="tech-panel bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-cogs text-green-600 mr-2"></i>技術解説
+                    </h2>
+
+                    <!-- 段階的学習システム -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-stairs text-purple-600 mr-2"></i>
+                            段階的学習システム
+                        </h3>
+                        <div class="text-sm text-gray-600 space-y-2">
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 1: 読解確認</strong>
+                                <p class="text-xs mt-1">お題の理解度をチェック</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 2: 構成計画</strong>
+                                <p class="text-xs mt-1">アウトライン作成支援</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 3: 語彙確認</strong>
+                                <p class="text-xs mt-1">必要な語彙リスト提示</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 4-5: 執筆</strong>
+                                <p class="text-xs mt-1">段落ごとの執筆支援</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 6: 推敲</strong>
+                                <p class="text-xs mt-1">文章の見直し</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <strong>Step 7: 完成</strong>
+                                <p class="text-xs mt-1">最終チェックと提出</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 画像解析機能 -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-camera text-blue-600 mr-2"></i>
+                            画像解析機能
+                        </h3>
+                        <div class="text-sm text-gray-600">
+                            <p class="mb-2">GPT-4o Visionによる高精度画像解析：</p>
+                            <ul class="space-y-1 text-xs">
+                                <li><i class="fas fa-check text-green-600 mr-2"></i>ノートや教科書の写真から問題抽出</li>
+                                <li><i class="fas fa-check text-green-600 mr-2"></i>手書き文字のOCR（日本語対応）</li>
+                                <li><i class="fas fa-check text-green-600 mr-2"></i>問題タイプの自動判別</li>
+                                <li><i class="fas fa-check text-green-600 mr-2"></i>精度: 日本語OCR 95%以上</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- AIフィードバック生成 -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-comments text-orange-600 mr-2"></i>
+                            AIフィードバック
+                        </h3>
+                        <div class="code-block text-xs">
+<pre>// 評価の観点
+{
+  content: "内容の妥当性",
+  grammar: "文法の正確性",
+  vocabulary: "語彙の適切性",
+  structure: "構成の明確性",
+  motivation: "ポジティブな声かけ"
+}
+
+// 平均応答時間: 2-3秒
+// モデル: GPT-4o (温度: 0.7)</pre>
+                        </div>
+                    </div>
+
+                    <!-- データベース構造 -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-database text-green-600 mr-2"></i>
+                            セッション管理
+                        </h3>
+                        <div class="code-block text-xs">
+<pre>// essay_sessions テーブル
+{
+  session_id: "uuid",
+  student_id: "user-123",
+  theme_title: "好きな季節",
+  current_step: 3,
+  steps_data: [...],
+  completed: false,
+  created_at: "2026-02-04"
+}</pre>
+                        </div>
+                    </div>
+
+                    <!-- 使用技術 -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-layer-group text-purple-600 mr-2"></i>
+                            使用技術
+                        </h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <span>GPT-4o Vision</span>
+                                <span class="text-xs text-gray-500">画像解析</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <span>GPT-4o</span>
+                                <span class="text-xs text-gray-500">FB生成</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <span>Cloudflare D1</span>
+                                <span class="text-xs text-gray-500">セッション</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <span>Hono.js</span>
+                                <span class="text-xs text-gray-500">Backend</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- パフォーマンス指標 -->
+                    <div>
+                        <h3 class="font-bold text-lg mb-3 text-gray-800 flex items-center">
+                            <i class="fas fa-chart-line text-red-600 mr-2"></i>
+                            パフォーマンス
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 text-center">
+                            <div class="bg-blue-50 p-3 rounded">
+                                <div class="text-2xl font-bold text-blue-600">2-3s</div>
+                                <div class="text-xs text-gray-600">FB応答時間</div>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded">
+                                <div class="text-2xl font-bold text-green-600">95%</div>
+                                <div class="text-xs text-gray-600">OCR精度</div>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded">
+                                <div class="text-2xl font-bold text-purple-600">4-7</div>
+                                <div class="text-xs text-gray-600">動的ステップ</div>
+                            </div>
+                            <div class="bg-orange-50 p-3 rounded">
+                                <div class="text-2xl font-bold text-orange-600">100%</div>
+                                <div class="text-xs text-gray-600">セッション復元</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo data - 7 steps with fixed feedback
+        const DEMO_STEPS = [
+            {
+                stepNumber: 1,
+                type: 'comprehension',
+                title: 'ステップ1: 読解確認',
+                question: 'このお題では何について書くことが求められていますか？',
+                placeholder: 'お題の内容を自分の言葉で説明してください...',
+                feedback: '✅ 正しく理解できています！\n\n好きな季節とその理由について、具体的な例を挙げて説明することが求められています。\n\n重要なポイント：\n• 四季の中から1つ選ぶ\n• なぜその季節が好きか理由を述べる\n• 具体的な例を挙げる\n• 300〜400字程度でまとめる\n\nこの理解をもとに、次のステップで構成を考えていきましょう！'
+            },
+            {
+                stepNumber: 2,
+                type: 'planning',
+                title: 'ステップ2: 構成計画',
+                question: 'どのような順序で書きますか？簡単なアウトラインを作成してください。',
+                placeholder: '例）\n導入：好きな季節を述べる\n本文1：理由その1\n本文2：理由その2\n結論：まとめ',
+                feedback: '📝 良い構成です！\n\n提案する構成：\n\n【導入】（50字）\n私が最も好きな季節は〇〇です。\n\n【本文1】（100字）\n第一の理由：〇〇だから\n具体例：〇〇の時に〇〇を感じる\n\n【本文2】（100字）\n第二の理由：〇〇だから\n具体例：〇〇することができる\n\n【結論】（50字）\nこれらの理由から、〇〇が最も好きです。\n\nこの構成に沿って書いていくと、バランスの良い小論文になります！'
+            },
+            {
+                stepNumber: 3,
+                type: 'vocabulary',
+                title: 'ステップ3: 語彙確認',
+                question: '使いたい語彙や表現をリストアップしてください。',
+                placeholder: '季節に関する言葉、感情を表す言葉など...',
+                feedback: '📚 役立つ語彙リスト\n\n【季節を表す語彙】\n• 春：桜、新緑、暖かい、出会い\n• 夏：海、太陽、活気、爽やか\n• 秋：紅葉、実り、涼しい、食欲\n• 冬：雪、静寂、温かい飲み物、イルミネーション\n\n【感情を表す表現】\n• 心が躍る、リラックスできる\n• 生き生きとする、落ち着く\n• ワクワクする、心地よい\n\n【接続詞】\n• なぜなら、そのため、また、さらに\n• 例えば、特に、このように\n\nこれらの語彙を使って、より豊かな表現を目指しましょう！'
+            },
+            {
+                stepNumber: 4,
+                type: 'writing',
+                title: 'ステップ4: 導入と理由1を書く',
+                question: '導入部分と第一の理由を書いてください。（150字程度）',
+                placeholder: '私が最も好きな季節は...で始めましょう',
+                feedback: '✨ 素晴らしいスタートです！\n\n【良い点】\n• 好きな季節が明確に示されています\n• 第一の理由が具体的です\n• 読者の興味を引く書き出しになっています\n\n【アドバイス】\n• もう少し具体的な描写を加えると、より読者に伝わりやすくなります\n• 「なぜなら〜」などの接続詞を使うと、理由がより明確になります\n\n例：「なぜなら、〇〇の季節には〇〇を感じることができるからです」\n\n次のステップで、第二の理由も同じように書いていきましょう！'
+            },
+            {
+                stepNumber: 5,
+                type: 'writing',
+                title: 'ステップ5: 理由2を書く',
+                question: '第二の理由を書いてください。（100字程度）',
+                placeholder: 'また、〇〇も理由の一つです...',
+                feedback: '👍 説得力のある理由が追加されました！\n\n【良い点】\n• 第一の理由とは異なる視点から説明できています\n• 具体的な例が挙げられています\n• 論理的なつながりがあります\n\n【さらに良くするには】\n• 第一の理由との関連性を意識すると、より一貫性が生まれます\n• 「さらに」「加えて」などの接続詞で、理由を追加していることを明示しましょう\n\n現在の文字数：約250字\nあと50〜150字で結論をまとめましょう！'
+            },
+            {
+                stepNumber: 6,
+                type: 'revision',
+                title: 'ステップ6: 結論を書き、全体を推敲する',
+                question: '結論を書き、全体の文章を見直してください。',
+                placeholder: 'これらの理由から、私は〇〇が最も好きです...',
+                feedback: '🎯 完成度が高まっています！\n\n【チェックポイント】\n✅ 導入で季節を明示\n✅ 理由1が具体的\n✅ 理由2が明確\n✅ 結論で全体をまとめている\n\n【推敲のポイント】\n1. 同じ言葉の繰り返しがないか\n2. 文末表現が「〜です」「〜ます」ばかりになっていないか\n3. 接続詞は適切か\n4. 誤字脱字はないか\n5. 文字数は適切か（300〜400字）\n\n修正が必要な箇所があれば直して、完成させましょう！'
+            },
+            {
+                stepNumber: 7,
+                type: 'completion',
+                title: 'ステップ7: 完成！',
+                question: '最終確認をして、完成させてください。',
+                placeholder: '全体を通して読み直し、最終調整をしましょう...',
+                feedback: '🎉 おめでとうございます！小論文が完成しました！\n\n【総合評価】\n\n📊 構成力: ⭐⭐⭐⭐⭐\n導入→理由1→理由2→結論の流れが明確で、読みやすい構成です。\n\n📝 表現力: ⭐⭐⭐⭐⭐\n具体的な例を挙げ、感情が伝わる表現ができています。\n\n📚 語彙力: ⭐⭐⭐⭐⭐\n季節に関する語彙を適切に使用し、豊かな表現になっています。\n\n【学習のポイント】\nこのデモでは7つのステップを通じて、段階的に小論文を完成させる流れを体験しました。\n\n実際のシステムでは：\n• 問題の複雑さに応じて4-7ステップを動的生成\n• 各ステップでAIがあなたの解答を分析\n• 個別最適化されたフィードバックを提供\n• セッション管理で途中から再開可能\n\n素晴らしい学習でした！'
+            }
+        ];
+
+        let currentStep = 0;
+        const totalSteps = DEMO_STEPS.length;
+        const userAnswers = [];
+
+        // Initialize
+        function init() {
+            renderProgressBar();
+            renderStep();
+        }
+
+        // Render progress bar
+        function renderProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            let html = '';
+            
+            for (let i = 0; i < totalSteps; i++) {
+                const status = i < currentStep ? 'completed' : i === currentStep ? 'active' : 'pending';
+                
+                html += `
+                    <div class="flex items-center ${i === totalSteps - 1 ? '' : 'flex-1'}">
+                        <div class="step-dot ${status}">
+                            ${i < currentStep ? '<i class="fas fa-check"></i>' : i + 1}
+                        </div>
+                        ${i < totalSteps - 1 ? `<div class="step-line ${i < currentStep ? 'completed' : ''}"></div>` : ''}
+                    </div>
+                `;
+            }
+            
+            progressBar.innerHTML = html;
+        }
+
+        // Render current step
+        function renderStep() {
+            const step = DEMO_STEPS[currentStep];
+            const stepArea = document.getElementById('stepArea');
+            
+            let html = `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800">${step.title}</h2>
+                        <span class="text-sm text-gray-500">ステップ ${step.stepNumber} / ${totalSteps}</span>
+                    </div>
+                    <p class="text-gray-700 mb-6">${step.question}</p>
+                    <textarea 
+                        id="answerInput"
+                        class="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        rows="8"
+                        placeholder="${step.placeholder}"
+                    >${userAnswers[currentStep] || ''}</textarea>
+                    <div class="mt-2 text-sm text-gray-500 text-right">
+                        <span id="charCount">0</span> 文字
+                    </div>
+                </div>
+            `;
+            
+            stepArea.innerHTML = html;
+            
+            // Character count
+            const textarea = document.getElementById('answerInput');
+            const charCount = document.getElementById('charCount');
+            
+            textarea.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+            
+            // Initial count
+            charCount.textContent = textarea.value.length;
+            
+            // Render navigation
+            renderNavigation();
+            
+            // Hide feedback initially
+            document.getElementById('feedbackArea').classList.add('hidden');
+        }
+
+        // Render navigation buttons
+        function renderNavigation() {
+            const navigationArea = document.getElementById('navigationArea');
+            let html = '';
+            
+            // Back button (except first step)
+            if (currentStep > 0) {
+                html += `
+                    <button onclick="goToPreviousStep()" class="flex-1 bg-gray-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-600 transition">
+                        <i class="fas fa-arrow-left mr-2"></i>前のステップ
+                    </button>
+                `;
+            }
+            
+            // Submit/Next button
+            if (currentStep < totalSteps - 1) {
+                html += `
+                    <button onclick="submitStep()" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition">
+                        フィードバックを見る
+                        <i class="fas fa-paper-plane ml-2"></i>
+                    </button>
+                `;
+            } else {
+                html += `
+                    <button onclick="submitStep()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">
+                        完成！
+                        <i class="fas fa-check-circle ml-2"></i>
+                    </button>
+                `;
+            }
+            
+            navigationArea.innerHTML = html;
+        }
+
+        // Submit current step
+        function submitStep() {
+            const answer = document.getElementById('answerInput').value;
+            
+            // Save answer
+            userAnswers[currentStep] = answer;
+            
+            // Show feedback
+            const step = DEMO_STEPS[currentStep];
+            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackContent = document.getElementById('feedbackContent');
+            
+            feedbackContent.innerHTML = `<p class="whitespace-pre-line">${step.feedback}</p>`;
+            feedbackArea.classList.remove('hidden');
+            
+            // Update navigation to show "Next Step" button
+            const navigationArea = document.getElementById('navigationArea');
+            let html = '';
+            
+            if (currentStep > 0) {
+                html += `
+                    <button onclick="goToPreviousStep()" class="flex-1 bg-gray-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-600 transition">
+                        <i class="fas fa-arrow-left mr-2"></i>前のステップ
+                    </button>
+                `;
+            }
+            
+            if (currentStep < totalSteps - 1) {
+                html += `
+                    <button onclick="goToNextStep()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">
+                        次のステップへ
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                `;
+            } else {
+                html += `
+                    <button onclick="restartDemo()" class="flex-1 bg-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition">
+                        <i class="fas fa-redo mr-2"></i>もう一度試す
+                    </button>
+                `;
+            }
+            
+            navigationArea.innerHTML = html;
+            
+            // Scroll to feedback
+            feedbackArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Go to next step
+        function goToNextStep() {
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                renderProgressBar();
+                renderStep();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Go to previous step
+        function goToPreviousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderProgressBar();
+                renderStep();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Restart demo
+        function restartDemo() {
+            currentStep = 0;
+            userAnswers.length = 0;
+            renderProgressBar();
+            renderStep();
+            document.getElementById('feedbackArea').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

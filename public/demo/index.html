@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOBEYA Study Partner - デモページ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .tech-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            background: #f3f4f6;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-graduation-cap text-4xl"></i>
+                    <div>
+                        <h1 class="text-3xl font-bold">KOBEYA Study Partner</h1>
+                        <p class="text-sm opacity-90">AI-Powered Learning Platform Demo</p>
+                    </div>
+                </div>
+                <a href="https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full" 
+                   target="_blank"
+                   class="bg-white text-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
+                    <i class="fab fa-github mr-2"></i>GitHub
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-5xl font-bold mb-6">AI学習システムのデモ</h2>
+            <p class="text-xl mb-8 opacity-90">バンコクの日本人小中学生向けに開発された、AI駆動の個別最適化学習プラットフォーム</p>
+            <div class="flex justify-center space-x-4">
+                <span class="tech-badge bg-white text-purple-600">
+                    <i class="fas fa-robot mr-2"></i>OpenAI GPT-4o
+                </span>
+                <span class="tech-badge bg-white text-purple-600">
+                    <i class="fas fa-cloud mr-2"></i>Cloudflare Workers
+                </span>
+                <span class="tech-badge bg-white text-purple-600">
+                    <i class="fas fa-database mr-2"></i>D1 Database
+                </span>
+                <span class="tech-badge bg-white text-purple-600">
+                    <i class="fas fa-code mr-2"></i>TypeScript
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Cards -->
+    <section class="container mx-auto px-4 py-16">
+        <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">体験できるデモ</h2>
+        
+        <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <!-- 英検デモカード -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-8 text-white">
+                    <i class="fas fa-book-open text-5xl mb-4"></i>
+                    <h3 class="text-3xl font-bold mb-2">英検対策システム</h3>
+                    <p class="text-blue-100">AI生成の英検練習問題</p>
+                </div>
+                <div class="p-8">
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3 text-gray-800">体験できる機能</h4>
+                        <ul class="space-y-2 text-gray-600">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>英検3級の文法問題（固定1問）</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>4択の選択肢から解答</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>詳細な解説とフィードバック</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>全選択肢の説明</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3 text-gray-800">技術的特徴</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="tech-badge text-xs">CEFR-J 10,000語彙</span>
+                            <span class="tech-badge text-xs">著作権チェック</span>
+                            <span class="tech-badge text-xs">61トピックエリア</span>
+                            <span class="tech-badge text-xs">自動難易度調整</span>
+                        </div>
+                    </div>
+                    
+                    <a href="/demo/eiken.html" 
+                       class="block w-full bg-blue-600 text-white text-center py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">
+                        英検デモを体験する
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 小論文デモカード -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-green-500 to-green-600 p-8 text-white">
+                    <i class="fas fa-pen-fancy text-5xl mb-4"></i>
+                    <h3 class="text-3xl font-bold mb-2">小論文コーチング</h3>
+                    <p class="text-green-100">段階的な小論文学習支援</p>
+                </div>
+                <div class="p-8">
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3 text-gray-800">体験できる機能</h4>
+                        <ul class="space-y-2 text-gray-600">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>7ステップの段階的学習</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>各ステップでのAIフィードバック</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>読解→構成→執筆の完全フロー</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                                <span>プログレスバー付き進捗管理</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-bold text-lg mb-3 text-gray-800">技術的特徴</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="tech-badge text-xs">GPT-4o Vision</span>
+                            <span class="tech-badge text-xs">画像解析OCR</span>
+                            <span class="tech-badge text-xs">動的ステップ生成</span>
+                            <span class="tech-badge text-xs">セッション管理</span>
+                        </div>
+                    </div>
+                    
+                    <a href="/demo/essay.html" 
+                       class="block w-full bg-green-600 text-white text-center py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition">
+                        小論文デモを体験する
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技術スタック -->
+    <section class="bg-gray-100 py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">使用技術スタック</h2>
+            
+            <div class="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+                <!-- Frontend -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-laptop-code text-4xl text-blue-600 mb-2"></i>
+                        <h3 class="font-bold text-lg">Frontend</h3>
+                    </div>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>React 19</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>TypeScript</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Tailwind CSS</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Vite</li>
+                    </ul>
+                </div>
+
+                <!-- Backend -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-server text-4xl text-purple-600 mb-2"></i>
+                        <h3 class="font-bold text-lg">Backend</h3>
+                    </div>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li><i class="fas fa-check text-purple-600 mr-2"></i>Hono.js</li>
+                        <li><i class="fas fa-check text-purple-600 mr-2"></i>Cloudflare Workers</li>
+                        <li><i class="fas fa-check text-purple-600 mr-2"></i>TypeScript</li>
+                        <li><i class="fas fa-check text-purple-600 mr-2"></i>Edge Runtime</li>
+                    </ul>
+                </div>
+
+                <!-- Database & Storage -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-database text-4xl text-green-600 mb-2"></i>
+                        <h3 class="font-bold text-lg">Database</h3>
+                    </div>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>Cloudflare D1</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>SQLite</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>10,000+ 語彙</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>KV Storage</li>
+                    </ul>
+                </div>
+
+                <!-- AI & APIs -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-robot text-4xl text-orange-600 mb-2"></i>
+                        <h3 class="font-bold text-lg">AI & APIs</h3>
+                    </div>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li><i class="fas fa-check text-orange-600 mr-2"></i>OpenAI GPT-4o</li>
+                        <li><i class="fas fa-check text-orange-600 mr-2"></i>GPT-4o Vision</li>
+                        <li><i class="fas fa-check text-orange-600 mr-2"></i>CEFR-J Wordlist</li>
+                        <li><i class="fas fa-check text-orange-600 mr-2"></i>REST API</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Architecture -->
+    <section class="container mx-auto px-4 py-16">
+        <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">システムアーキテクチャ</h2>
+        
+        <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+            <div class="text-center mb-8">
+                <pre class="text-left bg-gray-50 p-6 rounded-xl text-sm overflow-x-auto">
+┌─────────────────────────────────────────────────────────┐
+│                    Client Browser                        │
+│  (React + TypeScript + Tailwind CSS)                     │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTPS
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│              Cloudflare Pages (CDN)                      │
+│  - Static Assets (HTML/CSS/JS)                           │
+│  - Edge Caching                                          │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│         Cloudflare Workers (Edge Runtime)                │
+│  Hono.js Framework                                       │
+│  ├─ /api/eiken/* (英検問題生成)                         │
+│  ├─ /api/essay/* (小論文コーチング)                     │
+│  └─ /api/ai/* (AIチャット)                              │
+└────────┬───────────────────┬────────────────────────────┘
+         │                   │
+         ↓                   ↓
+┌────────────────┐  ┌────────────────────────────┐
+│ Cloudflare D1  │  │    OpenAI API              │
+│ (SQLite)       │  │  ├─ GPT-4o (Text)          │
+│                │  │  └─ GPT-4o Vision (Image)  │
+│ 14 Tables      │  │                            │
+│ 10,000+ Words  │  │  Response: 2-3s avg        │
+└────────────────┘  └────────────────────────────┘
+                </pre>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-6 mt-8">
+                <div class="text-center">
+                    <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-tachometer-alt text-2xl text-blue-600"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">高速レスポンス</h4>
+                    <p class="text-sm text-gray-600">Edge Runtimeで平均応答時間200ms以下</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-shield-alt text-2xl text-green-600"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">セキュア</h4>
+                    <p class="text-sm text-gray-600">Cloudflareのセキュリティ機能を活用</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-expand-arrows-alt text-2xl text-purple-600"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">スケーラブル</h4>
+                    <p class="text-sm text-gray-600">Serverlessで無制限にスケール</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GitHub CTA -->
+    <section class="gradient-bg text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-4xl font-bold mb-6">オープンソースプロジェクト</h2>
+            <p class="text-xl mb-8 opacity-90">このプロジェクトは全てGitHubで公開されています</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full" 
+                   target="_blank"
+                   class="bg-white text-purple-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition inline-flex items-center justify-center">
+                    <i class="fab fa-github mr-3 text-2xl"></i>
+                    GitHubリポジトリを見る
+                </a>
+                <a href="https://kobeyabkk-studypartner.pages.dev/" 
+                   target="_blank"
+                   class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-purple-600 transition inline-flex items-center justify-center">
+                    <i class="fas fa-external-link-alt mr-3"></i>
+                    本番環境を見る
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">© 2026 KOBEYA Programming School, Bangkok</p>
+            <p class="text-sm text-gray-400">AI-Powered Personalized Learning Platform for Japanese Students</p>
+            <div class="mt-4 space-x-4">
+                <a href="https://github.com/kobeyabkk/KOBEYA_StudyPartner_Full" class="text-gray-400 hover:text-white">
+                    <i class="fab fa-github text-xl"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
